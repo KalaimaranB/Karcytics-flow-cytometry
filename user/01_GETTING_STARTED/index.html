@@ -1,0 +1,2188 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/user/01_GETTING_STARTED/">
+      
+      
+        <link rel="prev" href="../00_OVERVIEW/">
+      
+      
+        <link rel="next" href="../03_SCIENTIFIC_LOGIC/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Getting Started - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#getting-started-with-karcytics-flow-cytometry" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Getting Started
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-interface-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Interface Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Interface Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-ribbons-toolbar-top" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Ribbons (Toolbar - Top)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-groups-sample-tree-left-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Groups &amp; Sample Tree (Left Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-primary-canvas-center" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. Primary Canvas (Center)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-properties-statistics-right-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D. Properties &amp; Statistics (Right Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-complete-workflow-from-data-to-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Complete Workflow: From Data to Results
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Complete Workflow: From Data to Results">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-project-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Project Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: Project Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-11-create-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.1: Create Workspace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-12-load-fcs-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.2: Load FCS Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-13-assign-sample-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.3: Assign Sample Roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-spectral-compensation-optional-but-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Spectral Compensation (Optional but Recommended)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Spectral Compensation (Optional but Recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-21-compute-spillover-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.1: Compute Spillover Matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-22-apply-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.2: Apply Compensation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-initial-gating-morphology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Initial Gating (Morphology)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3: Initial Gating (Morphology)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-31-load-sample-onto-canvas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.1: Load Sample onto Canvas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-32-draw-lymphocyte-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.2: Draw Lymphocyte Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-33-view-population-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.3: View Population Statistics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-advanced-gating-marker-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Advanced Gating (Marker-Based)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 4: Advanced Gating (Marker-Based)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-41-switch-to-marker-axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.1: Switch to Marker Axes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-42-draw-cd4-t-cell-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.2: Draw CD4+ T Cell Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-43-apply-to-full-experiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.3: Apply to Full Experiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-hierarchical-gating-optional-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Hierarchical Gating (Optional Advanced)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 5: Hierarchical Gating (Optional Advanced)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-51-parent-child-relationships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.1: Parent-Child Relationships
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-52-view-gate-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.2: View Gate Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-statistical-analysis-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Statistical Analysis &amp; Export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Statistical Analysis &amp; Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-a-view-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step A: View Statistics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-b-compare-populations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step B: Compare Populations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-c-export-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step C: Export Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-tips-tricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Tips &amp; Tricks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Tips &amp; Tricks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#efficiency-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Efficiency Tips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality Tips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_ANALYSIS_GUIDE.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analysis Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-interface-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Interface Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Interface Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-ribbons-toolbar-top" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A. Ribbons (Toolbar - Top)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#b-groups-sample-tree-left-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        B. Groups &amp; Sample Tree (Left Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#c-primary-canvas-center" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C. Primary Canvas (Center)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#d-properties-statistics-right-sidebar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        D. Properties &amp; Statistics (Right Sidebar)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-complete-workflow-from-data-to-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Complete Workflow: From Data to Results
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Complete Workflow: From Data to Results">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-project-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Project Setup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: Project Setup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-11-create-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.1: Create Workspace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-12-load-fcs-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.2: Load FCS Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-13-assign-sample-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1.3: Assign Sample Roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-spectral-compensation-optional-but-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Spectral Compensation (Optional but Recommended)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Spectral Compensation (Optional but Recommended)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-21-compute-spillover-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.1: Compute Spillover Matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-22-apply-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2.2: Apply Compensation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-initial-gating-morphology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Initial Gating (Morphology)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3: Initial Gating (Morphology)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-31-load-sample-onto-canvas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.1: Load Sample onto Canvas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-32-draw-lymphocyte-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.2: Draw Lymphocyte Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-33-view-population-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3.3: View Population Statistics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-advanced-gating-marker-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Advanced Gating (Marker-Based)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 4: Advanced Gating (Marker-Based)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-41-switch-to-marker-axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.1: Switch to Marker Axes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-42-draw-cd4-t-cell-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.2: Draw CD4+ T Cell Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-43-apply-to-full-experiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4.3: Apply to Full Experiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-hierarchical-gating-optional-advanced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Hierarchical Gating (Optional Advanced)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 5: Hierarchical Gating (Optional Advanced)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-51-parent-child-relationships" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.1: Parent-Child Relationships
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-52-view-gate-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5.2: View Gate Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-statistical-analysis-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Statistical Analysis &amp; Export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Statistical Analysis &amp; Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-a-view-statistics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step A: View Statistics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-b-compare-populations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step B: Compare Populations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-c-export-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step C: Export Results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-tips-tricks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Tips &amp; Tricks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Tips &amp; Tricks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#efficiency-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Efficiency Tips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality-tips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality Tips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Next Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keyboard-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keyboard Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="getting-started-with-karcytics-flow-cytometry">Getting Started with Karcytics Flow Cytometry</h1>
+<p>Welcome! This guide covers everything you need to start analyzing flow cytometry data in Karcytics—from loading FCS files through initial population gating and statistical analysis.</p>
+<hr />
+<h2 id="1-interface-overview">1. Interface Overview</h2>
+<p>The graphical interface is organized into four functional zones:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌───────────────────────────────────────────────────────────────┐
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│ RIBBONS: Workspace│Compensation│Gating│Pipeline│Statistics  │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├─────────────┬─────────────────────────────────┬───────────────┤
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│             │                                 │               │
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│  GROUPS &amp;   │                                 │  PROPERTIES   │
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│  SAMPLE     │        PRIMARY CANVAS           │    &amp; STATS    │
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   TREE      │    (2D Plot or Historgram)      │    OUTPUT     │
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│             │                                 │               │
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│             │                                 │               │
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>└─────────────┴─────────────────────────────────┴───────────────┘
+</span></code></pre></div>
+<h3 id="a-ribbons-toolbar-top">A. Ribbons (Toolbar - Top)</h3>
+<p>Organized by analysis task:</p>
+<table>
+<thead>
+<tr>
+<th>Ribbon</th>
+<th>Purpose</th>
+<th>Key Features</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workspace</strong></td>
+<td>Session management</td>
+<td>Open/create samples, manage groups, configure workspace</td>
+</tr>
+<tr>
+<td><strong>Compensation</strong></td>
+<td>Spillover correction</td>
+<td>Load controls, compute spillover matrix, apply compensation</td>
+</tr>
+<tr>
+<td><strong>Gating</strong></td>
+<td>Population definition</td>
+<td>Draw gates (Rectangle, Polygon, Ellipse, Quadrant, Range)</td>
+</tr>
+<tr>
+<td><strong>Pipeline</strong></td>
+<td>Batch analysis</td>
+<td>Execute workflows, batch process samples</td>
+</tr>
+<tr>
+<td><strong>Statistics</strong></td>
+<td>Report generation</td>
+<td>View stats table, export, format</td>
+</tr>
+<tr>
+<td><strong>Spectral</strong></td>
+<td>Advanced visualization</td>
+<td>Spillover heatmap, unmixing tools</td>
+</tr>
+<tr>
+<td><strong>UMAP</strong></td>
+<td>Dimensionality reduction</td>
+<td>Configure UMAP, export embedding</td>
+</tr>
+<tr>
+<td><strong>Encyclopedia</strong></td>
+<td>Biology reference</td>
+<td>Fluorophore/marker database lookup</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: All 8 ribbons visible in toolbar</p>
+</blockquote>
+<h3 id="b-groups-sample-tree-left-sidebar">B. Groups &amp; Sample Tree (Left Sidebar)</h3>
+<ul>
+<li><strong>Groups Panel</strong>: Filter visualizations by experimental condition (e.g., "Stimulated" vs. "Control").</li>
+<li>Right-click → Create Group</li>
+<li>Drag samples to assign to groups</li>
+<li>
+<p>Groups share gate definitions (auto-propagated)</p>
+</li>
+<li>
+<p><strong>Sample Tree</strong>: Hierarchical view of all samples and populations.</p>
+</li>
+<li>Root level: Sample names</li>
+<li>Nested: All defined populations (gates)</li>
+<li>Double-click a sample: Load onto canvas</li>
+<li>Double-click a population: Filter canvas to show only that population</li>
+</ul>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Sample tree with 5 samples, groups panel expanded, showing Unstained, Single-Stain controls</p>
+</blockquote>
+<h3 id="c-primary-canvas-center">C. Primary Canvas (Center)</h3>
+<p>High-performance 2D plot with multiple visualization modes:</p>
+<ul>
+<li><strong>Pseudocolor (Density)</strong>: Hexbin density visualization (recommended for publication)</li>
+<li><strong>Dot Plot (Scatter)</strong>: Individual event scatter points (best for outlier detection)</li>
+<li><strong>Contour</strong>: 2D topological contours (publication quality)</li>
+<li><strong>Histogram</strong>: 1D distribution plot</li>
+</ul>
+<p><strong>Interactive Features:</strong>
+- Click-drag to define gates
+- Scroll wheel: Zoom in/out
+- Right-click: Context menu (export, clear gates, etc.)
+- Hover: Tooltip showing nearest gate and event count</p>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Canvas showing pseudocolor lymphocyte plot with overlaid rectangle gate</p>
+</blockquote>
+<h3 id="d-properties-statistics-right-sidebar">D. Properties &amp; Statistics (Right Sidebar)</h3>
+<ul>
+<li><strong>Sample Properties</strong>:</li>
+<li>Display name, file path, FCS version</li>
+<li>Current axes (X/Y parameters)</li>
+<li>Visualization mode and settings</li>
+<li>
+<p>Transform selection (Linear, Log, Logicle)</p>
+</li>
+<li>
+<p><strong>Statistics Table</strong>:</p>
+</li>
+<li>Real-time statistics for selected population</li>
+<li>Metrics: Count, Mean, Median, MFI, CV, % Parent, % Total</li>
+<li>Sortable, exportable to CSV</li>
+</ul>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Properties panel showing CD4+ T cells statistics (5000 events, 25% parent, 1.2e5 MFI)</p>
+</blockquote>
+<hr />
+<h2 id="2-complete-workflow-from-data-to-results">2. Complete Workflow: From Data to Results</h2>
+<h3 id="phase-1-project-setup">Phase 1: Project Setup</h3>
+<h4 id="step-11-create-workspace">Step 1.1: Create Workspace</h4>
+<ol>
+<li>Karcytics automatically creates a workspace when you load the Flow Cytometry module</li>
+<li>Save workspace frequently (File → Save Workspace)</li>
+</ol>
+<h4 id="step-12-load-fcs-files">Step 1.2: Load FCS Files</h4>
+<ol>
+<li>Click <strong>Workspace</strong> ribbon → <strong>Add Samples</strong></li>
+<li>Select your <code>.fcs</code> files (supports batch selection)</li>
+<li>Recommended: Copy FCS files to project's <code>assets/data/</code> folder for portability</li>
+</ol>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: File dialog showing FCS file selection</p>
+</blockquote>
+<p><strong>Supported FCS Versions:</strong>
+- FCS 2.0, 3.0, 3.1 (via FlowKit)
+- Automatic channel/marker extraction
+- Instrument metadata preserved</p>
+<h4 id="step-13-assign-sample-roles">Step 1.3: Assign Sample Roles</h4>
+<p>Sample roles enable automated workflows (compensation, boundary detection):</p>
+<ol>
+<li>Select sample in Sample Tree</li>
+<li>Right-click → Edit Properties → Role</li>
+<li>Assign role:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Use Case</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unstained</strong></td>
+<td>Autofluorescence baseline</td>
+<td>Untreated cells</td>
+</tr>
+<tr>
+<td><strong>Single-Stain</strong></td>
+<td>Spillover matrix computation</td>
+<td>FITC-only, PE-only, APC-only controls</td>
+</tr>
+<tr>
+<td><strong>FMO Control</strong></td>
+<td>Population boundary detection</td>
+<td>Fluorescence Minus One controls</td>
+</tr>
+<tr>
+<td><strong>Isotype Control</strong></td>
+<td>Antibody specificity validation</td>
+<td>Isotype-matched controls</td>
+</tr>
+<tr>
+<td><strong>Full Panel</strong></td>
+<td>Experimental sample</td>
+<td>Main cohort data</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Sample tree showing 6 samples with role badges (Unstained, Single-Stain×3, Full Panel×2)</p>
+</blockquote>
+<hr />
+<h3 id="phase-2-spectral-compensation-optional-but-recommended">Phase 2: Spectral Compensation (Optional but Recommended)</h3>
+<h4 id="step-21-compute-spillover-matrix">Step 2.1: Compute Spillover Matrix</h4>
+<ol>
+<li>Click <strong>Compensation</strong> ribbon</li>
+<li>Click <strong>Select Controls</strong></li>
+<li>Choose:</li>
+<li>Unstained control (if available)</li>
+<li>Single-stain controls (one per fluorophore)</li>
+<li>Click <strong>Compute Spillover Matrix</strong></li>
+</ol>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Compensation dialog showing control selection and spillover matrix heatmap</p>
+</blockquote>
+<p><strong>Output:</strong> Spillover matrix showing crosstalk between detectors (e.g., FITC bleeds 2% into PE)</p>
+<h4 id="step-22-apply-compensation">Step 2.2: Apply Compensation</h4>
+<ol>
+<li>Review spillover matrix</li>
+<li>Click <strong>Apply Compensation</strong></li>
+<li>System automatically applies to all samples</li>
+</ol>
+<blockquote>
+<p>[!NOTE]
+Once applied, all downstream plots and gating use compensated data. Statistics recalculate automatically.</p>
+</blockquote>
+<hr />
+<h3 id="phase-3-initial-gating-morphology">Phase 3: Initial Gating (Morphology)</h3>
+<h4 id="step-31-load-sample-onto-canvas">Step 3.1: Load Sample onto Canvas</h4>
+<ol>
+<li><strong>Sample Tree</strong> → Double-click sample name</li>
+<li>Canvas displays default axes (FSC-A vs. SSC-A)</li>
+<li>Pseudocolor density plot renders automatically</li>
+</ol>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Lymphocyte population visible as high-density cloud; monocytes and debris as separate clusters</p>
+</blockquote>
+<h4 id="step-32-draw-lymphocyte-gate">Step 3.2: Draw Lymphocyte Gate</h4>
+<ol>
+<li>Click <strong>Gating</strong> ribbon → <strong>Rectangle</strong> tool</li>
+<li>Click-drag to encompass lymphocyte cluster on canvas</li>
+<li>Release to create gate</li>
+<li>Enter population name: "Lymphocytes"</li>
+<li>Gate instantly appears as overlay on canvas; node added to Sample Tree</li>
+</ol>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Rectangle gate drawn around lymphocyte cluster, showing dashed red rectangle</p>
+</blockquote>
+<h4 id="step-33-view-population-statistics">Step 3.3: View Population Statistics</h4>
+<ol>
+<li>Click <strong>Lymphocytes</strong> node in Sample Tree</li>
+<li><strong>Properties</strong> panel (right) shows:</li>
+<li>Event count: 80,000</li>
+<li>% Parent: 80% (of all events)</li>
+<li>MFI (FSC-A): 145,000</li>
+<li>etc.</li>
+</ol>
+<hr />
+<h3 id="phase-4-advanced-gating-marker-based">Phase 4: Advanced Gating (Marker-Based)</h3>
+<h4 id="step-41-switch-to-marker-axes">Step 4.1: Switch to Marker Axes</h4>
+<ol>
+<li>Canvas bottom: X-axis selector</li>
+<li>Change to: "CD3-FITC" (or desired marker)</li>
+<li>Canvas top: Y-axis selector</li>
+<li>Change to: "CD4-PE"</li>
+<li>Canvas auto-redraws with new axes</li>
+</ol>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Canvas now showing CD3-FITC vs CD4-PE plot; CD4+ cells visible as distinct population upper-right</p>
+</blockquote>
+<h4 id="step-42-draw-cd4-t-cell-gate">Step 4.2: Draw CD4+ T Cell Gate</h4>
+<ol>
+<li>Click <strong>Gating</strong> ribbon → <strong>Rectangle</strong> (or <strong>Quadrant</strong> for CD4/CD8 split)</li>
+<li>Define CD4+ region on canvas</li>
+<li>Gate is automatically parented to "Lymphocytes" population</li>
+</ol>
+<blockquote>
+<p>[!TIP]
+<strong>Quadrant Gate Shortcut</strong>: Use <strong>Quadrant</strong> tool for automated 4-way split on two markers (CD4 vs CD8). Creates Q1-Q4 subpopulations instantly.</p>
+</blockquote>
+<h4 id="step-43-apply-to-full-experiment">Step 4.3: Apply to Full Experiment</h4>
+<ul>
+<li>Gate automatically propagates to all samples in the same group (200ms debounce)</li>
+<li>Check <strong>Properties</strong> panel: Statistics automatically recompute for all samples</li>
+</ul>
+<hr />
+<h3 id="phase-5-hierarchical-gating-optional-advanced">Phase 5: Hierarchical Gating (Optional Advanced)</h3>
+<h4 id="step-51-parent-child-relationships">Step 5.1: Parent-Child Relationships</h4>
+<ol>
+<li>Select gate in Sample Tree</li>
+<li>When drawing new gate, click <strong>Gating</strong> ribbon → <strong>On Gate</strong> to set parent</li>
+<li>New gate inherits parent population filtering</li>
+</ol>
+<p><strong>Example Hierarchy:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>All Events
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>├── Lymphocytes (FSC-A, SSC-A rectangle)
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>│   ├── Singlets (FSC-A vs FSC-H rectangle)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>│   │   ├── CD4+ (CD3+ CD4+)
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>│   │   └── CD8+ (CD3+ CD8+)
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>│   └── CD3+ T Cells (CD3 range gate)
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>└── Monocytes (FSC-A, SSC-A rectangle)
+</span></code></pre></div></p>
+<h4 id="step-52-view-gate-hierarchy">Step 5.2: View Gate Hierarchy</h4>
+<p><strong>Node Canvas</strong> (side panel):
+- Visual DAG (Directed Acyclic Graph) of population relationships
+- Drag nodes to reposition
+- Right-click edges to delete connections
+- Automatically layouts to prevent overlap</p>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Node canvas showing 8 populations connected in hierarchical tree</p>
+</blockquote>
+<hr />
+<h2 id="3-statistical-analysis-export">3. Statistical Analysis &amp; Export</h2>
+<h3 id="step-a-view-statistics">Step A: View Statistics</h3>
+<ol>
+<li>Select population in Sample Tree</li>
+<li><strong>Properties</strong> panel (right) displays:</li>
+<li><strong>Count</strong>: Total events in population</li>
+<li><strong>Mean</strong>: Average parameter intensity</li>
+<li><strong>Median</strong> / <strong>MFI</strong>: Median intensity (standard metric)</li>
+<li><strong>CV</strong>: Coefficient of variation (spread)</li>
+<li><strong>%Parent</strong>: Percentage of parent population</li>
+<li><strong>%Total</strong>: Percentage of all events</li>
+</ol>
+<h3 id="step-b-compare-populations">Step B: Compare Populations</h3>
+<ol>
+<li>Select multiple populations (Ctrl+Click)</li>
+<li><strong>Statistics</strong> ribbon → <strong>Compare</strong></li>
+<li>Generate comparison table (all metrics, all populations)</li>
+</ol>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Statistics table showing CD4+, CD8+, DN (double-negative), DP (double-positive) populations side-by-side with MFI, CV, percentages</p>
+</blockquote>
+<h3 id="step-c-export-results">Step C: Export Results</h3>
+<p>Multiple export options:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Use Case</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>CSV</strong></td>
+<td>Excel/analysis software</td>
+<td>Statistics table (easily imported to R, Python, GraphPad)</td>
+</tr>
+<tr>
+<td><strong>PDF</strong></td>
+<td>Publication/report</td>
+<td>High-quality figures (300 DPI, vector graphics)</td>
+</tr>
+<tr>
+<td><strong>PNG/TIFF</strong></td>
+<td>Presentations</td>
+<td>Raster images (specified DPI)</td>
+</tr>
+<tr>
+<td><strong>GatingML</strong></td>
+<td>Reproducible analysis</td>
+<td>Gate definitions (importable into other software)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Export Workflow:</strong>
+1. Select population(s) in Sample Tree
+2. Right-click → <strong>Export</strong>
+3. Choose format and location
+4. Statistics and plots export together</p>
+<blockquote>
+<p>[!SCREENSHOT PLACEHOLDER]
+Screenshot: Export dialog showing CSV, PDF, PNG options with preview</p>
+</blockquote>
+<hr />
+<h2 id="4-tips-tricks">4. Tips &amp; Tricks</h2>
+<h3 id="efficiency-tips">Efficiency Tips</h3>
+<ul>
+<li><strong>Undo/Redo</strong>: Ctrl+Z / Ctrl+Y to undo gate edits</li>
+<li><strong>Keyboard Shortcuts</strong>: See <a href="../09_KEYBOARD_SHORTCUTS/">Keyboard Shortcuts Guide</a></li>
+<li><strong>Template Saving</strong>: After setting up a protocol, save as template for reuse on new samples</li>
+<li><strong>Batch Gating</strong>: Use <strong>Pipeline</strong> ribbon to apply gates to multiple samples simultaneously</li>
+</ul>
+<h3 id="quality-tips">Quality Tips</h3>
+<ul>
+<li><strong>FMO Controls</strong>: Always use FMO controls for accurate boundary detection (automated via FMO role)</li>
+<li><strong>Live/Dead Filtering</strong>: Apply viability marker gate early in hierarchy</li>
+<li><strong>Transform Selection</strong>: Use <strong>Logicle</strong> (biexponential) for all fluorescence channels; <strong>Linear</strong> for scatter</li>
+<li><strong>Remove Debris</strong>: Apply forward/side scatter gates early to improve visualization</li>
+</ul>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<p>See <a href="../10_TROUBLESHOOTING/">Troubleshooting Guide</a> for common issues:
+- "Empty plot" → Check axis parameter selection and data range
+- "Gates not propagating" → Verify samples in same group
+- "Slow rendering" → Switch to "Fast Preview" in Workspace settings for large datasets</p>
+<hr />
+<h2 id="5-next-steps">5. Next Steps</h2>
+<ul>
+<li><strong><a href="../02_WORKSPACE_RIBBON/">Workspace Ribbon Guide</a></strong>: Advanced session management, groups, and presets</li>
+<li><strong><a href="../03_COMPENSATION_RIBBON/">Compensation Ribbon Guide</a></strong>: Detailed spillover correction workflows</li>
+<li><strong><a href="../04_GATING_RIBBON/">Gating Ribbon Guide</a></strong>: All gate types, Boolean logic, node operations</li>
+<li><strong><a href="../06_STATISTICS_RIBBON/">Statistics Ribbon Guide</a></strong>: Advanced metric calculation and export</li>
+<li><strong><a href="../03_SCIENTIFIC_LOGIC/">Scientific Logic</a></strong>: Mathematical principles behind transforms and compensation</li>
+<li><strong><a href="../08_UMAP_RIBBON/">UMAP Guide</a></strong>: Dimensionality reduction and discovery analysis</li>
+</ul>
+<hr />
+<h2 id="keyboard-reference">Keyboard Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Shortcut</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Undo</td>
+<td>Ctrl+Z</td>
+</tr>
+<tr>
+<td>Redo</td>
+<td>Ctrl+Y</td>
+</tr>
+<tr>
+<td>Save</td>
+<td>Ctrl+S</td>
+</tr>
+<tr>
+<td>Zoom In</td>
+<td>Scroll Up / +</td>
+</tr>
+<tr>
+<td>Zoom Out</td>
+<td>Scroll Down / -</td>
+</tr>
+<tr>
+<td>Pan</td>
+<td>Middle-click Drag</td>
+</tr>
+<tr>
+<td>Delete Gate</td>
+<td>Delete / Backspace</td>
+</tr>
+<tr>
+<td>Select Multiple</td>
+<td>Ctrl+Click</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="../09_KEYBOARD_SHORTCUTS/">Complete Shortcuts List</a> for more.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

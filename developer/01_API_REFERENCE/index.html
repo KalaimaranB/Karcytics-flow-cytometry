@@ -1,0 +1,2278 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/01_API_REFERENCE/">
+      
+      
+        <link rel="prev" href="../00_ARCHITECTURE_OVERVIEW/">
+      
+      
+        <link rel="next" href="../02_UI_ENGINE/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>API Reference - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#developer-api-reference-complete-implementation-details" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_ANALYSIS_GUIDE.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Analysis Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-gate-types-geometric-algorithms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Gate Types &amp; Geometric Algorithms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Gate Types &amp; Geometric Algorithms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rectanglegate-2d-rectangular-region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RectangleGate (2D Rectangular Region)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polygongate-free-form-multi-vertex-region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PolygonGate (Free-Form Multi-Vertex Region)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ellipsegate-elliptical-region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EllipseGate (Elliptical Region)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rangegate-1d-single-parameter-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RangeGate (1D Single-Parameter Range)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quadrantgate-automatic-4-quadrant-division" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QuadrantGate (Automatic 4-Quadrant Division)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subsetgate-boolean-parent-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SubsetGate (Boolean Parent Reference)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quadrantsubgate-individual-quadrant-from-autosplit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QuadrantSubGate (Individual Quadrant from AutoSplit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-statistics-engine-analysisstatisticspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Statistics Engine (analysis/statistics.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Statistics Engine (analysis/statistics.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#statistic-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistic Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statistics-computation-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics Computation API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-statistic-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Statistic Computation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-compensation-engine-analysiscompensationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Compensation Engine (analysis/compensation.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Compensation Engine (analysis/compensation.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#algorithm-spillover-matrix-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm: Spillover Matrix Computation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spillover-matrix-dataclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spillover Matrix Dataclass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-transform-algorithms-analysistransformspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Transform Algorithms (analysis/transforms.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Transform Algorithms (analysis/transforms.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transform-type-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transform Type Definitions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transform Type Definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linear-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LINEAR Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log10-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LOG10 Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#biexponential-transform-logicle-parks-2006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BIEXPONENTIAL Transform (Logicle, Parks 2006)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-auto-ranging-algorithm-analysisscalingpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Auto-Ranging Algorithm (analysis/scaling.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Auto-Ranging Algorithm (analysis/scaling.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#axisscale-dataclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AxisScale Dataclass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auto-ranging-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-Ranging Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-service-layer-contracts-analysisprotocolspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Service Layer Contracts (analysis/protocols.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Service Layer Contracts (analysis/protocols.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#igatecoordinator-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IGateCoordinator Protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ipopulationservice-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPopulationService Protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-key-classes-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Key Classes Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Key Classes Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gatenode-hierarchical-population" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateNode (Hierarchical Population)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fcsdata-flow-cytometry-sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FCSData (Flow Cytometry Sample)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experiment-complete-analysis-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experiment (Complete Analysis Session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-references-further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. References &amp; Further Reading
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. References &amp; Further Reading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scientific-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scientific References
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-gate-types-geometric-algorithms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Gate Types &amp; Geometric Algorithms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Gate Types &amp; Geometric Algorithms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rectanglegate-2d-rectangular-region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RectangleGate (2D Rectangular Region)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polygongate-free-form-multi-vertex-region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PolygonGate (Free-Form Multi-Vertex Region)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ellipsegate-elliptical-region" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EllipseGate (Elliptical Region)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rangegate-1d-single-parameter-range" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RangeGate (1D Single-Parameter Range)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quadrantgate-automatic-4-quadrant-division" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QuadrantGate (Automatic 4-Quadrant Division)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subsetgate-boolean-parent-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SubsetGate (Boolean Parent Reference)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quadrantsubgate-individual-quadrant-from-autosplit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QuadrantSubGate (Individual Quadrant from AutoSplit)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-statistics-engine-analysisstatisticspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Statistics Engine (analysis/statistics.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Statistics Engine (analysis/statistics.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#statistic-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistic Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statistics-computation-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics Computation API
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-statistic-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Statistic Computation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-compensation-engine-analysiscompensationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Compensation Engine (analysis/compensation.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Compensation Engine (analysis/compensation.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#algorithm-spillover-matrix-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm: Spillover Matrix Computation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spillover-matrix-dataclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spillover Matrix Dataclass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-transform-algorithms-analysistransformspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Transform Algorithms (analysis/transforms.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Transform Algorithms (analysis/transforms.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transform-type-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transform Type Definitions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transform Type Definitions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#linear-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LINEAR Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log10-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LOG10 Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#biexponential-transform-logicle-parks-2006" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BIEXPONENTIAL Transform (Logicle, Parks 2006)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-auto-ranging-algorithm-analysisscalingpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Auto-Ranging Algorithm (analysis/scaling.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Auto-Ranging Algorithm (analysis/scaling.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#axisscale-dataclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AxisScale Dataclass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#auto-ranging-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-Ranging Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-service-layer-contracts-analysisprotocolspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Service Layer Contracts (analysis/protocols.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Service Layer Contracts (analysis/protocols.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#igatecoordinator-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IGateCoordinator Protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ipopulationservice-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPopulationService Protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-key-classes-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Key Classes Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Key Classes Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gatenode-hierarchical-population" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateNode (Hierarchical Population)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fcsdata-flow-cytometry-sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FCSData (Flow Cytometry Sample)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#experiment-complete-analysis-session" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Experiment (Complete Analysis Session)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-references-further-reading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. References &amp; Further Reading
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. References &amp; Further Reading">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scientific-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scientific References
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="developer-api-reference-complete-implementation-details">Developer API Reference — Complete Implementation Details</h1>
+<p>This document provides comprehensive technical specifications for the analytical engines, gate types, statistics computations, and service layer of the Karcytics Flow Cytometry module.</p>
+<hr />
+<h2 id="1-gate-types-geometric-algorithms">1. Gate Types &amp; Geometric Algorithms</h2>
+<p>All gates inherit from the abstract <code>Gate</code> base class. Each implements:
+- <code>contains(events: pd.DataFrame) -&gt; np.ndarray[bool]</code>: Returns boolean mask of gated events.
+- <code>adapt(events: pd.DataFrame) -&gt; Gate</code>: Adaptive rescaling based on event distribution.
+- <code>serialize() -&gt; dict</code>: JSON serialization for workflow persistence.</p>
+<h3 id="rectanglegate-2d-rectangular-region"><code>RectangleGate</code> (2D Rectangular Region)</h3>
+<p><strong>Mathematical Definition:</strong>
+$$\text{Gated} = {(x,y) : x_{\min} \leq x \leq x_{\max} \text{ AND } y_{\min} \leq y \leq y_{\max}}$$</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">RectangleGate</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>           <span class="c1"># X-axis parameter name (e.g., 'FSC-A')</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>           <span class="c1"># Y-axis parameter name (e.g., 'SSC-A')</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">x_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>           <span class="c1"># Lower x boundary</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">x_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>           <span class="c1"># Upper x boundary</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">y_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>           <span class="c1"># Lower y boundary</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">y_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>           <span class="c1"># Upper y boundary</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>         <span class="c1"># Population display name</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Auto-adjust on display transform change</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Performance:</strong> O(n) single pass; vectorized NumPy operations.</p>
+<p><strong>Use Cases:</strong>
+- Forward/Side scatter lymphocyte gating
+- Density-based population isolation
+- Quality control thresholding</p>
+<hr />
+<h3 id="polygongate-free-form-multi-vertex-region"><code>PolygonGate</code> (Free-Form Multi-Vertex Region)</h3>
+<p><strong>Mathematical Definition:</strong>
+Uses <strong>Winding Number Algorithm</strong> for point-in-polygon testing:
+- For each vertex pair, compute cross product: $\vec{v} = (v_i - p) \times (v_{i+1} - p)$
+- Sum cross products; if non-zero, point is inside polygon.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">PolygonGate</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">vertices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>  <span class="c1"># Ordered vertices [(x0,y0), (x1,y1), ...]</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Coordinate Handling:</strong>
+- Vertices stored in <strong>event/data space</strong> (pre-transform coordinates).
+- During <code>contains()</code> evaluation, vertices are dynamically projected into <strong>display space</strong> using current <code>AxisScale</code> transforms.
+- This ensures visual parity: gate drawn at screen position matches the event filter.</p>
+<p><strong>Example: Lymphocyte Polygon</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">vertices</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>  <span class="c1"># lower-left</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="p">(</span><span class="mi">100000</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>  <span class="c1"># lower-right</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="p">(</span><span class="mi">100000</span><span class="p">,</span> <span class="mi">80000</span><span class="p">),</span>  <span class="c1"># upper-right</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="p">(</span><span class="mi">40000</span><span class="p">,</span> <span class="mi">60000</span><span class="p">),</span>  <span class="c1"># upper-left</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">]</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">PolygonGate</span><span class="p">(</span><span class="s2">"FSC-A"</span><span class="p">,</span> <span class="s2">"SSC-A"</span><span class="p">,</span> <span class="n">vertices</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"Lymphocytes"</span><span class="p">)</span>
+</span></code></pre></div></p>
+<p><strong>Performance:</strong> O(n*m) where m = number of vertices; optimized via NumPy broadcasts.</p>
+<hr />
+<h3 id="ellipsegate-elliptical-region"><code>EllipseGate</code> (Elliptical Region)</h3>
+<p><strong>Mathematical Definition:</strong>
+Standard ellipse equation with 2D rotation matrix:
+$$\left(\frac{x - c_x}{a}\right)^2 \cos^2(\theta) + 2\left(\frac{x - c_x}{a}\right)\left(\frac{y - c_y}{b}\right)\sin(\theta)\cos(\theta) + \left(\frac{y - c_y}{b}\right)^2\sin^2(\theta) \leq 1$$</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">EllipseGate</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">center</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>  <span class="c1"># Centroid (cx, cy)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">width</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>                  <span class="c1"># Full width along x-axis (not semi-axis)</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">height</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>                 <span class="c1"># Full height along y-axis (not semi-axis)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>            <span class="c1"># Rotation angle in degrees</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Important Note:</strong> <code>width</code> and <code>height</code> are <strong>full axis lengths</strong>, not semi-axes. Internally, semi-axes are computed as <code>width/2</code> and <code>height/2</code>.</p>
+<p><strong>Example: CD4 Population Ellipse</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">EllipseGate</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">"CD3-BV421"</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">"CD4-PE"</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">center</span><span class="o">=</span><span class="p">(</span><span class="mi">50000</span><span class="p">,</span> <span class="mi">75000</span><span class="p">),</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">width</span><span class="o">=</span><span class="mi">30000</span><span class="p">,</span>  <span class="c1"># ±15,000 in x</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">height</span><span class="o">=</span><span class="mi">25000</span><span class="p">,</span>  <span class="c1"># ±12,500 in y</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">angle</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>  <span class="c1"># 15° rotation</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">"CD4+ T-cells"</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">)</span>
+</span></code></pre></div></p>
+<p><strong>Performance:</strong> O(n); rotation matrix pre-computed.</p>
+<hr />
+<h3 id="rangegate-1d-single-parameter-range"><code>RangeGate</code> (1D Single-Parameter Range)</h3>
+<p><strong>Mathematical Definition:</strong>
+$$\text{Gated} = {x : x_{\min} \leq x \leq x_{\max}}$$</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">RangeGate</span><span class="p">(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>      <span class="c1"># Parameter name (e.g., 'Viability Dye')</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">min_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># Lower threshold</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">max_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># Upper threshold</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Use Cases:</strong>
+- Viability marker filtering (low = live cells)
+- Area normalization (FSC-H vs FSC-A)
+- Single-parameter thresholding</p>
+<hr />
+<h3 id="quadrantgate-automatic-4-quadrant-division"><code>QuadrantGate</code> (Automatic 4-Quadrant Division)</h3>
+<p><strong>Mathematical Definition:</strong>
+Divides 2D space into 4 mutually exclusive quadrants at a split point:
+- <strong>Q1</strong>: $x \geq x_{\text{mid}}, y \geq y_{\text{mid}}$ (upper-right)
+- <strong>Q2</strong>: $x &lt; x_{\text{mid}}, y \geq y_{\text{mid}}$ (upper-left)
+- <strong>Q3</strong>: $x &lt; x_{\text{mid}}, y &lt; y_{\text{mid}}$ (lower-left)
+- <strong>Q4</strong>: $x \geq x_{\text{mid}}, y &lt; y_{\text{mid}}$ (lower-right)</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">QuadrantGate</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>     <span class="c1"># X-axis parameter</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>     <span class="c1"># Y-axis parameter</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">x_mid</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>     <span class="c1"># X split point</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">y_mid</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>     <span class="c1"># Y split point</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>    <span class="c1"># Base name (children named Q1, Q2, Q3, Q4)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Automatic Child Creation:</strong>
+When a <code>QuadrantGate</code> is added to the tree, the system automatically creates 4 <code>QuadrantSubGate</code> child populations:
+- <code>{name}_Q1</code>
+- <code>{name}_Q2</code>
+- <code>{name}_Q3</code>
+- <code>{name}_Q4</code></p>
+<p><strong>Use Cases:</strong>
+- Cytokine co-expression (IFN-γ+ TNF-α+, IFN-γ+ TNF-α-, etc.)
+- CD4/CD8 classification
+- Two-marker immunophenotyping</p>
+<p><strong>Example: CD4/CD8 Quadrant</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">gate</span> <span class="o">=</span> <span class="n">QuadrantGate</span><span class="p">(</span><span class="s2">"CD4-PE"</span><span class="p">,</span> <span class="s2">"CD8-APC"</span><span class="p">,</span> <span class="n">x_mid</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">y_mid</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"CD4_CD8"</span><span class="p">)</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># Creates: CD4_CD8_Q1 (CD4+ CD8+), CD4_CD8_Q2 (CD4- CD8+),</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1">#          CD4_CD8_Q3 (CD4- CD8-), CD4_CD8_Q4 (CD4+ CD8-)</span>
+</span></code></pre></div></p>
+<hr />
+<h3 id="subsetgate-boolean-parent-reference"><code>SubsetGate</code> (Boolean Parent Reference)</h3>
+<p><strong>Mathematical Definition:</strong>
+Filters events to a subset of a parent population (Boolean logic):
+$$\text{Gated} = \text{Parent Population} \cap \text{Additional Filter}$$</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">SubsetGate</span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">parent_node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>  <span class="c1"># Node ID of parent population</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Use Cases:</strong>
+- Subset operations in DAG (e.g., "Live Lymphocytes" = Lymphocytes ∩ Viability+)
+- Complex Boolean gating (AND, OR, NOT operations)</p>
+<p><strong>Note:</strong> Actual filtering may require boolean logic via <code>DagEvaluator</code> for multi-parent nodes.</p>
+<hr />
+<h3 id="quadrantsubgate-individual-quadrant-from-autosplit"><code>QuadrantSubGate</code> (Individual Quadrant from AutoSplit)</h3>
+<p><strong>Mathematical Definition:</strong>
+Single quadrant from an automatic 4-quadrant split (typically auto-generated):
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">QuadrantSubGate</span><span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">x_mid</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">y_mid</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">quadrant</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>  <span class="c1"># 1, 2, 3, or 4</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">)</span>
+</span></code></pre></div></p>
+<p><strong>Typically NOT instantiated directly</strong>; created automatically by <code>QuadrantGate</code>.</p>
+<hr />
+<h2 id="2-statistics-engine-analysisstatisticspy">2. Statistics Engine (<code>analysis/statistics.py</code>)</h2>
+<p>The module computes <strong>13+ statistical parameters</strong> per gated population. Each statistic is defined by a <code>StatDefinition</code> and computed via <code>compute_statistic()</code>.</p>
+<h3 id="statistic-types">Statistic Types</h3>
+<table>
+<thead>
+<tr>
+<th>Stat Type</th>
+<th>Calculation</th>
+<th>Formula</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>COUNT</strong></td>
+<td>Event count</td>
+<td>$|S|$</td>
+<td>Population size</td>
+</tr>
+<tr>
+<td><strong>MEAN</strong></td>
+<td>Arithmetic mean</td>
+<td>$\frac{1}{n}\sum x_i$</td>
+<td>Average fluorescence intensity</td>
+</tr>
+<tr>
+<td><strong>MEDIAN</strong></td>
+<td>50th percentile</td>
+<td>$p_{50}$</td>
+<td>Central tendency (robust)</td>
+</tr>
+<tr>
+<td><strong>GEOMETRIC_MEAN</strong></td>
+<td>Geometric mean</td>
+<td>$(\prod x_i)^{1/n}$</td>
+<td>Central tendency (log-normal data)</td>
+</tr>
+<tr>
+<td><strong>MODE</strong></td>
+<td>Modal value</td>
+<td>$\arg\max \text{hist}(x)$</td>
+<td>Most frequent value</td>
+</tr>
+<tr>
+<td><strong>SD</strong></td>
+<td>Standard deviation</td>
+<td>$\sqrt{\frac{1}{n}\sum(x_i - \bar{x})^2}$</td>
+<td>Spread/dispersion</td>
+</tr>
+<tr>
+<td><strong>CV</strong></td>
+<td>Coefficient of variation</td>
+<td>$\frac{\sigma}{\mu} \times 100\%$</td>
+<td>Relative spread</td>
+</tr>
+<tr>
+<td><strong>MFI</strong></td>
+<td>Median fluorescence intensity</td>
+<td>Same as MEDIAN</td>
+<td>Standard cytometry metric</td>
+</tr>
+<tr>
+<td><strong>PERCENT_PARENT</strong></td>
+<td>Percentage of parent</td>
+<td>$\frac{|S|}{|P|} \times 100\%$</td>
+<td>Relative abundance in parent</td>
+</tr>
+<tr>
+<td><strong>PERCENT_TOTAL</strong></td>
+<td>Percentage of root</td>
+<td>$\frac{|S|}{|R|} \times 100\%$</td>
+<td>Relative abundance in experiment</td>
+</tr>
+<tr>
+<td><strong>PERCENT_GATED</strong></td>
+<td>Percentage of all gated events</td>
+<td>$\frac{|S|}{|G|} \times 100\%$</td>
+<td>Relative abundance in analysis</td>
+</tr>
+<tr>
+<td><strong>MIN</strong></td>
+<td>Minimum value</td>
+<td>$\min(S)$</td>
+<td>Lower bound</td>
+</tr>
+<tr>
+<td><strong>MAX</strong></td>
+<td>Maximum value</td>
+<td>$\max(S)$</td>
+<td>Upper bound</td>
+</tr>
+</tbody>
+</table>
+<h3 id="statistics-computation-api">Statistics Computation API</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">StatDefinition</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="sd">"""Defines what statistic to compute."""</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">stat_type</span><span class="p">:</span> <span class="n">StatType</span>  <span class="c1"># MEAN, MEDIAN, CV, etc.</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">parameter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Channel name (None for COUNT)</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="n">population_node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Target population</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">parent_node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># For percentage calculations</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="nd">@dataclass</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">StatResult</span><span class="p">:</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">    </span><span class="sd">"""Computed statistic result."""</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="n">definition</span><span class="p">:</span> <span class="n">StatDefinition</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="n">value</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Raw numeric value</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>    <span class="n">formatted</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># Human-readable (e.g., "1.23e4 MFI")</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_statistic</span><span class="p">(</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>    <span class="n">events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>    <span class="n">stat_def</span><span class="p">:</span> <span class="n">StatDefinition</span><span class="p">,</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>    <span class="n">parent_events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>    <span class="n">total_events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatResult</span><span class="p">:</span>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="w">    </span><span class="sd">"""Compute single statistic."""</span>
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<h3 id="example-statistic-computation">Example Statistic Computation</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Get mean CD4 intensity for CD4+ population</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">stat</span> <span class="o">=</span> <span class="n">compute_statistic</span><span class="p">(</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">events</span><span class="o">=</span><span class="n">gated_cd4_events</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">stat_def</span><span class="o">=</span><span class="n">StatDefinition</span><span class="p">(</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>        <span class="n">stat_type</span><span class="o">=</span><span class="n">StatType</span><span class="o">.</span><span class="n">MEAN</span><span class="p">,</span> <span class="n">parameter</span><span class="o">=</span><span class="s2">"CD4-PE"</span><span class="p">,</span> <span class="n">population_node_id</span><span class="o">=</span><span class="s2">"CD4_population"</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="p">),</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="p">)</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mean CD4 MFI: </span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">formatted</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># Output: "Mean CD4 MFI: 5.23e4"</span>
+</span></code></pre></div>
+<hr />
+<h2 id="3-compensation-engine-analysiscompensationpy">3. Compensation Engine (<code>analysis/compensation.py</code>)</h2>
+<p>Spectral overlap correction using <strong>median-ratio spillover matrix method</strong> (Roederer 2001).</p>
+<h3 id="algorithm-spillover-matrix-computation">Algorithm: Spillover Matrix Computation</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">calculate_spillover_matrix</span><span class="p">(</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">single_stain_samples</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FCSData</span><span class="p">],</span>  <span class="c1"># {detector: FCSData}</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">unstained</span><span class="p">:</span> <span class="n">FCSData</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">use_median</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CompensationMatrix</span><span class="p">:</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span><span class="sd">"""Compute spillover matrix from single-stain controls."""</span>
+</span></code></pre></div>
+<p><strong>Process:</strong></p>
+<ol>
+<li><strong>Background Subtraction (Optional):</strong></li>
+<li>If <code>unstained</code> provided, compute per-channel median.</li>
+<li>
+<p>Subtract from all single-stain medians for background correction.</p>
+</li>
+<li>
+<p><strong>Spillover Ratio Computation:</strong></p>
+</li>
+<li>
+<p>For each single-stain control $s_c$:</p>
+<ul>
+<li>Identify <strong>primary detector</strong> $d_p$ (highest median after background).</li>
+<li>For each detector $d_j$:</li>
+<li>$\text{spillover}[d_p][d_j] = \frac{\text{median}<em _text_singlestain="\text{singlestain">{\text{singlestain}}(d_j)}{\text{median}</em>$}}(d_p)</li>
+</ul>
+</li>
+<li>
+<p><strong>Diagonal Normalization:</strong></p>
+</li>
+<li>
+<p>Set $\text{spillover}[i][i] = 1.0$ (no self-spillover).</p>
+</li>
+<li>
+<p><strong>Matrix Inversion:</strong></p>
+</li>
+<li>$M_{\text{comp}} = M_{\text{spillover}}^{-1}$</li>
+<li>Apply via: $\text{compensated} = \text{raw} \times M_{\text{comp}}^T$</li>
+</ol>
+<h3 id="spillover-matrix-dataclass">Spillover Matrix Dataclass</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">CompensationMatrix</span><span class="p">:</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="sd">"""Spillover matrix and metadata."""</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>  <span class="c1"># N×N compensation matrix</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="n">channel_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># Column/row labels</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># 'single_stain' | 'embedded' | 'manual'</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="n">single_stain_medians</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Backup</span>
+</span></code></pre></div>
+<h3 id="example-usage">Example Usage</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Load single-stain FCS files</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">singlestain</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="s2">"FITC"</span><span class="p">:</span> <span class="n">load_fcs</span><span class="p">(</span><span class="s2">"FITC_control.fcs"</span><span class="p">),</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="s2">"PE"</span><span class="p">:</span> <span class="n">load_fcs</span><span class="p">(</span><span class="s2">"PE_control.fcs"</span><span class="p">),</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="s2">"APC"</span><span class="p">:</span> <span class="n">load_fcs</span><span class="p">(</span><span class="s2">"APC_control.fcs"</span><span class="p">),</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="p">}</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">unstained</span> <span class="o">=</span> <span class="n">load_fcs</span><span class="p">(</span><span class="s2">"unstained_control.fcs"</span><span class="p">)</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>
+</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="c1"># Compute spillover matrix</span>
+</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="n">comp_matrix</span> <span class="o">=</span> <span class="n">calculate_spillover_matrix</span><span class="p">(</span><span class="n">single_stain_samples</span><span class="o">=</span><span class="n">singlestain</span><span class="p">,</span> <span class="n">unstained</span><span class="o">=</span><span class="n">unstained</span><span class="p">)</span>
+</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>
+</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="c1"># Apply compensation</span>
+</span><span id="__span-14-13"><a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="n">compensated_events</span> <span class="o">=</span> <span class="n">raw_events</span> <span class="o">@</span> <span class="n">comp_matrix</span><span class="o">.</span><span class="n">matrix</span><span class="o">.</span><span class="n">T</span>
+</span></code></pre></div>
+<hr />
+<h2 id="4-transform-algorithms-analysistransformspy">4. Transform Algorithms (<code>analysis/transforms.py</code>)</h2>
+<h3 id="transform-type-definitions">Transform Type Definitions</h3>
+<h4 id="linear-transform">LINEAR Transform</h4>
+<p>$$y = x$$
+Identity transformation; no scaling applied.</p>
+<h4 id="log10-transform">LOG10 Transform</h4>
+<p>$$y = \frac{\log_{10}(\max(x, \text{min_value}))}{\text{decades}}$$</p>
+<p><strong>Parameters:</strong>
+- <code>min_value</code>: Floor to prevent log(0) or log(negative). Default: 0.01.
+- <code>decades</code>: Display range in orders of magnitude. Default: 4 (display 0.01 → 10,000).</p>
+<p><strong>Use:</strong> Scatter channels (FSC, SSC), some fluorescence measurements with wide dynamic range.</p>
+<h4 id="biexponential-transform-logicle-parks-2006">BIEXPONENTIAL Transform (Logicle, Parks 2006)</h4>
+<p><strong>Mathematical Foundation:</strong>
+Blends linear transformation near zero with logarithmic scaling for large values, enabling visualization of negative populations (e.g., autofluorescence-subtracted data) and positive populations simultaneously.</p>
+<p><strong>Parameters:</strong>
+- <strong>T</strong> (<code>logicle_t</code>): Top value; maximum parameter value. Default: 262,144.0 (18-bit ADC).
+- <strong>W</strong> (<code>logicle_w</code>): Width of linear region (in decades). Default: 1.0.
+- <strong>M</strong> (<code>logicle_m</code>): Display decades (log range). Default: 4.5.
+- <strong>A</strong> (<code>logicle_a</code>): Additional decades for negative values. Default: 0.0.</p>
+<p><strong>Conceptual Breakdown:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>x &lt; 0          :  Linear region (enables negative population plotting)
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>0 ≤ x ≤ T      :  Blend of linear + logarithmic
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>x &gt; T          :  Logarithmic (compressed)
+</span></code></pre></div></p>
+<p><strong>Implementation:</strong>
+The module delegates to <code>flowutils</code> C-extension (<code>flowkit.transforms.logicle()</code>), which implements the original Parks algorithm. Fallback: high-fidelity <code>np.arcsinh()</code> approximation.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">biexponential_transform</span><span class="p">(</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">top</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">262144.0</span><span class="p">,</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">positive</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.5</span><span class="p">,</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">negative</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">    </span><span class="sd">"""Apply Parks 2006 Logicle transform."""</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>    <span class="c1"># Internally calls flowkit.transforms.logicle() via C-extension</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>    <span class="c1"># Falls back to asinh if unavailable</span>
+</span></code></pre></div>
+<p><strong>Use:</strong> Fluorescence channels (all detector types); enables publication-ready visualization per modern flow cytometry standards.</p>
+<hr />
+<h2 id="5-auto-ranging-algorithm-analysisscalingpy">5. Auto-Ranging Algorithm (<code>analysis/scaling.py</code>)</h2>
+<p>Computes robust axis display ranges based on event distribution, excluding outliers.</p>
+<h3 id="axisscale-dataclass"><code>AxisScale</code> Dataclass</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">AxisScale</span><span class="p">:</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="w">    </span><span class="sd">"""Axis transformation and display configuration."""</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">transform_type</span><span class="p">:</span> <span class="n">TransformType</span>  <span class="c1"># LINEAR, LOG, BIEXPONENTIAL</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="n">min_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Manual lower display bound</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">max_val</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Manual upper display bound</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="n">logicle_t</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">262144.0</span>  <span class="c1"># Logicle T parameter</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="n">logicle_w</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># Logicle W parameter</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>    <span class="n">logicle_m</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.5</span>  <span class="c1"># Logicle M parameter</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>    <span class="n">logicle_a</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># Logicle A parameter</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>    <span class="n">outlier_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c1"># Outlier rejection threshold</span>
+</span></code></pre></div>
+<h3 id="auto-ranging-algorithm">Auto-Ranging Algorithm</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">calculate_auto_range</span><span class="p">(</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">axis_scale</span><span class="p">:</span> <span class="n">AxisScale</span><span class="p">,</span> <span class="n">outlier_percentile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="sd">"""Compute robust display range excluding outliers."""</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="c1"># Step 1: Compute percentile boundaries</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>    <span class="n">lower_percentile</span> <span class="o">=</span> <span class="n">outlier_percentile</span> <span class="o">/</span> <span class="mi">2</span>  <span class="c1"># Default: 0.05%</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>    <span class="n">upper_percentile</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">lower_percentile</span>  <span class="c1"># Default: 99.95%</span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>    <span class="n">p_lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">lower_percentile</span><span class="p">)</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>    <span class="n">p_upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">upper_percentile</span><span class="p">)</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>    <span class="c1"># Step 2: Apply transform (preview display space)</span>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>    <span class="k">if</span> <span class="n">axis_scale</span><span class="o">.</span><span class="n">transform_type</span> <span class="o">==</span> <span class="n">TransformType</span><span class="o">.</span><span class="n">LINEAR</span><span class="p">:</span>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>        <span class="n">display_min</span> <span class="o">=</span> <span class="n">p_lower</span>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>        <span class="n">display_max</span> <span class="o">=</span> <span class="n">p_upper</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>
+</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>    <span class="k">elif</span> <span class="n">axis_scale</span><span class="o">.</span><span class="n">transform_type</span> <span class="o">==</span> <span class="n">TransformType</span><span class="o">.</span><span class="n">LOG</span><span class="p">:</span>
+</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>        <span class="n">display_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">p_lower</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">))</span>
+</span><span id="__span-18-20"><a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a>        <span class="n">display_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">p_upper</span><span class="p">)</span> <span class="k">if</span> <span class="n">p_upper</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">4</span>
+</span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>
+</span><span id="__span-18-22"><a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a>    <span class="k">elif</span> <span class="n">axis_scale</span><span class="o">.</span><span class="n">transform_type</span> <span class="o">==</span> <span class="n">TransformType</span><span class="o">.</span><span class="n">BIEXPONENTIAL</span><span class="p">:</span>
+</span><span id="__span-18-23"><a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a>        <span class="c1"># Apply Logicle with extended range</span>
+</span><span id="__span-18-24"><a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a>        <span class="n">display_min</span> <span class="o">=</span> <span class="n">logicle_transform</span><span class="p">(</span>
+</span><span id="__span-18-25"><a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a>            <span class="n">p_lower</span><span class="p">,</span>
+</span><span id="__span-18-26"><a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_t</span><span class="p">,</span>
+</span><span id="__span-18-27"><a id="__codelineno-18-27" name="__codelineno-18-27" href="#__codelineno-18-27"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_w</span><span class="p">,</span>
+</span><span id="__span-18-28"><a id="__codelineno-18-28" name="__codelineno-18-28" href="#__codelineno-18-28"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_m</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-18-29"><a id="__codelineno-18-29" name="__codelineno-18-29" href="#__codelineno-18-29"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_a</span><span class="p">,</span>
+</span><span id="__span-18-30"><a id="__codelineno-18-30" name="__codelineno-18-30" href="#__codelineno-18-30"></a>        <span class="p">)</span>
+</span><span id="__span-18-31"><a id="__codelineno-18-31" name="__codelineno-18-31" href="#__codelineno-18-31"></a>        <span class="n">display_max</span> <span class="o">=</span> <span class="n">logicle_transform</span><span class="p">(</span>
+</span><span id="__span-18-32"><a id="__codelineno-18-32" name="__codelineno-18-32" href="#__codelineno-18-32"></a>            <span class="n">p_upper</span><span class="p">,</span>
+</span><span id="__span-18-33"><a id="__codelineno-18-33" name="__codelineno-18-33" href="#__codelineno-18-33"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_t</span><span class="p">,</span>
+</span><span id="__span-18-34"><a id="__codelineno-18-34" name="__codelineno-18-34" href="#__codelineno-18-34"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_w</span><span class="p">,</span>
+</span><span id="__span-18-35"><a id="__codelineno-18-35" name="__codelineno-18-35" href="#__codelineno-18-35"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_m</span><span class="p">,</span>
+</span><span id="__span-18-36"><a id="__codelineno-18-36" name="__codelineno-18-36" href="#__codelineno-18-36"></a>            <span class="n">axis_scale</span><span class="o">.</span><span class="n">logicle_a</span><span class="p">,</span>
+</span><span id="__span-18-37"><a id="__codelineno-18-37" name="__codelineno-18-37" href="#__codelineno-18-37"></a>        <span class="p">)</span>
+</span><span id="__span-18-38"><a id="__codelineno-18-38" name="__codelineno-18-38" href="#__codelineno-18-38"></a>
+</span><span id="__span-18-39"><a id="__codelineno-18-39" name="__codelineno-18-39" href="#__codelineno-18-39"></a>    <span class="k">return</span> <span class="n">display_min</span><span class="p">,</span> <span class="n">display_max</span>
+</span></code></pre></div>
+<p><strong>Example:</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># Auto-range for CD4-PE (fluorescence channel)</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="n">scale</span> <span class="o">=</span> <span class="n">AxisScale</span><span class="p">(</span><span class="n">transform_type</span><span class="o">=</span><span class="n">TransformType</span><span class="o">.</span><span class="n">BIEXPONENTIAL</span><span class="p">,</span> <span class="n">logicle_m</span><span class="o">=</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">logicle_t</span><span class="o">=</span><span class="mf">262144.0</span><span class="p">)</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">cd4_min</span><span class="p">,</span> <span class="n">cd4_max</span> <span class="o">=</span> <span class="n">calculate_auto_range</span><span class="p">(</span><span class="n">cd4_events</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">outlier_percentile</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="c1"># Typical output: cd4_min ≈ -0.5, cd4_max ≈ 4.8 (display space)</span>
+</span></code></pre></div></p>
+<hr />
+<h2 id="6-service-layer-contracts-analysisprotocolspy">6. Service Layer Contracts (<code>analysis/protocols.py</code>)</h2>
+<p>Services are defined via <strong>Protocol</strong> interfaces (Python's structural subtyping), enabling loose coupling and dependency inversion.</p>
+<h3 id="igatecoordinator-protocol"><code>IGateCoordinator</code> Protocol</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nd">@runtime_checkable</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">IGateCoordinator</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="sd">"""Facade for all gating operations."""</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">add_gate</span><span class="p">(</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gate</span><span class="p">:</span> <span class="n">Gate</span><span class="p">,</span> <span class="n">parent_node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="w">        </span><span class="sd">"""Add gate to population tree. Returns node ID."""</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>        <span class="o">...</span>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">remove_gate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="w">        </span><span class="sd">"""Remove population and children."""</span>
+</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>        <span class="o">...</span>
+</span><span id="__span-20-14"><a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>
+</span><span id="__span-20-15"><a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">modify_gate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">updates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-20-16"><a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a><span class="w">        </span><span class="sd">"""Update gate parameters (position, size, etc.)."""</span>
+</span><span id="__span-20-17"><a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>        <span class="o">...</span>
+</span><span id="__span-20-18"><a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>
+</span><span id="__span-20-19"><a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">rename_gate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-20-20"><a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a><span class="w">        </span><span class="sd">"""Rename population."""</span>
+</span><span id="__span-20-21"><a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a>        <span class="o">...</span>
+</span><span id="__span-20-22"><a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a>
+</span><span id="__span-20-23"><a id="__codelineno-20-23" name="__codelineno-20-23" href="#__codelineno-20-23"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">add_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">child_node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent_node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-20-24"><a id="__codelineno-20-24" name="__codelineno-20-24" href="#__codelineno-20-24"></a><span class="w">        </span><span class="sd">"""Wire child to additional parent (boolean logic)."""</span>
+</span><span id="__span-20-25"><a id="__codelineno-20-25" name="__codelineno-20-25" href="#__codelineno-20-25"></a>        <span class="o">...</span>
+</span></code></pre></div>
+<h3 id="ipopulationservice-protocol"><code>IPopulationService</code> Protocol</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nd">@runtime_checkable</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">IPopulationService</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="sd">"""Read-only population tree queries."""</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_population_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GateNode</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">        </span><span class="sd">"""Retrieve population node."""</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>        <span class="o">...</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>
+</span><span id="__span-21-9"><a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_gated_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+</span><span id="__span-21-10"><a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="w">        </span><span class="sd">"""Get filtered events for population."""</span>
+</span><span id="__span-21-11"><a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>        <span class="o">...</span>
+</span><span id="__span-21-12"><a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a>
+</span><span id="__span-21-13"><a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">iter_children</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent_node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]:</span>
+</span><span id="__span-21-14"><a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a><span class="w">        </span><span class="sd">"""Iterate child populations."""</span>
+</span><span id="__span-21-15"><a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a>        <span class="o">...</span>
+</span><span id="__span-21-16"><a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a>
+</span><span id="__span-21-17"><a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_population_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+</span><span id="__span-21-18"><a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a><span class="w">        </span><span class="sd">"""Get cached statistics."""</span>
+</span><span id="__span-21-19"><a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a>        <span class="o">...</span>
+</span></code></pre></div>
+<hr />
+<h2 id="7-key-classes-reference">7. Key Classes Reference</h2>
+<h3 id="gatenode-hierarchical-population"><code>GateNode</code> (Hierarchical Population)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateNode</span><span class="p">:</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">    </span><span class="sd">"""Population node in DAG."""</span>
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>    <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>    <span class="n">gate</span><span class="p">:</span> <span class="n">Gate</span> <span class="o">|</span> <span class="kc">None</span>  <span class="c1"># None for root "All Events"</span>
+</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>    <span class="n">children</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]</span>
+</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>    <span class="n">parents</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]</span>  <span class="c1"># Multi-parent support (DAG)</span>
+</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>    <span class="n">negated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Logical NOT</span>
+</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>    <span class="n">logic_operator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"AND"</span>  <span class="c1"># 'AND' or 'OR'</span>
+</span><span id="__span-22-12"><a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a>    <span class="n">statistics</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+</span><span id="__span-22-13"><a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a>    <span class="n">creation_view</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>  <span class="c1"># Recording display state</span>
+</span></code></pre></div>
+<h3 id="fcsdata-flow-cytometry-sample"><code>FCSData</code> (Flow Cytometry Sample)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">FCSData</span><span class="p">:</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">    </span><span class="sd">"""FCS file parsed data wrapper."""</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>    <span class="n">channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># Detector names</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>    <span class="n">markers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>  <span class="c1"># Biological marker names</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>    <span class="n">events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>  <span class="c1"># Numeric event data (N × P)</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>  <span class="c1"># FCS keywords</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>    <span class="n">is_compensated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>    <span class="n">original_events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Pre-compensation backup</span>
+</span></code></pre></div>
+<h3 id="experiment-complete-analysis-session"><code>Experiment</code> (Complete Analysis Session)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Experiment</span><span class="p">:</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">    </span><span class="sd">"""Top-level experiment container."""</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>    <span class="n">samples</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Sample</span><span class="p">]</span>  <span class="c1"># {sample_id: Sample}</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>    <span class="n">groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Group</span><span class="p">]</span>  <span class="c1"># {group_id: Group}</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>    <span class="n">templates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">WorkflowTemplate</span><span class="p">]</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>    <span class="n">channel_scales</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AxisScale</span><span class="p">]</span>  <span class="c1"># Shared axis configurations</span>
+</span></code></pre></div>
+<hr />
+<h2 id="8-references-further-reading">8. References &amp; Further Reading</h2>
+<ul>
+<li><strong><a href="../00_ARCHITECTURE_OVERVIEW/">Architecture Overview</a></strong>: Module design, service orchestration, data flow.</li>
+<li><strong><a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/">Services &amp; Dependency Injection</a></strong>: Complete service layer documentation.</li>
+<li><strong><a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/">Gating &amp; Compensation Deep Dive</a></strong>: Detailed algorithms.</li>
+<li><strong><a href="../06_TRANSFORMS_AND_SCALING/">Transforms &amp; Scaling</a></strong>: Mathematical transform details.</li>
+<li><strong><a href="../02_UI_ENGINE/">UI Engine &amp; Rendering</a></strong>: Canvas architecture, FSM, rendering pipeline.</li>
+<li><strong><a href="../03_TESTING_AND_QA/">Testing &amp; Quality Assurance</a></strong>: Test patterns and guidelines.</li>
+</ul>
+<h3 id="scientific-references">Scientific References</h3>
+<ul>
+<li><strong>Parks, D.R., et al. (2006).</strong> "A new 'Logicle' display method permits expanded and more intuitive graphical representation of flow cytometry data." <em>Cytometry Part A</em>, 69A(6), 541-551. DOI: <a href="https://doi.org/10.1002/cyto.a.20258">10.1002/cyto.a.20258</a></li>
+<li><strong>Roederer, M. (2001).</strong> "Spectral compensation for flow cytometry: Visualization artifacts, limitations, and caveats." <em>Cytometry</em>, 45(3), 194-205. DOI: <a href="https://doi.org/10.1002/1097-0320(20011101)45:3&lt;194::AID-CYTO1163&gt;3.0.CO;2-C">10.1002/1097-0320(20011101)45:3&lt;194::AID-CYTO1163&gt;3.0.CO;2-C</a></li>
+<li><strong>FlowKit</strong>: <a href="https://github.com/whitews/FlowKit">GitHub - whitews/FlowKit</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
