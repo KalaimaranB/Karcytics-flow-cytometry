@@ -7,7 +7,7 @@ This page is a map of that workspace. If you'd rather learn by doing than by rea
 !!! tip "New here?"
     The fastest way to get oriented is the in-app **Academy**. It walks you through loading files, compensation, and gating step by step, checking your actual work as you go — not just "click Next." See **[Academy & Guided Tutorials](./10_ACADEMY_TUTORIALS.md)**. Prefer a written walkthrough first? Start with **[Getting Started](./01_GETTING_STARTED.md)**.
 
-<!-- SCREENSHOT: docs/images/user/overview/full-app-tri-pane.png — the full application window with a sample loaded, showing the tab bar, left sidebar, center plot, and right properties panel all populated -->
+![alt text](../images/00_overview/home_view.png)
 
 ## What this module does
 

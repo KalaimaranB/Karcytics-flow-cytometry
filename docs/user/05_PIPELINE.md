@@ -2,6 +2,8 @@
 
 Karcytics features an advanced visual node-based pipeline for constructing complex gating strategies. The **Pipeline Ribbon** transitions your workspace into a powerful visual programming environment.
 
+![alt text](../images/05_pipeline/pipeline.png)
+
 ## 1. Accessing the Pipeline
 
 1. Navigate to the **Pipeline** ribbon tab.

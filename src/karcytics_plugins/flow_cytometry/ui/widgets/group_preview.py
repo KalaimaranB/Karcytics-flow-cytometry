@@ -305,26 +305,25 @@ class PreviewThumbnail(QFrame):
 
         gate_id = None
 
-        # Collect gates to render (children of the active sample's current node + temp gate)
         gates_to_show = []
-        if active_sample_id:
-            if active_node_id:
-                assert self._population_service is not None
-                active_node = self._population_service.find_node(active_sample_id, active_node_id)
-            else:
-                assert self._population_service is not None
-                active_node = self._population_service.get_root_node(active_sample_id)
+        # Get the node for THIS thumbnail's sample to show its actual gates (including tailoring)
+        if peer_node_id:
+            assert self._population_service is not None
+            peer_node = self._population_service.find_node(self._sample_id, peer_node_id)
+        else:
+            assert self._population_service is not None
+            peer_node = self._population_service.get_root_node(self._sample_id)
 
-            if active_node:
-                logger.info(
-                    f"GroupPreviewPanel: active_node={active_node.name}, children={len(active_node.children)}"
-                )
-                for child in active_node.children:
-                    if child.gate:
-                        gates_to_show.append(child.gate)
-                        logger.info(
-                            f"GroupPreviewPanel: added gate {child.gate.gate_id} ({child.gate.x_param}/{child.gate.y_param}) to gates_to_show (current axes: {x_param}/{y_param})"
-                        )
+        if peer_node:
+            logger.info(
+                f"GroupPreviewPanel: active_node={peer_node.name}, children={len(peer_node.children)}"
+            )
+            for child in peer_node.children:
+                if child.gate:
+                    gates_to_show.append(child.gate)
+                    logger.info(
+                        f"GroupPreviewPanel: added gate {child.gate.gate_id} ({child.gate.x_param}/{child.gate.y_param}) to gates_to_show (current axes: {x_param}/{y_param})"
+                    )
 
         logger.info(
             f"GroupPreviewPanel: submitting RenderTask for {self._sample_id} with {len(gates_to_show)} gates"

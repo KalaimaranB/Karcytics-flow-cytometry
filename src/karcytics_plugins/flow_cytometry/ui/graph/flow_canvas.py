@@ -755,7 +755,10 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def _on_draw(self, event) -> None:
         """Called by Matplotlib when a full draw is completed."""
         if getattr(self, "_use_cache", False):
-            self._canvas_bitmap_cache = self._fig.canvas.copy_from_bbox(self._ax.bbox)  # type: ignore
+            # Only cache if there are no gate artists on the axes. Otherwise, gates get baked in
+            # and drawn repeatedly during fast UI updates (stacked rendering).
+            if not getattr(self, "_gate_artists", []):
+                self._canvas_bitmap_cache = self._fig.canvas.copy_from_bbox(self._ax.bbox)  # type: ignore
 
     def _on_scroll(self, event) -> None:
         """Handle scroll wheel to zoom in and out."""

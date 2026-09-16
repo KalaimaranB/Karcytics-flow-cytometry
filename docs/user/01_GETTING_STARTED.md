@@ -5,7 +5,7 @@
 
 If you'd rather read through the workflow first (or you're working with your own data right away), this guide walks the same path in writing — the same sequence Course 1 of the Academy teaches, minus the spotlighting and automatic checks.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/empty-workspace.png — the Workspace tab with no samples loaded yet, showing the empty Sample List and center canvas placeholder -->
+![alt text](../images/01_getting_started/workspace.png)
 
 ## What you'll need
 
@@ -26,7 +26,7 @@ Make sure you're on the **Workspace** tab (the leftmost tab), then click **➕ A
 2. If any of the files live outside your current project folder, Karcytics asks whether to copy them into the project's own `assets` folder. Say yes if you want the project to stay portable and self-contained.
 3. A progress dialog tracks the load. Once it finishes, your files appear in the **Sample List** on the left, and the footer bar confirms how many samples loaded.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/add-samples-dialog.png — the file picker open, mid-selection of several .fcs files -->
+![alt text](../images/01_getting_started/file_selection.png)
 
 !!! tip "Compensation might already be done for you"
     If a file has a `$SPILL` keyword embedded in its header (common for data exported from acquisition software), Karcytics extracts and applies that spillover matrix to every sample automatically the moment they're loaded. Look for a small **[Comp]** tag next to a sample's name in the Sample List — that's your sign it's already compensated. If you don't see it, you'll build a matrix by hand in Step 3.
@@ -35,7 +35,7 @@ Make sure you're on the **Workspace** tab (the leftmost tab), then click **➕ A
 
 Before assigning roles, glance at the **Groups** panel above the Sample List. Every sample you just imported sits in one default group, **All Samples**. A group is simply a named subset of your samples, and it controls something important: gates you draw on one sample only propagate automatically to *other samples in the same group*.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/groups-panel.png — the Groups panel showing the default "All Samples" group with all imported samples nested under it -->
+![alt text](../images/01_getting_started/all_samples_group.png)
 
 For most single-experiment work, the default group is all you need — you don't have to create a custom one. Reach for **📁 Create Group** only when you're mixing tissue types or experiments that genuinely need different gating strategies, so their gates don't interfere with each other.
 
@@ -53,11 +53,11 @@ Roles tell Karcytics what each file *is*, which drives compensation math and bou
 
 To assign roles one at a time: double-click a sample in the **Sample List** to open it, then use the **Role** dropdown in the **Properties Panel** on the right.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/role-dropdown.png — the Properties Panel with the Role dropdown open, showing the list of available roles -->
+![alt text](../images/01_getting_started/role_dropdown.png)
 
 For multiple samples that share a role (all your FMO controls, for instance), it's faster to use **🏷️ Bulk Assign Roles** in the Workspace ribbon — select every file that shares a role, set it once, and click Assign.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/bulk-assign-roles.png — the Bulk Assign Roles dialog with several FMO control files selected and "FMO Control" chosen -->
+![alt text](../images/01_getting_started/bulk_assign_roles.png)
 
 ## Step 4 — Set up compensation
 
