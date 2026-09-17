@@ -16,9 +16,9 @@ from __future__ import annotations
 
 import threading
 import time
-import urllib.parse
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from karcytics_sdk.plugin import get_logger
 
@@ -96,6 +96,57 @@ def find_ready_folder(project_assets_dir: Path | None, downloads_folder: Path) -
     return None
 
 
+def _download_single_file(name: str, dest: Path, ssl_context: Any) -> None:
+    import urllib.error
+    import urllib.request
+
+    url = _GITHUB_RAW_BASE + urllib.parse.quote(name)
+    tmp_dest = dest.with_suffix(dest.suffix + ".part")
+    last_exc: Exception | None = None
+    for attempt in range(1, _MAX_ATTEMPTS_PER_FILE + 1):
+        try:
+            logger.info(f"Downloading tutorial file {name!r} (attempt {attempt})")
+            req = urllib.request.Request(url, headers={"User-Agent": "Karcytics-Academy/1.0"})
+            with (
+                urllib.request.urlopen(req, timeout=60, context=ssl_context) as resp,
+                open(tmp_dest, "wb") as f,
+            ):
+                while True:
+                    chunk = resp.read(1024 * 256)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+            tmp_dest.replace(dest)
+            last_exc = None
+            break
+        except urllib.error.HTTPError as exc:
+            last_exc = Exception(f"HTTP {exc.code} Server Error on {name}")
+            logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
+        except urllib.error.URLError as exc:
+            if "CERTIFICATE_VERIFY_FAILED" in str(exc.reason):
+                last_exc = Exception(
+                    "SSL Certificate verification failed (often caused by corporate proxies or missing CA bundles)"
+                )
+            else:
+                last_exc = Exception(f"Network connection failed: {exc.reason}")
+            logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
+        except PermissionError as exc:
+            last_exc = Exception(
+                "Permission denied. Does Karcytics have access to your Downloads folder?"
+            )
+            logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
+        except Exception as exc:  # noqa: BLE001
+            last_exc = Exception(f"Unexpected error: {exc}")
+            logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
+
+        tmp_dest.unlink(missing_ok=True)
+        if attempt < _MAX_ATTEMPTS_PER_FILE:
+            time.sleep(2 * attempt)
+
+    if last_exc is not None:
+        raise last_exc
+
+
 def download_tutorial_files(
     folder: Path,
     progress_cb: Callable[[int, int], None] | None = None,
@@ -109,7 +160,15 @@ def download_tutorial_files(
     ~107MB. Each file gets up to ``_MAX_ATTEMPTS_PER_FILE`` attempts before
     the error propagates.
     """
-    import requests
+    import ssl
+
+    ssl_context = ssl.create_default_context()
+    try:
+        import certifi
+
+        ssl_context.load_verify_locations(certifi.where())
+    except ImportError:
+        pass
 
     folder.mkdir(parents=True, exist_ok=True)
 
@@ -121,28 +180,7 @@ def download_tutorial_files(
                 progress_cb(i + 1, total)
             continue
 
-        url = _GITHUB_RAW_BASE + urllib.parse.quote(name)
-        tmp_dest = dest.with_suffix(dest.suffix + ".part")
-        last_exc: Exception | None = None
-        for attempt in range(1, _MAX_ATTEMPTS_PER_FILE + 1):
-            try:
-                logger.info(f"Downloading tutorial file {name!r} (attempt {attempt})")
-                with requests.get(url, stream=True, timeout=60) as resp:
-                    resp.raise_for_status()
-                    with open(tmp_dest, "wb") as f:
-                        for chunk in resp.iter_content(chunk_size=1024 * 256):
-                            f.write(chunk)
-                tmp_dest.replace(dest)
-                last_exc = None
-                break
-            except Exception as exc:  # noqa: BLE001
-                last_exc = exc
-                logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
-                tmp_dest.unlink(missing_ok=True)
-                if attempt < _MAX_ATTEMPTS_PER_FILE:
-                    time.sleep(2 * attempt)
-        if last_exc is not None:
-            raise last_exc
+        _download_single_file(name, dest, ssl_context)
 
         if progress_cb:
             progress_cb(i + 1, total)

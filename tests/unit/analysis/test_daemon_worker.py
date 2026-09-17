@@ -23,6 +23,7 @@ def test_array_serialization():
     np.testing.assert_array_equal(arr, decoded)
 
 
+@pytest.mark.filterwarnings("ignore:n_jobs value 1 overridden to 1:UserWarning")
 def test_handle_run_umap():
     np.random.seed(42)
     X = np.random.randn(100, 5).astype(np.float64)
@@ -87,6 +88,7 @@ def test_handle_load_fcs_batch_isolates_a_stuck_file():
     assert "Timed out" in res["results"]["/data/stuck.fcs"]["error"]
 
 
+@pytest.mark.filterwarnings("ignore:n_jobs value 1 overridden to 1:UserWarning")
 def test_daemon_worker_end_to_end(tmp_path):
     daemon_script = (
         Path(__file__).resolve().parents[3]

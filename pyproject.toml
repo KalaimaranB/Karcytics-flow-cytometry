@@ -1,6 +1,6 @@
 [project]
 name = "flow_cytometry"
-version = "0.8.6.1"
+version = "0.8.6.2"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 authors = [
@@ -140,3 +140,6 @@ karcytics-sdk = { path = "../Karcytics-SDK", editable = true }
 dev = [
     "pyqt6>=6.11.0, <7.0.0",
 ]
+
+[tool.setuptools.package-data]
+"karcytics_plugins.flow_cytometry" = ["workflows/*.json", "tutorials/assets/*.fcs"]
