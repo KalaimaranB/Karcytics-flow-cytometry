@@ -7,7 +7,7 @@ authors = [
   { name = "Kalaimaran Balasothy" },
 ]
 dependencies = [
-    "karcytics-sdk>=2.0.1",
+    "karcytics-sdk>=2.1.4",
     "msgpack>=1.0.0, <2.0.0",
     "numpy==1.26.4",
     "pandas==3.0.3",
