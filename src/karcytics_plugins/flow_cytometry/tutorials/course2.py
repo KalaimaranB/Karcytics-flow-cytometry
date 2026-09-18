@@ -22,7 +22,6 @@ Panel reference (confirmed from the tutorial FCS file headers, $PnN/$PnS):
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
-    ActionStep,
     Course,
     ForcedInteractionStep,
     InfoStep,
@@ -52,61 +51,48 @@ from .validators import (
 # ==============================================================================
 
 c2_tcells_validator = GateShapeValidator(
-    target_bounds=(-1000.0, 5000.0, 100.0, 10000.0),
+    # Matches the on-canvas guide_rect=(-400.0, 2000.0, 300.0, 2000.0) drawn
+    # for c2_s07_draw_tcell below. The old (-1000, 5000, 100, 10000) target
+    # didn't match that guide box, though the ±10%-of-axis-range tolerance
+    # happened to be wide enough that it never actually rejected a correctly
+    # drawn gate here — realigned anyway so the guide box shown is always
+    # exactly what gets validated (see c1_live_validator in course1.py for a
+    # case where this same kind of mismatch WAS wide enough to matter).
+    target_bounds=(-400.0, 2000.0, 300.0, 2000.0),
     target_name="T-cells",
+    misnamed_retry_step_id="c2_s07_tcell_gate_misnamed",
+    shape_retry_step_id="c2_s07_tcell_gate_retry",
 )
 
 c2_bcells_validator = GateShapeValidator(
-    target_bounds=(3000.0, 262144.0, 0.0, 0.0),
+    # Must match the on-canvas guide_range=(4000.0, 100000.0) drawn for
+    # c2_s18_draw_bcell below — it previously said 262144.0 (the raw axis's
+    # absolute max) here, so a gate drawn to trace the visible guide box
+    # (topping out at 100000) fell far short of the required tolerance
+    # window around 262144 and was wrongly rejected as a bad shape.
+    target_bounds=(3000.0, 100000.0, 0.0, 0.0),
     target_name="B-cells",
+    misnamed_retry_step_id="c2_s18_bcell_gate_misnamed",
+    shape_retry_step_id="c2_s18_bcell_gate_retry",
 )
 
 c2_quadrant_validator = GateShapeValidator(
     target_bounds=(3000.0, 7000.0, 3000.0, 7000.0),
     target_name=None,
+    # No naming step for a QuadrantGate (it auto-names Q1-Q4), so
+    # misnamed_retry_step_id is never reached — GateShapeValidator only
+    # diagnoses a name mismatch when target_name is set.
+    shape_retry_step_id="c2_s37_quadrant_gate_retry",
 )
 
-
-def route_course2_gate_failure(
-    panel, _validator, _step_id, correct_name, misnamed_next_id, retry_next_id
-):
-    """Dynamically changes the ActionStep's next_step_id based on failure reason."""
-    from .validators import _TUTORIAL_STATE
-
-    misnamed_id = _TUTORIAL_STATE.get("last_misnamed_node_id")
-    failed_id = _TUTORIAL_STATE.get("last_failed_node_id")
-    misnamed_sample_id = _TUTORIAL_STATE.get("last_misnamed_sample_id")
-
-    current_step = None
-    try:
-        from karcytics_sdk.plugin.runtime_services import tutorial_manager
-
-        current_step = tutorial_manager.current_step
-    except Exception:
-        pass
-
-    if misnamed_id and correct_name:
-        target_sample_id = misnamed_sample_id or panel.state.view.current_sample_id
-        panel.state.view.current_gate_id = misnamed_id
-        panel._gate_coordinator.rename_population(target_sample_id, misnamed_id, correct_name)
-        _TUTORIAL_STATE["last_misnamed_node_id"] = None
-        _TUTORIAL_STATE["last_misnamed_sample_id"] = None
-
-        if current_step:
-            current_step.next_step_id = misnamed_next_id
-            current_step.text = f"Great shape! But you named it incorrectly. I renamed it to **{correct_name}** for you!"
-    else:
-        # Delete the poorly drawn gate
-        if failed_id:
-            panel.state.view.current_gate_id = failed_id
-            panel._on_delete_selected_gate(force_silent=True)
-            _TUTORIAL_STATE["last_failed_node_id"] = None
-        else:
-            panel._on_delete_selected_gate(force_silent=True)
-
-        if current_step:
-            current_step.next_step_id = retry_next_id
-            current_step.text = "Deleting poorly drawn gate..."
+# Gate-drawing steps (T-cells / B-cells / Quadrant below) no longer wire
+# their own ActionStep-based failure routing: the validators above
+# implement `GateShapeValidator.describe_failure()` (see validators.py),
+# and `AcademyStepDriver` (SDK) calls it automatically on a failed
+# VerificationStep — showing the explanation banner, auto-renaming/deleting
+# the gate, and routing to the validator's own retry step in one generic
+# path shared by every course that uses `GateShapeValidator` (see course1.py
+# for the first migration of this pattern).
 
 
 # ==============================================================================
@@ -142,6 +128,11 @@ course_2_gating = Course(
             allow_interaction=False,
             cyto_emotion="thinking",
             next_step_id="c2_s01_intro",
+            failure_hint=(
+                "This course picks up where Course 1 left off — make sure you opened the "
+                "workspace you saved at the end of Course 1, with all samples, roles, and "
+                "the Cells → Live Cells → Leukocytes gates already built."
+            ),
         ),
         InfoStep(
             id="c2_s01_intro",
@@ -207,6 +198,7 @@ course_2_gating = Course(
             cyto_emotion="pointing",
             target_widget_names=["SampleList"],
             on_success_step_id="c2_s03_tcell_intro",
+            failure_hint="Make sure you double-clicked **Sample A** specifically in the Data hierarchy.",
         ),
         # ── T-cells (2-marker plot: B220 vs CD3) ────────────────────────────────
         InfoStep(
@@ -230,6 +222,7 @@ course_2_gating = Course(
             target_widget_names=["AxisSelectorX"],
             validator=AxisChannelValidator("fitc"),
             on_success_step_id="c2_s05_set_y",
+            failure_hint="Make sure the **X:** axis dropdown is set to **FITC-A**, the B220 detector.",
         ),
         VerificationStep(
             id="c2_s05_set_y",
@@ -240,6 +233,7 @@ course_2_gating = Course(
             target_widget_names=["AxisSelectorY"],
             validator=AxisYChannelValidator("pacific blue"),
             on_success_step_id="c2_s06_tcell_plot_read",
+            failure_hint="Make sure the **Y:** axis dropdown is set to **Pacific Blue-A**, the CD3 detector.",
         ),
         InfoStep(
             id="c2_s06_tcell_plot_read",
@@ -269,9 +263,15 @@ course_2_gating = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_rectangle", "FlowCanvas", "GroupPreviewPanel"],
+            target_widget_name="FlowCanvas",
             event_trigger="gate_created",
             metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
             next_step_id="c2_s07_draw_tcell_verify",
+            stuck_hint_text=(
+                "Still there? Click the **Rect** tool, then drag around the upper-left "
+                "cluster (high CD3, low B220)."
+            ),
+            stuck_hint_after_ms=45000,
         ),
         VerificationStep(
             id="c2_s07_draw_tcell_verify",
@@ -281,20 +281,7 @@ course_2_gating = Course(
             hide_next_button=True,
             validator=c2_tcells_validator,
             on_success_step_id="c2_s08_tcell_done",
-            on_fail_step_id="c2_s07_tcell_gate_fail",
-        ),
-        ActionStep(
-            id="c2_s07_tcell_gate_fail",
-            text="Deleting poorly drawn gate...",
-            action=lambda panel: route_course2_gate_failure(
-                panel,
-                c2_tcells_validator,
-                "c2_s07_tcell_gate_fail",
-                "T-cells",
-                "c2_s07_tcell_gate_misnamed",
-                "c2_s07_tcell_gate_retry",
-            ),
-            next_step_id="c2_s07_tcell_gate_retry",
+            on_fail_step_id="c2_s07_tcell_gate_retry",
         ),
         InfoStep(
             id="c2_s07_tcell_gate_misnamed",
@@ -441,8 +428,14 @@ course_2_gating = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_range", "FlowCanvas"],
+            target_widget_name="FlowCanvas",
             event_trigger="gate_created",
             metadata={"guide_range": (4000.0, 100000.0)},
+            stuck_hint_text=(
+                "Still there? Click the **Range** tool, then drag starting at the red "
+                "threshold line across the bright B220+ peak."
+            ),
+            stuck_hint_after_ms=45000,
             next_step_id="c2_s18_draw_bcell_verify",
         ),
         VerificationStep(
@@ -453,20 +446,7 @@ course_2_gating = Course(
             hide_next_button=True,
             validator=c2_bcells_validator,
             on_success_step_id="c2_s19_bcell_done",
-            on_fail_step_id="c2_s18_bcell_gate_fail",
-        ),
-        ActionStep(
-            id="c2_s18_bcell_gate_fail",
-            text="Deleting poorly drawn gate...",
-            action=lambda panel: route_course2_gate_failure(
-                panel,
-                c2_bcells_validator,
-                "c2_s18_bcell_gate_fail",
-                "B-cells",
-                "c2_s18_bcell_gate_misnamed",
-                "c2_s18_bcell_gate_retry",
-            ),
-            next_step_id="c2_s18_bcell_gate_retry",
+            on_fail_step_id="c2_s18_bcell_gate_retry",
         ),
         InfoStep(
             id="c2_s18_bcell_gate_misnamed",
@@ -568,6 +548,7 @@ course_2_gating = Course(
             target_widget_names=["PipelineOrientationCombo"],
             validator=PipelineOrientationValidator("horizontal"),
             on_success_step_id="c2_s27_pipeline_explain",
+            failure_hint="Make sure the **Layout:** dropdown in the Pipeline ribbon is set to **Horizontal**.",
         ),
         InfoStep(
             id="c2_s27_pipeline_explain",
@@ -670,6 +651,7 @@ course_2_gating = Course(
             target_widget_names=["AxisSelectorX"],
             validator=AxisChannelValidator("pe-a"),
             on_success_step_id="c2_s36_set_y_cd8",
+            failure_hint="Make sure the **X:** axis dropdown is set to **PE-A**, the CD4 detector.",
         ),
         VerificationStep(
             id="c2_s36_set_y_cd8",
@@ -680,6 +662,7 @@ course_2_gating = Course(
             target_widget_names=["AxisSelectorY"],
             validator=AxisYChannelValidator("apc-cy7"),
             on_success_step_id="c2_s37_draw_quadrant",
+            failure_hint="Make sure the **Y:** axis dropdown is set to **APC-Cy7-A**, the CD8 detector.",
         ),
         InteractionStep(
             id="c2_s37_draw_quadrant",
@@ -689,9 +672,15 @@ course_2_gating = Course(
             ),
             cyto_emotion="thinking",
             target_widget_names=["Tool_quadrant", "FlowCanvas"],
+            target_widget_name="FlowCanvas",
             event_trigger="gate_created",
             metadata={"guide_quadrant": (5000.0, 5000.0)},
             next_step_id="c2_s37_draw_quadrant_verify",
+            stuck_hint_text=(
+                "Still there? Click the **Quadrant** tool, then click once where the "
+                "CD4/CD8 boundaries should sit."
+            ),
+            stuck_hint_after_ms=45000,
         ),
         VerificationStep(
             id="c2_s37_draw_quadrant_verify",
@@ -701,20 +690,7 @@ course_2_gating = Course(
             hide_next_button=True,
             validator=c2_quadrant_validator,
             on_success_step_id="c2_s38_quadrant_naming_info",
-            on_fail_step_id="c2_s37_quadrant_gate_fail",
-        ),
-        ActionStep(
-            id="c2_s37_quadrant_gate_fail",
-            text="Deleting poorly drawn gate...",
-            action=lambda panel: route_course2_gate_failure(
-                panel,
-                c2_quadrant_validator,
-                "c2_s37_quadrant_gate_fail",
-                None,  # no naming for quadrant
-                None,  # no naming for quadrant
-                "c2_s37_quadrant_gate_retry",
-            ),
-            next_step_id="c2_s37_quadrant_gate_retry",
+            on_fail_step_id="c2_s37_quadrant_gate_retry",
         ),
         InfoStep(
             id="c2_s37_quadrant_gate_retry",
@@ -753,6 +729,11 @@ course_2_gating = Course(
             allow_interaction=True,
             target_widget_names=["GatingHierarchyScrollArea"],
             auto_advance_when_complete=True,
+            stuck_hint_text=(
+                "Still working on it? Right-click each quadrant leaf (Q1-Q4) in the "
+                "hierarchy, choose **Rename Gate**, and type the label shown for it above."
+            ),
+            stuck_hint_after_ms=60000,
             sub_tasks=[
                 SubTask(
                     id="rename_q4_cd4",
@@ -932,6 +913,8 @@ course_2_gating = Course(
             cyto_emotion="thinking",
             target_widget_names=["SpectralLearningTab"],
             on_success_step_id="c2_s50_mystery_intro",
+            failure_hint="Take your time working through the slideshow — I'll continue once you reach the final slide.",
+            stuck_hint_after_ms=120000,
         ),
         # ── Finale: the tissue-ID mystery ────────────────────────────────────────
         InfoStep(
@@ -1061,6 +1044,7 @@ course_2_gating = Course(
             target_widget_names=["AllSamplesOverviewPopup"],
             validator=PopupClosedValidator("AllSamplesOverviewPopup"),
             on_success_step_id="c2_s54_mystery_reveal",
+            failure_hint="Press **Esc**, or click the **×** in the popup's top-right corner, to close it.",
         ),
         InfoStep(
             id="c2_s54_mystery_reveal",
@@ -1089,6 +1073,7 @@ course_2_gating = Course(
             target_widget_names=["WorkspaceSaveButton"],
             validator=WorkflowSavedValidator(),
             on_success_step_id="c2_s56_graduation",
+            failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
             id="c2_s56_graduation",

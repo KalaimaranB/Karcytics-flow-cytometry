@@ -28,7 +28,7 @@ from karcytics_sdk.plugin.runtime_services import (
 )
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -438,10 +438,20 @@ class SpectralViewer(QWidget):
         if self._autofilled or self._source_list.count() == 0:
             return
         self._autofilled = True
-        for i in range(self._source_list.count()):
-            item = self._source_list.item(i)
+
+        self._autofill_index = 0
+        self._autofill_timer = QTimer(self)
+        self._autofill_timer.timeout.connect(self._autofill_next)
+        self._autofill_timer.start(50)
+
+    def _autofill_next(self):
+        if self._autofill_index < self._source_list.count():
+            item = self._source_list.item(self._autofill_index)
             if item is not None:
                 self._add_fluor(item.data(Qt.ItemDataRole.UserRole), display_label=item.text())
+            self._autofill_index += 1
+        else:
+            self._autofill_timer.stop()
 
     def _on_search_changed(self, text: str):
         self._search_results.clear()

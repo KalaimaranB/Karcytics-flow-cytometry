@@ -13,6 +13,7 @@ Karcytics features an advanced visual node-based pipeline for constructing compl
 ## 2. Logic Nodes
 
 Instead of purely spatial geometric gates (which are handled in the Gating Ribbon), you can incorporate mathematical boolean logic:
+
 - **AND Gate**: Yields the intersection of multiple parent populations.
 - **OR Gate**: Yields the union of multiple parent populations.
 - **NOT Gate**: Yields the inverse of a single parent population.
@@ -24,5 +25,5 @@ To add a logic node, simply click the corresponding button in the Pipeline ribbo
 Because the gating system uses a Directed Acyclic Graph (DAG), populations can have multiple parents. This is essential for complex logic such as identifying cells that express *either* Marker A or Marker B, but *not* Marker C.
 
 - **Connect**: Click and drag from the output port of a parent node to the input port of a child or logic node.
-- **Disconnect**: Click on any wire connecting two nodes (it will highlight in blue) and press the `Delete` or `Backspace` key to sever the connection.
+- **Disconnect**: Click on any wire connecting two nodes (it will highlight in the accent teal color) and press the `Delete` or `Backspace` key to sever the connection.
 - **Double-Click**: Double-clicking any node in the pipeline will instantly flip the workspace back to the spatial graph view for that specific population, allowing you to seamlessly switch between structural architecture and spatial refinement.

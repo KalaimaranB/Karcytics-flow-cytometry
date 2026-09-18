@@ -11,7 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 from karcytics_sdk.plugin import get_logger
-from karcytics_sdk.plugin.tutorial_models import IValidator
+from karcytics_sdk.plugin.tutorial_models import IValidator, ValidationFailure
 
 from ..analysis.state import FlowState
 
@@ -502,17 +502,29 @@ class GateShapeValidator(FlowValidator):
         target_bounds: tuple[float, float, float, float] | None = None,
         target_poly: list[tuple[float, float]] | None = None,
         target_name: str | None = None,
+        misnamed_retry_step_id: str | None = None,
+        shape_retry_step_id: str | None = None,
     ) -> None:
         """Args:
         target_bounds: (min_x, max_x, min_y, max_y). For 1D gates, use 0 for min_y, max_y.
         target_poly: List of (x, y) vertices for the target polygon shape.
         target_name: The expected name of the gate.
+        misnamed_retry_step_id: step to route to (via `ValidationFailure.retry_step_id`)
+            when the gate shape is right but the name is wrong — after this
+            validator auto-renames it. Falls back to the step's own
+            `on_fail_step_id` when unset.
+        shape_retry_step_id: step to route to when the shape itself is
+            wrong — after this validator deletes the bad gate. Falls back
+            to the step's own `on_fail_step_id` when unset.
         """
         self.target_bounds = target_bounds
         self.target_poly = target_poly
         self.target_name = target_name
-        self.last_misnamed_node_id = None
-        self.last_failed_node_id = None
+        self.misnamed_retry_step_id = misnamed_retry_step_id
+        self.shape_retry_step_id = shape_retry_step_id
+        self.last_misnamed_node_id: str | None = None
+        self.last_failed_node_id: str | None = None
+        self.last_misnamed_sample_id: str | None = None
 
     def validate_flow(self, app_state: FlowState) -> bool:  # noqa: PLR0912, PLR0915
         import logging
@@ -523,6 +535,15 @@ class GateShapeValidator(FlowValidator):
         try:
             self.last_misnamed_node_id = None
             self.last_failed_node_id = None
+            self.last_misnamed_sample_id = None
+            # _TUTORIAL_STATE is legacy: course2.py's own (not-yet-migrated)
+            # gate-failure routing still reads it directly. Keep writing it
+            # until that course is migrated to describe_failure() too —
+            # course1 itself no longer reads it (see describe_failure below).
+            _TUTORIAL_STATE["last_misnamed_node_id"] = None
+            _TUTORIAL_STATE["last_failed_node_id"] = None
+            _TUTORIAL_STATE["last_misnamed_sample_id"] = None
+
             sample_id = app_state.view.current_sample_id
             if not sample_id:
                 return self.log_failure("No active sample ID in view.")
@@ -572,11 +593,18 @@ class GateShapeValidator(FlowValidator):
                 return True
 
             logger.info(f"check_node finished. misnamed_nodes count: {len(misnamed_nodes)}")
+            current_gate_id = getattr(app_state.view, "current_gate_id", None)
+
+            # If the currently selected gate failed shape validation, prioritize this failure
+            # over attempting to auto-correct old, unrelated misnamed gates in the tree.
+            if self.last_failed_node_id and self.last_failed_node_id == current_gate_id:
+                _TUTORIAL_STATE["last_failed_node_id"] = self.last_failed_node_id
+                return self.log_failure("Currently selected gate failed shape validation.")
+
             if misnamed_nodes:
                 import difflib
 
                 target = None
-                current_gate_id = getattr(app_state.view, "current_gate_id", None)
 
                 if self.target_name:
                     best_ratio = 0.0
@@ -602,6 +630,7 @@ class GateShapeValidator(FlowValidator):
                     target = misnamed_nodes[-1]
 
                 self.last_misnamed_node_id = target.node_id
+                self.last_misnamed_sample_id = found_sample_id
                 _TUTORIAL_STATE["last_misnamed_node_id"] = target.node_id
                 _TUTORIAL_STATE["last_misnamed_sample_id"] = found_sample_id
                 logger.info(
@@ -615,6 +644,46 @@ class GateShapeValidator(FlowValidator):
         except Exception as e:
             logger.exception("Exception in validate_flow!")
             raise e
+
+    def describe_failure(self, app_state: FlowState) -> ValidationFailure | None:  # noqa: ARG002
+        """Diagnoses the most recent `validate_flow()` failure and returns a
+        self-contained fix, so `AcademyStepDriver` can explain + auto-correct
+        a misnamed or badly-shaped gate without a course wiring a bespoke
+        ActionStep + reading validator state back out through a global.
+        """
+        if self.last_misnamed_node_id:
+            node_id = self.last_misnamed_node_id
+            sample_id = self.last_misnamed_sample_id
+            correct_name = self.target_name
+
+            def _rename(panel: Any) -> None:
+                target_sample_id = sample_id or panel.state.view.current_sample_id
+                panel.state.view.current_gate_id = node_id
+                panel._gate_coordinator.rename_population(target_sample_id, node_id, correct_name)
+                # Supersede any active propagation (from the original add_gate
+                # call) that snapshotted the tree with the old, incorrect name.
+                panel._gate_coordinator.request_propagation(node_id, target_sample_id)
+
+            return ValidationFailure(
+                reason=f"Great shape! But you named it incorrectly. I renamed it to **{correct_name}** for you!",
+                corrective=_rename,
+                retry_step_id=self.misnamed_retry_step_id,
+            )
+
+        if self.last_failed_node_id:
+            node_id = self.last_failed_node_id
+
+            def _delete(panel: Any) -> None:
+                panel.state.view.current_gate_id = node_id
+                panel._on_delete_selected_gate(force_silent=True)
+
+            return ValidationFailure(
+                reason="That gate didn't quite capture the right range! I deleted it for you — try drawing it again.",
+                corrective=_delete,
+                retry_step_id=self.shape_retry_step_id,
+            )
+
+        return None
 
     def validate_shape(self, app_state: Any, node_id: str, sample_id: str) -> bool:  # noqa: PLR0911, PLR0912, PLR0915
         """Validates the shape of a specific gate node. Returns True if accurate."""
@@ -677,6 +746,7 @@ class GateShapeValidator(FlowValidator):
 
         if not self.target_bounds:
             return True
+        t_min_x, t_max_x, t_min_y, t_max_y = self.target_bounds
 
         # Calculate bounding box of drawn gate
         min_x, max_x, min_y, max_y = 0.0, 0.0, 0.0, 0.0
@@ -692,15 +762,30 @@ class GateShapeValidator(FlowValidator):
             min_x, max_x = getattr(gate, "x_min", 0.0), getattr(gate, "x_max", 0.0)
             min_y, max_y = getattr(gate, "y_min", 0.0), getattr(gate, "y_max", 0.0)
         elif gate_type == "QuadrantGate":
-            min_x, max_x = getattr(gate, "x_threshold", 0.0), getattr(gate, "x_threshold", 0.0)
-            min_y, max_y = getattr(gate, "y_threshold", 0.0), getattr(gate, "y_threshold", 0.0)
+            # QuadrantGate stores its crosshair position as x_mid/y_mid (see
+            # analysis/gating/quadrant.py) — this used to read the
+            # nonexistent x_threshold/y_threshold, so getattr's default
+            # silently made min_x/max_x/min_y/max_y always (0.0, 0.0),
+            # meaning a quadrant gate's actual click position was never
+            # really checked.
+            x_mid, y_mid = getattr(gate, "x_mid", 0.0), getattr(gate, "y_mid", 0.0)
+            # A single click point has no "edge" to apply the ±10%-of-axis
+            # tolerance below to — that formula is for RangeGate/RectangleGate,
+            # where min_x and max_x are two genuinely different edges each
+            # compared to its own target edge. Naively reusing it here (by
+            # setting min_x = max_x = x_mid) checked "close to either target
+            # edge independently", which works out to accepting anywhere in
+            # roughly a +/-26000-unit band regardless of the target window's
+            # actual width (here, target_bounds = 3000-7000 — a 4000-unit
+            # window) — over 12x more lenient than intended. A quadrant
+            # target window is meant to already BE the acceptable region, so
+            # just check containment directly, no extra tolerance layered on.
+            return t_min_x <= x_mid <= t_max_x and t_min_y <= y_mid <= t_max_y
         else:
             return True  # skip unknown gate types
 
-        t_min_x, t_max_x, t_min_y, t_max_y = self.target_bounds
-
-        if gate_type in {"RangeGate", "RectangleGate", "QuadrantGate"}:
-            # For 1D ranges or points, check relative error based on a typical flow axis range (262144)
+        if gate_type in {"RangeGate", "RectangleGate"}:
+            # For 1D ranges, check relative error based on a typical flow axis range (262144)
             axis_range = 262144.0
 
             # Check X bounds
@@ -710,9 +795,9 @@ class GateShapeValidator(FlowValidator):
             ):
                 return False
 
-            # Check Y bounds for Rectangle and Quadrant
+            # Check Y bounds for Rectangle
             return not (
-                gate_type in {"RectangleGate", "QuadrantGate"}
+                gate_type == "RectangleGate"
                 and (
                     abs(min_y - t_min_y) / axis_range > 0.10  # noqa: PLR2004
                     or abs(max_y - t_max_y) / axis_range > 0.10  # noqa: PLR2004

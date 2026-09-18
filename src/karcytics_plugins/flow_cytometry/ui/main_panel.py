@@ -767,7 +767,7 @@ class FlowCytometryPanel(PluginBase):
         target_group = experiment.groups.get(group_id) if group_id is not None else None
         return target_group.sample_ids if target_group else [sample_id]
 
-    def delete_gate_with_dialog(
+    def delete_gate_with_dialog(  # noqa: PLR0915
         self, sample_id: str, node_id: str, force_silent: bool = False
     ) -> None:
         """Prompt the user and delete a gate and its children."""
@@ -784,7 +784,11 @@ class FlowCytometryPanel(PluginBase):
         group_id: str | None
         if force_silent:
             scope = "group" if getattr(self, "_propagation_active", True) else "sample"
-            group_id = sample.group_ids[0] if sample.group_ids else "all"
+            group_id = getattr(self.state.view, "active_group_filter", "__all__")
+            if group_id != "__all__" and sample.group_ids and group_id not in sample.group_ids:
+                group_id = sample.group_ids[0]
+            elif group_id == "__all__" and not sample.group_ids:
+                group_id = "all"
         else:
             # Prepare groups for the dialog
             group_choices = [("all", "All Samples")]
@@ -819,7 +823,7 @@ class FlowCytometryPanel(PluginBase):
                 nodes = tgt_sample.gate_tree.find_nodes_by_gate(physical_gate_id)
                 deleted_ids: set[str] = set()
                 for n in nodes:
-                    self._collect_descendants_into(n, deleted_ids)
+                    _collect_descendants_into(n, deleted_ids)
 
                 if deleted_ids:
                     deleted_nodes_by_sample[s_id] = deleted_ids

@@ -267,6 +267,13 @@ class GraphManager(QWidget):
             logger.warning("Cannot open graph — sample %s not found", sample_id)
             return
 
+        if node_id is not None:
+            if not sample.gate_tree.find_node_by_id(node_id):
+                logger.warning(
+                    f"Cannot open graph — node {node_id} not found in sample {sample_id}"
+                )
+                return
+
         graph = GraphWindow(
             state=self._state,
             sample_id=sample_id,

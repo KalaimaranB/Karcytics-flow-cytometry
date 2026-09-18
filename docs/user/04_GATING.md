@@ -9,7 +9,7 @@ Gating is the fundamental process of defining sub-populations within your flow c
 Karcytics supports complex geometric constraints tailored to isolate distinct cellular morphologies and fluorescent phenotypes. Select a tool from the ribbon and interact with any active plot:
 
 - **🖱 Select**: The default pointer mode. Use this to click on existing gates to resize or move them.
-- **⬚ Rectangle**: Click and drag to draw a standard rectangular gate.
+- **⬚ Rect**: Click and drag to draw a standard rectangular gate.
 - **⬡ Polygon**: Sequentially click to define vertices on the plot; double-click or press `Enter` to finalize the polygon. Optimal for isolating non-standard morphological populations (e.g., specific myeloid subsets).
 - **⬭ Ellipse**: Click and drag to instantiate an elliptical region. Computationally optimal for isolating tightly clustered populations distributed across logarithmic coordinate spaces.
 - **✛ Quad**: Click to instantiate a bifurcating origin point that divides the coordinate space into four distinct quadrants (e.g., $CD4^+/CD8^-$, $CD4^-/CD8^+$, $CD4^+/CD8^+$, and $CD4^-/CD8^-$).

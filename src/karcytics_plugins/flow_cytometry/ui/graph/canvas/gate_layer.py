@@ -125,6 +125,9 @@ class GateLayerRenderer:
                 }
                 if artists.patch:
                     canvas._gate_artists.append(artists.patch)
+                if hasattr(artists, "extra_artists") and artists.extra_artists:
+                    for ea in artists.extra_artists:
+                        canvas._gate_artists.append(ea)
                 if artists.label_text:
                     canvas._gate_artists.append(artists.label_text)
                 if artists.handles:

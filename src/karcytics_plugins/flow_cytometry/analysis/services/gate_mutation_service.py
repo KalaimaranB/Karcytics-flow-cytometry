@@ -322,17 +322,36 @@ class GateMutationService:
         if node is None:
             return False
 
-        node.name = new_name
-        # Renaming changes no statistics and no gate geometry, so this only
-        # needs GATE_RENAMED — publishing GATE_STATS_UPDATED here as well
-        # used to trigger a second full hierarchy-tree refresh plus an
-        # unneeded canvas overlay redraw for every rename.
-        GateEventPublisher.publish_gate_renamed(sample_id, node_id, new_name)
+        # Find all target samples in the same group(s)
+        target_ids = set()
+        for group_id in sample.group_ids:
+            group = self._state.data.experiment.groups.get(group_id)
+            if group:
+                target_ids.update(group.sample_ids)
+
+        # If no groups or standalone sample, at least update the current one
+        if not target_ids:
+            target_ids.add(sample_id)
+
+        renamed_any = False
+        for sid in target_ids:
+            s = self._state.data.experiment.samples.get(sid)
+            if s:
+                n = s.gate_tree.find_node_by_id(node_id)
+                if n:
+                    n.name = new_name
+                    # Renaming changes no statistics and no gate geometry, so this only
+                    # needs GATE_RENAMED — publishing GATE_STATS_UPDATED here as well
+                    # used to trigger a second full hierarchy-tree refresh plus an
+                    # unneeded canvas overlay redraw for every rename.
+                    GateEventPublisher.publish_gate_renamed(sid, node_id, new_name)
+                    renamed_any = True
 
         # Note: Do not request propagation here. Renaming a population does not affect
         # gating logic, geometries or statistics. Requesting propagation forces
         # a full re-evaluation of this node and its children which is computationally expensive.
-        return True
+        # Instead, we just propagated the name update manually above.
+        return renamed_any
 
     def _find_root_gate_id(self, node: GateNode) -> str | None:
         """Traverse upwards to find the first physical gate. Useful for UI selection syncing."""

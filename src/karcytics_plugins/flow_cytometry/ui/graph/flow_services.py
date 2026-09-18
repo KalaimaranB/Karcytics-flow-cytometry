@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import zlib
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from karcytics_sdk.plugin import get_logger
@@ -362,6 +363,7 @@ class OverlayArtists:
     patch: MplRectangle | MplPolygon | MplEllipse | FancyBboxPatch | Line2D
     label_text: Line2D | None = None
     handles: dict[str, Line2D] | None = None
+    extra_artists: list[Any] | None = None
 
 
 class GateOverlayRenderer:
@@ -588,7 +590,7 @@ class GateOverlayRenderer:
 
         # Create cross-hair lines
         h_line = ax.plot([xlim[0], xlim[1]], [y_mid, y_mid], color=edge_color, linewidth=lw)[0]
-        ax.plot([x_mid, x_mid], [ylim[0], ylim[1]], color=edge_color, linewidth=lw)[0]
+        v_line = ax.plot([x_mid, x_mid], [ylim[0], ylim[1]], color=edge_color, linewidth=lw)[0]
 
         label_text = self._create_label(ax, gate, x_mid, y_mid)
 
@@ -597,7 +599,9 @@ class GateOverlayRenderer:
             positions = self._get_gate_editor().get_handles(gate)
             handles = self._render_handle_markers(ax, positions, edge_color)
 
-        return OverlayArtists(patch=h_line, label_text=label_text, handles=handles)
+        return OverlayArtists(
+            patch=h_line, label_text=label_text, handles=handles, extra_artists=[v_line]
+        )
 
     def render_range(
         self,
@@ -616,12 +620,16 @@ class GateOverlayRenderer:
 
         # Create range bar as a fully closed rectangle so the boundary reads clearly
         left_line = ax.plot([x_low, x_low], [ylim[0], ylim[1]], color=edge_color, linewidth=lw)[0]
-        ax.plot([x_high, x_high], [ylim[0], ylim[1]], color=edge_color, linewidth=lw)[0]
-        ax.plot([x_low, x_high], [ylim[0], ylim[0]], color=edge_color, linewidth=lw)[0]
-        ax.plot([x_low, x_high], [ylim[1], ylim[1]], color=edge_color, linewidth=lw)[0]
+        right_line = ax.plot([x_high, x_high], [ylim[0], ylim[1]], color=edge_color, linewidth=lw)[
+            0
+        ]
+        bottom_line = ax.plot([x_low, x_high], [ylim[0], ylim[0]], color=edge_color, linewidth=lw)[
+            0
+        ]
+        top_line = ax.plot([x_low, x_high], [ylim[1], ylim[1]], color=edge_color, linewidth=lw)[0]
 
         # Draw a shaded region to highlight the gate range
-        ax.axvspan(x_low, x_high, facecolor=edge_color, alpha=0.15, zorder=999)
+        span = ax.axvspan(x_low, x_high, facecolor=edge_color, alpha=0.15, zorder=999)
 
         label_x = (x_low + x_high) / 2
         label_text = self._create_label(ax, gate, label_x, ylim[0])
@@ -638,7 +646,12 @@ class GateOverlayRenderer:
             }
             handles = self._render_handle_markers(ax, positions, edge_color)
 
-        return OverlayArtists(patch=left_line, label_text=label_text, handles=handles)
+        return OverlayArtists(
+            patch=left_line,
+            label_text=label_text,
+            handles=handles,
+            extra_artists=[right_line, bottom_line, top_line, span],
+        )
 
     def _create_label(self, ax: Axes, gate: Gate, x: float, y: float) -> Line2D | None:
         """Create text label for gate."""

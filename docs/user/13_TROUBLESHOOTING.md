@@ -11,42 +11,37 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 **Symptoms:** Error when trying to open FCS file.
 
 **Solutions:**
-1. Verify file path is correct (no typos)
-2. Check file permissions: right-click file → Properties → Security
-3. Ensure file is not locked by another application
-4. Try copying file to project `assets/data/` folder
-5. On network drives, verify network connection is active
+
+1. Verify file path is correct (no typos or moved files).
+2. Check the file isn't locked by another application (e.g. open in FlowJo).
+3. Try copying the file into your project's own `assets` folder and re-adding it from there — Karcytics offers to do this automatically the first time you add a file from outside the project (see [Workspace](./02_WORKSPACE.md#1-importing-data)).
+4. On network drives, verify the connection is active before retrying.
 
 ---
 
 ### Issue: "Unrecognized FCS Format"
 
-**Symptoms:** "Error parsing FCS header" when loading file.
+**Symptoms:** An error parsing the file header when loading.
 
 **Solutions:**
-1. Verify file is actually FCS format (not renamed TXT/CSV)
-2. Check FCS version compatibility:
-   - Supported: FCS 2.0, 3.0, 3.1
-   - Unsupported: FCS 1.0 (too old), FCS 4.0 (not yet supported)
-3. Download latest FlowKit: `pip install -U flowkit`
-4. Try opening with FlowJo or other software to verify file validity
-5. Contact instrument core if file corruption suspected
+
+1. Verify the file is actually FCS format (not a renamed `.txt`/`.csv`).
+2. Check the FCS version — Karcytics supports **FCS 2.0, 3.0, and 3.1**. Very old (1.0) or newer, less common variants may not parse correctly.
+3. Try opening the file in another tool (e.g. FlowJo) to confirm it isn't corrupted.
+4. If it still fails, contact your instrument core — the export may be non-standard.
 
 ---
 
-### Issue: "Dataset Too Large" or "Out of Memory"
+### Issue: Slowness or instability with very large datasets
 
-**Symptoms:** Slowness or crash when loading dataset > 5M events.
+**Symptoms:** Sluggish plotting or high memory use with samples in the millions of events.
 
 **Solutions:**
-1. Reduce dataset size:
-   - **Workspace** ribbon → **Downsample** → select 50% or 10%
-   - Or: Use instrument software to gate before export
-2. Close other applications to free RAM
-3. Switch to "Fast Preview" rendering:
-   - **Workspace** ribbon → **Presets** → **Fast Preview**
-   - Reduces bin resolution for speed
-4. Upgrade system RAM if persistent (recommend ≥16GB)
+
+1. Open the sample's plot and click **⚙ Settings** — every render mode has a **Max Events** cap with quick-set buttons (e.g. 10k/50k/100k/All in Dot Plot) that limits how many events are actually drawn.
+2. Switch to the **Fast Preview** quick preset in the same dialog while you're actively exploring, then switch back to **Standard** or **Publication** once you've settled on a view. See [Global Rendering Settings](./02_WORKSPACE.md#4-global-rendering-settings).
+3. Close other applications to free RAM.
+4. If problems persist on very large panels, consider gating out unneeded populations early so downstream plots and statistics run against fewer events.
 
 ---
 
@@ -54,55 +49,42 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 
 ### Issue: "Empty Plot" or "No Events Displayed"
 
-**Symptoms:** Canvas shows blank plot despite data loaded.
+**Symptoms:** Canvas shows a blank plot despite data being loaded.
 
 **Possible Causes & Solutions:**
 
 | Cause | Solution |
 |-------|----------|
-| Wrong axis selected | Check X/Y parameter selectors at bottom/left of canvas |
-| Data out of display range | Click **View** → **Auto-Zoom** to fit data |
-| Gate too restrictive | Select parent population in Sample Tree (e.g., "All Events") |
-| Transform mismatch | Try different transform (Linear, Log, Logicle) in Properties |
-| Compensation not applied | If using compensated data, verify spillover matrix loaded |
-
-> [!TIP]
-> Click **Properties** (right panel) → Check "Current Axis" section to verify selected parameters.
+| Wrong axis selected | Check the **X:** / **Y:** dropdowns above the plot |
+| Data out of display range | Press **F** with the mouse over the plot to fit the view to your data |
+| Gate too restrictive | Double-click a less-restrictive population (e.g. the root) in the **Gating Hierarchy** panel |
+| Transform mismatch | Open **⚙ Transforms** and try a different scale (Linear, Log, Biexponential) |
+| Compensation not applied | If you expect compensated data, check for the **[Comp]** tag on the sample in the Sample List |
 
 ---
 
-### Issue: "Plot Rendering is Very Slow"
+### Issue: "Plot Rendering is Slow"
 
-**Symptoms:** Plot takes > 10 seconds to update after any action.
+**Symptoms:** The plot takes a noticeable amount of time to update after a change.
 
 **Solutions:**
-1. **Reduce quality for speed:**
-   - **Workspace** ribbon → **Presets** → **Fast Preview**
-   - Or manually reduce "Bins" slider in Workspace settings
 
-2. **Check dataset size:**
-   - If > 10M events, downsample (see above)
-   - Or use scatter plot instead of pseudocolor
-
-3. **Close other applications** to free CPU/GPU
-
-4. **Restart Karcytics** to clear memory leaks
-
-5. **Update GPU drivers** if using graphics acceleration
+1. Open **⚙ Settings** on the plot and switch to the **Fast Preview** quick preset, or lower **Max Events** and **Population Detail** manually.
+2. If the sample has millions of events, consider gating down to a smaller population before fine-tuning a plot.
+3. Close other applications to free CPU.
+4. Restart Karcytics if a session has been open a very long time and performance has visibly degraded.
 
 ---
 
 ### Issue: "Gates Not Visible on Plot"
 
-**Symptoms:** Drew gate but can't see overlay on canvas.
+**Symptoms:** You drew a gate but can't see it overlaid on the canvas.
 
 **Solutions:**
-1. Check Properties panel → "Show Gate Overlays" is enabled
-2. Verify gate is in same population hierarchy as displayed plot
-3. Gate may be outside current zoom/pan view:
-   - Press **R** key or **Home** to reset view
-   - Or click **View** → **Zoom to Fit**
-4. Try toggling visibility: **View** → **Toggle Gate Visibility**
+
+1. Confirm you're looking at the same population the gate was drawn on — double-click the gate's node in the **Gating Hierarchy** panel to navigate to it directly.
+2. Press **F** with the mouse over the plot to fit the view — the gate may simply be outside the current zoom/pan.
+3. Make sure you're on the sample the gate was actually drawn on (or a group member it propagated to), not an unrelated sample.
 
 ---
 
@@ -110,47 +92,26 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 
 ### Issue: "Gates Not Propagating to Other Samples"
 
-**Symptoms:** Drew gate on one sample, but it doesn't appear on other samples in group.
+**Symptoms:** You drew a gate on one sample, but it doesn't appear on other samples you expected.
 
 **Solutions:**
-1. Verify samples are in same **Group**:
-   - **Groups Panel** (left) → drag samples to same group
-2. Check auto-propagation setting:
-   - **Gating** ribbon → **Auto-Propagate** should be ON
-3. For manual propagation:
-   - Select gate → **Gating** ribbon → **Propagate to Group**
-4. Verify group assignment:
-   - Select sample → **Properties** → look for group ID
+
+1. Verify the samples are actually in the same **Group** — check the **Groups** panel, or drag the samples together into one group (see [Workspace](./02_WORKSPACE.md#dataset-grouping)).
+2. Manually push the gate to every sample in the group with **📋 Copy Gates** on the **[Gating](./04_GATING.md)** ribbon — this works regardless of the automatic propagation state.
+3. Remember propagation only copies a gate to samples that share the same parent population by name; a sample missing that parent population won't receive the child gate.
 
 ---
 
-### Issue: "Cannot Draw Gate" or "Gate Creation Fails"
+### Issue: "Cannot Draw Gate"
 
-**Symptoms:** Clicking gate tool does nothing; or error when trying to create gate.
-
-**Solutions:**
-1. Verify gate tool is active:
-   - **Gating** ribbon → click desired gate type (Rectangle, Polygon, etc.)
-   - Cursor should change to crosshair
-2. Ensure you're drawing ON the canvas (not on labels/axes)
-3. Try different gate type (if Rectangle doesn't work, try Polygon)
-4. For polygon gates: right-click to finish (don't drag)
-5. Verify selected parent population is valid:
-   - Select population in Sample Tree before drawing
-
----
-
-### Issue: "Gate Evaluation Error" or "Invalid Gate Parameters"
-
-**Symptoms:** Gate created but shows error or doesn't filter events correctly.
+**Symptoms:** Clicking a gate tool does nothing, or drawing doesn't register.
 
 **Solutions:**
-1. Check gate bounds are within data range:
-   - Verify X_min < X_max and Y_min < Y_max
-   - Use **View** → **Auto-Zoom** to see full data range
-2. For polygon gates: ensure vertices form valid shape (no self-intersecting edges)
-3. For ellipse gates: ensure width/height > 0
-4. Try recreating gate with slightly adjusted bounds
+
+1. Confirm the tool is actually selected on the **[Gating](./04_GATING.md)** ribbon (Rect, Polygon, Ellipse, Quad, or Range) — the currently active tool is highlighted.
+2. Make sure you're drawing on the plot canvas itself, not on the axis labels or outside the plot area.
+3. For Polygon gates: click to place each vertex, then double-click or press **Enter** to close the shape — a single click-and-drag won't work the way it does for Rectangle or Ellipse.
+4. Press **Esc** at any time to cancel a gate you started by mistake and try again.
 
 ---
 
@@ -158,170 +119,66 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 
 ### Issue: "Spillover Matrix Computation Failed"
 
-**Symptoms:** "Error computing spillover" or "Singular matrix" error.
+**Symptoms:** An error, or an obviously wrong matrix, when calculating from controls.
 
 **Solutions:**
-1. Verify you've assigned correct sample **Roles**:
-   - Each single-stain control must have role = "Single-Stain"
-   - Unstained must have role = "Unstained"
-2. Check data quality:
-   - Single-stain controls should have high signal in primary detector
-   - Use scatter plot to visualize: is there a clear population?
-3. Verify detector names match across controls
-4. Try excluding problematic detectors:
-   - Recompute spillover with subset of detectors
-5. See [Scientific Logic](./03_SCIENTIFIC_LOGIC.md) for algorithm details
+
+1. Confirm your control samples have the correct **Role** assigned in the Workspace **Properties Panel** — each single-stain control needs **Single Stain**, and you need one **Unstained** sample as the baseline (see [Workspace](./02_WORKSPACE.md#assigning-sample-roles)).
+2. Check that each single-stain control actually shows a clear positive population in its primary detector — a weak or absent stain will produce an unreliable spillover coefficient.
+3. If a specific control looks wrong, reassign its role to **Other** temporarily and recompute without it to isolate the problem control.
+4. See [Scientific Logic](./11_SCIENTIFIC_LOGIC.md) for the underlying linear algebra.
 
 ---
 
-### Issue: "Compensation Distorts Data"
+### Issue: "Compensation Looks Wrong"
 
-**Symptoms:** After applying compensation, plots look strange (inverted colors, negative values).
+**Symptoms:** After applying compensation, populations look over- or under-corrected (e.g. a diagonal "smear" that should be resolved, or a population bowing the other way).
 
 **Possible Causes:**
 
 | Cause | Solution |
 |-------|----------|
-| Spillover matrix incorrect | Recompute with high-quality single-stain controls |
-| Controls labeled incorrectly | Verify each control contains correct dye only |
-| Matrix over-inverted | Normal - display is adjusted; check stats panel for correct values |
-| Applied to already-compensated data | Check if data was pre-compensated; clear and reapply |
+| Spillover matrix computed from a weak/noisy control | Recompute using a cleaner single-stain control |
+| A control is mislabeled | Verify each Single Stain sample actually contains only that one dye |
+| Comparing against already-compensated data | Check the sample's **[Comp]** tag — applying a second matrix on top of an already-compensated file will distort it |
+| Overcompensation ("bowing") | Use **🔄 Toggle Compensation** on the [Compensation](./03_COMPENSATION.md) ribbon to compare raw vs. corrected and confirm the correction direction |
 
 ---
 
-## Statistics & Export Issues
+## Statistics Issues
 
-### Issue: "Statistics Show '0' or 'NaN'"
+### Issue: Statistics show 0, NaN, or blank values
 
-**Symptoms:** Statistics table displays 0, NaN, or -inf values.
+**Symptoms:** The Statistics results table shows unexpected values.
 
 **Solutions:**
-1. Check population has events:
-   - **Properties** (right) → "Count" should be > 0
-   - If count = 0, gate was too restrictive
-2. Verify statistics type is appropriate:
-   - "Mean" requires numerical data (not categorical)
-   - "CV" requires data with variance > 0
-3. For CV = 0: Population has no variance (all events same intensity)
-4. For "Inf" (infinity): Log transform of zero (normal in edge cases)
+
+1. Check the population actually has events — select it in the **Gating Hierarchy** and confirm **Event Count** in the Properties Panel is greater than 0. A count of 0 means the gate was too restrictive (or drawn on the wrong parent).
+2. Some statistics need variance to be meaningful — **CV** on a population with a single repeated value, or on a very small population, can legitimately read 0 or be unstable.
+3. Make sure you clicked **Compute Statistics** again after changing your sample/population/statistic selection — see [Statistics](./06_STATISTICS.md).
 
 ---
 
-### Issue: "Export File is Empty or Corrupted"
+## Performance & Crashes
 
-**Symptoms:** Exported CSV/PDF appears empty or won't open in Excel.
+### Issue: Karcytics crashes or reports an unexpected error
 
-**Solutions:**
-1. **For CSV:**
-   - Verify population has statistics computed (see above)
-   - Open with text editor to check for non-printing characters
-   - Try different encoding: **Properties** → **Export Encoding** → UTF-8
+When the core application or a plugin hits a fatal error, Karcytics shows a **"System Alert — Karcytics Diagnostic"** dialog automatically, with a summary of what happened, the recent log lines, and an optional field for describing what you were doing. Click **Send to Sentry** to send that report directly — this is the primary way to report a bug, no separate bug tracker step needed.
 
-2. **For PDF:**
-   - Verify Adobe Reader/Acrobat is updated
-   - Try opening with browser (Chrome, Firefox)
-   - Reexport with different quality: **Properties** → **DPI** → try 150 or 300
+If you'd rather not send a report automatically, or want to gather details to share yourself:
 
-3. **Verify file saved to correct location:**
-   - Default: `~/Downloads/` (check download folder)
-   - Look for partial files (*.tmp, *.part)
+- Open **Preferences** (Edit menu, or **Ctrl+,** / **Cmd+,**) → **Privacy & Diagnostics**, which has **Open Logs Folder** and **Copy Diagnostic Report** buttons.
+- Logs are written to `~/.karcytics/logs/` on every OS (Windows, macOS, and Linux all use the same home-directory-relative path) — `core.log` for the main application, and a per-plugin log under `plugin_workers/` for the Flow Cytometry module specifically.
+- You can also reach out to the developer directly, or file an issue at [Karcytics-flow-cytometry/issues](https://github.com/KalaimaranB/Karcytics-flow-cytometry/issues) for the Flow Cytometry plugin specifically.
 
----
+### System requirements
 
-## Performance Issues
-
-### Issue: "Karcytics Crashes" or "Unexpectedly Quits"
-
-**Symptoms:** Program suddenly closes without error.
-
-**Possible Causes & Solutions:**
-
-| Cause | Solution |
-|-------|----------|
-| Out of memory | See "Dataset Too Large" section above |
-| Infinite loop in gating | Restart; verify DAG has no cycles |
-| GPU driver issue | Update graphics drivers; disable GPU acceleration in Settings |
-| File corruption | Restart Karcytics; reload FCS files |
-| Software bug | Submit crash report (Help → Report Bug) with error log |
-
-**Error Logs Location:**
-- Windows: `C:\Users\<username>\AppData\Local\Karcytics\logs\`
-- Mac: `~/Library/Logs/Karcytics/`
-- Linux: `~/.local/share/Karcytics/logs/`
-
----
-
-### Issue: "Slow Response When Dragging Gates"
-
-**Symptoms:** Dragging a gate causes lag/stuttering.
-
-**Solutions:**
-1. **Reduce quality:**
-   - **Workspace** → **Presets** → **Fast Preview**
-   - Reduces histogram resolution for speed
-
-2. **Decrease dataset size:**
-   - Downsample to 10% for testing
-   - Use full data for final analysis
-
-3. **Check CPU usage:**
-   - Open Task Manager (Windows) / Activity Monitor (Mac)
-   - If CPU > 80%, close other apps
-
-4. **Disable features:**
-   - Disable "Show Statistics in Real-Time"
-   - Disable "Show Gate Overlays During Drag"
-
----
-
-## Feature-Specific Issues
-
-### UMAP Issues
-
-**"UMAP Takes Too Long"**
-- Normal for 1M+ events (~5-10 minutes)
-- To speed up: subsample to 100k events
-- Or: increase `min_dist` parameter (less detail but faster)
-
-**"UMAP Plot Shows Disconnected Clusters"**
-- Try reducing `n_neighbors` (default 15 → try 10)
-- Or reducing `min_dist` (default 0.1 → try 0.05)
-
-### Spectral Unmixing Issues
-
-**"Spillover Heatmap Doesn't Match Expected Values"**
-- Verify single-stain controls are high-quality
-- Check detector configurations are correct in FCS metadata
-- Try recomputing spillover matrix
-
----
-
-## When All Else Fails
-
-### Reset Settings
-1. **Preferences** → **Reset to Defaults**
-2. Restart Karcytics
-
-### Check System Requirements
-- **OS**: Windows 10+, macOS 10.14+, or Linux (Ubuntu 18.04+)
-- **RAM**: Minimum 8GB (recommended 16GB+)
-- **Disk**: 500MB free space
-- **Python**: 3.11+
-
-### Contact Support
-
-If issue persists:
-1. Collect error log (see above)
-2. Prepare minimal reproducible example:
-   - Small FCS file that reproduces issue
-   - Exact steps to reproduce
-3. Submit to: Karcytics Support (Karcytics → Help → Report Issue)
-4. Or: GitHub Issues: [Karcytics-flow-cytometry/issues](https://github.com/KalaimaranB/Karcytics-flow-cytometry/issues)
+Karcytics is primarily supported on modern **Windows** and **macOS**. Linux is not currently a first-class packaged target — it can be run from source, but isn't part of the main packaged release. It requires **Python 3.11 or 3.12**. For more detail see the main Karcytics installation guide.
 
 ---
 
 ## Related Documentation
 
-- **[Getting Started](./01_GETTING_STARTED.md)**: Basic workflow
-- **[Keyboard Shortcuts](./09_KEYBOARD_SHORTCUTS.md)**: Quick reference
-- **[Scientific Logic](./03_SCIENTIFIC_LOGIC.md)**: Mathematical principles
+- **[Getting Started](./01_GETTING_STARTED.md)**: Basic workflow tutorial
+- **[Keyboard Shortcuts](./12_KEYBOARD_SHORTCUTS.md)**: The real, current set of key bindings
+- **[Scientific Logic](./11_SCIENTIFIC_LOGIC.md)**: Mathematical principles behind compensation and transforms

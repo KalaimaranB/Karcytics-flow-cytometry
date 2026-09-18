@@ -928,6 +928,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             return
         if artists.patch is not None:
             yield artists.patch
+        if hasattr(artists, "extra_artists") and artists.extra_artists:
+            yield from artists.extra_artists
         if artists.label_text is not None:
             yield artists.label_text
         if artists.handles:

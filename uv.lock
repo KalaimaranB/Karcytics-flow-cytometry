@@ -381,7 +381,7 @@ wheels = [
 
 [[package]]
 name = "flow-cytometry"
-version = "0.8.6.2"
+version = "0.8.6.3"
 source = { virtual = "." }
 dependencies = [
     { name = "fast-histogram" },

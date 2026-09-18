@@ -39,8 +39,8 @@ The true, compensated signal vector $C$ for a given event is calculated by multi
 
 $$ C = S^{-1} \cdot R $$
 
-> [!IMPORTANT]
-> The Karcytics module computes $S^{-1}$ utilizing high-precision matrix inversion algorithms provided by the `numpy` numerical library, guaranteeing mathematical exactitude absent in older proprietary systems.
+!!! important
+    Karcytics computes $S^{-1}$ using `numpy`'s standard matrix inversion routines.
 
 ---
 
@@ -50,6 +50,7 @@ Standard logarithmic scales are mathematically undefined at zero and cannot disp
 
 ### The Parks 2006 Logicle Transform
 Karcytics incorporates the **Logicle (BiExponential)** transform to seamlessly handle sub-zero events. It integrates:
+
 1. **Linear Scaling** adjacent to zero, permitting the accurate display of negative values and statistical spread.
 2. **Logarithmic Scaling** at high magnitudes, compressing high-intensity positive values.
 
@@ -77,4 +78,4 @@ This normalization guarantees that visual distributions remain scientifically re
 
 ## Technical Guides
 - **[Getting Started Guide](./01_GETTING_STARTED.md)**
-- **[Advanced Analysis Guide](./02_ANALYSIS_GUIDE.md)**
+- **[Workspace](./02_WORKSPACE.md)**

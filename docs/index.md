@@ -12,7 +12,7 @@ Comprehensive guides for data analysis workflows, visual refinement, and publica
 
 - **[Capabilities Overview](./user/00_OVERVIEW.md)**: Feature summary, tri-pane layout, and the 8 workspace tabs at a glance.
 - **[Getting Started Guide](./user/01_GETTING_STARTED.md)**: Tutorial for loading FCS data, configuring the workspace, and creating initial gates.
-- **[Workspace](./user/02_WORKSPACE.md)**: Importing FCS files, sample metadata, and workspace-level actions.
+- **[Workspace](./user/02_WORKSPACE.md)**: Importing FCS files, sample metadata, and everything that comes up once you open a sample — axis controls, plot type, transforms, per-plot settings, the Gating Hierarchy, and Group Preview.
 - **[Compensation](./user/03_COMPENSATION.md)**: Spillover matrix generation and the compensation editor.
 - **[Gating](./user/04_GATING.md)**: Rectangle, polygon, ellipse, quadrant, and range gates.
 - **[Pipeline](./user/05_PIPELINE.md)**: The node-graph view of a sample's gating pipeline.
@@ -22,7 +22,7 @@ Comprehensive guides for data analysis workflows, visual refinement, and publica
 - **[Comparisons](./user/09_COMPARISONS.md)**: Cross-sample comparison plots.
 - **[Academy & Guided Tutorials](./user/10_ACADEMY_TUTORIALS.md)**: The in-app guided courses and what each one teaches.
 - **[Scientific Logic & Algorithms](./user/11_SCIENTIFIC_LOGIC.md)**: Mathematical principles behind Logicle transforms, rank-percentile density calculation, and smoothing kernels.
-- **[Keyboard Shortcuts & Quick Reference](./user/12_KEYBOARD_SHORTCUTS.md)**: Complete list of keyboard shortcuts and quick access commands.
+- **[Keyboard Shortcuts & Quick Reference](./user/12_KEYBOARD_SHORTCUTS.md)**: The real, current set of key bindings — this app is mostly mouse-driven.
 - **[Troubleshooting Guide](./user/13_TROUBLESHOOTING.md)**: Common issues, error messages, and solutions.
 
 ---

@@ -86,6 +86,10 @@ def test_autofill_plots_every_detected_channel_once():
     viewer._refresh_sources()
     assert not viewer._active_fluors
     viewer._autofill_from_samples()
+
+    while getattr(viewer, "_autofill_timer", None) and viewer._autofill_timer.isActive():
+        viewer._autofill_next()
+
     assert len(viewer._active_fluors) == 3  # noqa: PLR2004
     assert viewer._autofilled is True
 
@@ -94,4 +98,8 @@ def test_autofill_plots_every_detected_channel_once():
     viewer._active_fluors.pop(first_query)
     viewer._refresh_sources()
     viewer._autofill_from_samples()
+
+    while getattr(viewer, "_autofill_timer", None) and viewer._autofill_timer.isActive():
+        viewer._autofill_next()
+
     assert len(viewer._active_fluors) == 2  # noqa: PLR2004

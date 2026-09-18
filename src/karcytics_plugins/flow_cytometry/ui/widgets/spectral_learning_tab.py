@@ -42,7 +42,6 @@ if TYPE_CHECKING:
 _PCT_TOLERANCE = 4.0  # percentage points allowed off in a typed/measured spillover answer
 _SLOPE_TOLERANCE = 0.08  # allowed slope error when reading the ruler
 _MIN_RUN = 1e-6  # avoids divide-by-zero when the ruler's two points share an x
-_RULER_LOCAL_FIT_SIZE = 40  # nearby real points used to snap one ruler endpoint
 _MIN_RULER_RUN = 150.0  # endpoints closer than this in x make a very noise-sensitive reading
 
 
@@ -458,7 +457,7 @@ class SpectralLearningTab(QWidget):
             edgecolor=Colors.BORDER,
             labelcolor=Colors.FG_PRIMARY,
             fontsize=8,
-            loc="upper right",
+            loc="upper left",
         )
         return target_peak_x
 
@@ -636,9 +635,19 @@ class SpectralLearningTab(QWidget):
         self._ax.set_ylim(0, 1000)
         self._slide3_true_pct = pct
 
-        # Zone markers — show where to place each ruler endpoint.
+        # Zone markers — show where to place each ruler endpoint. Derived
+        # from the actual population's own x-range (10th/90th percentile)
+        # rather than fixed pixel positions, so they always sit ON the real
+        # cloud — a fixed "← dim" at x=200 could land well to the left of
+        # every real point (the cloud is centred at x=800), which forced
+        # every dim-side snap into the same narrow leftmost sliver of data
+        # no matter where within that empty region you actually clicked.
+        dim_x = float(np.percentile(self._slide3_x, 10))
+        bright_x = float(np.percentile(self._slide3_x, 90))
+        self._slide3_dim_x = dim_x
+        self._slide3_bright_x = bright_x
         if not self._ruler_ok:
-            for x_pos, label, ha in ((200, "← dim", "left"), (850, "bright →", "right")):
+            for x_pos, label, ha in ((dim_x, "← dim", "left"), (bright_x, "bright →", "right")):
                 self._ax.axvline(x_pos, color=Colors.FG_DISABLED, lw=1, ls="--", alpha=0.5)
                 self._ax.text(
                     x_pos,
@@ -658,10 +667,18 @@ class SpectralLearningTab(QWidget):
             self._add_answer_input("Enter % (e.g. 15)", self._check_slide3_pct)
 
     def _draw_ruler(self):
-        if len(self._ruler_points) == 2:  # noqa: PLR2004
-            (x0, y0), (x1, y1) = self._ruler_points
-            color = "#3fb950" if self._ruler_ok else "#58a6ff"
-            self._ax.plot([x0, x1], [y0, y1], color=color, lw=2, marker="o")
+        if not self._ruler_points:
+            return
+        color = "#3fb950" if self._ruler_ok else "#58a6ff"
+        if len(self._ruler_points) == 1:
+            # A single endpoint placed so far (mid-drag, before the second
+            # point exists) — draw it now instead of waiting for a second
+            # point, so the very first click gives visible feedback.
+            x0, y0 = self._ruler_points[0]
+            self._ax.plot([x0], [y0], color=color, marker="o", ms=9, zorder=5)
+            return
+        (x0, y0), (x1, y1) = self._ruler_points
+        self._ax.plot([x0, x1], [y0, y1], color=color, lw=2, marker="o", zorder=5)
 
     def _show_ruler_readout(self):
         (x0, y0), (x1, y1) = (
@@ -673,35 +690,6 @@ class SpectralLearningTab(QWidget):
         self._readout_label.setText(
             f"Rise: {rise:.0f}   Run: {run:.0f}   Slope: {slope:.3f}   (≈ {slope * 100:.1f}%)"
         )
-
-    def _snap_ruler_point(self, x_target: float) -> tuple[float, float]:
-        """Snaps a ruler endpoint's y onto the population's LOCAL trend near
-        the clicked x, instead of using the raw (x, y) of whatever pixel the
-        mouse happens to be on.
-
-        Two earlier attempts both had real problems:
-        - Snapping to the raw local *median* of a small window let residual
-          noise dominate near the sparse tails, making the tool "extremely
-          sensitive" to exactly where you clicked.
-        - Snapping to one line fit through the ENTIRE population made every
-          reading identical regardless of where you clicked — the ruler's y
-          stopped depending on your click at all, only its x-separation
-          mattered, so it wasn't really measuring anything.
-
-        Fitting a line through just the nearest `_RULER_LOCAL_FIT_SIZE` real
-        points and reading *that* line at x_target keeps both properties a
-        real ruler should have: moving the click meaningfully moves the
-        reading (genuine measurement, not a fixed answer), while a wider
-        local fit — rather than a single raw point — keeps noise low enough
-        that a reasonably careful drag still lands inside tolerance.
-        """
-        xs, ys = self._slide3_x, self._slide3_y
-        order = np.argsort(np.abs(xs - x_target))[:_RULER_LOCAL_FIT_SIZE]
-        local_x, local_y = xs[order], ys[order]
-        if np.ptp(local_x) < _MIN_RUN:
-            return (x_target, float(np.mean(local_y)))
-        slope, intercept = np.polyfit(local_x, local_y, 1)
-        return (x_target, float(intercept + slope * x_target))
 
     def _add_answer_input(self, placeholder: str, on_submit):
         self._answer_input = QLineEdit()
@@ -768,19 +756,25 @@ class SpectralLearningTab(QWidget):
     # ==========================================================================
     def _render_slide_4_predict_correct(self, fluors):
         self._step_label.setText("Step 4: Predict, Then Correct")
-        _dye_a, _dye_b, pct = self._teaching_pair()
+        dye_a, dye_b, pct = self._teaching_pair()
+        label_a = fluors[dye_a].get("display_label", dye_a)
+        label_b = fluors[dye_b].get("display_label", dye_b)
         leak_x, leak_y = 800.0, 800.0 * pct / 100.0
         # The autofluorescence floor — the y-level a fully-compensated cell
         # reaches (it can't go below this because cells always have some
         # background signal even with no dye).
         _AUTOFLUO_FLOOR = 40.0
 
-        html = """
+        html = f"""
         <h3 style="color: #3fb950;">Applying the Math</h3>
-        <p>Compensation is subtraction: for a cell measuring some brightness in the leaking
-        detector, we subtract (spillover % × the true detector's reading) to recover its real
-        value.</p>
-        <p>Here's one real leaked cell — the <b>orange cell</b> on the plot. Before we
+        <p>Step 3 gave us the slope — {pct:.1f}% of every unit of true {label_a} signal
+        shows up as FALSE {label_b} signal. Compensation reverses that: for a cell measuring
+        some brightness in the leaking ({label_b}) detector, we subtract (spillover % × the
+        true {label_a} reading) to strip out exactly the false portion, leaving only what
+        {label_b} actually saw on its own.</p>
+        <p>Here's one real leaked cell — the <b>orange cell</b> on the plot, sitting at
+        ({leak_x:.0f}, {leak_y:.0f}). Its x-position ({label_a}) is real and shouldn't move;
+        only its inflated y-position ({label_b}) is the artifact we're correcting. Before we
         correct it —</p>
         """
         if self._predicted_point is None:
@@ -789,7 +783,15 @@ class SpectralLearningTab(QWidget):
             px, py = self._predicted_point
             html += (
                 f"<p>You predicted ({px:.0f}, {py:.0f}) — that's the blue X. The bright "
-                "orange dot is the corrected position, driven by the slider below.</p>"
+                "orange dot is the corrected position, driven by the slider below: it "
+                f"recomputes {leak_y:.0f} − (slider% × {leak_x:.0f}) live as you drag, the "
+                "same subtraction from the paragraph above.</p>"
+                "<p>Why aim for the dashed line and not zero? Even a cell with NO dye at all "
+                "still gives off a faint natural glow (autofluorescence, from Step 2's "
+                "unstained control) — so a perfectly compensated cell settles there, not at "
+                "y = 0. Too little slider and the dot stays stranded above the line (some "
+                "leaked signal still uncorrected); too much and you'd be subtracting more "
+                "than was ever really there.</p>"
                 "<p style='color: #3fb950; font-weight: bold;'>Action Required: Drag the "
                 "slider until the orange dot lands on the dashed "
                 "<b>autofluorescence floor</b> line — that slider % is your answer for "
@@ -1199,8 +1201,14 @@ class SpectralLearningTab(QWidget):
                     self._drag_state = "crosshair"
         elif cs == 2:  # noqa: PLR2004
             if not self._ruler_ok:
-                self._ruler_points = [self._snap_ruler_point(event.xdata)]
+                # A true free-form drag: the start point is exactly where you
+                # click, no snapping onto the population.
+                self._ruler_points = [(event.xdata, event.ydata)]
                 self._drag_state = "ruler"
+                # Render the first point immediately — otherwise nothing is
+                # visible until the mouse actually moves, which reads as the
+                # click having done nothing.
+                self.update_view()
         elif cs == 3:  # noqa: PLR2004
             if self._predicted_point is None:
                 self._predicted_point = (event.xdata, event.ydata)
@@ -1262,9 +1270,9 @@ class SpectralLearningTab(QWidget):
             self._canvas.draw()
         elif self._drag_state == "ruler":
             if self._ruler_points:
-                self._ruler_points = [self._ruler_points[0], self._snap_ruler_point(event.xdata)]
-                self._ax.clear()
-                self._style_axes()
+                # End point tracks the cursor exactly too — release wherever
+                # you like, the reading is evaluated afterward.
+                self._ruler_points = [self._ruler_points[0], (event.xdata, event.ydata)]
                 self.update_view()
         elif self._drag_state == "gate":
             self._update_gate_drag(event)

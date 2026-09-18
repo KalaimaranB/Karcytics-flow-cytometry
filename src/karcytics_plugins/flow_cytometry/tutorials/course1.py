@@ -15,6 +15,7 @@ Spotlight convention:
 from karcytics_sdk.plugin.tutorial_models import (
     ActionStep,
     BranchingStep,  # noqa: F401
+    ConsentStep,
     Course,
     ForcedInteractionStep,  # noqa: F401
     InfoStep,
@@ -54,16 +55,28 @@ c1_cells_validator = GateShapeValidator(
         (8000, 1000),
     ],
     target_name="Cells",
+    misnamed_retry_step_id="c1_s24_cells_gate_misnamed",
+    shape_retry_step_id="c1_s24_cells_gate_retry",
 )
 
 c1_live_validator = GateShapeValidator(
-    target_bounds=(-1000.0, 50000.0, 0.0, 0.0),
+    # Must match the on-canvas guide_range=(-1000.0, 10000.0) drawn for
+    # c1_s27f_draw_live_gate below — it previously said 50000.0 here, so a
+    # gate drawn to exactly trace the dotted guide box the user is shown
+    # (topping out at 10000) fell short of this validator's ±10%-of-axis-
+    # range tolerance window around 50000 and was wrongly rejected as a
+    # bad shape even when perfectly, correctly drawn.
+    target_bounds=(-1000.0, 10000.0, 0.0, 0.0),
     target_name="Live Cells",
+    misnamed_retry_step_id="c1_s27f_live_gate_misnamed",
+    shape_retry_step_id="c1_s27f_live_gate_retry",
 )
 
 c1_leukocytes_validator = GateShapeValidator(
     target_bounds=(2000.0, 200000.0, 500.0, 37000.0),
     target_name="Leukocytes",
+    misnamed_retry_step_id="c1_s30h_leukocytes_gate_misnamed",
+    shape_retry_step_id="c1_s30h_leukocytes_gate_retry",
 )
 
 c1_import_validator = FlowImportValidator()
@@ -119,50 +132,17 @@ def route_import_failure(
         current_step.text = "Analyzing sample count..."
 
 
-def route_gate_failure(panel, _validator, _step_id, correct_name, misnamed_next_id, retry_next_id):
-    """Dynamically changes the ActionStep's next_step_id based on failure reason."""
-    from .validators import _TUTORIAL_STATE
-
-    misnamed_id = _TUTORIAL_STATE.get("last_misnamed_node_id")
-    failed_id = _TUTORIAL_STATE.get("last_failed_node_id")
-    misnamed_sample_id = _TUTORIAL_STATE.get("last_misnamed_sample_id")
-
-    # Get the currently running step
-    current_step = None
-    try:
-        from karcytics_sdk.plugin.runtime_services import tutorial_manager
-
-        current_step = tutorial_manager.current_step
-    except Exception:
-        pass
-
-    if misnamed_id:
-        # Use the sample the gate was found on (may differ from current_sample_id post-propagation)
-        target_sample_id = misnamed_sample_id or panel.state.view.current_sample_id
-        panel.state.view.current_gate_id = misnamed_id
-        panel._gate_coordinator.rename_population(target_sample_id, misnamed_id, correct_name)
-        _TUTORIAL_STATE["last_misnamed_node_id"] = None
-        _TUTORIAL_STATE["last_misnamed_sample_id"] = None
-
-        if current_step:
-            current_step.next_step_id = misnamed_next_id
-            current_step.text = f"Great shape! But you named it incorrectly. I renamed it to **{correct_name}** for you!"
-    else:
-        # Delete the poorly drawn gate
-        if failed_id:
-            panel.state.view.current_gate_id = failed_id
-            panel._on_delete_selected_gate(force_silent=True)
-            _TUTORIAL_STATE["last_failed_node_id"] = None
-        else:
-            panel._on_delete_selected_gate(force_silent=True)
-
-        if current_step:
-            current_step.next_step_id = retry_next_id
-            current_step.text = "Deleting poorly drawn gate..."
-
-
 # ==============================================================================
 # Course 1 — Flow Cytometry Fundamentals
+#
+# Gate-drawing steps (Cells / Live Cells / Leukocytes below) no longer wire
+# their own ActionStep-based failure routing: `c1_cells_validator` /
+# `c1_live_validator` / `c1_leukocytes_validator` above implement
+# `GateShapeValidator.describe_failure()`, and `AcademyStepDriver` (SDK)
+# calls it automatically on a failed VerificationStep — showing the
+# explanation banner, auto-renaming/deleting the gate, and routing to the
+# validator's own `misnamed_retry_step_id`/`shape_retry_step_id` in one
+# generic path shared by every course that uses `GateShapeValidator`.
 # Three phases: Setup → Compensation → Gating
 # ==============================================================================
 
@@ -222,6 +202,7 @@ _provisioning_step: VerificationStep = VerificationStep(
         on_progress=lambda text: setattr(_provisioning_step, "text", text)
     ),
     on_success_step_id="c1_s1e_set_import_text",
+    failure_hint="Still downloading the tutorial files — this can take about a minute on a slower connection.",
 )
 
 
@@ -270,9 +251,22 @@ course_1_fundamentals = Course(
                 "cytometer — tutorial or not."
             ),
             cyto_emotion="talking",
-            next_step_id="c1_s1c_provision_files",
+            next_step_id="c1_s1c_ask_provision",
         ),
         # ── Phase 1 — Setup (Import & Roles) ─────────────────────────────────
+        ConsentStep(
+            id="c1_s1c_ask_provision",
+            text=(
+                "Do you need to download the tutorial dataset files?<br><br>"
+                "If you haven't downloaded them yet, I can fetch them for you now (~100MB). "
+                "If you already have them, you can skip this step."
+            ),
+            accept_text="Download Files",
+            decline_text="Skip",
+            on_accept_step_id="c1_s1c_provision_files",
+            on_decline_step_id="c1_s1e_set_import_text",
+            cyto_emotion="talking",
+        ),
         ActionStep(
             id="c1_s1c_provision_files",
             text="Preparing your tutorial files...",
@@ -391,6 +385,7 @@ course_1_fundamentals = Course(
             target_widget_names=["SampleList", "PropertiesPanel"],
             validator=UnstainedRoleValidator(),
             on_success_step_id="c1_s7_pi_role",
+            failure_hint="Double-check you selected **Blank** in the Sample List, then set its Role to **Unstained** in the Properties Panel.",
         ),
         # PI → Single Stain
         VerificationStep(
@@ -409,6 +404,7 @@ course_1_fundamentals = Course(
             target_widget_names=["SampleList", "PropertiesPanel"],
             validator=SingleStainRoleValidator(),
             on_success_step_id="c1_s9_fmo_role",
+            failure_hint="Double-check you selected the **PI** file in the Sample List, then set its Role to **Single Stain**.",
         ),
         # FMOs → FMO Control
         VerificationStep(
@@ -429,6 +425,7 @@ course_1_fundamentals = Course(
             target_widget_names=["BulkAssignRoleButton"],
             validator=FmoRoleValidator(),
             on_success_step_id="c1_s10_set_all_roles",
+            failure_hint="Make sure you selected all 5 FMO files in **Bulk Assign Roles** and set them to **FMO Control**.",
         ),
         VerificationStep(
             id="c1_s10_set_all_roles",
@@ -444,6 +441,7 @@ course_1_fundamentals = Course(
             target_widget_names=["BulkAssignRoleButton"],
             validator=RoleAssignmentValidator(),
             on_success_step_id="c1_s11_role_summary",
+            failure_hint="Make sure Samples A, B, and C are all set to **Full Panel** via Bulk Assign Roles.",
         ),
         InfoStep(
             id="c1_s11_role_summary",
@@ -712,6 +710,11 @@ course_1_fundamentals = Course(
                 "guide_data_poly": [(8000, 38000), (248000, 34000), (248000, 500), (8000, 1000)]
             },
             next_step_id="c1_s24_cells_gate_verify",
+            stuck_hint_text=(
+                "Still there? Click **Polygon** in the Gating ribbon, then click around the "
+                "cell cloud and double-click to close the shape."
+            ),
+            stuck_hint_after_ms=45000,
         ),
         VerificationStep(
             id="c1_s24_cells_gate_verify",
@@ -725,20 +728,7 @@ course_1_fundamentals = Course(
             },
             validator=c1_cells_validator,
             on_success_step_id="c1_s24b_cells_hierarchy_intro",
-            on_fail_step_id="c1_s24_cells_gate_fail",
-        ),
-        ActionStep(
-            id="c1_s24_cells_gate_fail",
-            text="Deleting poorly drawn gate...",
-            action=lambda panel: route_gate_failure(
-                panel,
-                c1_cells_validator,
-                "c1_s24_cells_gate_fail",
-                "Cells",
-                "c1_s24_cells_gate_misnamed",
-                "c1_s24_cells_gate_retry",
-            ),
-            next_step_id="c1_s24_cells_gate_retry",
+            on_fail_step_id="c1_s24_cells_gate_retry",
         ),
         InfoStep(
             id="c1_s24_cells_gate_misnamed",
@@ -855,6 +845,7 @@ course_1_fundamentals = Course(
             target_widget_names=["AxisSelectorX"],
             validator=AxisChannelValidator("percp"),
             on_success_step_id="c1_s27c_biexp_explain",
+            failure_hint="Make sure the **X:** axis dropdown is set to **PerCP-Cy5-5-A**, the PI detector channel.",
         ),
         # ── Step 3: Explain biexponential and populations ───────────────────
         InfoStep(
@@ -895,6 +886,7 @@ course_1_fundamentals = Course(
             target_widget_names=["TransformsButton", "OutlierCombo"],
             validator=AxisOutlierValidator(0.0),
             on_success_step_id="c1_s27f_draw_live_gate",
+            failure_hint="Open **⚙ Transforms** and make sure **Outliers:** is set to **0%**, not the default 0.1%.",
         ),
         # ── Step 5: Draw the vertical Range gate ────────────────────────────────
         InteractionStep(
@@ -909,9 +901,15 @@ course_1_fundamentals = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_range", "FlowCanvas"],
+            target_widget_name="FlowCanvas",
             event_trigger="gate_created",
             metadata={"guide_range": (-1000.0, 10000.0)},
             next_step_id="c1_s27f_draw_live_gate_verify",
+            stuck_hint_text=(
+                "Still there? Click the **Range** tool, then drag across the dark purple box "
+                "from left edge to right edge."
+            ),
+            stuck_hint_after_ms=45000,
         ),
         VerificationStep(
             id="c1_s27f_draw_live_gate_verify",
@@ -921,20 +919,7 @@ course_1_fundamentals = Course(
             hide_next_button=True,
             validator=c1_live_validator,
             on_success_step_id="c1_s27g_settings_intro",
-            on_fail_step_id="c1_s27f_live_gate_fail",
-        ),
-        ActionStep(
-            id="c1_s27f_live_gate_fail",
-            text="Deleting poorly drawn gate...",
-            action=lambda panel: route_gate_failure(
-                panel,
-                c1_live_validator,
-                "c1_s27f_live_gate_fail",
-                "Live Cells",
-                "c1_s27f_live_gate_misnamed",
-                "c1_s27f_live_gate_retry",
-            ),
-            next_step_id="c1_s27f_live_gate_retry",
+            on_fail_step_id="c1_s27f_live_gate_retry",
         ),
         InfoStep(
             id="c1_s27f_live_gate_misnamed",
@@ -1053,6 +1038,7 @@ course_1_fundamentals = Course(
             target_widget_names=["AxisSelectorX"],
             validator=AxisChannelValidator("apc"),
             on_success_step_id="c1_s30d_outlier",
+            failure_hint="Make sure the **X:** axis dropdown is set to **APC-A**, the CD45 channel.",
         ),
         InfoStep(
             id="c1_s30d_outlier",
@@ -1125,9 +1111,15 @@ course_1_fundamentals = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_rectangle", "FlowCanvas"],
+            target_widget_name="FlowCanvas",
             event_trigger="gate_created",
             metadata={"guide_rect": (2000.0, 200000.0, 500.0, 37000.0)},
             next_step_id="c1_s30h_draw_gate_verify",
+            stuck_hint_text=(
+                "Still there? Click the **Rect** tool, then drag across the dark purple box "
+                "covering the CD45+ region."
+            ),
+            stuck_hint_after_ms=45000,
         ),
         VerificationStep(
             id="c1_s30h_draw_gate_verify",
@@ -1137,20 +1129,7 @@ course_1_fundamentals = Course(
             hide_next_button=True,
             validator=c1_leukocytes_validator,
             on_success_step_id="c1_s30f_open_sample",
-            on_fail_step_id="c1_s30h_leukocytes_gate_fail",
-        ),
-        ActionStep(
-            id="c1_s30h_leukocytes_gate_fail",
-            text="Deleting poorly drawn gate...",
-            action=lambda panel: route_gate_failure(
-                panel,
-                c1_leukocytes_validator,
-                "c1_s30h_leukocytes_gate_fail",
-                "Leukocytes",
-                "c1_s30h_leukocytes_gate_misnamed",
-                "c1_s30h_leukocytes_gate_retry",
-            ),
-            next_step_id="c1_s30h_leukocytes_gate_retry",
+            on_fail_step_id="c1_s30h_leukocytes_gate_retry",
         ),
         InfoStep(
             id="c1_s30h_leukocytes_gate_misnamed",
@@ -1215,6 +1194,7 @@ course_1_fundamentals = Course(
             allow_interaction=False,
             validator=c1_leukocytes_validator,
             on_success_step_id="c1_s30f2_set_x_sample_a",
+            failure_hint="If the Leukocytes gate hasn't appeared here yet, make sure Auto-Propagation is enabled and try re-opening Sample B.",
         ),
         InfoStep(
             id="c1_s30f2_set_x_sample_a",
@@ -1280,6 +1260,7 @@ course_1_fundamentals = Course(
             target_widget_names=["WorkspaceSaveButton"],
             validator=WorkflowSavedValidator(),
             on_success_step_id="c1_s34_graduation",
+            failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
             id="c1_s34_graduation",

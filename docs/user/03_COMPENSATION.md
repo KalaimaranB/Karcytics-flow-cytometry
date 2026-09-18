@@ -17,17 +17,19 @@ Before computation, strict taxonomic roles must be assigned to your control samp
 
 ### Extract from FCS Metadata
 Many modern acquisition cytometers embed the acquisition-time compensation matrix directly within the FCS file's metadata.
+
 - Click **📄 Extract from FCS** to scan loaded samples for the `$SPILL` or `$SPILLOVER` keyword and automatically load the embedded matrix into your workspace.
 
 ### Import from File
 If you have computed your matrix using external tools (like FlowJo or R):
+
 - Click **📥 Import CSV** to load a matrix from standard `.csv`, `.tsv`, or `.txt` formats.
 
 ## 2. Reviewing the Matrix
 
 Once a matrix is loaded or computed, it is vital to review it for excessive spectral overlap.
 
-1. Click **⚙️ View/Edit Matrix** to open the Compensation Editor.
+1. Click **⚙️ View/Edit Matrix** to open the **Spillover Matrix Editor**.
 2. Inspect the off-diagonal coefficients. You can also view side-by-side scatter plots to fine-tune specific channel interactions manually.
 
 ![alt text](../images/03_compensation/compensation_editor.png)

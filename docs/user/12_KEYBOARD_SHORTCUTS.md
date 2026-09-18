@@ -1,175 +1,38 @@
-# Keyboard Shortcuts & Quick Reference
+# Keyboard Shortcuts
 
-Complete list of keyboard shortcuts and quick access commands in Karcytics Flow Cytometry.
+Karcytics Flow Cytometry is built around mouse-and-canvas interaction — drawing gates, dragging nodes, checking boxes in a sidebar — rather than a large customized shortcut system. The list below is short on purpose: it covers only the key bindings that actually exist in the app today. If a shortcut you expect isn't listed here, it doesn't exist yet — use the corresponding button in the ribbon or panel instead.
 
----
+## Plot & canvas
 
-## Canvas Navigation
+| Shortcut | Action | Where it works |
+|---|---|---|
+| **F** | Fit / auto-range the view to the current data | The plot canvas, the Pipeline node canvas, and the Gating Hierarchy tree view — press it with the mouse over whichever canvas you want to fit |
+| **Ctrl** + mouse wheel | Zoom in/out | The Gating Hierarchy tree view (left sidebar) |
+| **Esc** | Cancel an in-progress gate drawing | The plot canvas, while a Polygon/Rectangle/Ellipse/Quadrant/Range tool is active |
+| **Esc** | Dismiss the group-samples popup | The "All Samples" group preview popup |
 
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Zoom In | **Scroll Up** or **+** | Enlarge plot view |
-| Zoom Out | **Scroll Down** or **-** | Reduce plot view |
-| Zoom to Fit | **Home** | Auto-fit plot to data range |
-| Pan Left | **Left Arrow** | Shift view left |
-| Pan Right | **Right Arrow** | Shift view right |
-| Pan Up | **Up Arrow** | Shift view up |
-| Pan Down | **Down Arrow** | Shift view down |
-| Middle-Click Drag | (Mouse) | Free-form panning |
-| Reset View | **R** | Return to default zoom/pan |
+## Pipeline node canvas
 
----
+| Shortcut | Action |
+|---|---|
+| **Delete** / **Backspace** | Delete the selected node or connection (edge) |
 
-## Gate Editing
+## Application-wide (provided by the Karcytics host, not the plugin)
 
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Draw Rectangle Gate | **G** then **R** | Activate rectangle tool |
-| Draw Polygon Gate | **G** then **P** | Activate polygon tool (click vertices) |
-| Draw Ellipse Gate | **G** then **E** | Activate ellipse tool |
-| Draw Quadrant Gate | **G** then **Q** | 4-way split gate |
-| Draw Range Gate | **G** then **1** | 1D threshold gate |
-| Move Gate | **M** | Activate move tool (drag gate) |
-| Delete Gate | **Delete** or **Backspace** | Remove selected gate |
-| Undo Gate | **Ctrl+Z** | Undo last gate edit |
-| Redo Gate | **Ctrl+Y** | Redo last undone gate |
-| Finish Polygon | **Right-Click** or **Enter** | Complete polygon vertex entry |
-| Cancel Drawing | **Escape** | Cancel active gate drawing |
+These come from the main Karcytics application shell, so they behave the same way in every plugin, not just Flow Cytometry.
 
----
+| Shortcut | Action |
+|---|---|
+| **Ctrl+Z** (**Cmd+Z** on macOS) | Undo |
+| **Ctrl+Shift+Z** (**Cmd+Shift+Z** on macOS) | Redo |
+| **Ctrl+,** (**Cmd+,** on macOS) | Open Preferences |
+| **Ctrl+H** | Return to the Project hub view |
+| **Ctrl+Q** | Quit Karcytics |
 
-## Sample Selection
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Select Sample | (Double-Click in Tree) | Load sample onto canvas |
-| Select Population | (Double-Click in Tree) | Filter canvas to population |
-| Toggle Population | **Spacebar** | Show/hide selected population |
-| Next Sample | **Tab** | Move to next sample in list |
-| Previous Sample | **Shift+Tab** | Move to previous sample in list |
-
----
-
-## Statistics & Export
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Export Statistics | **Ctrl+Shift+S** | Export current stats to CSV |
-| Export Plot | **Ctrl+Shift+E** | Export plot (PNG/PDF) |
-| Print | **Ctrl+P** | Print current plot |
-| Copy Statistics | **Ctrl+C** | Copy stats table to clipboard |
-
----
-
-## File Operations
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Open Workspace | **Ctrl+O** | Open existing workspace |
-| Save Workspace | **Ctrl+S** | Save current workspace |
-| Save As | **Ctrl+Shift+S** | Save workspace with new name |
-| New Workspace | **Ctrl+N** | Create new blank workspace |
-| Import Gates | **Ctrl+I** | Import gate definitions from file |
-| Export Workspace | **Ctrl+E** | Export entire workspace (gates, stats, plots) |
-
----
-
-## View Options
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Switch to Pseudocolor | **V** then **P** | Density plot view |
-| Switch to Scatter | **V** then **S** | Dot plot view |
-| Switch to Histogram | **V** then **H** | 1D distribution view |
-| Switch to Contour | **V** then **C** | Contour plot view |
-| Toggle Axis Labels | **Ctrl+L** | Show/hide axis text |
-| Toggle Legend | **Ctrl+Shift+L** | Show/hide gate legend |
-| Show Node Canvas | **Ctrl+N** | Display DAG visualization |
-| Full Screen | **F11** | Maximize canvas view |
-
----
-
-## Multi-Selection
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Select Multiple Gates | **Ctrl+Click** | Add gate to selection |
-| Select All Gates | **Ctrl+A** | Select all populations |
-| Deselect All | **Escape** | Clear selection |
-| Toggle Selection | **Ctrl+Shift+Click** | Add/remove from selection |
-
----
-
-## Ribbon Quick Access
-
-| Ribbon | Shortcut | Notes |
-|--------|----------|-------|
-| Workspace | **W** | File/session management |
-| Compensation | **C** | Spillover correction |
-| Gating | **G** | Gate definition tools |
-| Pipeline | **P** | Batch operations |
-| Statistics | **S** | Stats/export view |
-| Spectral | **Shift+S** | Advanced visualization |
-| UMAP | **U** | Dimensionality reduction |
-
----
-
-## Advanced Shortcuts
-
-| Action | Shortcut | Description |
-|--------|----------|-------------|
-| Search Gates | **Ctrl+F** | Find population by name |
-| Toggle Sidebar | **Ctrl+B** | Show/hide left sidebar |
-| Toggle Properties | **Ctrl+P** | Show/hide right sidebar |
-| Maximize Canvas | **Ctrl+M** | Maximize plot area |
-| Settings | **Ctrl+,** | Open preferences |
-| Help | **F1** | Open help documentation |
-
----
-
-## Mouse Context Menus
-
-**Right-Click in Sample Tree:**
-- Rename population
-- Delete population
-- Export statistics
-- Create group
-- Edit sample role
-
-**Right-Click on Canvas Gate:**
-- Edit gate parameters
-- Delete gate
-- Rename gate
-- Clone to other samples
-- Create child gate
-
-**Right-Click on Empty Canvas:**
-- Create new gate
-- Zoom to fit
-- Export plot
-
----
-
-## Quick Tips
-
-**Pro Tip 1: Template Protocols**
-- Set up gating strategy on one representative sample
-- Save as template via **Pipeline** → **Save Template**
-- Apply template to all samples: **Pipeline** → **Apply Template**
-
-**Pro Tip 2: Batch Gating**
-- Select all samples in group (Ctrl+A in Sample Tree)
-- Draw gate on one sample
-- Auto-propagates to all group samples (200ms debounce)
-
-**Pro Tip 3: Statistics Export**
-- Select multiple populations (Ctrl+Click)
-- **Statistics** ribbon → **Export** → **CSV**
-- All stats export side-by-side for easy comparison
-
----
+!!! note "No gate-drawing hotkeys yet"
+    There's no chorded shortcut (like "press G then R") to switch between the Rectangle, Polygon, Ellipse, Quadrant, and Range gate tools, and no shortcuts for switching plot type, undoing a single gate edit, or exporting statistics/plots. All of those are click-driven — see the [Gating](./04_GATING.md) and [Workspace](./02_WORKSPACE.md) guides for where each control lives. If you rely on keyboard-driven workflows heavily, consider raising it as a feature request.
 
 ## Related Documentation
 
 - **[Getting Started](./01_GETTING_STARTED.md)**: Basic workflow tutorial
-- **[Troubleshooting](./10_TROUBLESHOOTING.md)**: Common issues and solutions
+- **[Troubleshooting](./13_TROUBLESHOOTING.md)**: Common issues and solutions
