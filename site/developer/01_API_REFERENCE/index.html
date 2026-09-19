@@ -1,0 +1,2560 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/01_API_REFERENCE/">
+      
+      
+        <link rel="prev" href="../00_ARCHITECTURE_OVERVIEW/">
+      
+      
+        <link rel="next" href="../02_UI_ENGINE/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>API Reference - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-gate-classes-analysisgating" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Gate classes (analysis/gating/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Gate classes (analysis/gating/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-abstract-base-gatingbasepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate (abstract base) — gating/base.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rectanglegate-gatingrectanglepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RectangleGate — gating/rectangle.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polygongate-gatingpolygonpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PolygonGate — gating/polygon.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ellipsegate-gatingellipsepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EllipseGate — gating/ellipse.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rangegate-gatingrangepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RangeGate — gating/range.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quadrantgate-quadrantsubgate-gatingquadrantpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QuadrantGate / QuadrantSubGate — gating/quadrant.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subsetgate-gatingsubsetpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SubsetGate — gating/subset.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gate-reconstruction-gatinggate_factorypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate reconstruction — gating/gate_factory.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-gatenode-gatinggate_nodepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. GateNode — gating/gate_node.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-dag-evaluation-analysiscomputedag_evaluatorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. DAG evaluation — analysis/compute/dag_evaluator.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-compensation-analysiscompensationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Compensation — analysis/compensation.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Compensation — analysis/compensation.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compensationmatrix-dataclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CompensationMatrix (dataclass)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gatecoordinator-analysisgate_coordinatorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. GateCoordinator — analysis/gate_coordinator.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-key-service-signatures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Key service signatures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Key service signatures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#populationservice-analysispopulation_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PopulationService — analysis/population_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axismanager-analysisaxis_managerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AxisManager — analysis/axis_manager.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatemodifier-analysisservicesmodifierpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateModifier — analysis/services/modifier.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namingservice-analysisservicesnamingpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NamingService — analysis/services/naming.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#populationsplitter-analysisservicessplitterpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PopulationSplitter — analysis/services/splitter.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatingservice-analysisservicesgating_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GatingService — analysis/services/gating_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataloaderservice-analysisservicesdata_loader_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataLoaderService — analysis/services/data_loader_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#umapservice-umapparams-analysisservicesumap_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UmapService / UmapParams — analysis/services/umap_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflowservice-uiservicesworkflow_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkflowService — ui/services/workflow_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-event-topics-analysiseventspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Event topics — analysis/events.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-gate-classes-analysisgating" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Gate classes (analysis/gating/)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Gate classes (analysis/gating/)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gate-abstract-base-gatingbasepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate (abstract base) — gating/base.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rectanglegate-gatingrectanglepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RectangleGate — gating/rectangle.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polygongate-gatingpolygonpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PolygonGate — gating/polygon.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ellipsegate-gatingellipsepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EllipseGate — gating/ellipse.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rangegate-gatingrangepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RangeGate — gating/range.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quadrantgate-quadrantsubgate-gatingquadrantpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        QuadrantGate / QuadrantSubGate — gating/quadrant.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subsetgate-gatingsubsetpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SubsetGate — gating/subset.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gate-reconstruction-gatinggate_factorypy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate reconstruction — gating/gate_factory.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-gatenode-gatinggate_nodepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. GateNode — gating/gate_node.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-dag-evaluation-analysiscomputedag_evaluatorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. DAG evaluation — analysis/compute/dag_evaluator.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-compensation-analysiscompensationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Compensation — analysis/compensation.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Compensation — analysis/compensation.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compensationmatrix-dataclass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CompensationMatrix (dataclass)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#module-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-gatecoordinator-analysisgate_coordinatorpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. GateCoordinator — analysis/gate_coordinator.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-key-service-signatures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Key service signatures
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Key service signatures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#populationservice-analysispopulation_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PopulationService — analysis/population_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axismanager-analysisaxis_managerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AxisManager — analysis/axis_manager.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatemodifier-analysisservicesmodifierpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateModifier — analysis/services/modifier.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namingservice-analysisservicesnamingpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NamingService — analysis/services/naming.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#populationsplitter-analysisservicessplitterpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PopulationSplitter — analysis/services/splitter.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatingservice-analysisservicesgating_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GatingService — analysis/services/gating_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataloaderservice-analysisservicesdata_loader_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataLoaderService — analysis/services/data_loader_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#umapservice-umapparams-analysisservicesumap_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UmapService / UmapParams — analysis/services/umap_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflowservice-uiservicesworkflow_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkflowService — ui/services/workflow_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-event-topics-analysiseventspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Event topics — analysis/events.py
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference</h1>
+<p>This is a bookmarkable reference to the plugin's public API surface: the gate classes, the gating DAG model, <code>GateCoordinator</code>'s facade methods, and the key service method signatures a developer will actually call. It is generated from the source under <code>src/karcytics_plugins/flow_cytometry/</code>, not from prose recollection — every signature below was read from the current tree.</p>
+<p>For <em>how</em> gate evaluation and compensation actually work internally, see <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/">05_GATING_AND_COMPENSATION_DEEP_DIVE.md</a>. For how the services below are constructed and wired together, see <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/">04_SERVICES_AND_DEPENDENCY_INJECTION.md</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Module map</p>
+<p>Gate classes live in <code>analysis/gating/</code>. The DAG evaluator lives in <code>analysis/compute/dag_evaluator.py</code>. Compensation lives in <code>analysis/compensation.py</code> — <strong>not</strong> under <code>compute/</code> or <code>gating/</code>, despite being closely related to both.</p>
+</div>
+<hr />
+<h2 id="1-gate-classes-analysisgating">1. Gate classes (<code>analysis/gating/</code>)</h2>
+<p>Every gate type subclasses the abstract <code>Gate</code> base (<code>analysis/gating/base.py</code>). All bounds/vertices/centers are stored in <strong>raw (untransformed) data space</strong>; <code>contains()</code> projects both the stored geometry and the incoming events into <strong>display space</strong> (via <code>apply_transform</code>) before testing, so a gate always tracks correctly under axis-scale changes.</p>
+<h3 id="gate-abstract-base-gatingbasepy"><code>Gate</code> (abstract base) — <code>gating/base.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Gate</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Signature</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gate_id</code></td>
+<td><code>str</code></td>
+<td>UUID4 by default; stable identity used for serialization, <code>find_nodes_by_gate</code>, and cross-node sharing (quadrant sub-gates, split populations).</td>
+</tr>
+<tr>
+<td><code>x_param</code>, <code>y_param</code></td>
+<td><code>str</code>, <code>str \| None</code></td>
+<td>Channel names. <code>y_param=None</code> marks a 1-D gate.</td>
+</tr>
+<tr>
+<td><code>adaptive</code></td>
+<td><code>bool</code></td>
+<td>Opt-in flag; see <code>adapt()</code>.</td>
+</tr>
+<tr>
+<td><code>contains(events: pd.DataFrame) -&gt; np.ndarray</code></td>
+<td>abstract</td>
+<td>Boolean mask, shape <code>(n_events,)</code>. Subclasses implement the geometry test.</td>
+</tr>
+<tr>
+<td><code>apply(events) -&gt; pd.DataFrame</code></td>
+<td>concrete</td>
+<td><code>events.loc[self.contains(events)].copy()</code>.</td>
+</tr>
+<tr>
+<td><code>adapt(events) -&gt; None</code></td>
+<td>concrete no-op</td>
+<td>Only fires when <code>self.adaptive</code>; base implementation just logs — no subclass currently overrides it with real repositioning logic.</td>
+</tr>
+<tr>
+<td><code>copy() -&gt; Gate</code></td>
+<td>abstract</td>
+<td>Deep copy with the <strong>same</strong> <code>gate_id</code> (used for cloning across samples where identity should be preserved, e.g. <code>GatingService._clone_dag</code>, which forces a new id itself).</td>
+</tr>
+<tr>
+<td><code>to_dict() / from_dict(data)</code></td>
+<td>concrete / classmethod</td>
+<td>Base handles <code>type</code>, <code>gate_id</code>, <code>x_param</code>, <code>y_param</code>, <code>adaptive</code>; subclasses extend both.</td>
+</tr>
+<tr>
+<td><code>create_nodes(parent_node, name=None) -&gt; list[GateNode]</code></td>
+<td>concrete, overridable</td>
+<td>Default: creates <strong>one</strong> <code>GateNode</code> child. <code>QuadrantGate</code> overrides this to create <strong>four</strong>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rectanglegate-gatingrectanglepy"><code>RectangleGate</code> — <code>gating/rectangle.py</code></h3>
+<p>2-D rectangular (or effectively 1-D range, if <code>y_param=None</code>) gate defined by raw-space min/max bounds.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">RectangleGate</span><span class="p">(</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">x_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">x_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">y_min</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">y_max</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">x_scale</span><span class="p">:</span> <span class="n">AxisScale</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">y_scale</span><span class="p">:</span> <span class="n">AxisScale</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>contains()</code>: projects <code>x</code>/<code>y</code> raw values and the raw bounds through <code>apply_transform(..., x_type, **x_kwargs)</code> (biexponential params pulled from <code>x_scale</code>/<code>y_scale</code> when applicable), then tests <code>x_min_disp &lt;= x_disp &lt;= x_max_disp</code> (and the same for <code>y</code> if <code>y_param</code> is set).</p>
+<h3 id="polygongate-gatingpolygonpy"><code>PolygonGate</code> — <code>gating/polygon.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">PolygonGate</span><span class="p">(</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">vertices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">x_scale</span><span class="p">:</span> <span class="n">AxisScale</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">y_scale</span><span class="p">:</span> <span class="n">AxisScale</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Polygon Gate"</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="o">**</span><span class="n">_kwargs</span><span class="p">,</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>contains()</code> projects vertices and events into display space, then uses <code>matplotlib.path.Path(vertices).contains_points(...)</code> — a standard even-odd point-in-polygon test, not a hand-rolled winding-number algorithm.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>PolygonGate</code> carries its own <code>name</code> attribute (used as a fallback display label) in addition to the <code>GateNode.name</code> that actually drives the UI — the two are set independently.</p>
+</div>
+<h3 id="ellipsegate-gatingellipsepy"><code>EllipseGate</code> — <code>gating/ellipse.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">EllipseGate</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">center</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">width</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">height</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>          <span class="c1"># degrees, counter-clockwise</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">x_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">y_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>contains()</code>: projects center and events to display space, translates to the center, rotates by <code>-angle</code> (i.e. rotates the <em>point</em>, not the ellipse, into the ellipse's own frame), then tests the standard ellipse inequality <code>(x_rot/width_disp)^2 + (y_rot/height_disp)^2 &lt;= 1</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title"><code>width</code>/<code>height</code> are semi-axes here, not full axis lengths</p>
+<p>Unlike some other flow tools, this implementation treats <code>width</code>/<code>height</code> as already the axis half-lengths used directly in the ellipse equation (<code>x_rot/width</code>, not <code>x_rot/(width/2)</code>). Confirm against <code>contains()</code> before assuming a convention — do not guess based on other codebases.</p>
+</div>
+<h3 id="rangegate-gatingrangepy"><code>RangeGate</code> — <code>gating/range.py</code></h3>
+<p>1-D range gate (used for histogram gating). <code>y_param</code> is always <code>None</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">RangeGate</span><span class="p">(</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">low</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">high</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">x_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="quadrantgate-quadrantsubgate-gatingquadrantpy"><code>QuadrantGate</code> / <code>QuadrantSubGate</code> — <code>gating/quadrant.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">QuadrantGate</span><span class="p">(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">x_mid</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">y_mid</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">adaptive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">x_scale</span><span class="p">:</span> <span class="n">AxisScale</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">y_scale</span><span class="p">:</span> <span class="n">AxisScale</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">)</span>
+</span></code></pre></div>
+<p><code>QuadrantGate.contains()</code> always returns all-<code>True</code> — the parent gate itself holds no population. The actual per-quadrant test is <code>get_quadrant(events, quadrant: str) -&gt; np.ndarray</code>, where <code>quadrant</code> is one of <code>"Q1"</code>/<code>"Q2"</code>/<code>"Q3"</code>/<code>"Q4"</code> (matched case-insensitively on the first word):</p>
+<table>
+<thead>
+<tr>
+<th>Quadrant</th>
+<th>Region (display space)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Q1</code></td>
+<td>upper-left: <code>x &lt; x_mid, y &gt;= y_mid</code></td>
+</tr>
+<tr>
+<td><code>Q2</code></td>
+<td>upper-right: <code>x &gt;= x_mid, y &gt;= y_mid</code></td>
+</tr>
+<tr>
+<td><code>Q3</code></td>
+<td>lower-left: <code>x &lt; x_mid, y &lt; y_mid</code></td>
+</tr>
+<tr>
+<td><code>Q4</code></td>
+<td>lower-right: <code>x &gt;= x_mid, y &lt; y_mid</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>create_nodes(parent_node, _name=None)</code> <strong>overrides</strong> the base and creates <strong>four</strong> <code>GateNode</code>s (one per quadrant), each wrapping a <code>QuadrantSubGate(self, q_name)</code>. This is the one gate type where <code>GateCoordinator.add_gate</code> / <code>GateMutationService.add_gate</code> returns/publishes multiple node ids in one call (see <code>GateEventPublisher.publish_gates_created</code>).</p>
+<p><code>QuadrantSubGate(parent: QuadrantGate, quadrant: str, gate_id=None)</code> — <code>contains()</code> delegates to <code>parent.get_quadrant(events, quadrant)</code>. Its <code>gate_id</code> defaults to <code>f"{parent.gate_id}_{quadrant}"</code>. <code>GateModifier.modify_gate</code> special-cases this: mutating a <code>QuadrantSubGate</code>'s geometry (<code>x_mid</code>/<code>y_mid</code>) actually redirects the mutation onto <code>gate.parent</code>, so editing any one quadrant's crosshair moves all four.</p>
+<h3 id="subsetgate-gatingsubsetpy"><code>SubsetGate</code> — <code>gating/subset.py</code></h3>
+<p>Explicit index-based population, used for populations that cannot be described by 2-D geometry (e.g. UMAP cluster exports).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">SubsetGate</span><span class="p">(</span><span class="n">indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>contains(events)</code> returns <code>events.index.isin(self.indices)</code> — membership is by <strong>DataFrame index label</strong>, not positional row number. <code>x_param</code> is hardcoded to <code>"Subset"</code> and <code>y_param=None</code> (dummy values; this gate type has no axis geometry).</p>
+<h3 id="gate-reconstruction-gatinggate_factorypy">Gate reconstruction — <code>gating/gate_factory.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">gate_from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Gate</span>
+</span></code></pre></div>
+<p>Looks up <code>data["type"]</code> in a fixed registry (<code>RectangleGate</code>, <code>PolygonGate</code>, <code>EllipseGate</code>, <code>QuadrantGate</code>, <code>QuadrantSubGate</code>, <code>RangeGate</code>, <code>SubsetGate</code>) and dispatches to that class's <code>from_dict()</code>. Raises <code>ValueError</code> for an unknown <code>type</code>.</p>
+<hr />
+<h2 id="2-gatenode-gatinggate_nodepy">2. <code>GateNode</code> — <code>gating/gate_node.py</code></h2>
+<p>The hierarchical/DAG node that wraps a <code>Gate</code> and carries population identity, statistics, and tree structure. <code>@dataclass</code>, not built via a constructor with validation — fields are set directly.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateNode</span><span class="p">:</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">uuid4</span><span class="o">&gt;</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"All Events"</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">negated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">gate</span><span class="p">:</span> <span class="n">Gate</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">children</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">parents</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>          <span class="c1"># repr=False</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">logic_operator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"AND"</span>           <span class="c1"># "AND" | "OR" | "NOT"</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="n">statistics</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    <span class="n">creation_view</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="n">is_umap_parent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="n">is_logic_node</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Property/Method</th>
+<th>Signature</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_root</code></td>
+<td><code>bool</code> (property)</td>
+<td><code>True</code> only for the sentinel "All Events" root: <code>gate is None and not parents and not is_logic_node</code>.</td>
+</tr>
+<tr>
+<td><code>is_incomplete</code></td>
+<td><code>bool</code> (property)</td>
+<td><code>True</code> for a logic node without enough <strong>non-root</strong> parents wired in yet — <code>&lt; 1</code> real parent for <code>NOT</code>, <code>&lt; LOGIC_GATE_MIN_PARENTS</code> (2) otherwise. Always <code>False</code> for non-logic nodes.</td>
+</tr>
+<tr>
+<td><code>add_child(gate, name=None)</code></td>
+<td><code>-&gt; GateNode</code></td>
+<td>Creates+attaches a single-parent child.</td>
+</tr>
+<tr>
+<td><code>remove_child(node_id)</code></td>
+<td><code>-&gt; bool</code></td>
+<td>Removes by id from <code>self.children</code> only (does not touch <code>parents</code> on the removed node).</td>
+</tr>
+<tr>
+<td><code>find_node_by_id(node_id)</code></td>
+<td><code>-&gt; GateNode \| None</code></td>
+<td>Recursive DFS from this node down.</td>
+</tr>
+<tr>
+<td><code>find_nodes_by_gate(gate_id)</code></td>
+<td><code>-&gt; list[GateNode]</code></td>
+<td>All nodes (recursively) whose <code>.gate.gate_id == gate_id</code> — e.g. all 4 quadrant sub-nodes share one parent <code>QuadrantGate.gate_id</code>-derived family.</td>
+</tr>
+<tr>
+<td><code>apply_hierarchy(events)</code></td>
+<td><code>-&gt; pd.DataFrame</code></td>
+<td>Applies the full AND/OR/NOT + gate chain from this node up to root, returns the filtered events (see <code>_get_mask</code>, which is the single-node equivalent of <code>DagEvaluator.evaluate</code> — used for one-off queries rather than full-tree stats).</td>
+</tr>
+<tr>
+<td><code>adapt_all(events)</code></td>
+<td><code>-&gt; None</code></td>
+<td>Recursively calls <code>gate.adapt()</code> on every adaptive gate in the subtree, feeding each gate the already-filtered parent events.</td>
+</tr>
+<tr>
+<td><code>to_dict()</code> / <code>from_dict(data)</code></td>
+<td></td>
+<td>Serializes/deserializes the <strong>entire reachable DAG</strong> as a flat <code>{"type": "dag", "nodes": [...]}</code> list (not a nested tree) — required because logic nodes can have multiple parents. <code>from_dict</code> requires the <code>"nodes"</code> key; anything else raises <code>ValueError("Invalid serialized DAG format")</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-dag-evaluation-analysiscomputedag_evaluatorpy">3. DAG evaluation — <code>analysis/compute/dag_evaluator.py</code></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DagEvaluator</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="n">root</span><span class="p">:</span> <span class="n">GateNode</span><span class="p">,</span> <span class="n">events</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">NodeStatistics</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Evaluates the <strong>entire</strong> gate DAG in one topological pass (Kahn's algorithm over in-degree = parent count) and returns a <code>node_id -&gt; NodeStatistics</code> map. <code>NodeStatistics</code> is a <code>TypedDict</code>: <code>{"count": int, "pct_parent": float, "pct_total": float}</code> (percentages rounded to 2 dp). As a side effect it also writes <code>node.statistics</code> on every visited node. See <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/">05_GATING_AND_COMPENSATION_DEEP_DIVE.md</a> for the full mask-combination algorithm.</p>
+<hr />
+<h2 id="4-compensation-analysiscompensationpy">4. Compensation — <code>analysis/compensation.py</code></h2>
+<h3 id="compensationmatrix-dataclass"><code>CompensationMatrix</code> (dataclass)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">CompensationMatrix</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>                      <span class="c1"># N×N, rows=detector, cols=fluorophore</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">channel_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"computed"</span>                <span class="c1"># "computed" | "imported" | "cytometer"</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="nd">@property</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">inverse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span> <span class="o">...</span>    <span class="c1"># np.linalg.inv(self.matrix)</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="nd">@property</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">n_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CompensationMatrix</span><span class="p">:</span> <span class="o">...</span>
+</span></code></pre></div>
+<h3 id="module-functions">Module functions</h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Signature</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>calculate_spillover_matrix</code></td>
+<td><code>(single_stains: list[FCSData], unstained: FCSData \| None = None, fluorescence_channels: list[str] \| None = None) -&gt; CompensationMatrix</code></td>
+<td>Computes a spillover matrix from single-stain controls (median-ratio algorithm). Requires ≥ <code>MIN_SINGLE_STAINS</code> (2) samples or raises <code>ValueError</code>.</td>
+</tr>
+<tr>
+<td><code>extract_spill_from_fcs</code></td>
+<td><code>(data: FCSData) -&gt; CompensationMatrix \| None</code></td>
+<td>Parses <code>$SPILL</code>/<code>$SPILLOVER</code> (or lowercase/no-<code>$</code> variants) out of <code>FCSData.metadata</code>. Returns <code>None</code> if absent or malformed. <code>source="cytometer"</code>.</td>
+</tr>
+<tr>
+<td><code>import_matrix_from_csv</code></td>
+<td><code>(path: Path) -&gt; CompensationMatrix</code></td>
+<td>Reads a CSV/TSV; raises <code>ValueError</code> if non-square. <code>source="imported"</code>.</td>
+</tr>
+<tr>
+<td><code>export_matrix_to_csv</code></td>
+<td><code>(comp: CompensationMatrix, path: Path) -&gt; None</code></td>
+<td>Writes matrix with channel names as both row/column labels.</td>
+</tr>
+<tr>
+<td><code>apply_compensation</code></td>
+<td><code>(data: FCSData, comp: CompensationMatrix \| None) -&gt; pd.DataFrame</code></td>
+<td>Returns compensated events (<code>raw_events</code> preferred over <code>events</code> as the source). <code>comp=None</code> returns the data unchanged. Only channels present in <strong>both</strong> <code>comp.channel_names</code> and <code>data</code>'s columns are compensated; the submatrix for those channels is inverted directly (not sliced from the full inverse — see the deep-dive doc for why that distinction matters).</td>
+</tr>
+</tbody>
+</table>
+<p><code>FCSData</code> (from <code>analysis/fcs_io.py</code>) is the input type throughout: a dataclass with <code>file_path: Path</code>, <code>channels: list[str]</code>, <code>markers: list[str]</code>, <code>events: pd.DataFrame | None</code>, <code>raw_events: pd.DataFrame | None</code>, <code>metadata: dict[str, str]</code>, <code>is_compensated: bool</code>.</p>
+<p>Called from <code>main_panel.py._on_samples_loaded</code>: if <code>state.data.compensation is None</code>, the panel auto-calls <code>extract_spill_from_fcs</code> on newly loaded samples and adopts the first embedded matrix it finds.</p>
+<hr />
+<h2 id="5-gatecoordinator-analysisgate_coordinatorpy">5. <code>GateCoordinator</code> — <code>analysis/gate_coordinator.py</code></h2>
+<p>The facade every UI surface (ribbons, canvas, hierarchy tree) calls into for gating operations. Constructed once by <code>ServiceFactory.build_all()</code> and exposed on <code>main_panel.py</code> as both <code>self._gate_coordinator</code> and <code>self._gate_controller</code> (same object — <code>main_panel.py</code> line 156: <code>self._gate_controller = self._gate_coordinator</code>).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateCoordinator</span><span class="p">:</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>        <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>        <span class="n">axis_manager</span><span class="p">:</span> <span class="n">AxisManager</span><span class="p">,</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>        <span class="n">population_service</span><span class="p">:</span> <span class="n">PopulationService</span><span class="p">,</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="n">task_scheduler</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<p>Internally owns a <code>GatePropagator</code> (<code>self._propagator</code>, exposed via the <code>propagator</code> property) and a <code>GateSelectionService</code> (<code>self._selection_service</code>), and constructs one <code>GateMutationService</code> that most facade methods delegate straight to.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Signature</th>
+<th>Delegates to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>add_gate</code></td>
+<td><code>(gate: Gate, sample_id: str, name: str \| None = None, parent_node_id: str \| None = None) -&gt; str \| None</code></td>
+<td><code>GateMutationService.add_gate</code> — returns the <strong>first</strong> created node's id (quadrant gates create 4; only the first id is returned by the facade).</td>
+</tr>
+<tr>
+<td><code>remove_population</code></td>
+<td><code>(sample_id: str, node_id: str) -&gt; bool</code></td>
+<td><code>GateMutationService.remove_population</code></td>
+</tr>
+<tr>
+<td><code>select_gate</code></td>
+<td><code>(sample_id: str, node_id: str \| None) -&gt; None</code></td>
+<td><code>GateSelectionService.select_gate</code></td>
+</tr>
+<tr>
+<td><code>add_logic_node</code></td>
+<td><code>(sample_id: str, operator: str, name: str \| None = None) -&gt; str \| None</code></td>
+<td><code>GateMutationService.add_logic_node</code> — creates an AND/OR/NOT node with <strong>no parents wired</strong>; user must wire it via <code>add_connection</code>.</td>
+</tr>
+<tr>
+<td><code>add_connection</code></td>
+<td><code>(sample_id: str, source_node_id: str, target_node_id: str) -&gt; bool</code></td>
+<td><code>GateMutationService.add_connection</code> — rejects cycles and wiring into root.</td>
+</tr>
+<tr>
+<td><code>remove_connection</code></td>
+<td><code>(sample_id: str, source_node_id: str, target_node_id: str) -&gt; bool</code></td>
+<td><code>GateMutationService.remove_connection</code></td>
+</tr>
+<tr>
+<td><code>rename_population</code></td>
+<td><code>(sample_id: str, node_id: str, new_name: str) -&gt; bool</code></td>
+<td><code>GateMutationService.rename_population</code> — does <strong>not</strong> trigger propagation or stats recompute (pure label change).</td>
+</tr>
+<tr>
+<td><code>modify_gate</code></td>
+<td><code>(gate_id: str, sample_id: str, **kwargs) -&gt; bool</code></td>
+<td><code>GateMutationService.modify_gate</code> → <code>GateModifier.modify_gate</code> (validated).</td>
+</tr>
+<tr>
+<td><code>split_population</code></td>
+<td><code>(sample_id: str, node_id: str) -&gt; str \| None</code></td>
+<td><code>GateMutationService.split_population</code> → <code>PopulationSplitter</code></td>
+</tr>
+<tr>
+<td><code>copy_gates_to_group</code></td>
+<td><code>(source_sample_id: str) -&gt; int</code></td>
+<td><code>GateMutationService.copy_gates_to_group</code> → <code>GatingService.copy_gates_to_group</code>; returns count of samples updated.</td>
+</tr>
+<tr>
+<td><code>get_gates_for_display</code></td>
+<td><code>(sample_id: str, parent_node_id: str \| None = None) -&gt; tuple[list[Gate], list[GateNode]]</code></td>
+<td><code>GateMutationService.get_gates_for_display</code></td>
+</tr>
+<tr>
+<td><code>recompute_all_stats</code></td>
+<td><code>(sample_id: str, sync: bool = False) -&gt; None</code></td>
+<td>Runs <code>StatisticsAnalysis</code> — synchronously if <code>sync=True</code> or <code>self.sync_stats</code> is truthy, otherwise submitted via <code>StatsService.recompute_all_stats</code> on the background <code>TaskScheduler</code>, with <code>self._on_stats_finished</code> as the completion callback (publishes <code>GATE_STATS_UPDATED</code> per node then <code>ALL_STATS_UPDATED</code>).</td>
+</tr>
+<tr>
+<td><code>set_propagation_enabled</code></td>
+<td><code>(enabled: bool) -&gt; None</code></td>
+<td>Sets <code>self._propagation_enabled</code> (defaults <code>True</code> via <code>getattr</code>).</td>
+</tr>
+<tr>
+<td><code>request_propagation</code></td>
+<td><code>(gate_id: str, source_sample_id: str) -&gt; None</code></td>
+<td>No-ops if propagation is disabled; otherwise forwards to <code>self._propagator.request_propagation</code>.</td>
+</tr>
+<tr>
+<td><code>propagate_to_all_groups</code></td>
+<td><code>(sample_id: str, node_id: str) -&gt; None</code></td>
+<td>Forwards to <code>self._propagator.request_cross_group_propagation</code> — bypasses the active group filter.</td>
+</tr>
+<tr>
+<td><code>cleanup</code></td>
+<td><code>() -&gt; None</code></td>
+<td>Cancels the propagator's pending debounce timer.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Method-name mismatch to watch for</p>
+<p><code>GateCoordinator.propagate_to_all_groups(sample_id, node_id)</code> calls <code>self._propagator.request_cross_group_propagation(node_id, sample_id)</code> — the <strong>argument order is swapped</strong> between the two method signatures (<code>node_id</code> becomes the propagator's <code>gate_id</code> positional argument). This is intentional per the propagator's signature (<code>request_cross_group_propagation(self, gate_id, source_sample_id)</code>) but easy to get backwards when calling either method directly.</p>
+</div>
+<p>This class matches the <code>IGateCoordinator</code> <code>Protocol</code> defined in <code>analysis/protocols.py</code> method-for-method (<code>add_gate</code>, <code>remove_population</code>, <code>add_logic_node</code>, <code>add_connection</code>, <code>remove_connection</code>, <code>rename_population</code>, <code>modify_gate</code>, <code>split_population</code>, <code>copy_gates_to_group</code>, <code>get_gates_for_display</code>, <code>recompute_all_stats</code>, <code>set_propagation_enabled</code>) — UI code should type-hint against the protocol where practical.</p>
+<hr />
+<h2 id="6-key-service-signatures">6. Key service signatures</h2>
+<p>Full responsibility/dependency descriptions are in <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/">04_SERVICES_AND_DEPENDENCY_INJECTION.md</a>; this section is the quick call-signature lookup.</p>
+<h3 id="populationservice-analysispopulation_servicepy"><code>PopulationService</code> — <code>analysis/population_service.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">PopulationService</span><span class="p">:</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Sample</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_root_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GateNode</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">find_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GateNode</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">find_nodes_by_gate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_gated_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">add_population</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gate</span><span class="p">:</span> <span class="n">Gate</span><span class="p">,</span> <span class="n">parent_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GateNode</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">remove_population</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<h3 id="axismanager-analysisaxis_managerpy"><code>AxisManager</code> — <code>analysis/axis_manager.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">AxisManager</span><span class="p">:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">inference_strategy</span><span class="p">:</span> <span class="n">ChannelInferenceStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">default_transform</span><span class="p">:</span> <span class="n">TransformType</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AxisScale</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">set_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">scale</span><span class="p">:</span> <span class="n">AxisScale</span><span class="p">,</span> <span class="n">notify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update_auto_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">_axis_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"x"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Scales are stored per-<strong>group</strong> (<code>Group.channel_scales</code>), keyed off the sample's first <code>group_ids</code> entry — not per-sample. If a sample has no group, scales fall back to <code>state.view.fallback_scales</code>, keyed by channel only. <code>set_scale</code> publishes <code>events.AXIS_UPDATED</code> unless <code>notify=False</code>.</p>
+<h3 id="gatemodifier-analysisservicesmodifierpy"><code>GateModifier</code> — <code>analysis/services/modifier.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateModifier</span><span class="p">:</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">modify_gate</span><span class="p">(</span><span class="n">experiment</span><span class="p">:</span> <span class="n">Experiment</span><span class="p">,</span> <span class="n">gate_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span></code></pre></div>
+<p>Validates the merged (current + candidate) attribute state before mutating anything — a rejected edit never partially applies. Per-type invariants: <code>RectangleGate</code> requires <code>x_min &lt; x_max</code> and <code>y_min &lt; y_max</code>; <code>RangeGate</code> requires <code>low &lt; high</code>; <code>EllipseGate</code> requires <code>width &gt; 0</code> and <code>height &gt; 0</code>; <code>PolygonGate</code> requires <code>len(vertices) &gt;= POLYGON_MIN_VERTICES</code> (3). <code>QuadrantGate</code> has no geometric invariant on <code>x_mid</code>/<code>y_mid</code>. <code>QuadrantSubGate</code> targets are redirected to <code>gate.parent</code> before validation/mutation.</p>
+<h3 id="namingservice-analysisservicesnamingpy"><code>NamingService</code> — <code>analysis/services/naming.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">NamingService</span><span class="p">:</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">generate_unique_name</span><span class="p">(</span><span class="n">experiment</span><span class="p">:</span> <span class="n">Experiment</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Gate"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+<p>Collects every non-root node name in the sample's tree, then returns the first <code>f"{prefix} {n}"</code> (n starting at 1) not already used.</p>
+<h3 id="populationsplitter-analysisservicessplitterpy"><code>PopulationSplitter</code> — <code>analysis/services/splitter.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">PopulationSplitter</span><span class="p">:</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">split_population</span><span class="p">(</span><span class="n">experiment</span><span class="p">:</span> <span class="n">Experiment</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Returns <code>(new_node_id, new_name, gate_id)</code>. Creates an inverse sibling (<code>negated = not node.negated</code>) sharing the <strong>same</strong> <code>Gate</code> instance and wired to all of the original node's parents, named <code>f"{node.name} (Outside)"</code> (or <code>(Inside)</code> if the source was already negated).</p>
+<h3 id="gatingservice-analysisservicesgating_servicepy"><code>GatingService</code> — <code>analysis/services/gating_service.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GatingService</span><span class="p">:</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_gates_for_display</span><span class="p">(</span><span class="n">sample</span><span class="p">:</span> <span class="n">Sample</span><span class="p">,</span> <span class="n">parent_node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Gate</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]]</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">clone_gate_tree</span><span class="p">(</span><span class="n">source_root</span><span class="p">:</span> <span class="n">GateNode</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Sample</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">copy_gates_to_group</span><span class="p">(</span><span class="n">experiment</span><span class="p">:</span> <span class="n">Experiment</span><span class="p">,</span> <span class="n">source_sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p><code>clone_gate_tree</code> deep-clones <strong>every</strong> reachable node (including multi-parent logic nodes) and gives each cloned physical gate a fresh <code>gate_id</code>. <code>copy_gates_to_group</code> copies to all samples sharing a group with the source (or to every other sample if the source is ungrouped), returns the count copied to.</p>
+<h3 id="dataloaderservice-analysisservicesdata_loader_servicepy"><code>DataLoaderService</code> — <code>analysis/services/data_loader_service.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderService</span><span class="p">:</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="nb">object</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">plugin_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"flow_cytometry"</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reload_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Sample</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">compensation_matrix</span><span class="p">:</span> <span class="n">CompensationMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reload_samples_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples_with_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Sample</span><span class="p">,</span> <span class="n">Path</span><span class="p">]],</span> <span class="n">compensation_matrix</span><span class="p">:</span> <span class="n">CompensationMatrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_samples_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">on_done</span><span class="p">,</span> <span class="n">on_error_cb</span><span class="p">,</span> <span class="n">on_progress</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_manager</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy_all</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p><code>reload_samples_batch</code> is preferred over N <code>reload_sample()</code> calls: <code>load_fcs()</code> serializes through a single process-wide daemon IPC lock, so per-sample reloads from a thread pool collapse into sequential loads anyway; batching sends one request to the daemon and lets it parse concurrently.</p>
+<h3 id="umapservice-umapparams-analysisservicesumap_servicepy"><code>UmapService</code> / <code>UmapParams</code> — <code>analysis/services/umap_service.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">UmapParams</span><span class="p">:</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="n">target_sample_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="n">target_node_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">""</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    <span class="n">percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="n">n_neighbors</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="n">min_dist</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>    <span class="n">n_events</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"euclidean"</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>    <span class="n">random_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>    <span class="n">run_hdbscan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>    <span class="n">hdbscan_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"high_dim"</span>
+</span><span id="__span-19-14"><a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a>    <span class="n">min_cluster_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+</span><span id="__span-19-15"><a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a>    <span class="n">channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-19-16"><a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a>
+</span><span id="__span-19-17"><a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="k">class</span><span class="w"> </span><span class="nc">UmapService</span><span class="p">:</span>
+</span><span id="__span-19-18"><a id="__codelineno-19-18" name="__codelineno-19-18" href="#__codelineno-19-18"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-19-19"><a id="__codelineno-19-19" name="__codelineno-19-19" href="#__codelineno-19-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">run_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">UmapParams</span><span class="p">,</span> <span class="n">on_done</span><span class="p">,</span> <span class="n">on_error_cb</span><span class="p">,</span> <span class="n">on_progress</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-19-20"><a id="__codelineno-19-20" name="__codelineno-19-20" href="#__codelineno-19-20"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p><code>run_analysis</code> always calls <code>self.cancel()</code> first — only one UMAP task can be in flight per <code>UmapService</code> instance.</p>
+<h3 id="workflowservice-uiservicesworkflow_servicepy"><code>WorkflowService</code> — <code>ui/services/workflow_service.py</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">WorkflowService</span><span class="p">(</span><span class="n">QObject</span><span class="p">):</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">data_loader_service</span><span class="p">,</span> <span class="n">attachment_manager</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">export_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">on_complete</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reload_fcs_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">project_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">on_complete</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p><code>export_workflow</code> stores each sample's FCS path <strong>relative to <code>project_dir</code></strong> (POSIX style) when it lives inside the project, else as an absolute path — so a project directory copied to another machine/OS still resolves its data.</p>
+<hr />
+<h2 id="7-event-topics-analysiseventspy">7. Event topics — <code>analysis/events.py</code></h2>
+<p>All cross-component notification goes through the Karcytics SDK's <code>CentralEventBus.publish(topic, payload_dict)</code>. Full topic list:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Constant</th>
+<th>Topic string</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gate</td>
+<td><code>GATE_CREATED</code></td>
+<td><code>flow.gate.created</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>LOGIC_NODE_CREATED</code></td>
+<td><code>flow.gate.logic_node_created</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATES_CREATED</code></td>
+<td><code>flow.gate.batch_created</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATE_RENAMED</code></td>
+<td><code>flow.gate.renamed</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATE_DELETED</code></td>
+<td><code>flow.gate.deleted</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATE_MODIFIED</code></td>
+<td><code>flow.gate.modified</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATE_PROPAGATED</code></td>
+<td><code>flow.gate.propagated</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATE_SELECTED</code></td>
+<td><code>flow.gate.selected</code></td>
+</tr>
+<tr>
+<td>Gate</td>
+<td><code>GATE_PREVIEW</code></td>
+<td><code>flow.gate.preview</code></td>
+</tr>
+<tr>
+<td>Sample</td>
+<td><code>SAMPLE_SELECTED</code> / <code>SAMPLE_DESELECTED</code> / <code>SAMPLE_LOADED</code></td>
+<td><code>flow.sample.*</code></td>
+</tr>
+<tr>
+<td>Canvas</td>
+<td><code>RENDER_MODE_CHANGED</code>, <code>RENDER_CONFIG_CHANGED</code>, <code>AXIS_PARAMS_CHANGED</code>, <code>AXIS_RANGE_CHANGED</code>, <code>AXIS_RANGE_AUTO_UPDATED</code>, <code>TRANSFORM_CHANGED</code>, <code>DISPLAY_MODE_CHANGED</code>, <code>FMO_CHANGED</code></td>
+<td><code>flow.render.*</code> / <code>flow.axis.*</code> / <code>flow.transform.changed</code> / <code>flow.display.mode_changed</code> / <code>flow.fmo.changed</code></td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td><code>STATS_COMPUTED</code>, <code>STATS_INVALIDATED</code></td>
+<td><code>flow.stats.*</code></td>
+</tr>
+<tr>
+<td>Compensation</td>
+<td><code>COMPENSATION_APPLIED</code></td>
+<td><code>flow.compensation.applied</code></td>
+</tr>
+<tr>
+<td>UMAP</td>
+<td><code>UMAP_COMPLETED</code></td>
+<td><code>flow.umap.completed</code></td>
+</tr>
+<tr>
+<td>Internal</td>
+<td><code>AXIS_UPDATED</code>, <code>GATE_STATS_UPDATED</code>, <code>ALL_STATS_UPDATED</code>, <code>PROPAGATION_REQUESTED</code>, <code>PROPAGATION_COMPLETE</code>, <code>SAMPLE_UPDATED</code></td>
+<td><code>flow.axis.updated</code>, <code>flow.gate.stats_updated</code>, <code>flow.gate.all_stats_updated</code>, <code>flow.gate.propagation_requested</code>, <code>flow.gate.propagation_complete</code>, <code>flow.gate.sample_updated</code></td>
+</tr>
+<tr>
+<td>Experiment</td>
+<td><code>EXPERIMENT_DATA_CHANGED</code></td>
+<td><code>flow.experiment.data_changed</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two topic strings are published as raw literals rather than named constants: <code>"flow.pipeline.connection_added"</code> and <code>"flow.pipeline.connection_removed"</code>, emitted by <code>GateMutationService.add_connection</code>/<code>remove_connection</code> when a logic node is still <code>is_incomplete</code> (under-wired) — a cheap "draw the wire" signal that intentionally skips the full stats-recompute + <code>GATE_STATS_UPDATED</code> path those methods otherwise take.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

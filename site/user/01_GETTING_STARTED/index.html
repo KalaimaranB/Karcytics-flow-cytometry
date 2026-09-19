@@ -1,0 +1,1738 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/user/01_GETTING_STARTED/">
+      
+      
+        <link rel="prev" href="../00_OVERVIEW/">
+      
+      
+        <link rel="next" href="../02_WORKSPACE/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Getting Started - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#getting-started" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Getting Started
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-youll-need" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you'll need
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-load-your-fcs-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Load your FCS files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-understand-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Understand Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-tag-every-sample-with-a-role" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Tag every sample with a Role
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-set-up-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Set up compensation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-build-your-first-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Build your first gates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 5 — Build your first gates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#5a-isolate-real-cells-from-debris" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5a. Isolate real cells from debris
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5b-gate-live-cells-with-a-viability-marker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5b. Gate live cells with a viability marker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5c-anchor-a-marker-gate-to-a-true-background-fmo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5c. Anchor a marker gate to a true background (FMO)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-check-your-statistics-as-you-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6 — Check your statistics as you go
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-7-save-your-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7 — Save your workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-go-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to go next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-youll-need" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you'll need
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-load-your-fcs-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Load your FCS files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-understand-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Understand Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-tag-every-sample-with-a-role" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — Tag every sample with a Role
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-set-up-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4 — Set up compensation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-build-your-first-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 5 — Build your first gates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 5 — Build your first gates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#5a-isolate-real-cells-from-debris" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5a. Isolate real cells from debris
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5b-gate-live-cells-with-a-viability-marker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5b. Gate live cells with a viability marker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5c-anchor-a-marker-gate-to-a-true-background-fmo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5c. Anchor a marker gate to a true background (FMO)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-6-check-your-statistics-as-you-go" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 6 — Check your statistics as you go
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-7-save-your-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 7 — Save your workflow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-go-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to go next
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="getting-started">Getting Started</h1>
+<div class="admonition tip">
+<p class="admonition-title">The fastest way to learn: the Academy</p>
+<p>Before reading any further, consider clicking the <strong>🎓 Cyto Academy</strong> button in the top-right of the tab bar. It opens <strong>Flow Cytometry Fundamentals</strong>, a guided, hands-on course that walks you through everything on this page — loading files, compensation, and your first gating hierarchy — using its own demo data, with Karcytics checking your actual work at every step. See <strong><a href="../10_ACADEMY_TUTORIALS/">Academy &amp; Guided Tutorials</a></strong> for details on what each course covers.</p>
+</div>
+<p>If you'd rather read through the workflow first (or you're working with your own data right away), this guide walks the same path in writing — the same sequence Course 1 of the Academy teaches, minus the spotlighting and automatic checks.</p>
+<p><img alt="alt text" src="../../images/01_getting_started/workspace.png" /></p>
+<h2 id="what-youll-need">What you'll need</h2>
+<p>Any <code>.fcs</code> file (FCS 2.0, 3.0, or 3.1) will load. To follow every step below — including compensation and boundary-based gating — you'll ideally have:</p>
+<ul>
+<li>One <strong>Unstained</strong> control (no dye — establishes autofluorescence baseline).</li>
+<li>One or more <strong>Single Stain</strong> controls (one fluorophore each — used to compute spillover).</li>
+<li>One <strong>FMO (Fluorescence Minus One)</strong> control per marker you plan to gate on — every dye except that one, so you can see exactly where true background ends.</li>
+<li>Your actual experimental samples.</li>
+</ul>
+<p>You can still follow along with just your experimental files — you'll simply skip the compensation and FMO-boundary steps.</p>
+<h2 id="step-1-load-your-fcs-files">Step 1 — Load your FCS files</h2>
+<p>Make sure you're on the <strong>Workspace</strong> tab (the leftmost tab), then click <strong>➕ Add Samples</strong> in the ribbon.</p>
+<ol>
+<li>A file picker opens — select all the <code>.fcs</code> files you want to work with (multi-select is supported).</li>
+<li>If any of the files live outside your current project folder, Karcytics asks whether to copy them into the project's own <code>assets</code> folder. Say yes if you want the project to stay portable and self-contained.</li>
+<li>A progress dialog tracks the load. Once it finishes, your files appear in the <strong>Sample List</strong> on the left, and the footer bar confirms how many samples loaded.</li>
+</ol>
+<p><img alt="alt text" src="../../images/01_getting_started/file_selection.png" /></p>
+<div class="admonition tip">
+<p class="admonition-title">Compensation might already be done for you</p>
+<p>If a file has a <code>$SPILL</code> keyword embedded in its header (common for data exported from acquisition software), Karcytics extracts and applies that spillover matrix to every sample automatically the moment they're loaded. Look for a small <strong>[Comp]</strong> tag next to a sample's name in the Sample List — that's your sign it's already compensated. If you don't see it, you'll build a matrix by hand in Step 3.</p>
+</div>
+<h2 id="step-2-understand-groups">Step 2 — Understand Groups</h2>
+<p>Before assigning roles, glance at the <strong>Groups</strong> panel above the Sample List. Every sample you just imported sits in one default group, <strong>All Samples</strong>. A group is simply a named subset of your samples, and it controls something important: gates you draw on one sample only propagate automatically to <em>other samples in the same group</em>.</p>
+<p><img alt="alt text" src="../../images/01_getting_started/all_samples_group.png" /></p>
+<p>For most single-experiment work, the default group is all you need — you don't have to create a custom one. Reach for <strong>📁 Create Group</strong> only when you're mixing tissue types or experiments that genuinely need different gating strategies, so their gates don't interfere with each other.</p>
+<h2 id="step-3-tag-every-sample-with-a-role">Step 3 — Tag every sample with a Role</h2>
+<p>Roles tell Karcytics what each file <em>is</em>, which drives compensation math and boundary detection later. The core roles are:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unstained</strong></td>
+<td>No dye — establishes the autofluorescence baseline</td>
+</tr>
+<tr>
+<td><strong>Single Stain</strong></td>
+<td>One dye only — used to compute the spillover matrix</td>
+</tr>
+<tr>
+<td><strong>FMO Control</strong></td>
+<td>Every dye except one — reveals the true background for that marker</td>
+</tr>
+<tr>
+<td><strong>Full Panel</strong></td>
+<td>A real experimental sample, fully stained</td>
+</tr>
+<tr>
+<td><strong>Isotype Control</strong></td>
+<td>Validates antibody specificity</td>
+</tr>
+</tbody>
+</table>
+<p>To assign roles one at a time: double-click a sample in the <strong>Sample List</strong> to open it, then use the <strong>Role</strong> dropdown in the <strong>Properties Panel</strong> on the right.</p>
+<p><img alt="alt text" src="../../images/01_getting_started/role_dropdown.png" /></p>
+<p>For multiple samples that share a role (all your FMO controls, for instance), it's faster to use <strong>🏷️ Bulk Assign Roles</strong> in the Workspace ribbon — select every file that shares a role, set it once, and click Assign.</p>
+<p><img alt="alt text" src="../../images/01_getting_started/bulk_assign_roles.png" /></p>
+<h2 id="step-4-set-up-compensation">Step 4 — Set up compensation</h2>
+<p>Switch to the <strong>Compensation</strong> tab.</p>
+<p>If Karcytics already auto-applied an embedded matrix in Step 1, every sample already carries its <strong>[Comp]</strong> tag — you can still walk through this tab to see (and verify) exactly what was applied:</p>
+<ol>
+<li>Click <strong>📄 Extract from FCS</strong> — this reads the <code>$SPILL</code> keyword from the first file that has one and opens a dialog showing the extracted matrix values (the diagonal is normally 1.0; off-diagonal values show how much light spills between detectors).</li>
+<li>Click <strong>✅ Apply to All</strong> to apply it across every sample. If it's already applied, Karcytics simply tells you the samples were skipped because they're already compensated.</li>
+</ol>
+<!-- SCREENSHOT: docs/images/user/getting-started/compensation-matrix-dialog.png — the extracted spillover matrix dialog, showing a grid of channel-by-channel values with a strong diagonal -->
+
+<p>If none of your files carry an embedded matrix, tag your Single Stain controls with their role in Step 3 first — Karcytics uses exactly those controls to compute a spillover matrix algorithmically, the same math described in <a href="../11_SCIENTIFIC_LOGIC/">Scientific Logic</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Compensation never touches the scatter channels (FSC/SSC) — only fluorescence detectors carry dye spillover.</p>
+</div>
+<h2 id="step-5-build-your-first-gates">Step 5 — Build your first gates</h2>
+<p>Switch to the <strong>Gating</strong> tab, where the Rectangle, Polygon, Ellipse, Quadrant, and Range drawing tools live in the ribbon.</p>
+<h3 id="5a-isolate-real-cells-from-debris">5a. Isolate real cells from debris</h3>
+<p>Open your <strong>Unstained</strong> (or otherwise dye-free) sample by double-clicking it in the Sample List — it's the best baseline because with no dyes involved, differences on the plot come down purely to physical size and complexity. The plot opens by default on <strong>FSC-A</strong> (Forward Scatter — roughly cell size) vs. <strong>SSC-A</strong> (Side Scatter — roughly internal complexity).</p>
+<!-- SCREENSHOT: docs/images/user/getting-started/fsc-ssc-plot.png — the FSC-A vs SSC-A pseudocolor plot on an unstained sample, showing a dense oval cell cluster and a smaller debris cloud near the origin -->
+
+<p>Select the <strong>Polygon</strong> tool, click around the main cell cluster to trace it (excluding the debris cloud, usually near the bottom-left corner), double-click to close the shape, and name it something like <strong>Cells</strong> when prompted.</p>
+<!-- SCREENSHOT: docs/images/user/getting-started/cells-gate-drawn.png — the polygon "Cells" gate outlined on the FSC-A/SSC-A plot, now appearing as a new node in the Gating Hierarchy panel -->
+
+<p>Once it's drawn, it appears immediately in the <strong>Gating Hierarchy</strong> panel on the left, and — because Auto-Propagate is on by default — it's copied to every other sample in the same group in the background.</p>
+<h3 id="5b-gate-live-cells-with-a-viability-marker">5b. Gate live cells with a viability marker</h3>
+<p>If you have a viability dye (e.g. a single-stain propidium iodide/PI control), open that sample next. Set the X axis to that dye's detector channel using the <strong>X:</strong> dropdown above the plot.</p>
+<p>Two things happen automatically: Karcytics opens the sample directly at your <strong>Cells</strong> population (it always preserves your gating context between samples), and the axis switches itself to <strong>Biexponential</strong> — because compensated fluorescence data can legitimately dip slightly negative, and only a biexponential (Logicle) scale displays that correctly.</p>
+<!-- SCREENSHOT: docs/images/user/getting-started/viability-biexponential-plot.png — a viability-channel histogram/plot on Biexponential scale, showing a dim (live) population and a brighter (dead) population -->
+
+<div class="admonition tip">
+<p class="admonition-title">Seeing a clipped edge?</p>
+<p>By default the plot trims the extreme 0.1% of outliers so a stray spike doesn't blow out your scale. If a population looks cut off at the edge, open <strong>⚙ Transforms</strong> and set <strong>Outliers</strong> to <strong>0%</strong> to see the full tail.</p>
+</div>
+<p>Select the <strong>Range</strong> tool and drag across the dim (live) population to capture it, then name the gate something like <strong>Live Cells</strong>. Nest it under <strong>Cells</strong> by drawing it while that population is open — the hierarchy tracks parent/child relationships automatically.</p>
+<h3 id="5c-anchor-a-marker-gate-to-a-true-background-fmo">5c. Anchor a marker gate to a true background (FMO)</h3>
+<p>For any lineage marker you want to gate on, open its matching <strong>FMO Control</strong> first — since it contains every dye except that one, any signal it shows in that marker's channel is pure background, not staining.</p>
+<!-- SCREENSHOT: docs/images/user/getting-started/fmo-background-plot.png — the FMO control sample plotted with the marker channel on X, showing a dense negative cluster and a faint autofluorescence tail with no real positive population -->
+
+<p>Draw a gate (typically <strong>Rectangle</strong> or <strong>Range</strong>) that starts just past that background tail — since this sample has zero real signal for the marker, everything in view genuinely <em>is</em> background, so you can set the boundary with confidence before ever looking at a stained sample. Watch the <strong>Group Preview</strong> panel (bottom-right of the Properties Panel) as you draw — it live-previews the same gate landing on every other sample in the group.</p>
+<p>Then open a real stained sample to confirm: the exact same boundary should now separate the negative cluster from a clear positive population.</p>
+<!-- SCREENSHOT: docs/images/user/getting-started/group-preview-panel.png — the Group Preview panel showing small thumbnail plots of several other samples, each with the new gate already drawn on them -->
+
+<div class="admonition note">
+<p class="admonition-title">The axes won't jump around on you</p>
+<p>The first time you pick a channel for an axis, Karcytics calculates the zoom once and then locks it for that channel across every sample in the group. That's deliberate — it means switching between controls and real samples never re-zooms or jumps the view out from under you.</p>
+</div>
+<h2 id="step-6-check-your-statistics-as-you-go">Step 6 — Check your statistics as you go</h2>
+<p>With any gate selected in the Gating Hierarchy, the <strong>Properties Panel</strong> on the right shows its live statistics: <strong>Event Count</strong>, <strong>% Parent</strong> (share of its immediate parent population), and <strong>% Total</strong> (share of the whole tube), updating instantly as you refine the gate shape.</p>
+<!-- SCREENSHOT: docs/images/user/getting-started/properties-panel-stats.png — the Properties Panel showing event count, % Parent, and % Total for a selected gate -->
+
+<p>For a broader view across every sample and population at once, see the <a href="../06_STATISTICS/">Statistics guide</a>.</p>
+<h2 id="step-7-save-your-workflow">Step 7 — Save your workflow</h2>
+<p>Once you have a gating hierarchy you're happy with, click the <strong>Save Workspace</strong> button in the top-right of the tab bar, next to the Academy button.</p>
+<ul>
+<li>The first time you save, a small dialog asks for a name (and optional description) for the workflow.</li>
+<li>After that, the same button updates your saved workflow in place — it visually indicates when you have unsaved changes, so you always know whether it's safe to close the workspace.</li>
+</ul>
+<!-- SCREENSHOT: docs/images/user/getting-started/save-workspace-dialog.png — the Save Workspace naming dialog with a workflow name entered -->
+
+<p>Your saved workflow — every sample, group, role, compensation matrix, and gate — can be reopened later from your Karcytics project, exactly as you left it.</p>
+<h2 id="where-to-go-next">Where to go next</h2>
+<ul>
+<li><strong><a href="../02_WORKSPACE/">Workspace</a></strong>, <strong><a href="../03_COMPENSATION/">Compensation</a></strong>, and <strong><a href="../04_GATING/">Gating</a></strong> — deeper detail on each tab you just used.</li>
+<li><strong><a href="../05_PIPELINE/">Pipeline</a></strong> — see your gating strategy as a flowchart instead of a tree.</li>
+<li><strong><a href="../06_STATISTICS/">Statistics</a></strong> and <strong><a href="../09_COMPARISONS/">Comparisons</a></strong> — once you have more than one gate, these are where the real analysis happens.</li>
+<li><strong><a href="../10_ACADEMY_TUTORIALS/">Academy &amp; Guided Tutorials</a></strong> — Course 2 and Course 3 pick up exactly where this guide leaves off, building immunophenotyping, Pipeline mastery, statistics, and unsupervised population analysis on top of the workflow you just saved.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

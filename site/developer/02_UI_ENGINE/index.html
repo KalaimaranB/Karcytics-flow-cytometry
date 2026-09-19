@@ -1,0 +1,2216 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/02_UI_ENGINE/">
+      
+      
+        <link rel="prev" href="../01_API_REFERENCE/">
+      
+      
+        <link rel="next" href="../03_TESTING_AND_QA/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>UI Engine - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ui-engine" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              UI Engine
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-workspace-shell-tabs-ribbons-center-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The Workspace Shell: Tabs, Ribbons, Center Stack
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. The Workspace Shell: Tabs, Ribbons, Center Stack">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_ribbon_stack-has-7-widgets-for-8-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _ribbon_stack has 7 widgets for 8 tabs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-ribbons-are-known-empty-placeholders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two ribbons are known-empty placeholders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspacebuilders-two-phase-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkspaceBuilder's two-phase construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-flowcanvas-the-2-d-plot-rendering-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. FlowCanvas — the 2-D Plot Rendering Engine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. FlowCanvas — the 2-D Plot Rendering Engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rendering-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rendering strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#locking-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Locking discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-interactive-gate-drawing-gatedrawingfsm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Interactive Gate Drawing: GateDrawingFSM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Interactive Gate Drawing: GateDrawingFSM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#drawing-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drawing tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-top-most-wins-with-alt-cycle-for-occluded-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection: top-most-wins, with Alt-cycle for occluded gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edit-gestures-commit-exactly-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit gestures commit exactly once
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-graphmanager-and-graphwindow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. GraphManager and GraphWindow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-node-canvas-pipeline-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The Node Canvas (Pipeline Tab)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The Node Canvas (Pipeline Tab)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dirty-region-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dirty-region tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#canvasmanager-model-scene-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CanvasManager: model → scene bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thumbnail-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thumbnail rendering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-render-settings-rendersettingsdialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Render Settings: RenderSettingsDialog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-workspace-shell-tabs-ribbons-center-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The Workspace Shell: Tabs, Ribbons, Center Stack
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. The Workspace Shell: Tabs, Ribbons, Center Stack">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_ribbon_stack-has-7-widgets-for-8-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _ribbon_stack has 7 widgets for 8 tabs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#two-ribbons-are-known-empty-placeholders" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Two ribbons are known-empty placeholders
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspacebuilders-two-phase-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkspaceBuilder's two-phase construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-flowcanvas-the-2-d-plot-rendering-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. FlowCanvas — the 2-D Plot Rendering Engine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. FlowCanvas — the 2-D Plot Rendering Engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rendering-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rendering strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#locking-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Locking discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-interactive-gate-drawing-gatedrawingfsm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Interactive Gate Drawing: GateDrawingFSM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Interactive Gate Drawing: GateDrawingFSM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#drawing-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Drawing tools
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#selection-top-most-wins-with-alt-cycle-for-occluded-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selection: top-most-wins, with Alt-cycle for occluded gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edit-gestures-commit-exactly-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edit gestures commit exactly once
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-graphmanager-and-graphwindow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. GraphManager and GraphWindow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-node-canvas-pipeline-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The Node Canvas (Pipeline Tab)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The Node Canvas (Pipeline Tab)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dirty-region-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dirty-region tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#canvasmanager-model-scene-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CanvasManager: model → scene bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#thumbnail-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Thumbnail rendering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-render-settings-rendersettingsdialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Render Settings: RenderSettingsDialog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ui-engine">UI Engine</h1>
+<p>This is the detailed reference for the plugin's UI layer: the tab/ribbon/
+center-stack shell in <code>main_panel.py</code>, the two-phase widget construction in
+<code>WorkspaceBuilder</code>, the <code>FlowCanvas</code> rendering engine, the interactive gate
+drawing state machine, the node canvas (Pipeline tab), and the render
+settings dialog. See <a href="../00_ARCHITECTURE_OVERVIEW/"><code>00_ARCHITECTURE_OVERVIEW.md</code></a>
+for how this fits into the module as a whole, and
+<a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/"><code>08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md</code></a>
+for how these widgets talk to each other and to the domain layer.</p>
+<hr />
+<h2 id="1-the-workspace-shell-tabs-ribbons-center-stack">1. The Workspace Shell: Tabs, Ribbons, Center Stack</h2>
+<p><code>FlowCytometryPanel</code> (<code>ui/main_panel.py</code>) is built by <code>WorkspaceBuilder</code>
+(<code>ui/builders/workspace_builder.py</code>) around three stacked widgets that all
+move together when the user switches the top tab bar:</p>
+<ul>
+<li><code>_tab_bar</code> — a <code>QTabBar</code> with 8 tabs, built in <code>build_skeleton()</code>.</li>
+<li><code>_ribbon_stack</code> — a <code>QStackedWidget</code> of per-tab toolbar widgets.</li>
+<li><code>_center_stack</code> — a <code>QStackedWidget</code> of the 6 heavy analysis views.</li>
+</ul>
+<p><code>FlowCytometryPanel._on_tab_changed(index)</code> is the single place that wires
+tab index to ribbon index and center-stack index. Read it directly
+(<code>ui/main_panel.py</code>) before changing tab ordering — the mapping is <em>not</em>
+a uniform 1:1 relationship between tab index and either stack's index:</p>
+<table>
+<thead>
+<tr>
+<th>Tab #</th>
+<th>Tab label</th>
+<th>Ribbon shown</th>
+<th>Center-stack widget</th>
+<th><code>_ribbon_stack</code> visible?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Workspace</td>
+<td><code>WorkspaceRibbon</code></td>
+<td><code>GraphManager</code> (index 0)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Compensation</td>
+<td><code>CompensationRibbon</code></td>
+<td><code>GraphManager</code> (index 0)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Gating</td>
+<td><code>GatingRibbon</code></td>
+<td><code>GraphManager</code> (index 0)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Pipeline</td>
+<td><code>PipelineRibbon</code></td>
+<td><code>NodeCanvas</code> (index 1)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Statistics</td>
+<td><code>StatisticsRibbon</code> (empty placeholder)</td>
+<td><code>StatisticsExplorer</code> (index 4)</td>
+<td><strong>no — ribbon stack hidden</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Spectral</td>
+<td><code>SpectralRibbon</code></td>
+<td><code>SpectralViewer</code> (index 2)</td>
+<td><strong>no — ribbon stack hidden</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Population Analysis</td>
+<td><em>(none wired)</em></td>
+<td><code>PopulationAnalysisViewer</code> (index 3)</td>
+<td><strong>no — ribbon stack hidden</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Comparisons</td>
+<td><code>ComparisonsRibbon</code> (empty placeholder)</td>
+<td><code>ComparisonsViewer</code> (index 5)</td>
+<td><strong>no — ribbon stack hidden</strong></td>
+</tr>
+</tbody>
+</table>
+<p>For tabs 0–2, <code>_on_tab_changed</code> falls through to the <code>else</code> branch:
+<code>_center_stack.setCurrentIndex(0)</code> (always <code>GraphManager</code>, regardless of
+which of the three sub-tabs is active — Workspace/Compensation/Gating are
+three different ribbons over the <em>same</em> graph canvas), and it shows the
+left sidebar, properties panel, and ribbon stack. Tabs 3–7 each hide the
+sidebar and properties panel and switch to their own full-width center
+widget; tabs 4–7 additionally hide <code>_ribbon_stack</code> entirely, because those
+four widgets manage their own controls internally rather than delegating to
+a ribbon.</p>
+<div class="admonition note">
+<p class="admonition-title">Note the index families don't line up</p>
+<p>Tab index, <code>_ribbon_stack</code> index, and <code>_center_stack</code> index are three
+independent numbering schemes that only coincide for tabs 0–3. Center
+stack index order is fixed by <code>WorkspaceBuilder.finalize_center_stack</code>'s
+explicit <code>addWidget()</code> calls (<code>GraphManager</code>=0, <code>NodeCanvas</code>=1,
+<code>SpectralViewer</code>=2, <code>PopulationAnalysisViewer</code>=3,
+<code>StatisticsExplorer</code>=4, <code>ComparisonsViewer</code>=5) — note this does <strong>not</strong>
+match tab order (Statistics is tab 4 but center-stack index 4 is
+<code>StatisticsExplorer</code> only by coincidence; Spectral is tab 5 but
+center-stack index 2). Always cross-check <code>_on_tab_changed</code> rather than
+assuming a pattern.</p>
+</div>
+<h3 id="_ribbon_stack-has-7-widgets-for-8-tabs"><code>_ribbon_stack</code> has 7 widgets for 8 tabs</h3>
+<p><code>build_skeleton()</code> adds exactly 7 widgets to <code>_ribbon_stack</code>, in this
+order: <code>_workspace_ribbon</code>(0), <code>_compensation_ribbon</code>(1), <code>_gating_ribbon</code>(2),
+<code>_pipeline_ribbon</code>(3), <code>_stats_ribbon</code>(4), <code>_spectral_ribbon</code>(5),
+<code>_comparisons_ribbon</code>(6). There is no ribbon widget for tab 6 (Population
+Analysis) at all. <code>_on_tab_changed</code> still unconditionally calls
+<code>self._ribbon_stack.setCurrentIndex(index)</code> at the top of the method before
+branching — so for tab 6 it sets the ribbon stack's current index to 6
+(<code>_comparisons_ribbon</code>, the wrong widget for that tab) and for tab 7 it
+calls <code>setCurrentIndex(7)</code>, which is out of range for a 7-widget stack
+(indices 0–6) and is simply a Qt no-op. Neither is currently a visible bug
+<strong>only</strong> because both tabs immediately hide <code>_ribbon_stack</code> in the same
+branch — but it means <code>_ribbon_stack</code>'s displayed page while hidden is
+whatever stale/wrong index was last set, so any future code path that shows
+the ribbon stack for tab 6 or 7 without also fixing this indexing will
+render the wrong ribbon (or nothing).</p>
+<h3 id="two-ribbons-are-known-empty-placeholders">Two ribbons are known-empty placeholders</h3>
+<p><code>StatisticsRibbon</code> (<code>ui/ribbons/statistics_ribbon.py</code>) and
+<code>ComparisonsRibbon</code> (<code>ui/ribbons/comparisons_ribbon.py</code>) are explicitly
+documented, intentional empty placeholders — their module docstrings say so
+directly ("kept so that the ribbon stack index alignment... remains
+intact" / "controls live inside ComparisonsViewer"). <code>ComparisonsRibbon</code>
+even sets <code>setFixedHeight(0)</code>. This is expected: <code>StatisticsExplorer</code> and
+<code>ComparisonsViewer</code> each own their controls internally, and since their
+tabs hide <code>_ribbon_stack</code> anyway, the placeholder ribbons are pure
+bookkeeping to keep index math from shifting.</p>
+<div class="admonition question">
+<p class="admonition-title">Open question: is <code>SpectralRibbon</code> dead code?</p>
+<p><code>SpectralRibbon</code> (<code>ui/ribbons/spectral_ribbon.py</code>) is <strong>not</strong> documented
+as an intentional placeholder the way the other two are — its class
+docstring reads "Toolbar ribbon for spectral intelligence tools" and its
+module docstring says "Access spectral viewing and compensation tools",
+both implying real controls. But <code>_setup_ui()</code> only adds a
+<code>layout.addStretch()</code> — there is not a single button, combo box, or any
+other widget in it. And because tab 5 (Spectral) hides <code>_ribbon_stack</code>
+entirely (<code>_on_tab_changed</code>, <code>index == 5</code> branch), this ribbon is
+<strong>structurally unreachable even if it did have controls</strong>: it sits at
+<code>_ribbon_stack</code> index 5, but nothing ever shows the ribbon stack while
+that tab is active. It defines an unused signal,
+<code>open_spectral_viewer_requested = pyqtSignal()</code>, that nothing in the
+codebase connects to or emits (confirmed by search — no other file
+references it).</p>
+<p>This looks like either (a) a half-finished feature — a ribbon that was
+scaffolded before <code>SpectralViewer</code> grew its own internal controls and
+was never deleted, or (b) an earlier design where the ribbon stack
+<em>was</em> shown for the Spectral tab, later changed. Worth confirming with
+the team whether <code>SpectralRibbon</code> and its unused signal can be deleted
+outright, or whether there's a reason it's still constructed and added
+to the stack every startup for no visible effect.</p>
+</div>
+<h3 id="workspacebuilders-two-phase-construction"><code>WorkspaceBuilder</code>'s two-phase construction</h3>
+<p>See <a href="../00_ARCHITECTURE_OVERVIEW/#3-two-phase-startup-flowcytometrypanel"><code>00_ARCHITECTURE_OVERVIEW.md</code> §3</a>
+for the full startup sequence diagram. In UI-engine terms: <code>build_skeleton()</code>
+constructs all 7 ribbons and the sidebar synchronously (cheap — no
+matplotlib), then leaves <code>_center_stack</code> holding a single placeholder
+<code>QWidget</code> (object name <code>_CenterLoadingPlaceholder</code>). Each <code>build_step_*</code>
+static method builds exactly one of the six center widgets; <code>begin_async_init()</code>
+chains them one per <code>QTimer.singleShot(0, ...)</code> tick.
+<code>finalize_center_stack()</code> removes the placeholder and adds the six real
+widgets at the fixed index contract documented in its own comment block.
+<code>connect_tab_bar()</code> is the very last step — it only wires
+<code>_tab_bar.currentChanged</code> to <code>_on_tab_changed</code> once every center-stack
+widget is guaranteed to exist, and emits the <code>"Ready"</code> status message.</p>
+<hr />
+<h2 id="2-flowcanvas-the-2-d-plot-rendering-engine">2. <code>FlowCanvas</code> — the 2-D Plot Rendering Engine</h2>
+<p><code>FlowCanvas</code> (<code>ui/graph/flow_canvas.py</code>) is the matplotlib widget embedded
+in each <code>GraphWindow</code> tab. It extends the SDK's <code>LayeredMatplotlibCanvas</code>
+(<code>karcytics_sdk/plugin/rendering/mpl_canvas.py</code>) and is composed from
+several single-purpose collaborators rather than doing everything itself:</p>
+<table>
+<thead>
+<tr>
+<th>Collaborator</th>
+<th>File</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FlowDataComputeStage</code> / <code>FlowDataRasterizeStage</code></td>
+<td><code>ui/graph/canvas/data_layer.py</code></td>
+<td>Compute/rasterize split for the expensive scatter/density layer — see <code>00_ARCHITECTURE_OVERVIEW.md</code> §5.</td>
+</tr>
+<tr>
+<td><code>GateLayerRenderer</code></td>
+<td><code>ui/graph/canvas/gate_layer.py</code></td>
+<td>Draws/clears gate overlay artists on top of the cached data-layer bitmap. Never touches the data layer.</td>
+</tr>
+<tr>
+<td><code>GateDrawingFSM</code></td>
+<td><code>ui/graph/gate_drawing_fsm.py</code></td>
+<td>Interactive gate-drawing/-editing state machine (below).</td>
+</tr>
+<tr>
+<td><code>CanvasEventHandler</code></td>
+<td><code>ui/graph/canvas/event_handler.py</code></td>
+<td>Translates raw matplotlib mouse/keyboard events into FSM calls.</td>
+</tr>
+<tr>
+<td><code>CoordinateMapper</code>, <code>GateFactory</code>, <code>GateOverlayRenderer</code></td>
+<td><code>ui/graph/flow_services.py</code></td>
+<td>Transform/inverse-transform data↔display coordinates; construct <code>Gate</code> objects from drawn geometry; render a <code>Gate</code> as matplotlib artists.</td>
+</tr>
+<tr>
+<td><code>GateEditor</code></td>
+<td><code>ui/graph/gate_editor.py</code></td>
+<td>Drag-handle geometry math for editing an existing gate (snapshot/diff/restore/apply-drag).</td>
+</tr>
+<tr>
+<td><code>OverlayManager</code></td>
+<td><code>ui/graph/canvas/overlay_manager.py</code></td>
+<td>Loading spinner, empty-state message, error banner, on-canvas instruction text.</td>
+</tr>
+<tr>
+<td><code>ZoomHandler</code></td>
+<td><code>ui/graph/canvas/zoom_handler.py</code></td>
+<td>Scroll-wheel zoom.</td>
+</tr>
+<tr>
+<td><code>AxisFormatter</code></td>
+<td><code>ui/graph/canvas/axis_formatter.py</code></td>
+<td>Tick formatting for transformed (Logicle/log) axes.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rendering-strategies">Rendering strategies</h3>
+<p><code>DisplayMode</code> (an <code>Enum</code> in <code>flow_canvas.py</code>: <code>PSEUDOCOLOR</code>, <code>DOT_PLOT</code>,
+<code>CONTOUR</code>, <code>HISTOGRAM</code>, <code>CDF</code>) selects a <code>DisplayStrategy</code> implementation
+via <code>RenderStrategyFactory.get_strategy(mode.value)</code>
+(<code>ui/graph/renderers/factory.py</code>). Every strategy implements the abstract
+<code>compute()</code>/<code>draw()</code> split from <code>ui/graph/renderers/base.py</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DisplayStrategy</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">        </span><span class="sd">"""Pure numpy/scipy. Must not touch a matplotlib Axes/Figure."""</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="sd">"""matplotlib Axes calls. Must run under MPL_RASTER_LOCK."""</span>
+</span></code></pre></div>
+<p>Registered strategies: <code>PseudocolorStrategy</code>, <code>DotPlotStrategy</code>,
+<code>HistogramStrategy</code>, <code>ContourStrategy</code>, <code>CdfStrategy</code> (all in
+<code>ui/graph/renderers/</code>). <code>RenderStrategyFactory.get_strategy()</code> falls back to
+<code>"Dot Plot"</code> for any unregistered mode name.</p>
+<p><code>FlowDataComputeStage.compute()</code> (<code>ui/graph/canvas/data_layer.py</code>) branches
+on <code>DisplayMode</code>: <code>HISTOGRAM</code>/<code>CDF</code> go through <code>_compute_1d()</code> (falls back
+to <code>_compute_2d()</code> if the 1-D strategy raises), everything else through
+<code>_compute_2d()</code>. Both paths read per-mode settings out of
+<code>FlowRenderState.render_config</code> (a <code>RenderConfig</code> snapshot — see
+<code>analysis/config.py</code>) into a <code>render_kwargs</code> dict passed straight through to
+<code>strategy.compute(...)</code>.</p>
+<h3 id="locking-discipline">Locking discipline</h3>
+<p><code>FlowCanvas</code> overrides both <code>paintEvent()</code> and <code>draw()</code> from
+<code>LayeredMatplotlibCanvas</code> — not to change their locking strategy (both
+already acquire <code>raster_lock</code> non-blocking via <code>try_run</code>), but because a
+queued <code>QTimer</code> retry firing after the widget is destroyed crashes natively
+rather than raising a catchable <code>RuntimeError</code>. <code>FlowCanvas._retry_update()</code>
+/ <code>_retry_draw()</code> guard with <code>sip.isdeleted(self)</code> before touching <code>self</code>
+again. Any new lock-guarded entry point added to <code>FlowCanvas</code> should follow
+the same <code>sip.isdeleted()</code> pattern if it can be retried via <code>QTimer</code>.</p>
+<p><code>GateLayerRenderer.render()</code> and every interactive-preview method on
+<code>GateDrawingFSM</code> (rubber band, polygon progress, quadrant crosshair, edit
+preview) acquire <code>MPL_RASTER_LOCK</code> directly rather than through
+<code>LayeredMatplotlibCanvas</code>'s helpers, because they need the finer-grained
+"clear old artist, add new artist, blit" sequence to happen atomically
+under one lock acquisition rather than as two separate <code>try_run</code> calls.</p>
+<hr />
+<h2 id="3-interactive-gate-drawing-gatedrawingfsm">3. Interactive Gate Drawing: <code>GateDrawingFSM</code></h2>
+<p><code>GateDrawingFSM</code> (<code>ui/graph/gate_drawing_fsm.py</code>) owns all interactive
+drawing/editing state for one <code>FlowCanvas</code>. States (<code>DrawingState</code> enum):</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IDLE</code></td>
+<td>Default. A press either hits an edit handle, hits the selected gate's body, or attempts gate selection.</td>
+</tr>
+<tr>
+<td><code>DRAWING</code></td>
+<td>Dragging out a Rectangle/Ellipse/Range gate.</td>
+</tr>
+<tr>
+<td><code>POLYGON</code></td>
+<td>Placing polygon vertices one click at a time; double-click closes it (≥3 vertices required).</td>
+</tr>
+<tr>
+<td><code>EDITING</code></td>
+<td>Dragging a handle or the body of the currently-selected gate.</td>
+</tr>
+</tbody>
+</table>
+<p><code>CanvasEventHandler</code> is the only caller of <code>GateDrawingFSM</code>'s public
+<code>handle_press</code>/<code>handle_motion</code>/<code>handle_release</code>/<code>handle_dblclick</code> methods —
+it adapts matplotlib's <code>button_press_event</code>/<code>motion_notify_event</code>/
+<code>button_release_event</code>/<code>draw_event</code> callbacks (wired via <code>mpl_connect</code> in
+<code>FlowCanvas.__init__</code>) into FSM calls, including reading <code>Alt</code> directly from
+<code>QApplication.keyboardModifiers()</code> (matplotlib's own modifier tracking is
+documented as unreliable across backends for a bare press with no
+preceding key event).</p>
+<h3 id="drawing-tools">Drawing tools</h3>
+<p><code>GraphWindow._TOOL_MODE_MAP</code> (<code>ui/graph/graph_window.py</code>) maps the
+<code>GatingRibbon</code>'s tool id strings to <code>GateDrawingMode</code> (also in
+<code>flow_canvas.py</code>): <code>"select"</code>→<code>NONE</code>, <code>"rectangle"</code>→<code>RECTANGLE</code>,
+<code>"polygon"</code>→<code>POLYGON</code>, <code>"ellipse"</code>→<code>ELLIPSE</code>, <code>"quadrant"</code>→<code>QUADRANT</code>,
+<code>"range"</code>→<code>RANGE</code>. <code>GraphManager.set_drawing_mode(tool_name)</code> broadcasts the
+active tool to every open <code>GraphWindow</code> so switching tools in the ribbon
+affects whichever tab the user switches to next, not just the currently
+active one.</p>
+<h3 id="selection-top-most-wins-with-alt-cycle-for-occluded-gates">Selection: top-most-wins, with Alt-cycle for occluded gates</h3>
+<p><code>CanvasEventHandler.try_select_gate()</code> hit-tests every gate's overlay artist
+in draw order (later == on top) and, absent <code>Alt</code>, picks the last (topmost)
+hit. Holding <code>Alt</code> on click instead cycles to the <em>next</em> hit after whatever
+is currently selected (wrapping around) — the documented mechanism for
+reaching a gate fully occluded by another without moving or deleting
+anything first.</p>
+<h3 id="edit-gestures-commit-exactly-once">Edit gestures commit exactly once</h3>
+<p><code>GateDrawingFSM._apply_edit_preview()</code> mutates the live <code>Gate</code> object
+in-place on every motion frame and redraws only via the cheap blit path —
+it never calls <code>modify_gate()</code>. The single real backend mutation (recompute
+stats, publish <code>GATE_MODIFIED</code>, schedule propagation) happens in
+<code>FlowCanvas._commit_gate_edit()</code>, called from
+<code>GateDrawingFSM._finish_edit()</code> on release, and <em>only</em> if
+<code>gate_editor.changed(gate, anchor)</code> reports the geometry actually moved. If
+<code>modify_gate()</code> rejects the edit (validation failure, or the gate/sample
+vanished mid-drag), the FSM's already-mutated in-memory gate is restored
+via <code>gate_editor.restore()</code> and gates are re-fetched from the controller.
+This is also why <code>Escape</code> (<code>GateDrawingFSM.cancel()</code>) during an in-progress
+edit must explicitly call <code>gate_editor.restore()</code> — the preview mutation
+already happened and nothing else will undo it.</p>
+<hr />
+<h2 id="4-graphmanager-and-graphwindow">4. <code>GraphManager</code> and <code>GraphWindow</code></h2>
+<p><code>GraphManager</code> (<code>ui/graph/graph_manager.py</code>) is the tabbed container living
+at <code>_center_stack</code> index 0 — the center widget for the Workspace/
+Compensation/Gating tabs. Each open plot is a <code>GraphWindow</code>
+(<code>ui/graph/graph_window.py</code>), keyed in <code>GraphManager._graphs</code> by
+<code>f"{sample_id}:{node_id or 'root'}"</code> — reopening the same sample+population
+combination focuses the existing tab instead of creating a duplicate.</p>
+<p><code>GraphManager._on_axis_scale_sync()</code> propagates an <code>AxisScale</code> change from
+one <code>GraphWindow</code> to every <em>other</em> open graph whose sample shares a group
+with the sender's sample (<code>sender_sample.group_ids</code>) — scale changes do not
+propagate across unrelated groups.</p>
+<p><code>GraphManager.navigate_active_graph(action)</code> handles the breadcrumb/
+next-sample/prev-sample navigation buttons; <code>next_sample</code>/<code>prev_sample</code>
+call <code>_get_parallel_node()</code> to find the equivalently-named gate node in the
+target sample by walking the <em>name path</em> from root (not by node id, since
+node ids are per-sample) — falls back to <code>None</code> (root population) if no
+name match is found at any step.</p>
+<hr />
+<h2 id="5-the-node-canvas-pipeline-tab">5. The Node Canvas (Pipeline Tab)</h2>
+<p><code>NodeCanvas</code> (<code>ui/widgets/node_canvas/canvas_view.py</code>) is a
+<code>QGraphicsView</code>-based DAG editor, structurally unrelated to <code>FlowCanvas</code> —
+it renders with Qt's own 2-D scene graph, not matplotlib, except for the
+small per-node preview plots.</p>
+<h3 id="dirty-region-tracking">Dirty-region tracking</h3>
+<p><code>_CanvasGraphicsView</code> extends the SDK's <code>DirtyTrackingGraphicsView</code>
+(<code>karcytics_sdk/plugin/rendering/graphics_scene.py</code>), which defaults to
+<code>QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate</code> instead of Qt's
+default <code>FullViewportUpdate</code>. <code>DirtyTrackingGraphicsScene.mark_dirty(item)</code>
+is the drop-in replacement for a bare <code>item.update()</code> call, used
+everywhere in <code>CanvasManager</code> and <code>NodeItem</code> (<code>_mark_dirty()</code>) instead of
+calling <code>update()</code> directly.</p>
+<p><code>NodeItem.set_orientation()</code> (<code>ui/widgets/node_canvas/items/node_item.py</code>)
+is the canonical example of the discipline <code>MinimalViewportUpdate</code> demands:
+it calls <code>self.prepareGeometryChange()</code> <em>before</em> mutating <code>_orientation</code>
+(on which <code>boundingRect()</code> depends), because under minimal-update mode a
+geometry change that skips <code>prepareGeometryChange()</code> leaves stale or
+clipped pixels on screen — a bug class that Qt's old <code>FullViewportUpdate</code>
+default silently papered over by repainting everything regardless. Setting
+<code>KARCYTICS_STRICT_DIRTY_TRACKING=1</code> turns on an opt-in check in
+<code>DirtyTrackingGraphicsScene.mark_dirty()</code> that remembers each item's last
+<code>boundingRect()</code> and logs a warning if it changed since the previous
+<code>mark_dirty()</code> call for that item — an imperfect signal (it can't see
+whether <code>prepareGeometryChange()</code> was actually called), but a real prompt
+to check when it fires.</p>
+<h3 id="canvasmanager-model-scene-bridge"><code>CanvasManager</code>: model → scene bridge</h3>
+<p><code>CanvasManager</code> (<code>ui/widgets/node_canvas/canvas_manager.py</code>) builds
+<code>NodeItem</code>/<code>EdgeItem</code> graphics objects from a sample's <code>GateNode</code> tree via
+BFS (<code>_build_all_nodes</code>) so a node with multiple parents (a DAG logic node)
+is only ever built once. It subscribes to:</p>
+<ul>
+<li><code>task_scheduler.task_finished</code> — <code>_on_render_task_finished()</code> applies a
+  completed <code>RenderTask</code> thumbnail to its <code>NodeItem</code> and caches it in the
+  module-level <code>_ThumbnailCache</code> dict.</li>
+<li><code>CentralEventBus</code> topic <code>flow.gate.all_stats_updated</code>
+  (<code>analysis/events.ALL_STATS_UPDATED</code>) — <code>_on_stats_updated()</code> walks the
+  tree updating each <code>NodeItem</code>'s displayed count/percentage.</li>
+<li><code>"flow.pipeline.connection_added"</code> / <code>"flow.pipeline.connection_removed"</code>
+  — <code>_on_connection_pending()</code> does a <strong>cheap, targeted</strong> update (redraw
+  edges + refresh the one affected card) rather than the full scene rebuild
+  <code>load_sample()</code> does, specifically so wiring/unwiring a logic node's
+  inputs doesn't re-submit render tasks for every other node on the canvas.</li>
+</ul>
+<h3 id="thumbnail-rendering">Thumbnail rendering</h3>
+<p><code>_request_render()</code> submits a <code>RenderTask</code> (<code>ui/graph/render_task.py</code>,
+shared with the main <code>FlowCanvas</code>'s gate-overlay rendering path) through
+<code>task_scheduler</code> at 2x the display size (360×360 for a 180×180 card) for
+Retina rendering, with <code>show_gate_labels=False</code>/<code>show_axis_labels=False</code> in
+the passed <code>render_config</code> so the thumbnail stays uncluttered. Logic nodes
+render a fixed FSC-A/SSC-A overview once <code>node.is_incomplete</code> is <code>False</code>
+(i.e. wired enough to evaluate); UMAP-parent nodes skip rendering entirely
+(no geometric axes to plot — <code>NodeItem.paint()</code> instead draws a static
+isometric-cube icon for them).</p>
+<hr />
+<h2 id="6-render-settings-rendersettingsdialog">6. Render Settings: <code>RenderSettingsDialog</code></h2>
+<p><code>RenderSettingsDialog</code> (<code>ui/graph/render_settings_dialog.py</code>) is a modeless
+<code>QDialog</code> (<code>setModal(False)</code> — the user can keep interacting with the plot
+while tuning settings) that shows one tab per relevant <code>DisplayMode</code>, via
+<code>_MODE_TAB = {PSEUDOCOLOR: 0, DOT_PLOT: 1, HISTOGRAM: 2, CONTOUR: 3}</code>. Each
+tab is an independent panel class from <code>ui/graph/render_panels/</code>
+(<code>PseudocolorSettingsPanel</code>, <code>DotPlotSettingsPanel</code>,
+<code>HistogramSettingsPanel</code>, <code>ContourSettingsPanel</code>) — the dialog itself is
+purely a coordinator; all validation/preset logic lives in the panels. On
+<code>accept</code>, settings are pushed back through <code>RenderConfig</code> and applied via
+the standard <code>redraw()</code> path described in §2 above (no bypass of the
+compute/draw split).</p>
+<hr />
+<h2 id="7-see-also">7. See Also</h2>
+<ul>
+<li><a href="../00_ARCHITECTURE_OVERVIEW/"><code>00_ARCHITECTURE_OVERVIEW.md</code></a> — startup
+  sequencing and the full rendering data-flow loop.</li>
+<li><a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/"><code>08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md</code></a> —
+  how the widgets described here are wired to <code>CentralEventBus</code> and to each
+  other via <code>MainPanelController.wire()</code>.</li>
+<li><a href="../03_TESTING_AND_QA/"><code>03_TESTING_AND_QA.md</code></a> — UI test patterns
+  (not re-verified in this rewrite pass).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

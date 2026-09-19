@@ -1,0 +1,2167 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/">
+      
+      
+        <link rel="prev" href="../07_RENDERING_AND_VISUALIZATION/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Data Flow & Signal Connections - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#data-flow-signal-connections" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Data Flow & Signal Connections
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-two-separate-eventsignal-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Two Separate Event/Signal Systems
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-centraleventbus-topic-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. CentralEventBus Topic Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. CentralEventBus Topic Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gateeventpublisher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateEventPublisher
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-mainpanelcontrollerwire-the-central-wiring-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. MainPanelController.wire() — the Central Wiring Point
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. MainPanelController.wire() — the Central Wiring Point">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#structural-change-undodirty-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structural-change → undo/dirty tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tutorial-aware-gate-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tutorial-aware gate validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#direct-pyqt-connections-selected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct PyQt connections (selected)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-workflow-drawing-a-gate-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Workflow: Drawing a Gate, End to End
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-workflow-sample-load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Workflow: Sample Load
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-workflow-academy-tutorial-course-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Workflow: Academy / Tutorial Course Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-gate-selection-one-global-state-many-readers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Gate Selection: One Global State, Many Readers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-two-separate-eventsignal-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Two Separate Event/Signal Systems
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-centraleventbus-topic-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. CentralEventBus Topic Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. CentralEventBus Topic Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gateeventpublisher" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateEventPublisher
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-mainpanelcontrollerwire-the-central-wiring-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. MainPanelController.wire() — the Central Wiring Point
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. MainPanelController.wire() — the Central Wiring Point">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#structural-change-undodirty-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structural-change → undo/dirty tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tutorial-aware-gate-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tutorial-aware gate validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#direct-pyqt-connections-selected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct PyQt connections (selected)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-workflow-drawing-a-gate-end-to-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Workflow: Drawing a Gate, End to End
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-workflow-sample-load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Workflow: Sample Load
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-workflow-academy-tutorial-course-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Workflow: Academy / Tutorial Course Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-gate-selection-one-global-state-many-readers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Gate Selection: One Global State, Many Readers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="data-flow-signal-connections">Data Flow &amp; Signal Connections</h1>
+<p>This document maps the module's actual event/signal wiring: which bus a
+given topic travels on, where topics are defined, who publishes them, who
+subscribes, and — for the operations that matter most — the full path from
+a user action to every UI component that reacts to it. Every topic string,
+class name, and method name below was confirmed by reading the source
+listed next to it.</p>
+<hr />
+<h2 id="1-two-separate-eventsignal-systems">1. Two Separate Event/Signal Systems</h2>
+<p>The module uses three distinct communication mechanisms, and mixing them up
+is an easy way to wire something that silently never fires:</p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Scope</th>
+<th>Defined in</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CentralEventBus</code></td>
+<td>In-process, plugin-local pub/sub. Topics are the plain strings in <code>analysis/events.py</code> (prefixed <code>flow.</code>).</td>
+<td><code>karcytics_sdk.plugin.CentralEventBus</code></td>
+<td>Gate lifecycle, sample lifecycle, stats, compensation — anything the plugin's own domain layer needs to broadcast to decoupled UI listeners.</td>
+</tr>
+<tr>
+<td>SDK <code>event_bus</code> / <code>KarcyticsEvent</code></td>
+<td>Cross-plugin / Hub-wide. In an isolated plugin process this is <code>runtime_services.event_bus</code>, a <code>RemoteEventBus</code>; <code>KarcyticsEvent</code> is a stand-in accessor (<code>_EventTopicAccessor</code>) whose attribute access (e.g. <code>KarcyticsEvent.ACADEMY_COURSE_COMPLETED</code>) resolves to the matching string topic.</td>
+<td><code>karcytics_sdk/plugin/runtime_services.py</code>, <code>karcytics_sdk/plugin/academy.py</code></td>
+<td>Academy/tutorial course lifecycle — the only user of this bus in this module (<code>main_panel.py</code>'s <code>_wire_signals</code>).</td>
+</tr>
+<tr>
+<td>PyQt signals/slots</td>
+<td>Direct widget-to-widget or widget-to-controller wiring, no bus.</td>
+<td>Each widget's own <code>pyqtSignal</code> declarations.</td>
+<td>Everything that's a 1:1 (or narrowly fan-out) relationship between two specific widgets — ribbon → graph manager, sample list → properties panel, etc. Wired centrally in <code>MainPanelController.wire()</code> (§3).</td>
+</tr>
+</tbody>
+</table>
+<p><code>CentralEventBus.publish(topic, payload_dict)</code> is fire-and-forget and
+<strong>queued</strong> — a callback that unsubscribes itself is not guaranteed to avoid
+a delivery that was already queued before the unsubscribe ran. Several
+<code>_cleanup_events</code>-style methods across the codebase (<code>FlowCanvas</code>,
+<code>GraphManager</code>, <code>CanvasManager</code>) exist specifically to guard against this:
+they check <code>sip.isdeleted(self)</code> (or an <code>_is_alive</code> flag) at the top of
+every subscribed callback, because a gate event published just before a
+canvas tab closes can still be delivered to it afterward.</p>
+<hr />
+<h2 id="2-centraleventbus-topic-reference">2. <code>CentralEventBus</code> Topic Reference</h2>
+<p>All topics are plain string constants in <code>analysis/events.py</code>. This table
+is exhaustive as of this rewrite — cross-check against the file if it
+changes.</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>String value</th>
+<th>Published by</th>
+<th>Notable subscribers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GATE_CREATED</code></td>
+<td><code>flow.gate.created</code></td>
+<td><code>GateMutationService.add_gate()</code> via <code>GateEventPublisher.publish_gate_created()</code></td>
+<td><code>MainPanelController</code> (undo/dirty + tutorial-shape validation), <code>FlowCanvas</code> (<code>_on_controller_geometry_changed</code>)</td>
+</tr>
+<tr>
+<td><code>LOGIC_NODE_CREATED</code></td>
+<td><code>flow.gate.logic_node_created</code></td>
+<td><code>GateMutationService.add_logic_node()</code></td>
+<td><code>MainPanelController</code> (<code>_on_structural_change</code>)</td>
+</tr>
+<tr>
+<td><code>GATES_CREATED</code></td>
+<td><code>flow.gate.batch_created</code></td>
+<td><code>GateMutationService</code> for multi-node creations (e.g. quadrant gates → 4 nodes in one action) via <code>GateEventPublisher.publish_gates_created()</code></td>
+<td><code>MainPanelController</code> (<code>_on_structural_change</code>, <code>_handle_gates_created</code>), <code>FlowCanvas</code></td>
+</tr>
+<tr>
+<td><code>GATE_RENAMED</code></td>
+<td><code>flow.gate.renamed</code></td>
+<td><code>GateMutationService.rename_population()</code> via <code>GateEventPublisher.publish_gate_renamed()</code></td>
+<td><code>MainPanelController</code>, <code>GraphManager._on_bus_event</code> (tab label refresh), <code>FlowCanvas</code></td>
+</tr>
+<tr>
+<td><code>GATE_DELETED</code></td>
+<td><code>flow.gate.deleted</code></td>
+<td><code>GateMutationService.remove_population()</code> via <code>GateEventPublisher.publish_gate_deleted()</code></td>
+<td><code>MainPanelController</code>, <code>FlowCanvas</code>, footer status</td>
+</tr>
+<tr>
+<td><code>GATE_MODIFIED</code></td>
+<td><code>flow.gate.modified</code></td>
+<td><code>GateMutationService.modify_gate()</code> via <code>GateEventPublisher.publish_gate_modified()</code> — fires <strong>once per completed drag gesture</strong>, never during live preview (§4 in <code>02_UI_ENGINE.md</code>)</td>
+<td><code>MainPanelController</code> (<code>_on_structural_change</code> — one edit = one undo step), <code>FlowCanvas</code></td>
+</tr>
+<tr>
+<td><code>GATE_PROPAGATED</code></td>
+<td><code>flow.gate.propagated</code></td>
+<td><em>(defined; not observed published in the read source — likely legacy/reserved)</em></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>GATE_SELECTED</code></td>
+<td><code>flow.gate.selected</code></td>
+<td><code>GateSelectionService</code> (via <code>GateCoordinator.select_gate()</code>) using <code>GateEventPublisher.publish_gate_selected()</code></td>
+<td><code>MainPanelController</code> (<code>_on_gate_selected_from_controller</code>), <code>FlowCanvas</code> (<code>_on_controller_selected</code>)</td>
+</tr>
+<tr>
+<td><code>GATE_PREVIEW</code></td>
+<td><code>flow.gate.preview</code></td>
+<td><code>GateDrawingFSM</code> during live drag/edit/polygon/quadrant preview, and <code>FlowCanvas._clear_previews()</code></td>
+<td>Subplot/thumbnail preview consumers</td>
+</tr>
+<tr>
+<td><code>SAMPLE_SELECTED</code> / <code>SAMPLE_DESELECTED</code></td>
+<td><code>flow.sample.selected</code> / <code>flow.sample.deselected</code></td>
+<td><em>(defined; selection is mostly handled via direct PyQt signals — see §3)</em></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>SAMPLE_LOADED</code></td>
+<td><code>flow.sample.loaded</code></td>
+<td>Sample loading path</td>
+<td>Footer status message (<code>main_panel._setup_footer_events</code>)</td>
+</tr>
+<tr>
+<td><code>RENDER_MODE_CHANGED</code></td>
+<td><code>flow.render.mode_changed</code></td>
+<td>Display-mode changes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>RENDER_CONFIG_CHANGED</code></td>
+<td><code>flow.render.config_changed</code></td>
+<td>Render settings changes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>AXIS_PARAMS_CHANGED</code></td>
+<td><code>flow.axis.params_changed</code></td>
+<td>Axis parameter changes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>AXIS_RANGE_CHANGED</code> / <code>AXIS_RANGE_AUTO_UPDATED</code></td>
+<td><code>flow.axis.range_changed</code> / <code>flow.axis.range_auto_updated</code></td>
+<td>Axis manager</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>TRANSFORM_CHANGED</code></td>
+<td><code>flow.transform.changed</code></td>
+<td>Transform dialog</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>DISPLAY_MODE_CHANGED</code></td>
+<td><code>flow.display.mode_changed</code></td>
+<td>Display mode toggle</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>FMO_CHANGED</code></td>
+<td><code>flow.fmo.changed</code></td>
+<td>FMO overlay selection</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>STATS_COMPUTED</code></td>
+<td><code>flow.stats.computed</code></td>
+<td><code>GateCoordinator._on_stats_finished()</code> via <code>GateEventPublisher.publish_stats_computed()</code></td>
+<td>Footer status message</td>
+</tr>
+<tr>
+<td><code>STATS_INVALIDATED</code></td>
+<td><code>flow.stats.invalidated</code></td>
+<td><em>(defined; reserved)</em></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>COMPENSATION_APPLIED</code></td>
+<td><code>flow.compensation.applied</code></td>
+<td>Compensation service</td>
+<td><code>MainPanelController</code> (<code>_on_state_mutated</code>), footer status</td>
+</tr>
+<tr>
+<td><code>UMAP_COMPLETED</code></td>
+<td><code>flow.umap.completed</code></td>
+<td><code>UmapService</code></td>
+<td><code>MainPanelController</code> (<code>_on_state_mutated</code>), footer status</td>
+</tr>
+<tr>
+<td><code>AXIS_UPDATED</code></td>
+<td><code>flow.axis.updated</code></td>
+<td>Internal axis-layer replacement topic</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>GATE_STATS_UPDATED</code></td>
+<td><code>flow.gate.stats_updated</code></td>
+<td><code>GateCoordinator._on_stats_finished()</code> and <code>GateMutationService</code> (multiple sites) directly via <code>CentralEventBus.publish</code> (not through <code>GateEventPublisher</code>)</td>
+<td><code>MainPanelController</code> (<code>_on_stats_updated</code> — subscribed via the raw string <code>"flow.gate.stats_updated"</code>, not the constant) → <code>panel._on_gate_stats_updated</code> + <code>_refresh_node_canvas()</code></td>
+</tr>
+<tr>
+<td><code>ALL_STATS_UPDATED</code></td>
+<td><code>flow.gate.all_stats_updated</code></td>
+<td><code>GateCoordinator._on_stats_finished()</code></td>
+<td><code>MainPanelController</code> (<code>_on_all_stats</code>, subscribed via the raw string) → <code>panel._on_all_stats_updated</code> + <code>_refresh_node_canvas()</code>; <code>CanvasManager._on_stats_updated</code></td>
+</tr>
+<tr>
+<td><code>PROPAGATION_REQUESTED</code></td>
+<td><code>flow.gate.propagation_requested</code></td>
+<td><code>GateCoordinator.request_propagation()</code> path</td>
+<td><code>GatePropagator</code></td>
+</tr>
+<tr>
+<td><code>PROPAGATION_COMPLETE</code></td>
+<td><code>flow.gate.propagation_complete</code></td>
+<td><code>GatePropagator</code> after cross-sample cloning finishes</td>
+<td><code>MainPanelController</code> (<code>_on_prop_complete</code>) → <code>panel._on_propagation_complete</code> + flash message on partial failure</td>
+</tr>
+<tr>
+<td><code>SAMPLE_UPDATED</code></td>
+<td><code>flow.gate.sample_updated</code></td>
+<td><code>GatePropagator</code> per successfully-propagated sample</td>
+<td><code>MainPanelController</code> → <code>panel._on_propagated_sample_updated</code>, <code>_groups_panel.refresh()</code></td>
+</tr>
+<tr>
+<td><code>EXPERIMENT_DATA_CHANGED</code></td>
+<td><code>flow.experiment.data_changed</code></td>
+<td>Bulk experiment-level mutation (e.g. compensation across all samples)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Two topics are subscribed by raw string, not by constant</p>
+<p><code>MainPanelController.wire()</code> subscribes to <code>"flow.gate.stats_updated"</code>
+and <code>"flow.gate.all_stats_updated"</code> as literal strings rather than
+<code>events.GATE_STATS_UPDATED</code>/<code>events.ALL_STATS_UPDATED</code> — they happen to
+match exactly today, but a rename of either constant in <code>events.py</code>
+would silently desync this wiring without a type error. Same pattern in
+<code>CanvasManager</code>, which uses <code>flow_events.ALL_STATS_UPDATED</code> (the
+constant, correctly) but subscribes to <code>"flow.pipeline.connection_added"</code>/
+<code>"flow.pipeline.connection_removed"</code> as raw strings that don't have
+<code>events.py</code> constants at all.</p>
+</div>
+<h3 id="gateeventpublisher"><code>GateEventPublisher</code></h3>
+<p><code>analysis/services/gate_event_publisher.py</code> centralizes <em>some</em> — not all —
+<code>CentralEventBus.publish()</code> calls for gate events, specifically to
+"decouple domain mutation from external system messaging" (its own module
+docstring). It has no method for <code>GATE_STATS_UPDATED</code>/<code>ALL_STATS_UPDATED</code> —
+those are published directly via <code>CentralEventBus.publish(events.GATE_STATS_UPDATED, ...)</code>
+inline in <code>GateCoordinator._on_stats_finished()</code> and
+<code>GateMutationService</code>, not routed through the publisher. If you're adding a
+new gate-lifecycle event, prefer adding a method here for consistency with
+<code>GATE_CREATED</code>/<code>GATE_DELETED</code>/<code>GATE_RENAMED</code>/<code>GATE_MODIFIED</code>/<code>GATE_SELECTED</code>/
+<code>STATS_COMPUTED</code>; if you're touching stats events specifically, note the
+existing precedent already bypasses it.</p>
+<hr />
+<h2 id="3-mainpanelcontrollerwire-the-central-wiring-point">3. <code>MainPanelController.wire()</code> — the Central Wiring Point</h2>
+<p><code>ui/controllers/main_panel_controller.py</code>'s <code>MainPanelController.wire(panel)</code>
+(called once, from <code>FlowCytometryPanel._wire_signals()</code> at the end of Phase
+2 — see <code>00_ARCHITECTURE_OVERVIEW.md</code> §3) is where almost every
+cross-widget connection in the plugin is made, in one place, rather than
+scattered across each widget's own <code>__init__</code>. It does two kinds of wiring:</p>
+<ol>
+<li><strong><code>CentralEventBus</code> subscriptions</strong>, tracked in <code>panel._subscriptions</code>
+   (a list of <code>(topic, callback)</code> tuples) so <code>unwire()</code> can cleanly
+   unsubscribe everything on <code>panel.cleanup()</code>.</li>
+<li><strong>Direct PyQt signal→slot connections</strong> between specific widget pairs.</li>
+</ol>
+<h3 id="structural-change-undodirty-tracking">Structural-change → undo/dirty tracking</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_structural_change</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="s2">"_loading"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="n">panel</span><span class="o">.</span><span class="n">push_state</span><span class="p">()</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">panel</span><span class="o">.</span><span class="n">set_dirty</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">panel</span><span class="o">.</span><span class="n">_refresh_node_canvas</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Subscribed to <code>GATE_CREATED</code>, <code>LOGIC_NODE_CREATED</code>, <code>GATES_CREATED</code>,
+<code>GATE_DELETED</code>, <code>GATE_RENAMED</code>, and <code>GATE_MODIFIED</code>. This is the single
+choke point that pushes an undo-history snapshot and marks the workspace
+dirty for every structural gate edit — deliberately coarse-grained: one
+<code>GATE_MODIFIED</code> per drag gesture (not per motion frame, see
+<code>02_UI_ENGINE.md</code> §3) means one undo step per user-visible edit, "for
+free", without <code>MainPanelController</code> needing gesture-level awareness itself.</p>
+<p>A connection edit in the Pipeline tab that hasn't yet satisfied a logic
+node's wiring requirements goes through a <strong>separate</strong>, similarly-named but
+distinct handler:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_connection_pending</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>   <span class="c1"># MainPanelController's own copy</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">panel</span><span class="p">,</span> <span class="s2">"_loading"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">panel</span><span class="o">.</span><span class="n">push_state</span><span class="p">()</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">panel</span><span class="o">.</span><span class="n">set_dirty</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+</span></code></pre></div>
+<p>subscribed to the raw topics <code>"flow.pipeline.connection_added"</code> /
+<code>"flow.pipeline.connection_removed"</code>. This still marks the workspace dirty
+(a wiring change is undo-worthy) but does <strong>not</strong> call
+<code>panel._refresh_node_canvas()</code> or trigger any full rebuild — that's
+deliberate, because <code>CanvasManager</code> has its <em>own</em>, differently-scoped
+subscriber to the exact same two topics
+(<code>CanvasManager._on_connection_pending</code>, see <code>02_UI_ENGINE.md</code> §5) that does
+a cheap, targeted redraw of just the affected node/edges. Two different
+objects subscribed to the same topic doing two different, complementary
+things — worth knowing before assuming a topic has exactly one handler.</p>
+<h3 id="tutorial-aware-gate-validation">Tutorial-aware gate validation</h3>
+<p><code>_handle_gate_created</code> / <code>_handle_gates_created</code> (subscribed to
+<code>GATE_CREATED</code>/<code>GATES_CREATED</code>) additionally check whether an Academy
+course's current step is a <code>GateShapeValidator</code>
+(<code>tutorials/validators.py</code>). If the drawn gate's shape doesn't validate
+against the tutorial's expected shape, the gate is <strong>silently deleted</strong>
+(<code>panel._gate_coordinator.remove_population(...)</code>) and a transient red
+flash banner ("Gate inaccurate. Please try again.") is shown via the
+shared <code>_show_flash_message()</code> helper — the same helper used for partial
+gate-propagation failures. Only after this check passes does
+<code>panel._on_gate_added</code>/<code>_on_gates_added</code> run (refresh overlays + auto-select
+the new node).</p>
+<h3 id="direct-pyqt-connections-selected">Direct PyQt connections (selected)</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Slot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>panel._workspace_ribbon.samples_loaded</code></td>
+<td><code>panel._on_samples_loaded</code></td>
+</tr>
+<tr>
+<td><code>panel._pipeline_ribbon.sample_selected</code></td>
+<td><code>panel._node_canvas.set_sample</code></td>
+</tr>
+<tr>
+<td><code>panel._pipeline_ribbon.logic_node_requested</code></td>
+<td><code>panel._gate_coordinator.add_logic_node</code></td>
+</tr>
+<tr>
+<td><code>panel._node_canvas.node_double_clicked</code></td>
+<td><code>panel._on_gate_double_clicked</code></td>
+</tr>
+<tr>
+<td><code>panel._node_canvas.connection_requested</code></td>
+<td><code>panel._gate_coordinator.add_connection</code></td>
+</tr>
+<tr>
+<td><code>panel._gating_ribbon.tool_selected</code></td>
+<td><code>panel._graph_manager.set_drawing_mode</code></td>
+</tr>
+<tr>
+<td><code>panel._graph_manager.gate_drawn</code></td>
+<td><code>panel._on_gate_drawn</code></td>
+</tr>
+<tr>
+<td><code>panel._graph_manager.active_graph_changed</code></td>
+<td><code>panel._on_active_graph_changed</code></td>
+</tr>
+<tr>
+<td><code>panel._graph_manager.tool_change_requested</code></td>
+<td><code>panel._gating_ribbon.select_tool</code></td>
+</tr>
+<tr>
+<td><code>panel._sample_list.sample_double_clicked</code></td>
+<td><code>panel._graph_manager.open_graph_with_context</code></td>
+</tr>
+<tr>
+<td><code>panel._gate_hierarchy.gate_double_clicked</code></td>
+<td><code>panel._on_gate_double_clicked</code></td>
+</tr>
+<tr>
+<td><code>panel._gate_hierarchy.propagate_requested</code></td>
+<td><code>panel._gate_coordinator.propagate_to_all_groups</code></td>
+</tr>
+<tr>
+<td><code>panel._groups_panel.group_selected</code></td>
+<td><code>panel._sample_list.filter_by_group</code></td>
+</tr>
+</tbody>
+</table>
+<p>(Not exhaustive — see <code>MainPanelController.wire()</code> directly for the full
+list; the table above is the connections most relevant to tracing a gate
+edit or sample selection end-to-end.)</p>
+<hr />
+<h2 id="4-workflow-drawing-a-gate-end-to-end">4. Workflow: Drawing a Gate, End to End</h2>
+<pre class="mermaid"><code>sequenceDiagram
+    participant User
+    participant FSM as GateDrawingFSM
+    participant CEH as CanvasEventHandler
+    participant Canvas as FlowCanvas
+    participant GW as GraphWindow
+    participant GM as GraphManager
+    participant Panel as FlowCytometryPanel
+    participant GC as GateCoordinator
+    participant GMS as GateMutationService
+    participant Bus as CentralEventBus
+    participant MPC as MainPanelController
+
+    User-&gt;&gt;CEH: mouse press/drag/release on canvas
+    CEH-&gt;&gt;FSM: handle_press/motion/release(x, y, mode)
+    Note over FSM: DRAWING state — live rubber-band preview,&lt;br/&gt;no model mutation yet
+    FSM-&gt;&gt;CEH: finalize_drag_gate() (on release)
+    CEH-&gt;&gt;Canvas: gate_created.emit(Gate)
+    Canvas-&gt;&gt;GW: (GraphWindow forwards)
+    GW-&gt;&gt;GM: gate_drawn.emit(gate, sample_id, parent_node_id)
+    GM-&gt;&gt;Panel: gate_drawn.emit(...) (forwarded)
+    Panel-&gt;&gt;Panel: _on_gate_drawn() — QInputDialog for name&lt;br/&gt;(skipped for QuadrantGate)
+    Panel-&gt;&gt;GC: add_gate(gate, sample_id, name, parent_node_id)
+    GC-&gt;&gt;GMS: add_gate(...)
+    GMS-&gt;&gt;GMS: create GateNode, wire into tree
+    GMS-&gt;&gt;GC: recompute_all_stats(sample_id) [async, via StatsService]
+    GMS-&gt;&gt;Bus: publish(GATE_CREATED, {sample_id, node_id, gate_id, name})
+    GMS-&gt;&gt;GC: request_propagation(gate_id, sample_id)
+
+    Bus--&gt;&gt;MPC: GATE_CREATED → _on_structural_change&lt;br/&gt;(push_state, set_dirty, refresh node canvas)
+    Bus--&gt;&gt;MPC: GATE_CREATED → _handle_gate_created&lt;br/&gt;(tutorial shape validation)
+    MPC-&gt;&gt;Panel: _on_gate_added(sample_id, node_id)
+    Panel-&gt;&gt;Panel: _refresh_gate_overlays(sample_id)&lt;br/&gt;_on_gate_selected(node_id)
+
+    Note over GC: async — arrives later, separately
+    GC--&gt;&gt;Bus: publish(GATE_STATS_UPDATED, {sample_id, node_id})
+    Bus--&gt;&gt;MPC: → panel._on_gate_stats_updated + _refresh_node_canvas()
+    GC--&gt;&gt;Bus: publish(ALL_STATS_UPDATED, {sample_id})
+    Bus--&gt;&gt;MPC: → panel._on_all_stats_updated + _refresh_node_canvas()</code></pre>
+<p>Two things worth calling out explicitly:</p>
+<ol>
+<li><strong><code>GATE_CREATED</code> fires before statistics are ready.</strong> <code>GateMutationService.add_gate()</code>
+   calls <code>self._coordinator.recompute_all_stats(sample_id)</code> <em>before</em>
+   publishing <code>GATE_CREATED</code> — but <code>recompute_all_stats()</code> schedules an
+   async <code>StatisticsAnalysis</code> task via <code>StatsService</code> rather than blocking.
+   So the UI sees the new gate node (with count/percentage still at
+   whatever default) immediately, and <code>GATE_STATS_UPDATED</code>/<code>ALL_STATS_UPDATED</code>
+   land moments later once the background computation finishes and
+   <code>GateCoordinator._on_stats_finished()</code> runs.</li>
+<li><strong>Two independent subscribers react to the same <code>GATE_CREATED</code> event</strong>
+   for different reasons — <code>MainPanelController._on_structural_change</code>
+   (undo/dirty bookkeeping, unconditional) and
+   <code>MainPanelController._handle_gate_created</code> (tutorial validation, which
+   can <em>retroactively delete</em> the gate that was just created). Both are
+   registered via separate <code>_subscribe(events.GATE_CREATED, ...)</code> calls in
+   <code>wire()</code>; CentralEventBus delivers to both regardless of order-of-
+   registration guarantees, so don't assume the undo snapshot reflects a
+   tutorial-invalidated gate never having existed — it will show up in the
+   undo stack for one step before the tutorial validator's deletion adds
+   another.</li>
+</ol>
+<hr />
+<h2 id="5-workflow-sample-load">5. Workflow: Sample Load</h2>
+<p><code>WorkspaceRibbon.samples_loaded</code> (a direct PyQt signal, not a bus event) is
+connected straight to <code>panel._on_samples_loaded()</code> in
+<code>MainPanelController.wire()</code>. That handler auto-extracts an embedded
+compensation matrix if none exists yet, then explicitly refreshes every
+sample-dependent widget in sequence — <code>_groups_panel</code>, <code>_sample_list</code>,
+<code>_pipeline_ribbon</code>, <code>_population_analysis_viewer</code>, <code>_statistics_explorer</code>,
+<code>_comparisons_viewer</code> — before emitting <code>panel.state_changed</code> (the
+Karcytics-required undo/redo signal) and a status-bar message. Sample
+loading is one of the few high-traffic operations in this module that goes
+through direct signal wiring end-to-end rather than round-tripping through
+<code>CentralEventBus</code> — there's no <code>SAMPLE_LOADED</code>-driven fan-out the way gate
+events fan out.</p>
+<p><code>SAMPLE_LOADED</code> (<code>flow.sample.loaded</code>) does exist on the bus, but its only
+confirmed subscriber in the read source is the footer status message in
+<code>FlowCytometryPanel._setup_footer_events()</code> ("Samples loaded.") — a purely
+cosmetic listener, not part of the sample-list refresh chain above.</p>
+<hr />
+<h2 id="6-workflow-academy-tutorial-course-lifecycle">6. Workflow: Academy / Tutorial Course Lifecycle</h2>
+<p>This is the one place the SDK-wide <code>event_bus</code>/<code>KarcyticsEvent</code> is used,
+distinct from <code>CentralEventBus</code> everywhere else in this document.</p>
+<pre class="mermaid"><code>sequenceDiagram
+    participant User
+    participant Btn as AcademyButton
+    participant TM as tutorial_manager (AcademyManager)
+    participant Bus as SDK event_bus
+    participant Panel as FlowCytometryPanel
+
+    User-&gt;&gt;Btn: click "Start Course"
+    Btn-&gt;&gt;TM: start_course(course_id)
+    TM-&gt;&gt;Bus: emit(ACADEMY_COURSE_PREPARE_PROJECT, course_id)
+    Bus--&gt;&gt;Panel: _on_course_prepare_project(course_id)
+    Note over Panel: checks prerequisites via ProjectManager.workflows;&lt;br/&gt;converts an empty project to "is_academy" if none
+    Panel-&gt;&gt;TM: start_course_confirmed(course_id)
+    TM-&gt;&gt;TM: active_course = course; current_step = steps[0]
+    TM--&gt;&gt;TM: _emit_step_changed() (drives AcademyOverlay UI)
+
+    Note over User,TM: ... user progresses through course steps ...
+
+    TM-&gt;&gt;TM: complete_course()
+    TM-&gt;&gt;Bus: emit(ACADEMY_COURSE_COMPLETED, course_id, badge_reward)
+    Bus--&gt;&gt;Panel: _on_course_completed(course_id, badge_reward)
+    Panel-&gt;&gt;TM: clear active_course / current_step</code></pre>
+<p>Registered in <code>FlowCytometryPanel._wire_signals()</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">event_bus</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">KarcyticsEvent</span><span class="o">.</span><span class="n">ACADEMY_COURSE_COMPLETED</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_course_completed</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">event_bus</span><span class="o">.</span><span class="n">subscribe</span><span class="p">(</span><span class="n">KarcyticsEvent</span><span class="o">.</span><span class="n">ACADEMY_COURSE_PREPARE_PROJECT</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_on_course_prepare_project</span><span class="p">)</span>
+</span></code></pre></div>
+<p>wrapped in a <code>try/except NameError</code> — a defensive guard for whatever
+environment <code>KarcyticsEvent</code>/<code>event_bus</code> might not be fully available in.</p>
+<p><code>_on_course_prepare_project()</code> (<code>ui/main_panel.py</code>) is where course
+prerequisites are enforced: if the requested course declares
+<code>prerequisite_course_ids</code>, it requires the current project to already have
+a loaded workflow (<code>pm.workflows.list_all()</code> non-empty and
+<code>panel._current_workflow_filename</code> set) before letting the course start —
+otherwise it shows an error dialog (<code>show_error</code>) and returns without
+calling <code>start_course_confirmed()</code>. It deliberately does <strong>not</strong> check a
+strict workflow content hash (documented as "brittle" against normal
+auto-save/restart), delegating that stricter check to
+<code>tutorials/validators.py</code>'s <code>Course1StateValidator</code> instead. For a
+course with no prerequisites (e.g. Course 1) and a non-academy project, it
+flips <code>pm.data["is_academy"] = True</code> and saves — this is the only place a
+project's academy flag gets set.</p>
+<p><code>_on_course_completed()</code> clears <code>global_tutorial_manager.active_course</code>/
+<code>current_step</code> and calls <code>_emit_step_changed()</code> directly so the Hub's
+tutorial overlay disappears immediately rather than waiting for the next
+natural step transition.</p>
+<hr />
+<h2 id="7-gate-selection-one-global-state-many-readers">7. Gate Selection: One Global State, Many Readers</h2>
+<p>Selection doesn't have its own dedicated widget-to-widget wiring the way
+gate creation does — instead, <code>GateSelectionService</code> (behind
+<code>GateCoordinator.select_gate()</code>) is the single source of truth for
+"which population is currently selected", and every UI surface that cares
+subscribes to <code>GATE_SELECTED</code>:</p>
+<ul>
+<li><code>FlowCanvas._on_controller_selected()</code> — updates <code>_selected_gate_id</code> and
+  re-renders the gate overlay layer so the selected gate's handles show.</li>
+<li><code>MainPanelController</code>'s subscriber → <code>panel._on_gate_selected_from_controller()</code>
+  — refreshes <code>GateHierarchy</code> (tree selection sync) and <code>PropertiesPanel</code>
+  (<code>show_sample_properties</code>), and emits a status-bar message with the
+  selected population's name.</li>
+</ul>
+<p>Selection can be <em>initiated</em> from several different places —
+<code>FlowCanvas._try_select_gate()</code> (clicking a gate overlay),
+<code>GateHierarchy</code> row clicks, <code>FlowCytometryPanel._on_gate_double_clicked()</code>
+(opens a new graph tab <em>and</em> selects), <code>FlowCytometryPanel._on_active_graph_changed()</code>
+(switching <code>GraphManager</code> tabs) — but all of them ultimately call through
+<code>GateCoordinator.select_gate(sample_id, node_id)</code>, which is what actually
+publishes <code>GATE_SELECTED</code>. Never set <code>state.view.current_gate_id</code> directly
+from a new UI entry point without going through this call, or the other
+readers listed above won't hear about it.</p>
+<hr />
+<h2 id="8-see-also">8. See Also</h2>
+<ul>
+<li><a href="../00_ARCHITECTURE_OVERVIEW/"><code>00_ARCHITECTURE_OVERVIEW.md</code></a> — module
+  layout and the rendering data-flow loop this document's gate-drawing
+  workflow feeds into.</li>
+<li><a href="../02_UI_ENGINE/"><code>02_UI_ENGINE.md</code></a> — the widgets and state machines
+  (<code>GateDrawingFSM</code>, <code>CanvasManager</code>) whose internals this document treats
+  as given.</li>
+<li><a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/"><code>04_SERVICES_AND_DEPENDENCY_INJECTION.md</code></a> —
+  <code>GateCoordinator</code>/<code>GateMutationService</code>/<code>GatePropagator</code> construction and
+  full responsibilities (not re-verified in this rewrite pass).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

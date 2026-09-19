@@ -15,7 +15,7 @@ def sync():
         return
 
     install_src = core_dir / "docs" / "user" / "06_Installation.md"
-    install_dest = Path("docs") / "internal" / "06_Installation.md"
+    install_dest = Path("includes") / "06_Installation.md"
     
     # In core, the images are in docs/user/image/06_Installation
     img_src = core_dir / "docs" / "user" / "image" / "06_Installation"

@@ -1,0 +1,1765 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/user/02_WORKSPACE/">
+      
+      
+        <link rel="prev" href="../01_GETTING_STARTED/">
+      
+      
+        <link rel="next" href="../03_COMPENSATION/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Workspace - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#workspace" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Workspace
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-importing-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Importing Data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-experimental-metadata-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Experimental Metadata Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Experimental Metadata Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#assigning-sample-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assigning Sample Roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bulk-role-assignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk Role Assignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset-grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dataset Grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-opening-a-sample-the-plot-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Opening a Sample: The Plot View
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Opening a Sample: The Plot View">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#axis-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Axis controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plot-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plot type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-per-plot-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings (per-plot rendering)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gating-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gating Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group Preview
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-global-rendering-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Global Rendering Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-importing-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Importing Data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-experimental-metadata-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Experimental Metadata Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Experimental Metadata Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#assigning-sample-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assigning Sample Roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bulk-role-assignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bulk Role Assignment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset-grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dataset Grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-opening-a-sample-the-plot-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Opening a Sample: The Plot View
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Opening a Sample: The Plot View">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#axis-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Axis controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plot-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plot type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-per-plot-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings (per-plot rendering)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gating-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gating Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#group-preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Group Preview
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-global-rendering-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Global Rendering Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="workspace">Workspace</h1>
+<p>The <strong>Workspace</strong> tab is home base for your analytical session in Karcytics. It's where you import <code>.fcs</code> files, tag each one with a <strong>Role</strong>, organize samples into <strong>Groups</strong>, and — once files are loaded — open any sample to start plotting. Everything downstream (compensation, gating, statistics) depends on decisions made here.</p>
+<p><img alt="alt text" src="../../images/01_getting_started/workspace.png" /></p>
+<h2 id="1-importing-data">1. Importing Data</h2>
+<p>To begin an analysis session, you must load your raw event data:</p>
+<ol>
+<li>Click <strong>➕ Add Samples</strong> in the Workspace ribbon.</li>
+<li>Select one or more <code>.fcs</code> files from your filesystem.</li>
+<li>If you select files located outside of your current Karcytics project's <code>assets</code> directory, Karcytics will automatically prompt you to copy them into the project workspace.</li>
+</ol>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>We strongly recommend copying files into the project workspace when prompted. This ensures your project remains portable and self-contained, preventing broken links if you move the project folder.</p>
+</div>
+<h2 id="2-experimental-metadata-management">2. Experimental Metadata Management</h2>
+<p>Properly configuring your datasets is critical, as algorithmic workflows (like automated compensation and UMAP) rely heavily on accurate metadata.</p>
+<h3 id="assigning-sample-roles">Assigning Sample Roles</h3>
+<p>By default, newly parsed datasets are assigned the generic role of <strong>Other</strong>. To enable algorithmic workflows, assign a more specific role to each sample:</p>
+<ol>
+<li>Double-click a sample in the <strong>Sample List</strong> (left panel) to open it, or select it without opening it.</li>
+<li>In the <strong>Properties Panel</strong> (right), locate the <strong>Role</strong> dropdown and assign one of the following:</li>
+<li><strong>Unstained</strong>: No dye — establishes the autofluorescence baseline used in compensation.</li>
+<li><strong>Single Stain</strong>: One fluorophore only — used to compute the orthogonal spillover matrix during compensation.</li>
+<li><strong>FMO Control</strong>: Fluorescence Minus One; every dye except one, used to find the true background for that marker before gating.</li>
+<li><strong>Isotype Control</strong>: Validates antibody specificity.</li>
+<li><strong>Full Panel</strong>: A real, fully stained experimental sample.</li>
+<li><strong>Other</strong>: The default for anything that doesn't fit the roles above.</li>
+</ol>
+<p><img alt="alt text" src="../../images/02_workspace/properties.png" /></p>
+<h3 id="bulk-role-assignment">Bulk Role Assignment</h3>
+<p>For large cohorts, manually assigning roles one at a time can be tedious. Click <strong>🏷️ Bulk Assign Roles</strong> in the ribbon to open a dialog where you can select multiple samples, pick a single role from the same list above, and apply it to all of them at once.</p>
+<h3 id="dataset-grouping">Dataset Grouping</h3>
+<p>For longitudinal studies or multi-patient experimental cohorts, organize samples systematically:</p>
+<ol>
+<li>Click <strong>📁 Create Group</strong> in the Workspace ribbon.</li>
+<li>Drag samples from the <strong>Sample List</strong> into the new group in the <strong>Groups</strong> panel above it.</li>
+<li>Every sample starts out in the default <strong>All Samples</strong> group; a sample can belong to a custom group as well.</li>
+</ol>
+<p>Groups control <strong>gate propagation</strong>: draw a gate on one sample and, if Auto-Propagate is on, it's copied automatically to every other sample in the same group. You can also push a gate to the group manually at any time with <strong>📋 Copy Gates</strong> on the <strong><a href="../04_GATING/">Gating</a></strong> ribbon.</p>
+<h2 id="3-opening-a-sample-the-plot-view">3. Opening a Sample: The Plot View</h2>
+<p>Double-clicking any sample in the <strong>Sample List</strong> opens it as a new tab in the center canvas — this is where the bulk of your day-to-day work happens, whether you got here from Workspace, Compensation, Gating, or Pipeline. If you already have a gate selected in the <strong>Gating Hierarchy</strong>, Karcytics preserves that context and opens the new sample at the same population instead of resetting you to the root.</p>
+<p><img alt="alt text" src="../../images/02_workspace/sample.png" /></p>
+<h3 id="axis-controls">Axis controls</h3>
+<p>A control bar sits directly above the plot:</p>
+<ul>
+<li><strong>X:</strong> and <strong>Y:</strong> dropdowns — pick which channel/marker goes on each axis. A new plot defaults to <strong>FSC-A</strong> vs. <strong>SSC-A</strong>. For a Histogram, the Y dropdown is replaced by a fixed <strong>Count</strong> axis.</li>
+<li><strong>Display mode</strong> dropdown — see <a href="#plot-type">Plot type</a> below.</li>
+<li><strong>FMO Overlay:</strong> dropdown — only shown in Histogram mode; overlays a chosen FMO control's distribution on top of the current sample's for boundary comparison.</li>
+<li><strong>⚙ Transforms</strong> and <strong>⚙ Settings</strong> buttons — see the next two sections.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">The axes won't jump around on you</p>
+<p>The first time you pick a channel for an axis, Karcytics calculates the zoom once and locks it for that channel across every sample in the group. Switching between controls and real samples never re-zooms or jumps the view out from under you.</p>
+</div>
+<h3 id="plot-type">Plot type</h3>
+<p>The <strong>Display mode</strong> dropdown switches between six views of the same population:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pseudocolor</td>
+<td>Density-shaded 2D scatter — the default, high-event-count view</td>
+</tr>
+<tr>
+<td>Dot Plot</td>
+<td>Individual events as discrete points</td>
+</tr>
+<tr>
+<td>Contour</td>
+<td>Density contour lines over the 2D space</td>
+</tr>
+<tr>
+<td>Histogram</td>
+<td>1D distribution of a single channel (Count on Y)</td>
+</tr>
+<tr>
+<td>CDF</td>
+<td>Cumulative distribution function of a single channel</td>
+</tr>
+</tbody>
+</table>
+<h3 id="transform">Transform</h3>
+<p>Click <strong>⚙ Transforms</strong> to open the <strong>Axis Scaling &amp; Transforms</strong> dialog — a tabbed panel with one tab per axis (X/Y). Each tab offers three scale types:</p>
+<ul>
+<li><strong>Linear</strong> — raw channel values, unscaled.</li>
+<li><strong>Log</strong> — logarithmic; undefined at zero and can't display negative values.</li>
+<li><strong>Biexponential</strong> (Logicle) — linear near zero, logarithmic at the extremes, so compensated data that dips slightly negative still renders correctly instead of clipping. Selecting it reveals its own <strong>Biexponential (Logicle) Parameters</strong> sub-panel for fine-tuning the transform. This is the default and recommended scale for compensated fluorescence data — see <a href="../11_SCIENTIFIC_LOGIC/">Scientific Logic</a> for the math.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Seeing a clipped edge?</p>
+<p>By default the plot trims a small percentage of extreme outliers so a stray spike doesn't blow out your scale. If a population looks cut off at the edge, open the Transforms dialog and reduce the Outliers percentage for that axis.</p>
+</div>
+<h3 id="settings-per-plot-rendering">Settings (per-plot rendering)</h3>
+<p>Click <strong>⚙ Settings</strong> to open a rendering dialog scoped to whichever Display mode is currently active — its title changes accordingly (e.g. "Pseudocolor Settings", "Histogram Settings"). Its subtitle notes that changes apply globally to all open plots of that mode, not just the one you opened it from. See <a href="#4-global-rendering-settings">Global Rendering Settings</a> below for the full field list per mode.</p>
+<h3 id="gating-hierarchy">Gating Hierarchy</h3>
+<p>The <strong>Gating Hierarchy</strong> panel (left sidebar) shows the current sample's gate tree, labeled <strong>GATING HIERARCHY — <sample name></strong>:</p>
+<ul>
+<li>Double-click a node to navigate the plot into that population.</li>
+<li>Right-click a gate for <strong>Rename Gate</strong>, <strong>Delete Gate</strong>, and (when applicable) <strong>Propagate Gate to All Groups</strong>. The root population can't be renamed or deleted.</li>
+<li><strong>+</strong> / <strong>−</strong> buttons zoom the tree view; <strong>Fit View</strong> (or pressing <strong>F</strong> with the mouse over the tree) fits it to the window; <strong>⊞</strong> opens an <strong>All Samples Overview</strong> popup.</li>
+</ul>
+<p><img alt="alt text" src="../../images/02_workspace/gating.png" /></p>
+<h3 id="group-preview">Group Preview</h3>
+<p>The <strong>Group Preview</strong> panel lives inside the <strong>Properties Panel</strong> on the right, below the sample's live statistics. It renders a small grid of thumbnail plots — one per other sample in the current group — so you can see a gate you're drawing land on every peer sample in real time. A sample that doesn't yet have the matching population shows "Not gated on this sample" instead of a thumbnail.</p>
+<p><img alt="alt text" src="../../images/02_workspace/group_preview.png" /></p>
+<h2 id="4-global-rendering-settings">4. Global Rendering Settings</h2>
+<p>The <strong>⚙ Settings</strong> button on any plot's axis control bar opens a rendering dialog for the currently active plot type. Despite being opened from one plot, its changes apply to every open plot using that same mode — the dialog itself says so in its subtitle.</p>
+<p><strong>Pseudocolor</strong> (and similarly for other modes) exposes:</p>
+<ul>
+<li><strong>Quick Presets</strong> — <strong>Standard</strong>, <strong>Publication</strong>, and <strong>Fast Preview</strong>, one-click combinations of the settings below tuned for on-screen exploration, print-quality export, and fast interactive panning respectively.</li>
+<li><strong>Colormap</strong> — the color scale used for density.</li>
+<li><strong>Max Events</strong> — a cap on how many events are rendered at once, with quick-set buttons.</li>
+<li><strong>Point Size</strong> and <strong>Opacity</strong> — geometric marker size and alpha-transparency.</li>
+<li><strong>Population Detail</strong> — resolution of the underlying density grid. Higher is sharper (and slower); lower is faster for exploratory panning.</li>
+<li><strong>Population Smoothing</strong> — the Gaussian smoothing applied to population densities, for a smoother, more continuous cloud.</li>
+<li><strong>Background Suppression</strong> — a noise-floor threshold that maps low-density scatter to a flat baseline color.</li>
+<li><strong>Color Floor</strong> and <strong>Color Contrast</strong> — fine control over how density maps to color intensity.</li>
+</ul>
+<p>Dot Plot, Histogram, and Contour modes have their own settings panels tailored to that view — for example, Histogram's panel controls bar color, fill style, an automatic bin count (Sturges' rule) or a manual one, an optional smooth KDE overlay, and FMO-overlay threshold options; Contour's panel adds filled-vs-line contours and an optional sparse dot underlay.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Use <strong>Fast Preview</strong> while you're actively exploring and drawing gates, then switch to <strong>Publication</strong> before exporting a figure — it's faster than tuning each field by hand.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

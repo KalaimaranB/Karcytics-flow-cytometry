@@ -7,7 +7,7 @@ Welcome to the centralized documentation for the Karcytics Flow Cytometry module
 
 ---
 
---8<-- "internal/06_Installation.md"
+--8<-- "includes/06_Installation.md"
 
 ---
 

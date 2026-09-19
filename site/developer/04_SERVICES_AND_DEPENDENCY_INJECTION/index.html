@@ -1,0 +1,2205 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/04_SERVICES_AND_DEPENDENCY_INJECTION/">
+      
+      
+        <link rel="prev" href="../03_TESTING_AND_QA/">
+      
+      
+        <link rel="next" href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Services & Dependency Injection - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#services-dependency-injection" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Services & Dependency Injection
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-composition-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The composition root
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. The composition root">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_all-construction-order-as-written" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build_all() construction order (as written)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registered-service-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registered service keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-service-dependency-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Service dependency graph
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-uiservices-persistence-and-io" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. ui/services/ — persistence and IO
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. ui/services/ — persistence and IO">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attachmentmanager-uiservicesattachment_managerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AttachmentManager — ui/services/attachment_manager.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflowservice-uiservicesworkflow_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkflowService — ui/services/workflow_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspaceiohandler-uiservicesworkspace_io_handlerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkspaceIOHandler — ui/services/workspace_io_handler.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspacesaveservice-uiservicesworkspace_save_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkspaceSaveService — ui/services/workspace_save_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zipexportservice-uiserviceszip_export_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZipExportService — ui/services/zip_export_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-analysisservices-domain-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. analysis/services/ — domain operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. analysis/services/ — domain operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dataloaderservice-analysisservicesdata_loader_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataLoaderService — analysis/services/data_loader_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gateeventpublisher-analysisservicesgate_event_publisherpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateEventPublisher — analysis/services/gate_event_publisher.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatemutationservice-analysisservicesgate_mutation_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateMutationService — analysis/services/gate_mutation_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gateselectionservice-analysisservicesgate_selection_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateSelectionService — analysis/services/gate_selection_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatingservice-analysisservicesgating_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GatingService — analysis/services/gating_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatemodifier-analysisservicesmodifierpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateModifier — analysis/services/modifier.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namingservice-analysisservicesnamingpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NamingService — analysis/services/naming.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#populationsplitter-analysisservicessplitterpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PopulationSplitter — analysis/services/splitter.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsservice-analysisservicesstats_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatsService — analysis/services/stats_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#umapservice-umapparams-analysisservicesumap_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UmapService / UmapParams — analysis/services/umap_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-central-domain-objects-also-built-by-servicefactory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Central domain objects also built by ServiceFactory
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-composition-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The composition root
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. The composition root">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_all-construction-order-as-written" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build_all() construction order (as written)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registered-service-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registered service keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-service-dependency-graph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Service dependency graph
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-uiservices-persistence-and-io" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. ui/services/ — persistence and IO
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. ui/services/ — persistence and IO">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#attachmentmanager-uiservicesattachment_managerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AttachmentManager — ui/services/attachment_manager.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workflowservice-uiservicesworkflow_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkflowService — ui/services/workflow_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspaceiohandler-uiservicesworkspace_io_handlerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkspaceIOHandler — ui/services/workspace_io_handler.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspacesaveservice-uiservicesworkspace_save_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkspaceSaveService — ui/services/workspace_save_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#zipexportservice-uiserviceszip_export_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ZipExportService — ui/services/zip_export_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-analysisservices-domain-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. analysis/services/ — domain operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. analysis/services/ — domain operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dataloaderservice-analysisservicesdata_loader_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DataLoaderService — analysis/services/data_loader_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gateeventpublisher-analysisservicesgate_event_publisherpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateEventPublisher — analysis/services/gate_event_publisher.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatemutationservice-analysisservicesgate_mutation_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateMutationService — analysis/services/gate_mutation_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gateselectionservice-analysisservicesgate_selection_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateSelectionService — analysis/services/gate_selection_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatingservice-analysisservicesgating_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GatingService — analysis/services/gating_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gatemodifier-analysisservicesmodifierpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateModifier — analysis/services/modifier.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namingservice-analysisservicesnamingpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NamingService — analysis/services/naming.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#populationsplitter-analysisservicessplitterpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PopulationSplitter — analysis/services/splitter.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsservice-analysisservicesstats_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatsService — analysis/services/stats_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#umapservice-umapparams-analysisservicesumap_servicepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UmapService / UmapParams — analysis/services/umap_service.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-central-domain-objects-also-built-by-servicefactory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Central domain objects also built by ServiceFactory
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="services-dependency-injection">Services &amp; Dependency Injection</h1>
+<p>This document explains how the flow cytometry plugin wires its services together, and documents each service's responsibility, key methods, and dependency relationships. Every claim here is grounded in the actual source under <code>src/karcytics_plugins/flow_cytometry/</code>; where a service's true wiring differs from what a "typical" DI setup would lead you to expect, that's called out explicitly.</p>
+<h2 id="1-the-composition-root">1. The composition root</h2>
+<p>There is exactly one wiring point: <code>ServiceFactory</code> in <code>ui/composition_root.py</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ServiceFactory</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">parent_widget</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">parent_widget</span> <span class="o">=</span> <span class="n">parent_widget</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_services</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">build_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span> <span class="o">...</span>
+</span></code></pre></div>
+<p><code>FlowCytometryPanel</code> (<code>ui/main_panel.py</code>) constructs one <code>ServiceFactory</code> per panel instance, calls <code>build_all()</code> once, then pulls out the handles it needs by string key:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">_factory</span> <span class="o">=</span> <span class="n">ServiceFactory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">build_all</span><span class="p">()</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="bp">self</span><span class="o">.</span><span class="n">_gate_coordinator</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gate_coordinator"</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="bp">self</span><span class="o">.</span><span class="n">_gate_controller</span>      <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gate_coordinator</span>          <span class="c1"># same object, two names</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="bp">self</span><span class="o">.</span><span class="n">_gate_propagator</span>      <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gate_propagator"</span><span class="p">)</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="bp">self</span><span class="o">.</span><span class="n">_workflow_service</span>     <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"workflow_service"</span><span class="p">)</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="bp">self</span><span class="o">.</span><span class="n">_umap_service</span>         <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"umap_service"</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="bp">self</span><span class="o">.</span><span class="n">_fluor_service</span>        <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"fluor_service"</span><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="bp">self</span><span class="o">.</span><span class="n">_workspace_io_handler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factory</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"workspace_io_handler"</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>data_loader_service</code> is also fetched later, on demand, from <code>_factory.get("data_loader_service")</code> rather than cached as an attribute at setup time.</p>
+<div class="admonition note">
+<p class="admonition-title">This is a service locator, not a container with reflection</p>
+<p><code>ServiceFactory</code> does not do constructor-signature introspection, decorator-based registration, or interface binding. <code>build_all()</code> is one long, explicitly ordered function that imports each service module, instantiates it by hand with the dependencies it needs (already-built earlier in the same function), and stashes the result in a plain <code>dict</code>. <code>get()</code> is just <code>dict.get</code>. This is intentional and matches the file's own docstring — "centralizes the instantiation and wiring of all domain and infrastructure services, adhering to the Dependency Inversion Principle" — the point is a <strong>single, auditable place</strong> where every service's dependency graph is visible top-to-bottom in one function, not a generic DI framework.</p>
+</div>
+<h3 id="why-this-shape">Why this shape</h3>
+<ul>
+<li><strong>One entry point per panel lifetime.</strong> <code>FlowCytometryPanel</code> owns one <code>ServiceFactory</code>, and <code>build_all()</code> runs once at panel construction. There's no re-wiring mid-session — services live as long as the panel.</li>
+<li><strong>Explicit ordering encodes the real dependency graph.</strong> Because <code>build_all()</code> is a straight-line function, a service can only depend on something constructed <em>earlier in the same function</em> — Python would raise <code>NameError</code> otherwise. Reading top-to-bottom top of <code>build_all()</code> to bottom <strong>is</strong> reading the dependency graph.</li>
+<li><strong>String-keyed lookup keeps <code>FlowCytometryPanel</code> decoupled from construction details.</strong> The panel doesn't know or care how <code>gate_coordinator</code> was built, what it needed, or in what order — it just asks for it by name after <code>build_all()</code> returns.</li>
+<li><strong>The <code>[phase1]</code> log breadcrumbs are deliberate diagnostic instrumentation</strong>, not leftover debug code — the module docstring/comment explains they exist to pinpoint exactly which service construction step a stalled daemon subprocess never got past, because <code>.warning()</code> is the lowest log level guaranteed visible in captured stderr without a configured handler.</li>
+</ul>
+<h3 id="build_all-construction-order-as-written"><code>build_all()</code> construction order (as written)</h3>
+<ol>
+<li>Import <code>task_scheduler</code> from <code>karcytics_sdk.plugin.runtime_services</code> (a shared, SDK-provided singleton — not constructed here).</li>
+<li>Import all service modules.</li>
+<li>Build stateless domain services first: <code>AxisManager(state)</code>, <code>PopulationService(state)</code> — both stashed directly onto <code>state</code> (<code>state.axis_manager</code>, <code>state.population_service</code>) <strong>in addition to</strong> the factory's own registry.</li>
+<li>Build the biology cache stack: <code>CacheManager(cache_dir)</code> (cache dir: <code>~/.karcytics/cache/biology</code>), then <code>FluorophoreService(cache_manager)</code> and <code>MarkerService(cache_manager)</code>.</li>
+<li>Build <code>GateCoordinator(state, axis_manager, population_service, task_scheduler)</code> — depends on steps 3 (via <code>axis_manager</code>/<code>population_service</code>) and the SDK <code>task_scheduler</code> from step 1.</li>
+<li>Build the analysis/computation services: <code>DataLoaderService(task_scheduler)</code>, <code>AttachmentManager(axis_manager)</code>, <code>WorkflowService(state, data_loader_service, attachment_manager)</code>, <code>UmapService(state, task_scheduler)</code>.</li>
+<li>Build the UI-facing IO service: <code>WorkspaceIOHandler(workflow_service=workflow_service, parent_widget=self.parent_widget)</code>.</li>
+<li>Register everything into <code>self._services</code> under 11 keys (see table below) — note <code>gate_propagator</code> is registered as <code>gate_coordinator.propagator</code>, i.e. it is <strong>not</strong> constructed independently; <code>GateCoordinator.__init__</code> builds its own <code>GatePropagator</code> internally and the factory just re-exposes it.</li>
+</ol>
+<h3 id="registered-service-keys">Registered service keys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Type</th>
+<th>Constructed as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>axis_manager</code></td>
+<td><code>AxisManager</code></td>
+<td><code>AxisManager(state)</code></td>
+</tr>
+<tr>
+<td><code>population_service</code></td>
+<td><code>PopulationService</code></td>
+<td><code>PopulationService(state)</code></td>
+</tr>
+<tr>
+<td><code>cache_manager</code></td>
+<td><code>CacheManager</code></td>
+<td><code>CacheManager(cache_dir)</code></td>
+</tr>
+<tr>
+<td><code>fluor_service</code></td>
+<td><code>FluorophoreService</code></td>
+<td><code>FluorophoreService(cache_manager)</code></td>
+</tr>
+<tr>
+<td><code>marker_service</code></td>
+<td><code>MarkerService</code></td>
+<td><code>MarkerService(cache_manager)</code></td>
+</tr>
+<tr>
+<td><code>gate_coordinator</code></td>
+<td><code>GateCoordinator</code></td>
+<td><code>GateCoordinator(state, axis_manager, population_service, task_scheduler)</code></td>
+</tr>
+<tr>
+<td><code>gate_propagator</code></td>
+<td><code>GatePropagator</code></td>
+<td><code>gate_coordinator.propagator</code> (built <em>inside</em> <code>GateCoordinator.__init__</code>, not independently)</td>
+</tr>
+<tr>
+<td><code>workflow_service</code></td>
+<td><code>WorkflowService</code></td>
+<td><code>WorkflowService(state, data_loader_service, attachment_manager)</code></td>
+</tr>
+<tr>
+<td><code>umap_service</code></td>
+<td><code>UmapService</code></td>
+<td><code>UmapService(state, task_scheduler)</code></td>
+</tr>
+<tr>
+<td><code>data_loader_service</code></td>
+<td><code>DataLoaderService</code></td>
+<td><code>DataLoaderService(task_scheduler)</code></td>
+</tr>
+<tr>
+<td><code>workspace_io_handler</code></td>
+<td><code>WorkspaceIOHandler</code></td>
+<td><code>WorkspaceIOHandler(workflow_service=workflow_service, parent_widget=parent_widget)</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>marker_service</code> and <code>data_loader_service</code> are registered but not pulled into a <code>FlowCytometryPanel</code> attribute at setup time in the snippet above — <code>data_loader_service</code> is fetched lazily later; <code>marker_service</code> is available via <code>factory.get("marker_service")</code> wherever the factory itself is reachable.</p>
+<p>Two services constructed inside <code>ServiceFactory.build_all()</code> are <strong>not</strong> registered in <code>self._services</code> at all and have no factory key: <code>AttachmentManager</code> and the biology <code>cache_manager</code>'s consumers work only through the objects that already hold references to them (<code>WorkflowService</code> holds <code>attachment_manager</code>; <code>fluor_service</code>/<code>marker_service</code> hold <code>cache_manager</code>). If you need <code>AttachmentManager</code> directly, get it via <code>factory.get("workflow_service")._attachment_manager</code> (private) rather than the factory — there's no public accessor.</p>
+<hr />
+<h2 id="2-service-dependency-graph">2. Service dependency graph</h2>
+<pre class="mermaid"><code>graph TB
+    subgraph SDK["Karcytics SDK"]
+        TS["task_scheduler&lt;br/&gt;(runtime_services)"]
+    end
+
+    subgraph Root["Composition Root"]
+        SF["ServiceFactory.build_all()"]
+    end
+
+    subgraph Domain["Domain (analysis/)"]
+        AM["AxisManager"]
+        PS["PopulationService"]
+        CM["CacheManager"]
+        FS["FluorophoreService"]
+        MS["MarkerService"]
+        GC["GateCoordinator"]
+        GP["GatePropagator&lt;br/&gt;(built inside GateCoordinator)"]
+        SEL["GateSelectionService&lt;br/&gt;(built inside GateCoordinator)"]
+        MUT["GateMutationService&lt;br/&gt;(built inside GateCoordinator)"]
+        DLS["DataLoaderService"]
+        US["UmapService"]
+    end
+
+    subgraph MutationDeps["Sub-services used by GateMutationService"]
+        MOD["GateModifier"]
+        NAM["NamingService"]
+        SPL["PopulationSplitter"]
+        GS["GatingService"]
+        PUB["GateEventPublisher"]
+    end
+
+    subgraph UI["UI (ui/services/)"]
+        ATT["AttachmentManager"]
+        WF["WorkflowService"]
+        WIO["WorkspaceIOHandler"]
+        WSS["WorkspaceSaveService"]
+        ZIP["ZipExportService"]
+    end
+
+    subgraph Stats["Stats"]
+        STS["StatsService&lt;br/&gt;(imported lazily by GateCoordinator)"]
+    end
+
+    SF --&gt;|constructs| AM
+    SF --&gt;|constructs| PS
+    SF --&gt;|constructs| CM
+    SF --&gt;|constructs, needs CM| FS
+    SF --&gt;|constructs, needs CM| MS
+    SF --&gt;|constructs, needs AM+PS+TS| GC
+    SF --&gt;|constructs, needs TS| DLS
+    SF --&gt;|constructs, needs AM| ATT
+    SF --&gt;|constructs, needs DLS+ATT| WF
+    SF --&gt;|constructs, needs TS| US
+    SF --&gt;|constructs, needs WF| WIO
+
+    GC --&gt;|builds internally| GP
+    GC --&gt;|builds internally| SEL
+    GC --&gt;|builds internally, needs AM+PS| MUT
+    GP --&gt;|submits jobs to| TS
+    US --&gt;|submits jobs to| TS
+
+    MUT --&gt; MOD
+    MUT --&gt; NAM
+    MUT --&gt; SPL
+    MUT --&gt; GS
+    MUT --&gt; PUB
+    SEL --&gt; PUB
+    GC --&gt;|lazily imports| STS
+    STS --&gt;|submits jobs to| TS
+
+    WIO --&gt; WSS
+    WIO --&gt; ZIP
+
+    style SF fill:#fff9c4
+    style GC fill:#bbdefb
+    style TS fill:#f3e5f5</code></pre>
+<hr />
+<h2 id="3-uiservices-persistence-and-io">3. <code>ui/services/</code> — persistence and IO</h2>
+<h3 id="attachmentmanager-uiservicesattachment_managerpy"><code>AttachmentManager</code> — <code>ui/services/attachment_manager.py</code></h3>
+<p><strong>Responsibility:</strong> persists binary attachments (currently: UMAP embeddings, indices, and cluster arrays) alongside a saved workflow, separate from the JSON-serializable workflow payload.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">AttachmentManager</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis_manager</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize_attachments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">hydrate_attachments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">meta_dict</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">serialize_umap_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">umap_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">hydrate_umap_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">meta_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span></code></pre></div>
+<p>Depends on <code>AxisManager</code> — needed by <code>_reconstruct_intensities</code> to re-derive each channel's biexponential (logicle) transform parameters when rehydrating a UMAP run's marker intensities from disk. Numpy arrays are written to/read from <code>tempfile.gettempdir()</code> as <code>.npy</code> files keyed by generated <code>emb_key</code>/<code>idx_key</code>/<code>cls_key</code> identifiers; the <code>context</code> object (an SDK <code>WorkflowContext</code>) is what actually persists those temp files into the project's attachment store or a zip. <code>hydrate_attachments</code>/<code>serialize_attachments</code> are the generic entry points — other attachment types would be registered by extending these two methods (currently only <code>umap_results</code> is handled).</p>
+<p><strong>Depended on by:</strong> <code>WorkflowService</code> (constructor param).</p>
+<h3 id="workflowservice-uiservicesworkflow_servicepy"><code>WorkflowService</code> — <code>ui/services/workflow_service.py</code></h3>
+<p><strong>Responsibility:</strong> the QObject that owns save/load of the full flow-cytometry workflow — serializes <code>FlowState</code> (experiment tree, compensation, view state) to a dict and back, and orchestrates the async FCS-data reload that must happen after an experiment is deserialized (gate trees can be restored from JSON, but event data has to be re-read from the original <code>.fcs</code> files on disk).</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">WorkflowService</span><span class="p">(</span><span class="n">QObject</span><span class="p">):</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">data_loader_service</span><span class="p">,</span> <span class="n">attachment_manager</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">export_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_workflow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">on_complete</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reload_fcs_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_paths</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">project_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">on_complete</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Depends on <code>DataLoaderService</code> (for <code>reload_samples_batch</code>, invoked via <code>reload_fcs_data</code>) and <code>AttachmentManager</code> (for binary payload hydration/serialization). In <code>__init__</code> it reaches into <code>data_loader_service._scheduler</code> (a private attribute — this is a real coupling, not accidental: <code>WorkflowService</code> needs the same <code>TaskScheduler</code> to know when its own submitted <code>FunctionalTask</code> for FCS reload has finished) and connects to <code>scheduler.task_finished</code>.</p>
+<p><strong>Depended on by:</strong> <code>WorkspaceIOHandler</code> (passed into <code>WorkspaceSaveService</code>/<code>ZipExportService</code> static methods), <code>WorkspaceSaveService</code>, <code>ZipExportService</code>.</p>
+<h3 id="workspaceiohandler-uiservicesworkspace_io_handlerpy"><code>WorkspaceIOHandler</code> — <code>ui/services/workspace_io_handler.py</code></h3>
+<p><strong>Responsibility:</strong> the top-level "Save"/"Update"/"Load" UI orchestration — decides whether a Karcytics <code>ProjectManager</code> is available (project-backed save/load via <code>WorkspaceSaveService</code>) or falls back to a standalone <code>.zip</code> file (<code>ZipExportService</code>), drives the file dialogs, and submits everything as an SDK <code>FunctionalTask</code> so the UI thread never blocks on IO.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">WorkspaceIOHandler</span><span class="p">:</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">workflow_service</span><span class="p">,</span> <span class="n">parent_widget</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">handle_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">handle_update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">handle_load</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Depends on <code>WorkflowService</code> (constructor param) and, at call time, reaches for <code>parent_widget.window().project_manager</code> (an SDK <code>ProjectManager</code>, not itself a service the factory builds). Also imports <code>WorkspaceSaveService</code> and <code>ZipExportService</code> directly (not injected).</p>
+<p><strong>Depended on by:</strong> nothing else in the service graph — it's a leaf, called only from <code>FlowCytometryPanel</code>'s save/load menu actions.</p>
+<h3 id="workspacesaveservice-uiservicesworkspace_save_servicepy"><code>WorkspaceSaveService</code> — <code>ui/services/workspace_save_service.py</code></h3>
+<p><strong>Responsibility:</strong> pure delegation to the Karcytics SDK's <code>ProjectManager</code> — two static methods, <code>save_to_pm</code> and <code>load_from_pm</code>, that wrap a <code>WorkflowContext</code>, call <code>workflow_service.export_workflow</code>/<code>load_workflow</code>, and drive <code>pm.save_workflow</code> / <code>pm.attach_workflow_file</code> / <code>pm.load_workflow_payload</code>. Stateless; not constructed by the factory (it's a static-method utility class, imported directly where needed).</p>
+<h3 id="zipexportservice-uiserviceszip_export_servicepy"><code>ZipExportService</code> — <code>ui/services/zip_export_service.py</code></h3>
+<p><strong>Responsibility:</strong> the standalone (no <code>ProjectManager</code>) persistence path — packs <code>workflow.json</code> plus any attachment files into a <code>.zip</code>, or extracts one back out to <code>~/.karcytics/workflows/&lt;stem&gt;/</code> for loading. Also stateless static methods, not factory-registered.</p>
+<hr />
+<h2 id="4-analysisservices-domain-operations">4. <code>analysis/services/</code> — domain operations</h2>
+<h3 id="dataloaderservice-analysisservicesdata_loader_servicepy"><code>DataLoaderService</code> — <code>analysis/services/data_loader_service.py</code></h3>
+<p><strong>Responsibility:</strong> all FCS ingestion and re-application of compensation on reload.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DataLoaderService</span><span class="p">:</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="nb">object</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">plugin_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"flow_cytometry"</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reload_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">compensation_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reload_samples_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">samples_with_paths</span><span class="p">,</span> <span class="n">compensation_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">load_samples_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">on_done</span><span class="p">,</span> <span class="n">on_error_cb</span><span class="p">,</span> <span class="n">on_progress</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">project_manager</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">copy_all</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Depends on the SDK <code>task_scheduler</code> (submits an <code>FCSLoaderAnalysis</code> worker for <code>load_samples_async</code>) and on <code>analysis/compensation.py</code> (<code>apply_compensation</code>) and <code>analysis/fcs_io.py</code> (<code>load_fcs</code>, <code>load_fcs_batch</code>) directly (module-level imports, not injected).</p>
+<p><strong>Depended on by:</strong> <code>WorkflowService</code> (constructor param, used for post-load FCS reload), <code>ServiceFactory</code> itself (fetched lazily by <code>main_panel.py</code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">One IPC lock serializes all single-file reloads</p>
+<p><code>reload_samples_batch</code> exists specifically because <code>reload_sample()</code> → <code>load_fcs()</code> serializes through a single process-wide daemon IPC lock (<code>_daemon_lock</code> in <code>fcs_io.py</code>). Calling <code>reload_sample()</code> per-sample from a thread pool does <strong>not</strong> parallelize — it collapses into one file at a time, and one slow file blocks every other sample behind it for up to its full IPC timeout. Always prefer <code>reload_samples_batch</code> for multi-sample reloads.</p>
+</div>
+<h3 id="gateeventpublisher-analysisservicesgate_event_publisherpy"><code>GateEventPublisher</code> — <code>analysis/services/gate_event_publisher.py</code></h3>
+<p><strong>Responsibility:</strong> the single choke point for every gating-related <code>CentralEventBus.publish()</code> call — decouples domain mutation code from the SDK's event-bus messaging concern. Pure static methods (<code>publish_gate_created</code>, <code>publish_gates_created</code>, <code>publish_gate_deleted</code>, <code>publish_gate_renamed</code>, <code>publish_gate_modified</code>, <code>publish_gate_selected</code>, <code>publish_stats_computed</code>) — stateless, not factory-registered, imported directly wherever needed.</p>
+<p><strong>Depended on by:</strong> <code>GateMutationService</code>, <code>GateSelectionService</code>, <code>GateCoordinator._on_stats_finished</code>.</p>
+<h3 id="gatemutationservice-analysisservicesgate_mutation_servicepy"><code>GateMutationService</code> — <code>analysis/services/gate_mutation_service.py</code></h3>
+<p><strong>Responsibility:</strong> the actual domain-model edits to the <code>GateNode</code> tree — add/remove/rename/modify/split populations, wire/unwire logic-node connections. Every mutation that changes a population's evaluated membership also triggers <code>coordinator.recompute_all_stats(sample_id)</code> and (except for pure renames) <code>coordinator.request_propagation(...)</code>.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateMutationService</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">coordinator</span><span class="p">,</span> <span class="n">selection_service</span><span class="p">,</span> <span class="n">axis_manager</span><span class="p">,</span> <span class="n">population_service</span><span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<p>Depends on: <code>FlowState</code>, the owning <code>GateCoordinator</code> (as <code>coordinator</code>, used only to call back into <code>recompute_all_stats</code>/<code>request_propagation</code> — this is the one place the sub-service holds a reference back to its facade), <code>GateSelectionService</code>, <code>AxisManager</code> (to snapshot <code>creation_view</code> — the axis scales in effect when a gate was drawn, so a saved pipeline thumbnail can reconstruct the original view), <code>PopulationService</code>. Internally also uses <code>NamingService</code>, <code>GatingService</code>, <code>GateModifier</code>, <code>PopulationSplitter</code>, <code>GateEventPublisher</code> (all imported directly, not injected).</p>
+<p><strong>Depended on by:</strong> <code>GateCoordinator</code> (constructs and owns one instance).</p>
+<h3 id="gateselectionservice-analysisservicesgate_selection_servicepy"><code>GateSelectionService</code> — <code>analysis/services/gate_selection_service.py</code></h3>
+<p><strong>Responsibility:</strong> tracks which population node is currently selected (<code>state.view.current_gate_id</code>) and publishes <code>GATE_SELECTED</code> on change — a single method, <code>select_gate(sample_id, node_id)</code>, that no-ops if the id is unchanged.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateSelectionService</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">coordinator</span><span class="p">):</span> <span class="o">...</span>
+</span></code></pre></div>
+<p>Depends on <code>FlowState</code> and holds a reference to the owning <code>coordinator</code> (unused directly in the current implementation beyond storage — <code>select_gate</code> reads/writes <code>self._state.view.current_gate_id</code> and calls <code>GateEventPublisher</code> directly).</p>
+<p><strong>Depended on by:</strong> <code>GateCoordinator</code> (constructs and owns one instance), <code>GateMutationService</code> (calls <code>select_gate</code> after adding a gate, to auto-select the newly created population).</p>
+<h3 id="gatingservice-analysisservicesgating_servicepy"><code>GatingService</code> — <code>analysis/services/gating_service.py</code></h3>
+<p><strong>Responsibility:</strong> cross-sample gate-tree operations that don't belong to a single population's mutation — cloning a full DAG onto another sample (<code>clone_gate_tree</code>), and copying a gate tree to every sample sharing a group (<code>copy_gates_to_group</code>). Static methods; stateless.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GatingService</span><span class="p">:</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_gates_for_display</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="n">parent_node_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Gate</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">GateNode</span><span class="p">]]</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">clone_gate_tree</span><span class="p">(</span><span class="n">source_root</span><span class="p">:</span> <span class="n">GateNode</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Sample</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">copy_gates_to_group</span><span class="p">(</span><span class="n">experiment</span><span class="p">:</span> <span class="n">Experiment</span><span class="p">,</span> <span class="n">source_sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</span></code></pre></div>
+<p><strong>Depended on by:</strong> <code>GateMutationService</code> (<code>copy_gates_to_group</code>, <code>get_gates_for_display</code>).</p>
+<h3 id="gatemodifier-analysisservicesmodifierpy"><code>GateModifier</code> — <code>analysis/services/modifier.py</code></h3>
+<p><strong>Responsibility:</strong> validated in-place mutation of a gate's geometric parameters (<code>x_min</code>/<code>x_max</code>, <code>vertices</code>, <code>width</code>/<code>height</code>, etc.) — see <a href="../01_API_REFERENCE/">01_API_REFERENCE.md</a> for the per-type invariant table. Static, stateless.</p>
+<p><strong>Depended on by:</strong> <code>GateMutationService</code> (<code>modify_gate</code>).</p>
+<h3 id="namingservice-analysisservicesnamingpy"><code>NamingService</code> — <code>analysis/services/naming.py</code></h3>
+<p><strong>Responsibility:</strong> generates a unique population display name (<code>"Gate 1"</code>, <code>"Gate 2"</code>, ...) that doesn't collide with existing node names in a sample's tree. Static, stateless.</p>
+<p><strong>Depended on by:</strong> <code>GateMutationService</code> (<code>generate_unique_name</code>, used when <code>add_gate</code> is called without an explicit <code>name</code>).</p>
+<h3 id="populationsplitter-analysisservicessplitterpy"><code>PopulationSplitter</code> — <code>analysis/services/splitter.py</code></h3>
+<p><strong>Responsibility:</strong> creates the "Inside"/"Outside" sibling population for a node — a second <code>GateNode</code> sharing the same <code>Gate</code> instance with <code>negated</code> flipped, wired to all of the original's parents. Static, stateless.</p>
+<p><strong>Depended on by:</strong> <code>GateMutationService</code> (<code>split_population</code>).</p>
+<h3 id="statsservice-analysisservicesstats_servicepy"><code>StatsService</code> — <code>analysis/services/stats_service.py</code></h3>
+<p><strong>Responsibility:</strong> submits a <code>StatisticsAnalysis</code> job to the SDK <code>task_scheduler</code> to recompute every population's count/%parent/%total for a sample, and wires up a one-shot callback when it finishes.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">StatsService</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="nd">@staticmethod</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">recompute_all_stats</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">sample_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Depends on the SDK <code>task_scheduler</code> directly (module-level import from <code>karcytics_sdk.plugin.runtime_services</code>, not passed in) — this is the <strong>one</strong> analysis service that does not go through <code>ServiceFactory</code> at all: <code>GateCoordinator.recompute_all_stats</code> imports <code>StatsService</code> lazily, inline, at call time, rather than the factory constructing and registering an instance. There is no <code>stats_service</code> key in <code>ServiceFactory._services</code>.</p>
+<p><strong>Depended on by:</strong> <code>GateCoordinator.recompute_all_stats</code> (lazy import, not constructor injection).</p>
+<h3 id="umapservice-umapparams-analysisservicesumap_servicepy"><code>UmapService</code> / <code>UmapParams</code> — <code>analysis/services/umap_service.py</code></h3>
+<p><strong>Responsibility:</strong> a facade over <code>TaskScheduler</code> for background UMAP dimensionality-reduction jobs (<code>UmapAnalysis</code> worker) — cancels any in-flight run before submitting a new one, so only one UMAP job runs per <code>UmapService</code> instance at a time.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">UmapService</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">FlowState</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span> <span class="o">...</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">run_analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">UmapParams</span><span class="p">,</span> <span class="n">on_done</span><span class="p">,</span> <span class="n">on_error_cb</span><span class="p">,</span> <span class="n">on_progress</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+<p>Depends on the SDK <code>task_scheduler</code> (constructor param, from <code>ServiceFactory.build_all()</code>).</p>
+<p><strong>Depended on by:</strong> <code>main_panel.py</code> (<code>self._umap_service</code>).</p>
+<hr />
+<h2 id="5-central-domain-objects-also-built-by-servicefactory">5. Central domain objects also built by <code>ServiceFactory</code></h2>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>File</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GateCoordinator</code></td>
+<td><code>analysis/gate_coordinator.py</code></td>
+<td>Top-level gate-lifecycle facade — see <a href="../01_API_REFERENCE/#5-gatecoordinator--analysisgate_coordinatorpy">01_API_REFERENCE.md §5</a>. Exposed on <code>main_panel.py</code> as both <code>self._gate_coordinator</code> and <code>self._gate_controller</code> (same object).</td>
+</tr>
+<tr>
+<td><code>AxisManager</code></td>
+<td><code>analysis/axis_manager.py</code></td>
+<td>Per-group channel scale storage + auto-range calculation. See <a href="../01_API_REFERENCE/#axismanager--analysisaxis_managerpy">01_API_REFERENCE.md §6</a>.</td>
+</tr>
+<tr>
+<td><code>PopulationService</code></td>
+<td><code>analysis/population_service.py</code></td>
+<td>Sample/node lookup and population add/remove — the lower-level model-manipulation layer that <code>GateMutationService</code> builds on.</td>
+</tr>
+<tr>
+<td><code>FluorophoreService</code> / <code>MarkerService</code></td>
+<td><code>analysis/biology_services.py</code></td>
+<td>External biology lookups: <code>FluorophoreService</code> queries FPbase's GraphQL API for fluorophore spectra (with local disk caching via <code>CacheManager</code>); <code>MarkerService</code> queries UniProt for CD-marker/protein metadata, falling back to a stub record if the network call fails or returns nothing.</td>
+</tr>
+</tbody>
+</table>
+<p><code>GatePropagator</code> (<code>analysis/gate_propagator.py</code>) is documented separately here because, while central, it is <strong>not independently constructed</strong> by the factory — see §1 above. Its responsibility: debounced (200ms) re-application of a source sample's full gate tree to every other sample in scope (active group, or all samples, or explicit cross-group), run on the background <code>TaskScheduler</code> via <code>_PropagationWorker</code>, publishing <code>SAMPLE_UPDATED</code> per sample and <code>PROPAGATION_COMPLETE</code> once all targets finish. One bad sample's propagation failure is isolated and reported in <code>PROPAGATION_COMPLETE</code>'s <code>errors</code> dict rather than aborting the batch.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

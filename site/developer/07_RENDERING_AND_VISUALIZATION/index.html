@@ -1,0 +1,2702 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/07_RENDERING_AND_VISUALIZATION/">
+      
+      
+        <link rel="prev" href="../06_TRANSFORMS_AND_SCALING/">
+      
+      
+        <link rel="next" href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Rendering & Visualization - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#rendering-visualization-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Rendering & Visualization
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-big-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The big picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-layeredmatplotlibcanvas-the-sdk-base-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. LayeredMatplotlibCanvas — the SDK base class
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-flowcanvas-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. FlowCanvas itself
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. FlowCanvas itself">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#redraw-the-public-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        redraw() — the public trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#painteventdraw-re-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        paintEvent()/draw() re-overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_on_data_layer_finished-where-the-two-layers-meet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _on_data_layer_finished() — where the two layers meet
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-data-layer-computerasterize-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Data-layer compute/rasterize split
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Data-layer compute/rasterize split">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sdk-contract-pipelinepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDK contract (pipeline.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plugin-implementation-uigraphcanvasdata_layerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin implementation (ui/graph/canvas/data_layer.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-displaystrategy-computedraw-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. DisplayStrategy — compute()/draw() split
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-gate-overlay-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Gate overlay layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Gate overlay layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-the-fsm-does-not-use-draw_overlay_artists_blit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the FSM does not use draw_overlay_artists_blit()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-interactive-gate-drawing-gatedrawingfsm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Interactive gate drawing — GateDrawingFSM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Interactive gate drawing — GateDrawingFSM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-lock-dedup-a1464cf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The lock dedup (a1464cf)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_apply_edit_preview-the-live-drag-fast-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _apply_edit_preview() — the live-drag fast path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-mpl_raster_lock-and-rasterlock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. MPL_RASTER_LOCK and RasterLock
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. MPL_RASTER_LOCK and RasterLock">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lockedfigurecanvas-uigraph_mpl_compatpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LockedFigureCanvas (ui/graph/_mpl_compat.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-lock-guarded-call-sites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other lock-guarded call sites
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-rendertask-background-subplotthumbnail-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. RenderTask — background subplot/thumbnail rendering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-decomposed-flowcanvas-collaborators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Decomposed FlowCanvas collaborators
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-graphmanager-flow_services-coordinate-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. GraphManager, flow_services, coordinate mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-node_canvas-dirty-region-tracking-cd6e5ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. node_canvas — dirty-region tracking (cd6e5ed)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. node_canvas — dirty-region tracking (cd6e5ed)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-preparegeometrychange-bug-this-exposed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The prepareGeometryChange() bug this exposed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-extension-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Extension checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-big-picture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The big picture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-layeredmatplotlibcanvas-the-sdk-base-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. LayeredMatplotlibCanvas — the SDK base class
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-flowcanvas-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. FlowCanvas itself
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. FlowCanvas itself">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#redraw-the-public-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        redraw() — the public trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#painteventdraw-re-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        paintEvent()/draw() re-overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_on_data_layer_finished-where-the-two-layers-meet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _on_data_layer_finished() — where the two layers meet
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-data-layer-computerasterize-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Data-layer compute/rasterize split
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Data-layer compute/rasterize split">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sdk-contract-pipelinepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SDK contract (pipeline.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#plugin-implementation-uigraphcanvasdata_layerpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Plugin implementation (ui/graph/canvas/data_layer.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-displaystrategy-computedraw-split" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. DisplayStrategy — compute()/draw() split
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-gate-overlay-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Gate overlay layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Gate overlay layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-the-fsm-does-not-use-draw_overlay_artists_blit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why the FSM does not use draw_overlay_artists_blit()
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-interactive-gate-drawing-gatedrawingfsm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Interactive gate drawing — GateDrawingFSM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Interactive gate drawing — GateDrawingFSM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-lock-dedup-a1464cf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The lock dedup (a1464cf)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_apply_edit_preview-the-live-drag-fast-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _apply_edit_preview() — the live-drag fast path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-mpl_raster_lock-and-rasterlock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. MPL_RASTER_LOCK and RasterLock
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. MPL_RASTER_LOCK and RasterLock">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lockedfigurecanvas-uigraph_mpl_compatpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LockedFigureCanvas (ui/graph/_mpl_compat.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-lock-guarded-call-sites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other lock-guarded call sites
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-rendertask-background-subplotthumbnail-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. RenderTask — background subplot/thumbnail rendering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-decomposed-flowcanvas-collaborators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Decomposed FlowCanvas collaborators
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-graphmanager-flow_services-coordinate-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. GraphManager, flow_services, coordinate mapping
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-node_canvas-dirty-region-tracking-cd6e5ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. node_canvas — dirty-region tracking (cd6e5ed)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. node_canvas — dirty-region tracking (cd6e5ed)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-preparegeometrychange-bug-this-exposed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The prepareGeometryChange() bug this exposed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-extension-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Extension checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="rendering-visualization-architecture">Rendering &amp; Visualization Architecture</h1>
+<p>How <code>FlowCanvas</code> gets pixels on screen: the layered async/sync canvas model, the
+compute/rasterize split that keeps the Qt main thread unblocked, the shared
+matplotlib lock, interactive gate drawing, and the node-graph canvas's
+dirty-region repainting.</p>
+<div class="admonition note">
+<p class="admonition-title">This document reflects a recent architecture migration</p>
+<p>Five commits reworked this subsystem in sequence: <code>3b160bf</code> (shared
+<code>MPL_RASTER_LOCK</code>), <code>4c11ead</code> (<code>DisplayStrategy.compute()</code>/<code>draw()</code> split),
+<code>28d6e04</code> (<code>FlowCanvas</code> onto <code>LayeredMatplotlibCanvas</code>), <code>a1464cf</code>
+(de-duplicated lock retry logic in <code>gate_drawing_fsm.py</code>), <code>cd6e5ed</code>
+(<code>node_canvas</code> dirty-region tracking). Anything you remember about a
+synchronous <code>DataLayerRenderer</code> class, a private <code>_mpl_lock.py</code>, or a fused
+<code>DisplayStrategy.render()</code> method is describing code that no longer exists.</p>
+</div>
+<hr />
+<h2 id="1-the-big-picture">1. The big picture</h2>
+<p><code>FlowCanvas</code> (<code>ui/graph/flow_canvas.py</code>) renders a plot in <strong>two layers</strong> that
+redraw independently:</p>
+<ul>
+<li><strong>Data layer</strong> — the expensive part: transform the raw event arrays,
+  compute a density grid / KDE / histogram, scatter or hist it onto the
+  <code>Axes</code>. This runs its numeric half <em>off</em> the Qt main thread and only
+  touches matplotlib for a brief, lock-guarded rasterize step.</li>
+<li><strong>Gate overlay layer</strong> — cheap: draw patches/lines/labels for whatever
+  gates are active, on top of a cached bitmap of the data layer. This never
+  leaves the Qt main thread and never recomputes the data layer.</li>
+</ul>
+<p>A third, even cheaper layer exists only while a gate is actively being
+drawn or dragged: <strong>the FSM preview layer</strong> (rubber-band, polygon-in-progress,
+quadrant crosshair, live edit-drag), drawn by <code>GateDrawingFSM</code> via
+<code>copy_from_bbox</code>/<code>restore_region</code> blitting against the canvas's own bitmap
+cache — not through the SDK's overlay-blit primitive (see
+<a href="#6-why-the-fsm-does-not-use-draw_overlay_artists_blit">§6</a>).</p>
+<pre class="mermaid"><code>flowchart TB
+    subgraph MAIN["Qt main thread"]
+        A["FlowCanvas.redraw()"] --&gt; B["request_data_redraw()&lt;br/&gt;debounce timer (50ms)"]
+        B --&gt; C["_submit_data_layer()"]
+        H["_on_compute_finished()"] --&gt; I["_apply_data_layer()&lt;br/&gt;under MPL_RASTER_LOCK"]
+        I --&gt; J["ax.clear() + FlowDataRasterizeStage.rasterize()&lt;br/&gt;+ FigureCanvasQTAgg.draw()"]
+        J --&gt; K["bitmap_cache = copy_from_bbox()"]
+        K --&gt; L["data_layer_finished signal"]
+        L --&gt; M["GateLayerRenderer.render()&lt;br/&gt;under MPL_RASTER_LOCK"]
+        M --&gt; N["canvas.draw()"]
+    end
+
+    subgraph BG["Background thread (ITaskScheduler worker)"]
+        D["FlowDataComputeStage.compute()&lt;br/&gt;pure numpy/pandas — no Axes/Figure"]
+    end
+
+    C -- "scheduler.submit()" --&gt; D
+    D -- "worker.finished signal" --&gt; H
+
+    style D fill:#e1f5fe
+    style I fill:#fff3cd
+    style J fill:#fff3cd
+    style M fill:#fff3cd</code></pre>
+<p>Everything shaded yellow above runs under <code>MPL_RASTER_LOCK</code> — matplotlib's
+Agg backend is not thread-safe, so every rasterization call across the whole
+process (this canvas, the gate overlay, thumbnails, <code>RenderTask</code>, any other
+plugin's matplotlib widget) must serialize through one shared lock instance.</p>
+<hr />
+<h2 id="2-layeredmatplotlibcanvas-the-sdk-base-class">2. <code>LayeredMatplotlibCanvas</code> — the SDK base class</h2>
+<p><code>FlowCanvas</code> subclasses <code>karcytics_sdk.plugin.rendering.mpl_canvas.LayeredMatplotlibCanvas</code>
+(a <code>FigureCanvasQTAgg</code> subclass), added in <code>28d6e04</code>. Before that migration,
+<code>FlowCanvas</code> inherited <code>FigureCanvasQTAgg</code> directly and ran a synchronous
+<code>DataLayerRenderer.render()</code> call on the Qt main thread for every redraw —
+the expensive density/KDE computation blocked the UI. <code>DataLayerRenderer</code> is
+now deleted entirely; its logic lives in <code>FlowDataComputeStage</code>/
+<code>FlowDataRasterizeStage</code> (§4).</p>
+<p><code>LayeredMatplotlibCanvas</code> provides:</p>
+<ul>
+<li><strong><code>set_compute_stage(stage)</code> / <code>set_rasterize_stage(stage)</code></strong> — register
+  the plugin-specific <code>RenderComputeStage</code>/<code>RasterizeStage</code> pair once, at
+  construction.</li>
+<li><strong><code>request_data_redraw(state, debounce_ms=50)</code></strong> — the entry point. Starts
+  (or restarts) a <code>QTimer</code>; rapid successive calls (e.g. an axis slider being
+  dragged) collapse into a single compute submission once the debounce window
+  elapses. Requires both stages to already be set, or it raises.</li>
+<li><strong><code>_submit_data_layer()</code></strong> — fires when the debounce timer elapses.
+  Submits <code>self._compute_stage</code> to <code>task_scheduler.submit()</code>
+  (<code>ITaskScheduler</code>, defaulting to <code>runtime_services.task_scheduler</code>) and
+  connects <code>worker.finished</code>/<code>worker.error</code> to generation-gated callbacks.</li>
+<li><strong>Generation gating</strong> — every submission increments <code>self._generation</code>;
+  a result is applied only if its captured generation still matches the
+  current one. A slow compute superseded by a newer request is dropped
+  instead of visually reverting an already-applied newer result.</li>
+<li><strong><code>_apply_data_layer(render_data)</code></strong> — runs <code>ax.clear()</code> +
+  <code>self._rasterize_stage.rasterize(ax, render_data)</code> + <code>FigureCanvasQTAgg.draw()</code></li>
+<li><code>self._bitmap_cache = self.copy_from_bbox(...)</code>, all under
+  <code>self.raster_lock.try_run(...)</code>.</li>
+<li><strong><code>draw_overlay_artists_blit(artists)</code></strong> — the SDK's own cheap-overlay
+  primitive: restores <code>self._bitmap_cache</code> and blits <code>artists</code> on top. Cheap,
+  synchronous, never touches the task scheduler. <code>FlowCanvas</code> deliberately
+  does <strong>not</strong> use this for its gate overlay or FSM previews — see
+  <a href="#6-why-the-fsm-does-not-use-draw_overlay_artists_blit">§6</a>.</li>
+<li><strong><code>paintEvent()</code> / <code>draw()</code> overrides</strong> — both run under
+  <code>self.raster_lock.try_run(...)</code>, retrying via <code>QTimer.singleShot</code> if the
+  lock is contended by a background render. <code>FlowCanvas</code> re-overrides both
+  again (see §3) purely to swap the retry callback for one that tolerates
+  the widget having been destroyed mid-retry.</li>
+<li><strong>Signals</strong>: <code>data_layer_started</code>, <code>data_layer_finished</code>, <code>data_layer_failed(str)</code>.</li>
+</ul>
+<p>Constructor parameters worth knowing: <code>raster_lock</code> and <code>task_scheduler</code> are
+both injectable, defaulting to the process-wide <code>MPL_RASTER_LOCK</code> singleton
+and <code>runtime_services.task_scheduler</code> — this is what lets tests substitute a
+synchronous fake scheduler and a private lock (see
+<a href="../03_TESTING_AND_QA/">03_TESTING_AND_QA.md</a>). <code>crash_reporter</code> and
+<code>plugin_id</code> are also accepted and threaded through to
+<code>FlowDataRasterizeStage</code>'s failure path, but <code>FlowCanvas</code> is constructed
+today (from <code>GraphWindow</code>) without a <code>crash_reporter</code> — <code>GraphWindow</code>/
+<code>GraphManager</code> don't yet hold a reference to pass down, so it defaults to
+<code>None</code>. The plumbing exists for a future caller.</p>
+<hr />
+<h2 id="3-flowcanvas-itself">3. <code>FlowCanvas</code> itself</h2>
+<p><code>ui/graph/flow_canvas.py</code>. Owns:</p>
+<ul>
+<li>The <code>Figure</code>/<code>Axes</code> (<code>self._fig</code>, <code>self._ax</code>), styled via a module-level
+  <code>_MPL_STYLE</code> rcParams dict applied at construction (white plot background,
+  dark-grey text/grid, 9pt fonts).</li>
+<li>Data state: <code>_current_data</code> (a <code>pd.DataFrame</code>), <code>_x_param</code>/<code>_y_param</code>,
+  <code>_x_scale</code>/<code>_y_scale</code> (<code>AxisScale</code>), <code>_display_mode</code> (<code>DisplayMode</code> enum:
+  <code>PSEUDOCOLOR</code>, <code>DOT_PLOT</code>, <code>CONTOUR</code>, <code>HISTOGRAM</code>, <code>CDF</code>).</li>
+<li>Gate drawing state: <code>_drawing_mode</code> (<code>GateDrawingMode</code> enum), delegated to
+  <code>GateDrawingFSM</code> (§6).</li>
+<li>The data-layer bitmap cache (<code>_canvas_bitmap_cache</code>, refreshed by the
+  <code>draw_event</code> handler <code>_on_draw</code> — every full Agg draw, not just data-layer
+  draws — so it always has the current gate overlays baked in; see §6 for
+  why that distinction matters).</li>
+<li>Decomposed helper components, constructed in <code>__init__</code> and each covering
+  one previously-monolithic responsibility (see §7).</li>
+</ul>
+<h3 id="redraw-the-public-trigger"><code>redraw()</code> — the public trigger</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">redraw</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_batch_update"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="k">return</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">height</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">QTimer</span><span class="o">.</span><span class="n">singleShot</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">redraw</span><span class="p">)</span>   <span class="c1"># 0x0 during layout — retry</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="k">return</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_dirty</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_canvas_bitmap_cache</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_show_loading</span><span class="p">()</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">request_data_redraw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_snapshot_render_state</span><span class="p">(),</span> <span class="n">debounce_ms</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Every setter that changes what's on screen (<code>set_data</code>, <code>set_axes</code>,
+<code>set_scales</code>, <code>set_display_mode</code>, <code>set_fmo_overlay</code>) ends by calling
+<code>redraw()</code>. <code>begin_update()</code>/<code>end_update()</code> let a caller batch several
+setters into one redraw. <code>_snapshot_render_state()</code> captures a
+<code>FlowRenderState</code> (§4) on the Qt main thread — the object handed across the
+thread boundary to <code>FlowDataComputeStage.compute()</code>.</p>
+<h3 id="painteventdraw-re-overrides"><code>paintEvent()</code>/<code>draw()</code> re-overrides</h3>
+<p><code>FlowCanvas</code> re-overrides both methods that <code>LayeredMatplotlibCanvas</code> already
+overrides, purely to change the retry callback:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">paintEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">raster_lock</span><span class="o">.</span><span class="n">try_run</span><span class="p">(</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="k">lambda</span><span class="p">:</span> <span class="n">FigureCanvasQTAgg</span><span class="o">.</span><span class="n">paintEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retry_update</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">_retry_update</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="k">if</span> <span class="n">sip</span><span class="o">.</span><span class="n">isdeleted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="k">return</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+</span></code></pre></div>
+<p><code>LayeredMatplotlibCanvas.paintEvent()</code>'s own retry is just <code>self.update</code> —
+fine for the base class, but a <code>FlowCanvas</code> can be <code>deleteLater()</code>'d (tab
+closed) while a <code>QTimer.singleShot</code> retry is still queued. Touching a
+destroyed Qt C++ object from that queued callback crashes <strong>natively</strong>
+(not a catchable <code>RuntimeError</code>, because it isn't a normal Python call PyQt
+can intercept) — hence the <code>sip.isdeleted()</code> guard before every retry.</p>
+<h3 id="_on_data_layer_finished-where-the-two-layers-meet"><code>_on_data_layer_finished()</code> — where the two layers meet</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_data_layer_finished</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_hide_loading</span><span class="p">()</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_gate_renderer</span><span class="o">.</span><span class="n">render</span><span class="p">()</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">step</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_current_tutorial_step"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">set_tutorial_guide</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Connected to <code>LayeredMatplotlibCanvas.data_layer_finished</code>. This is the only
+place the data layer and gate layer are sequenced together: once the async
+compute+rasterize has landed (and <code>ax.clear()</code> has wiped every artist),
+gate overlays and tutorial guides are re-drawn on top, then a forced
+(non-idle) <code>draw()</code> flushes it all to screen.</p>
+<hr />
+<h2 id="4-data-layer-computerasterize-split">4. Data-layer compute/rasterize split</h2>
+<p>The SDK's <code>karcytics_sdk.plugin.rendering.pipeline</code> module defines the
+general contract; <code>ui/graph/canvas/data_layer.py</code> implements it for flow
+plots.</p>
+<h3 id="sdk-contract-pipelinepy">SDK contract (<code>pipeline.py</code>)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">RenderData</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="sd">"""Backend-agnostic bag of arrays/params. Must never hold a live</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="sd">    Artist/Axes/Figure — only safe to touch under a RasterLock."""</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">RenderComputeStage</span><span class="p">(</span><span class="n">AnalysisBase</span><span class="p">):</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">PluginState</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RenderData</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">"render_data"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">state</span><span class="p">)}</span>   <span class="c1"># AnalysisBase.run() bridge</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">RasterizeStage</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">rasterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">RenderData</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span></code></pre></div>
+<p><code>RenderComputeStage</code> subclasses <code>AnalysisBase</code> and implements <code>run()</code> once,
+generically — that's what lets it drop straight into the existing
+<code>AnalysisWorker</code>/<code>AnalysisRunnable</code>/<code>ITaskScheduler.submit()</code> machinery with
+no new dispatch path. <code>RasterizeStage</code> does <strong>not</strong> acquire a lock itself;
+the caller (<code>LayeredMatplotlibCanvas._apply_data_layer</code>, or
+<code>RasterizeToImageTask</code> for a fully-background render) is responsible for
+holding the matching <code>RasterLock</code> around the call.</p>
+<h3 id="plugin-implementation-uigraphcanvasdata_layerpy">Plugin implementation (<code>ui/graph/canvas/data_layer.py</code>)</h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlowRenderState</span><span class="p">:</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="sd">"""Snapshot of what compute() needs, captured on the Qt main thread</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="sd">    right before request_data_redraw()."""</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">current_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">x_param</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">y_param</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">x_scale</span><span class="p">:</span> <span class="n">AxisScale</span><span class="p">;</span> <span class="n">y_scale</span><span class="p">:</span> <span class="n">AxisScale</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">display_mode</span><span class="p">:</span> <span class="n">DisplayMode</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="o">...</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="nd">@dataclass</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlowRenderData</span><span class="p">(</span><span class="n">RenderData</span><span class="p">):</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="sd">"""What compute() hands rasterize(): everything needed to draw."""</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"empty"</span>   <span class="c1"># "empty" | "error" | "1d" | "2d"</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="n">strategy</span><span class="p">:</span> <span class="n">DisplayStrategy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>    <span class="n">strategy_data</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="n">strategy_kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="n">xlim</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="n">ylim</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="o">...</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlowDataComputeStage</span><span class="p">(</span><span class="n">RenderComputeStage</span><span class="p">):</span>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FlowRenderData</span><span class="p">:</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>        <span class="c1"># apply_transform() on raw arrays, calculate_auto_range() for</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>        <span class="c1"># xlim/ylim, look up a DisplayStrategy via RenderStrategyFactory,</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>        <span class="c1"># call strategy.compute(...). No Axes/Figure ever touched.</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlowDataRasterizeStage</span><span class="p">(</span><span class="n">RasterizeStage</span><span class="p">):</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">canvas</span><span class="p">:</span> <span class="n">FlowCanvas</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span> <span class="o">=</span> <span class="n">canvas</span>   <span class="c1"># needed to reset gate/guide tracking state</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">rasterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>        <span class="c1"># ax.set_axis_on(), reset canvas._gate_patches/_gate_artists/</span>
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>        <span class="c1"># _gate_overlay_artists/_guide_poly_patch (ax.clear() already ran,</span>
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>        <span class="c1"># invalidating whatever those referenced), then dispatch on</span>
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>        <span class="c1"># data.mode: "empty"/"error" show a message; "1d"/"2d" call</span>
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>        <span class="c1"># data.strategy.draw(ax, data.strategy_data, **data.strategy_kwargs)</span>
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>        <span class="c1"># plus axis labels, spines, grid, event-count annotation.</span>
+</span></code></pre></div>
+<p><code>FlowRenderState</code> deliberately holds <strong>references</strong>, not deep copies, of
+<code>x_scale</code>/<code>y_scale</code>/<code>flow_state</code> — the same tradeoff <code>RenderTask</code> already
+makes for its own thumbnail path. A scale object mutated in place (rather
+than replaced wholesale, which is how <code>FlowCanvas.set_scales()</code> normally
+does it) after the snapshot was taken could race an in-flight <code>compute()</code>.
+This is narrow, pre-existing exposure, not something the split introduced.</p>
+<p><code>FlowDataRasterizeStage</code> needing a live <code>canvas</code> reference is the one place
+this stage isn't purely functional — it has to reset gate-tracking
+dictionaries that the caller's <code>ax.clear()</code> just invalidated, mirroring what
+the old <code>DataLayerRenderer.render()</code> did at the top of its own lock-held
+block.</p>
+<div class="admonition warning">
+<p class="admonition-title">1D fallback path</p>
+<p>For <code>HISTOGRAM</code>/<code>CDF</code> modes, <code>compute()</code> tries <code>_compute_1d()</code> first; if
+that strategy's <code>compute()</code> raises, it falls through to <code>_compute_2d()</code>
+instead — matching the old <code>DataLayerRenderer._render_1d()</code>'s
+"return <code>False</code>" fallback behavior. A failing 1D strategy silently
+produces a 2D plot rather than an error.</p>
+</div>
+<hr />
+<h2 id="5-displaystrategy-computedraw-split">5. <code>DisplayStrategy</code> — compute()/draw() split</h2>
+<p><code>ui/graph/renderers/base.py</code>, changed by <code>4c11ead</code>. Before that commit, each
+strategy had one fused <code>render(ax, x, y, **kwargs)</code> method that both computed
+data (numpy/scipy) and drew it (matplotlib <code>Axes</code> calls) in one shot — so
+even the compute-only parts of a strategy had to run wherever <code>render()</code> was
+called, which was always somewhere holding a lock. The split:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DisplayStrategy</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">        </span><span class="sd">"""Pure numpy/scipy. Safe to run off the Qt main thread.</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="sd">        Must never touch a matplotlib Axes/Figure."""</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="nd">@abstractmethod</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">:</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">        </span><span class="sd">"""Draw data (compute()'s return value) onto ax.</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="sd">        Must run under MPL_RASTER_LOCK."""</span>
+</span></code></pre></div>
+<p><code>render()</code> was deleted outright — not kept as a compatibility shim. Both
+callers (<code>FlowDataComputeStage</code>/<code>FlowDataRasterizeStage</code>, and <code>RenderTask</code>,
+§9) call <code>compute()</code> then <code>draw()</code> directly.</p>
+<p>Concrete strategies, registered in <code>ui/graph/renderers/factory.py</code>'s
+<code>RenderStrategyFactory</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Mode name</th>
+<th>Class</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"Pseudocolor"</code></td>
+<td><code>PseudocolorStrategy</code></td>
+<td><code>renderers/pseudocolor.py</code></td>
+</tr>
+<tr>
+<td><code>"Dot Plot"</code></td>
+<td><code>DotPlotStrategy</code></td>
+<td><code>renderers/dotplot.py</code></td>
+</tr>
+<tr>
+<td><code>"Histogram"</code></td>
+<td><code>HistogramStrategy</code></td>
+<td><code>renderers/histogram.py</code></td>
+</tr>
+<tr>
+<td><code>"Contour"</code></td>
+<td><code>ContourStrategy</code></td>
+<td><code>renderers/contour.py</code></td>
+</tr>
+<tr>
+<td><code>"CDF"</code></td>
+<td><code>CdfStrategy</code></td>
+<td><code>renderers/cdf.py</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>RenderStrategyFactory.get_strategy(name)</code> falls back to <code>"Dot Plot"</code> for an
+unrecognized name. Each concrete strategy pairs a small <code>@dataclass</code> result
+type with its <code>compute()</code>/<code>draw()</code> pair — e.g. <code>PseudocolorStrategy</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@dataclass</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">PseudocolorRenderData</span><span class="p">:</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">x_plot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">;</span> <span class="n">y_plot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">;</span> <span class="n">c_plot</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">cmap_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">;</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">;</span> <span class="n">point_size</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">PseudocolorStrategy</span><span class="p">(</span><span class="n">DisplayStrategy</span><span class="p">):</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PseudocolorRenderData</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="c1"># stable_subsample_mask() down to max_events, then</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="c1"># compute_pseudocolor_points() — the density-binning + Gaussian</span>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="c1"># smoothing + rank-normalized color mapping math.</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="o">...</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">x_plot</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">y_plot</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">point_size</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">c_plot</span><span class="p">,</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>                   <span class="n">cmap</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">cmap_name</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>                   <span class="n">marker</span><span class="o">=</span><span class="s2">"o"</span><span class="p">,</span> <span class="n">rasterized</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">edgecolors</span><span class="o">=</span><span class="s2">"none"</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>HistogramRenderData</code> is a good example of the split's actual payoff: it
+precomputes the valid-data filtering and the scipy KDE curve (an O(n·grid)
+evaluation) in <code>compute()</code>, but leaves the <code>ax.hist()</code> call itself in
+<code>draw()</code> — reimplementing matplotlib's own binning/patch logic outside
+matplotlib isn't worth the behavioral risk, and <code>ax.hist()</code> is cheap next to
+the KDE evaluation anyway.</p>
+<p>For <code>RenderTask</code> (§9), this split additionally moved the <code>compute()</code> call
+<em>above</em> the lock acquisition — thumbnail density/KDE computation is no
+longer serialized against other concurrent thumbnail renders; only the
+actual Agg <code>draw()</code> call still needs <code>MPL_RASTER_LOCK</code>.</p>
+<hr />
+<h2 id="6-gate-overlay-layer">6. Gate overlay layer</h2>
+<p><code>ui/graph/canvas/gate_layer.py</code>'s <code>GateLayerRenderer</code> draws gate
+patches/labels on top of the cached data-layer bitmap, without ever
+recomputing the data layer:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">GateLayerRenderer</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">MPL_RASTER_LOCK</span><span class="o">.</span><span class="n">acquire</span><span class="p">(</span><span class="n">blocking</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>            <span class="n">QTimer</span><span class="o">.</span><span class="n">singleShot</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">render</span><span class="p">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>            <span class="k">return</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>            <span class="c1"># remove previous gate artists, clear tracking dicts</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_redraw_gate_overlays</span><span class="p">()</span>   <span class="c1"># walk canvas._active_gates,</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>                                            <span class="c1"># dispatch to GateOverlayRenderer</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>            <span class="n">canvas</span><span class="o">.</span><span class="n">draw_idle</span><span class="p">()</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="k">finally</span><span class="p">:</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>            <span class="n">MPL_RASTER_LOCK</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+</span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Not migrated to <code>raster_lock.try_run()</code></p>
+<p><code>a1464cf</code> de-duplicated this exact acquire/retry/release pattern inside
+<code>gate_drawing_fsm.py</code> (§7), but <code>GateLayerRenderer.render()</code> still
+hand-rolls it, and imports the module-level <code>MPL_RASTER_LOCK</code> singleton
+directly rather than going through <code>canvas.raster_lock</code>. In normal
+operation these are the same object, so it behaves identically — but a
+test that injects a private <code>raster_lock</code> into <code>FlowCanvas</code>'s
+constructor (see <code>LayeredMatplotlibCanvas.__init__</code>) will find
+<code>GateLayerRenderer</code> still contending on the real process-wide lock
+instead of the injected one. If you're extending this file, prefer
+<code>canvas.raster_lock.try_run(...)</code> for consistency with the rest of the
+canvas and to respect lock injection.</p>
+</div>
+<p><code>_redraw_gate_overlays()</code> handles a few subtleties worth knowing before you
+touch it:</p>
+<ul>
+<li><strong>1D-mode filtering</strong>: on <code>HISTOGRAM</code>/<code>CDF</code> axes, only <code>RangeGate</code>s are
+  drawn (a rectangle/polygon/ellipse gate has no meaning on a 1D axis).</li>
+<li><strong>Quadrant de-duplication</strong>: a <code>QuadrantGate</code> has 4 <code>QuadrantSubGate</code>
+  children sharing one crosshair; <code>_redraw_gate_overlays</code> tracks
+  <code>recorded_geometries</code> by parent id so the crosshair is drawn once, not 4
+  times.</li>
+<li><strong>Selection resolution</strong>: <code>canvas._selected_gate_id</code> holds a
+  <code>GateNode.node_id</code>, <em>not</em> a <code>Gate.gate_id</code> — they're independently
+  generated UUIDs with no relationship — so selection is resolved by walking
+  <code>canvas._gate_nodes</code> for a node wrapping this gate's geometry, not by
+  direct id comparison.</li>
+<li><strong>Range gate y-matching</strong>: <code>RangeGate.y_param</code> is always <code>None</code> (it's a
+  1D gate), which is treated as "matches any Y axis" rather than filtered
+  out — same convention <code>RenderTask</code> uses for subplot thumbnails.</li>
+</ul>
+<h3 id="why-the-fsm-does-not-use-draw_overlay_artists_blit">Why the FSM does not use <code>draw_overlay_artists_blit()</code></h3>
+<p><code>LayeredMatplotlibCanvas.draw_overlay_artists_blit()</code> restores from
+<code>self._bitmap_cache</code>, which is refreshed only after a <strong>data-layer</strong> redraw.
+<code>FlowCanvas</code>'s own <code>_canvas_bitmap_cache</code> (a separate attribute, refreshed on
+every <code>draw_event</code> — including <code>GateLayerRenderer</code>'s own render, via
+<code>_on_draw</code>) has the <em>persistent gate overlays baked in</em>. <code>a1464cf</code>'s commit
+message is explicit about why these can't be unified:</p>
+<blockquote>
+<p>Switching would make every <em>other</em> gate disappear while dragging one
+gate's handle. FlowCanvas's real layering (data + persistent gate overlays
++ ephemeral drag preview) doesn't fit the SDK's simpler two-layer model.</p>
+</blockquote>
+<p>So <code>FlowCanvas</code> keeps its own three-layer bitmap-cache scheme
+(<code>_canvas_bitmap_cache</code>/<code>_on_draw</code>) rather than adopting the SDK's two-layer
+one, even though both now share the same lock primitive.</p>
+<hr />
+<h2 id="7-interactive-gate-drawing-gatedrawingfsm">7. Interactive gate drawing — <code>GateDrawingFSM</code></h2>
+<p><code>ui/graph/gate_drawing_fsm.py</code>. States (<code>DrawingState</code> enum):</p>
+<pre class="mermaid"><code>stateDiagram-v2
+    [*] --&gt; IDLE
+    IDLE --&gt; DRAWING: press (rectangle/ellipse/range)
+    IDLE --&gt; POLYGON: press (polygon)
+    IDLE --&gt; EDITING: press on selected gate's handle/body
+    DRAWING --&gt; IDLE: release → finalize_drag_gate()
+    POLYGON --&gt; POLYGON: click → add vertex
+    POLYGON --&gt; IDLE: double-click (≥3 vertices) → finalize_polygon()
+    EDITING --&gt; IDLE: release → _finish_edit() (commits if changed)
+    DRAWING --&gt; IDLE: Escape (cancel)
+    POLYGON --&gt; IDLE: Escape (cancel)
+    EDITING --&gt; IDLE: Escape (cancel, restores anchor)</code></pre>
+<p><code>IDLE</code> press dispatches through a fallthrough: hit-test the selected gate's
+<strong>edit handle</strong> first, then its <strong>body</strong> (whole-gate move), then fall back to
+<strong>select</strong> (or Alt+click <strong>cycle-select</strong>, to reach a gate fully occluded by
+another). Only the <em>currently selected</em> gate ever exposes handles/body-move —
+a drag can never accidentally grab whichever gate happens to be underneath.</p>
+<h3 id="the-lock-dedup-a1464cf">The lock dedup (<code>a1464cf</code>)</h3>
+<p>Six methods — <code>_draw_rubber_band</code>, <code>_apply_edit_preview</code>,
+<code>_draw_quadrant_crosshair</code>, <code>_draw_polygon_progress</code>, and their two "clear"
+counterparts — each used to hand-roll the identical
+<code>MPL_RASTER_LOCK.acquire(blocking=False)</code> / <code>try</code> / <code>finally: release()</code>
+dance, with a per-method debounced <code>QTimer</code> retry on contention. <code>a1464cf</code>
+collapsed all six onto the shared primitive that pattern was originally
+generalized from:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_draw_rubber_band</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_busy</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_pending_rubber_args</span> <span class="o">=</span> <span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_rubber_timer_active"</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_rubber_timer_active</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>            <span class="k">def</span><span class="w"> </span><span class="nf">_retry</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_rubber_timer_active</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">"_pending_rubber_args"</span><span class="p">):</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">_draw_rubber_band</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_pending_rubber_args</span><span class="p">)</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>            <span class="n">QTimer</span><span class="o">.</span><span class="n">singleShot</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="n">_retry</span><span class="p">)</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_action</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>        <span class="o">...</span> <span class="c1"># the actual patch creation + restore_region/draw_artist/blit</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">raster_lock</span><span class="o">.</span><span class="n">try_run</span><span class="p">(</span><span class="n">_action</span><span class="p">,</span> <span class="n">_on_busy</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Each method's <strong>own</strong> debounced-retry bookkeeping (<code>_pending_*_args</code>,
+<code>_*_timer_active</code> flags, retry delays of 10-15ms tuned per gesture) is kept
+exactly as it was — only the acquire/try/finally <em>mechanics</em> moved into
+<code>canvas.raster_lock.try_run(action, on_busy)</code>. This matters because the
+retry delay and "coalesce to latest pending args" behavior is itself part of
+the interaction design (e.g. a fast mouse-motion stream during a drag
+shouldn't queue up N retries — it should keep overwriting <code>_pending_*_args</code>
+until the lock frees up), and <code>try_run()</code> itself is generic and knows
+nothing about per-gesture debouncing.</p>
+<h3 id="_apply_edit_preview-the-live-drag-fast-path"><code>_apply_edit_preview()</code> — the live-drag fast path</h3>
+<p>Motion events during an <code>EDITING</code> drag call <code>_apply_edit_preview(x, y)</code>,
+which <strong>mutates the real <code>Gate</code> object in place</strong> and redraws only its
+overlay via <code>restore_region</code>/<code>draw_artist</code>/<code>blit</code> — it never calls
+<code>controller.modify_gate()</code>. That's the entire performance strategy: the
+expensive path (recompute stats, <code>GATE_MODIFIED</code> event, debounced
+propagation to other views) fires exactly once, in <code>_finish_edit()</code>, not on
+every motion event. If the drag is cancelled (<code>Escape</code>), <code>GateDrawingFSM.cancel()</code>
+calls <code>canvas._gate_editor.restore(gate, anchor)</code> to undo the in-place
+mutation, since nothing else would.</p>
+<hr />
+<h2 id="8-mpl_raster_lock-and-rasterlock">8. <code>MPL_RASTER_LOCK</code> and <code>RasterLock</code></h2>
+<p><code>karcytics_sdk.plugin.rendering.lock.RasterLock</code> — promoted in <code>3b160bf</code>
+from what used to be this plugin's own private <code>ui/graph/_mpl_lock.py</code>
+(now <strong>deleted</strong>, no compatibility shim kept). Every one of the 13 call
+sites that used to import the private lock now imports
+<code>from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK</code> directly.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">RasterLock</span><span class="p">:</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">    </span><span class="sd">"""Reentrant, named lock guarding one rasterization backend's shared state."""</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"default"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>   <span class="c1"># reentrant — see below</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">try_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">on_busy_retry</span><span class="p">,</span> <span class="n">retry_ms</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">crash_reporter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plugin_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">        </span><span class="sd">"""Non-blocking acquire. On success: run `action` (exceptions caught</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="sd">        and logged, optionally reported to crash_reporter). On contention:</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="sd">        schedule `on_busy_retry` via QTimer.singleShot(retry_ms, ...) and</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="sd">        return without running `action` — the retry callback must call back</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="sd">        into try_run() itself."""</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="n">MPL_RASTER_LOCK</span> <span class="o">=</span> <span class="n">RasterLock</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"matplotlib-agg"</span><span class="p">)</span>   <span class="c1"># process-wide singleton</span>
+</span></code></pre></div>
+<p>Why it matters that this is <strong>shared</strong>, not per-plugin:</p>
+<ul>
+<li>matplotlib's Agg backend keeps C-level shared state (glyph cache, font
+  transforms); concurrent draws from different <code>Figure</code>s on different
+  threads can corrupt it — on ARM macOS specifically, this has manifested as
+  a <code>SIGBUS</code>, not just a wrong pixel.</li>
+<li>Any <em>other</em> plugin's matplotlib widget, or a shared "export image" action,
+  contends for the exact same backend state — so it must serialize through
+  the exact same lock <strong>instance</strong>, not merely "a <code>RasterLock</code> of the same
+  type." Hence a plain importable singleton (matching the SDK's convention
+  for <code>runtime_services.task_scheduler</code>/<code>event_bus</code>), not something gated
+  behind a plugin manifest capability.</li>
+<li>It's an <code>RLock</code>, deliberately: a Qt canvas's <code>paintEvent()</code> can internally
+  re-invoke <code>draw()</code> on the same thread that already holds the lock
+  (matplotlib's Qt backend does this via <code>_draw_idle()</code>). A plain <code>Lock</code>
+  would treat that inner acquire as contended and defer it via retry,
+  silently dropping the real paint.</li>
+<li><strong>Scope</strong>: one <code>MPL_RASTER_LOCK</code> instance per OS process's Agg state. This
+  plugin runs <code>process_model = "isolated"</code> (see <code>pyproject.toml</code>), so it
+  already gets its own interpreter and its own independent lock instance —
+  no cross-process coordination needed. <code>PluginDaemon</code> file-I/O subprocesses
+  do no matplotlib rasterization and never contend for it at all.</li>
+</ul>
+<h3 id="lockedfigurecanvas-uigraph_mpl_compatpy"><code>LockedFigureCanvas</code> (<code>ui/graph/_mpl_compat.py</code>)</h3>
+<p>For any <em>other</em> standalone plot widget in this plugin that isn't
+<code>FlowCanvas</code> — a drop-in <code>FigureCanvasQTAgg</code> replacement:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">LockedFigureCanvas</span><span class="p">(</span><span class="n">FigureCanvasQTAgg</span><span class="p">):</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>        <span class="n">MPL_RASTER_LOCK</span><span class="o">.</span><span class="n">try_run</span><span class="p">(</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">draw</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retry_draw</span><span class="p">)</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">paintEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>        <span class="n">MPL_RASTER_LOCK</span><span class="o">.</span><span class="n">try_run</span><span class="p">(</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>            <span class="k">lambda</span><span class="p">:</span> <span class="nb">super</span><span class="p">(</span><span class="n">LockedFigureCanvas</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">paintEvent</span><span class="p">(</span><span class="n">event</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retry_update</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>        <span class="p">)</span>
+</span></code></pre></div>
+<p><code>3b160bf</code> rewrote this class too, onto <code>RasterLock.try_run()</code> instead of its
+own hand-rolled acquire/retry/release — <code>_mpl_compat.py</code>'s docstring notes
+this is literally the pattern <code>try_run()</code> was generalized <em>from</em>.</p>
+<h3 id="other-lock-guarded-call-sites">Other lock-guarded call sites</h3>
+<ul>
+<li><code>FlowCanvas._copy_to_clipboard()</code> / <code>_on_download_plot()</code> — <code>savefig()</code>
+  triggers a full Agg rasterization pass and must hold the lock the same as
+  <code>paintEvent()</code>/<code>draw()</code>, via a plain <code>with MPL_RASTER_LOCK:</code> block (these
+  are one-shot synchronous user actions, not retry-on-contention paths, so
+  blocking acquire is fine here).</li>
+<li><code>RenderTask.run()</code> (§9) — holds the lock around figure creation, <code>draw()</code>,
+  and buffer extraction, but <em>not</em> around <code>compute()</code>.</li>
+<li><code>GateLayerRenderer.render()</code> (§6) — see the note above about not using
+  <code>try_run()</code>.</li>
+</ul>
+<hr />
+<h2 id="9-rendertask-background-subplotthumbnail-rendering">9. <code>RenderTask</code> — background subplot/thumbnail rendering</h2>
+<p><code>ui/graph/render_task.py</code>. An <code>AnalysisBase</code> (not a bare <code>QRunnable</code>) that
+renders a plot to an in-memory RGBA buffer for thumbnails, node-graph
+previews, and group comparisons — using the exact same <code>DisplayStrategy</code>
+instances as the main canvas, for pixel parity.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="o">...</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="c1"># compute() runs OUTSIDE the lock — expensive density/KDE work isn't</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="c1"># serialized against other concurrent renders.</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">render_data</span> <span class="o">=</span> <span class="n">strategy</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">x_vis</span><span class="p">,</span> <span class="n">y_vis</span><span class="p">,</span> <span class="n">xlim</span><span class="o">=</span><span class="n">xlim</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="n">ylim</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="k">with</span> <span class="n">_MPL_LOCK</span><span class="p">:</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>        <span class="n">fig</span> <span class="o">=</span> <span class="n">Figure</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>        <span class="n">canvas</span> <span class="o">=</span> <span class="n">FigureCanvasAgg</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_axes</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="o">...</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>        <span class="n">strategy</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">render_data</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>     <span class="c1"># only this needs the lock</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"gates"</span><span class="p">):</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>            <span class="c1"># GateOverlayRenderer, same code path as the main canvas,</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>            <span class="c1"># thinner lines (linewidth=0.6 vs 2.5) for subplot scale</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>            <span class="o">...</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>        <span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>        <span class="n">image_data</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">canvas</span><span class="o">.</span><span class="n">buffer_rgba</span><span class="p">())</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">"image_data"</span><span class="p">:</span> <span class="n">image_data</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="o">...</span><span class="p">,</span> <span class="s2">"height"</span><span class="p">:</span> <span class="o">...</span><span class="p">}</span>
+</span></code></pre></div>
+<p><code>4c11ead</code> moved the <code>compute()</code> call above the <code>with _MPL_LOCK:</code> block — a
+direct consequence of the <code>DisplayStrategy</code> split (§5): before that commit,
+<code>RenderTask</code> called the old fused <code>render()</code>, so the whole thing —
+computation included — ran inside the lock, serializing thumbnail density
+computation across every concurrent thumbnail render.</p>
+<hr />
+<h2 id="10-decomposed-flowcanvas-collaborators">10. Decomposed <code>FlowCanvas</code> collaborators</h2>
+<p><code>FlowCanvas.__init__</code> wires up several single-responsibility helper classes
+rather than implementing everything itself:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CanvasEventHandler</code></td>
+<td><code>ui/graph/canvas/event_handler.py</code></td>
+<td>mpl mouse/keyboard event → <code>GateDrawingFSM</code> dispatch; gate hit-testing (<code>try_select_gate</code>, <code>artist_contains_point</code>); finalization callbacks the FSM calls back into (<code>finalize_drag_gate</code>, <code>finalize_polygon</code>, <code>finalize_quadrant</code>)</td>
+</tr>
+<tr>
+<td><code>AxisFormatter</code></td>
+<td><code>ui/graph/canvas/axis_formatter.py</code></td>
+<td>Biological-decade tick formatting (<code>$10^3$</code>, <code>$10^4$</code>, ...) for non-linear axes; shades the biexponential linear region</td>
+</tr>
+<tr>
+<td><code>OverlayManager</code></td>
+<td><code>ui/graph/canvas/overlay_manager.py</code></td>
+<td>Loading/empty/error states and the on-canvas drawing-instruction text (<code>"Click and drag to draw a rectangle"</code>, etc.)</td>
+</tr>
+<tr>
+<td><code>ZoomHandler</code></td>
+<td><code>ui/graph/canvas/zoom_handler.py</code></td>
+<td>Scroll-wheel zoom — computes new axis bounds in <em>visual</em> (transformed) space, then converts back to raw data space via <code>inverse_transform_x/y</code> before writing to the parent's <code>AxisScale</code></td>
+</tr>
+<tr>
+<td><code>GateLayerRenderer</code></td>
+<td><code>ui/graph/canvas/gate_layer.py</code></td>
+<td>See §6</td>
+</tr>
+<tr>
+<td><code>GateDrawingFSM</code></td>
+<td><code>ui/graph/gate_drawing_fsm.py</code></td>
+<td>See §7</td>
+</tr>
+</tbody>
+</table>
+<p><code>CanvasEventHandler.try_select_gate()</code> is also where overlap and occlusion
+are resolved: <code>_gate_overlay_artists</code> is populated in the draw order
+<code>GateLayerRenderer</code> used, so later entries render on top, and a normal click
+picks <code>hits[-1]</code> (top-most); Alt+click instead cycles to the <em>next</em> hit past
+the currently-selected one, wrapping around.</p>
+<p><code>CanvasEventHandler.artist_contains_point(artist, px, py)</code> is a small but
+important hit-testing shim: <code>Patch</code> subclasses (<code>Rectangle</code>, <code>Ellipse</code>,
+<code>Polygon</code>) implement <code>contains_point((px, py))</code> directly, but <code>Line2D</code> —
+used as the overlay <code>patch</code> for <code>RangeGate</code>/<code>QuadrantGate</code>, whose visuals
+are lines rather than filled shapes — only has the generic
+<code>Artist.contains(mouseevent)</code>, which wants an object exposing pixel <code>.x</code>/<code>.y</code>
+attributes rather than a raw coordinate pair. <code>_PixelEvent</code> is that minimal
+shim.</p>
+<hr />
+<h2 id="11-graphmanager-flow_services-coordinate-mapping">11. <code>GraphManager</code>, <code>flow_services</code>, coordinate mapping</h2>
+<ul>
+<li><strong><code>GraphManager</code></strong> (<code>ui/graph/graph_manager.py</code>) — a <code>QTabWidget</code>-backed
+  container of <code>GraphWindow</code>s, one per open sample/gate combination
+  (<code>"{sample_id}:{node_id or 'root'}"</code> keyed). Forwards tool selection
+  (<code>set_drawing_mode</code>) and gate events to/from whichever <code>GraphWindow</code> is
+  active, and propagates <code>AxisScale</code> changes to other graphs viewing samples
+  in the same comparison group (<code>_on_axis_scale_sync</code>).</li>
+<li><strong><code>CoordinateMapper</code></strong> (<code>ui/graph/flow_services.py</code>) — wraps
+  <code>apply_transform</code>/<code>invert_transform</code> (see
+  <a href="../06_TRANSFORMS_AND_SCALING/">06_TRANSFORMS_AND_SCALING.md</a>) with the
+  current <code>x_scale</code>/<code>y_scale</code>, exposing <code>transform_x/y</code>,
+  <code>inverse_transform_x/y</code>, <code>transform_point</code>/<code>untransform_point</code>. Always
+  passes <code>enable_dithering=False</code> for biexponential transforms — dithering
+  is meant for the raw per-event arrays of a density plot (jitters by ±0.5
+  to avoid integer "barcode" banding); a <code>CoordinateMapper</code> computes <em>exact</em>
+  positions (axis limits, gate boundaries, click coordinates) where the same
+  input must always map to the same output.</li>
+<li><strong><code>GateFactory</code></strong> — builds <code>Gate</code> subclass instances (<code>RectangleGate</code>,
+  <code>PolygonGate</code>, <code>EllipseGate</code>, <code>QuadrantGate</code>, <code>RangeGate</code>) from
+  display-space drawing coordinates, inverse-transforming through the
+  <code>CoordinateMapper</code> to store geometry in raw data space.</li>
+<li><strong><code>GateOverlayRenderer</code></strong> — renders <code>Gate</code> → <code>OverlayArtists</code> (a
+  <code>patch</code>/<code>label_text</code>/<code>handles</code> bundle) via <code>render_gate()</code>'s dispatch
+  (<code>GateRegistry</code> lookup first, then a <code>render_&lt;type&gt;</code> method by name).
+  <code>resolve_gate_color()</code> derives a gate's color deterministically from a
+  CRC32 of its own id — stable across the main plot, group-preview
+  thumbnails, and node-graph thumbnails, regardless of which panel or list
+  position is rendering it.</li>
+</ul>
+<hr />
+<h2 id="12-node_canvas-dirty-region-tracking-cd6e5ed">12. <code>node_canvas</code> — dirty-region tracking (<code>cd6e5ed</code>)</h2>
+<p>The node-graph view (<code>ui/widgets/node_canvas/</code>) is a separate <code>QGraphicsView</code>/
+<code>QGraphicsScene</code> world from <code>FlowCanvas</code> — it shows the gate hierarchy as
+draggable <code>NodeItem</code>/<code>EdgeItem</code> boxes, not matplotlib plots. <code>cd6e5ed</code>
+migrated it onto the SDK's <code>karcytics_sdk.plugin.rendering.graphics_scene</code>
+base classes:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DirtyTrackingGraphicsScene</span><span class="p">(</span><span class="n">QGraphicsScene</span><span class="p">):</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">mark_dirty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">QGraphicsItem</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">        </span><span class="sd">"""Drop-in replacement for item.update(). Under</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="sd">        KARCYTICS_STRICT_DIRTY_TRACKING, also warns if boundingRect()</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="sd">        changed since the last mark_dirty() call for this item — an</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="sd">        imperfect but useful signal for a missing prepareGeometryChange()."""</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="o">...</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="n">item</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">DirtyTrackingGraphicsView</span><span class="p">(</span><span class="n">QGraphicsView</span><span class="p">):</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">update_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">setViewportUpdateMode</span><span class="p">(</span><span class="n">update_mode</span> <span class="ow">or</span> <span class="n">QGraphicsView</span><span class="o">.</span><span class="n">ViewportUpdateMode</span><span class="o">.</span><span class="n">MinimalViewportUpdate</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Before this commit, <code>_CanvasGraphicsView</code> (<code>ui/widgets/node_canvas/canvas_view.py</code>)
+explicitly forced <code>FullViewportUpdate</code> — every single node/edge change
+repainted the <em>entire</em> viewport, regardless of how small the actual change
+was. After: <code>_CanvasGraphicsView</code> subclasses <code>DirtyTrackingGraphicsView</code>
+(<code>MinimalViewportUpdate</code> by default), <code>NodeCanvas</code>'s scene is a
+<code>DirtyTrackingGraphicsScene</code>, and <code>CanvasManager.update_nodes()</code>/
+<code>update_edges()</code> call <code>self.scene.mark_dirty(item)</code> instead of a bare
+<code>item.update()</code>.</p>
+<h3 id="the-preparegeometrychange-bug-this-exposed">The <code>prepareGeometryChange()</code> bug this exposed</h3>
+<p><code>NodeItem.set_orientation()</code> (<code>ui/widgets/node_canvas/items/node_item.py</code>)
+mutates <code>self._orientation</code>, which <code>boundingRect()</code> depends on:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">set_orientation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orientation</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="c1"># boundingRect() depends on _orientation — must call this before</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="c1"># mutating it, or MinimalViewportUpdate can leave stale/clipped pixels</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="c1"># where the item's bounds just changed.</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">prepareGeometryChange</span><span class="p">()</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_orientation</span> <span class="o">=</span> <span class="n">orientation</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_mark_dirty</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Before <code>cd6e5ed</code>, this method mutated <code>_orientation</code> and called <code>update()</code>
+with <strong>no</strong> <code>prepareGeometryChange()</code> call. Under the old
+<code>FullViewportUpdate</code> mode this bug was invisible — every paint already
+covered the whole viewport regardless of what changed. Under
+<code>MinimalViewportUpdate</code>, Qt uses each item's <code>boundingRect()</code> to compute
+which screen region needs repainting; a geometry change that skips
+<code>prepareGeometryChange()</code> means Qt's cached bounding-rect bookkeeping is
+stale for exactly one frame, which can leave stale or clipped pixels on
+screen after an orientation toggle. The commit verified the fix with a real
+before/after <code>boundingRect()</code> check.</p>
+<div class="admonition warning">
+<p class="admonition-title">Gotcha for anyone extending <code>NodeItem</code></p>
+<p>Any method that mutates state <code>boundingRect()</code> reads from <strong>must</strong> call
+<code>self.prepareGeometryChange()</code> <em>before</em> mutating that state — not just
+call <code>update()</code>/<code>_mark_dirty()</code> after. This is a general <code>QGraphicsItem</code>
+contract (Qt needs the <em>old</em> bounds to invalidate correctly before you
+change to the <em>new</em> ones), but it was silently unenforced here as long
+as <code>FullViewportUpdate</code> was active. It no longer is. <code>EdgeItem</code> needed no
+equivalent fix — it goes through <code>QGraphicsPathItem.setPath()</code>, which
+already calls <code>prepareGeometryChange()</code> internally.</p>
+</div>
+<p><code>NodeItem._mark_dirty()</code> is the routing shim:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_mark_dirty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">scene</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scene</span><span class="p">()</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="k">if</span> <span class="n">scene</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="s2">"mark_dirty"</span><span class="p">):</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>        <span class="n">scene</span><span class="o">.</span><span class="n">mark_dirty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>   <span class="c1"># unattached (e.g. a bare NodeItem constructed in a test)</span>
+</span></code></pre></div>
+<p>The fallback exists because <code>scene()</code> is <code>None</code> until the item is actually
+added to a scene — tests that construct a standalone <code>NodeItem</code> without
+adding it anywhere still need <code>update()</code> to be a safe no-op-ish call.</p>
+<p>To turn on the boundingRect-drift warning locally:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nv">KARCYTICS_STRICT_DIRTY_TRACKING</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>pytest<span class="w"> </span>tests/ui/<span class="w"> </span>-k<span class="w"> </span>node_canvas
+</span></code></pre></div>
+<hr />
+<h2 id="13-extension-checklist">13. Extension checklist</h2>
+<p>Adding a new plot type:</p>
+<ol>
+<li>Add a <code>DisplayStrategy</code> subclass in <code>ui/graph/renderers/</code> with <code>compute()</code>
+   (pure numpy/scipy) and <code>draw()</code> (matplotlib calls) methods.</li>
+<li>Register it in <code>RenderStrategyFactory</code> (<code>renderers/factory.py</code>).</li>
+<li>Add a <code>DisplayMode</code> enum member in <code>flow_canvas.py</code> if it's a new mode
+   the UI should expose, and wire any mode-specific <code>render_config</code> kwargs
+   in <code>FlowDataComputeStage._compute_1d</code>/<code>_compute_2d</code>
+   (<code>ui/graph/canvas/data_layer.py</code>).</li>
+<li>If it needs <code>RenderTask</code> thumbnail support, confirm the <code>plot_type</code> string
+   mapping in <code>RenderTask.run()</code> resolves to your new factory key.</li>
+</ol>
+<p>Adding a new gate type: extend <code>GateFactory</code> (creation from display
+coordinates), <code>GateOverlayRenderer</code> (a <code>render_&lt;type&gt;</code> method, or a
+<code>GateRegistry</code> overlay-renderer registration), and <code>GateDrawingFSM</code> if it
+needs a new interactive drawing gesture beyond drag/click-polygon/click-point.</p>
+<p>Adding a new standalone matplotlib widget elsewhere in this plugin: subclass
+<code>LockedFigureCanvas</code> (<code>ui/graph/_mpl_compat.py</code>), not <code>FigureCanvasQTAgg</code>
+directly, so its rasterization serializes through <code>MPL_RASTER_LOCK</code> like
+everything else in the process.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

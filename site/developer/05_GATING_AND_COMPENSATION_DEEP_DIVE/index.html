@@ -1,0 +1,1910 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/05_GATING_AND_COMPENSATION_DEEP_DIVE/">
+      
+      
+        <link rel="prev" href="../04_SERVICES_AND_DEPENDENCY_INJECTION/">
+      
+      
+        <link rel="next" href="../06_TRANSFORMS_AND_SCALING/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Gating & Compensation Deep Dive - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#gating-compensation-deep-dive" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Gating & Compensation Deep Dive
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#part-1-gate-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Part 1 — Gate evaluation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Part 1 — Gate evaluation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-the-population-model-is-a-dag-not-a-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 The population model is a DAG, not a tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-wiring-a-logic-node-add_connection-remove_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Wiring a logic node: add_connection / remove_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-mask-combination-and-or-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Mask combination — AND / OR / NOT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-dagevaluatorevaluate-full-tree-batch-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 DagEvaluator.evaluate — full-tree batch evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-gatenodeapply_hierarchy-single-path-query-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 GateNode.apply_hierarchy — single-path query evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-coordinate-spaces-raw-vs-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.6 Coordinate spaces: raw vs. display
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#17-quadrant-gates-one-parent-gate-four-child-populations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.7 Quadrant gates: one parent gate, four child populations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#18-subsetgate-index-based-membership-not-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.8 SubsetGate: index-based membership, not geometry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#part-2-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Part 2 — Compensation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Part 2 — Compensation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-three-ways-a-spillover-matrix-is-obtained" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The three ways a spillover matrix is obtained
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-calculate_spillover_matrix-the-median-ratio-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 calculate_spillover_matrix — the median-ratio algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-extract_spill_from_fcs-cytometer-embedded-matrices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 extract_spill_from_fcs — cytometer-embedded matrices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-application-apply_compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Application — apply_compensation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-toggling-compensation-onoff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Toggling compensation on/off
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-distinguishing-this-from-spectral_mathpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Distinguishing this from spectral_math.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#part-1-gate-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Part 1 — Gate evaluation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Part 1 — Gate evaluation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-the-population-model-is-a-dag-not-a-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 The population model is a DAG, not a tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-wiring-a-logic-node-add_connection-remove_connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Wiring a logic node: add_connection / remove_connection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-mask-combination-and-or-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Mask combination — AND / OR / NOT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-dagevaluatorevaluate-full-tree-batch-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 DagEvaluator.evaluate — full-tree batch evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-gatenodeapply_hierarchy-single-path-query-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 GateNode.apply_hierarchy — single-path query evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#16-coordinate-spaces-raw-vs-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.6 Coordinate spaces: raw vs. display
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#17-quadrant-gates-one-parent-gate-four-child-populations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.7 Quadrant gates: one parent gate, four child populations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#18-subsetgate-index-based-membership-not-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.8 SubsetGate: index-based membership, not geometry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#part-2-compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Part 2 — Compensation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Part 2 — Compensation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-the-three-ways-a-spillover-matrix-is-obtained" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The three ways a spillover matrix is obtained
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-calculate_spillover_matrix-the-median-ratio-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 calculate_spillover_matrix — the median-ratio algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-extract_spill_from_fcs-cytometer-embedded-matrices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 extract_spill_from_fcs — cytometer-embedded matrices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-application-apply_compensation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Application — apply_compensation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-toggling-compensation-onoff" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Toggling compensation on/off
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-distinguishing-this-from-spectral_mathpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Distinguishing this from spectral_math.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="gating-compensation-deep-dive">Gating &amp; Compensation Deep Dive</h1>
+<p>This document explains <strong>how the math and data model actually work</strong>: the boolean gating DAG and its evaluation algorithm, the coordinate-space subtlety every gate's <code>contains()</code> implementation has to handle, and the compensation algorithm end to end (spillover-matrix computation, extraction, and application). It is the mechanism-level companion to <a href="../01_API_REFERENCE/">01_API_REFERENCE.md</a>, which documents the call signatures; this document explains why they work the way they do.</p>
+<hr />
+<h2 id="part-1-gate-evaluation">Part 1 — Gate evaluation</h2>
+<h3 id="11-the-population-model-is-a-dag-not-a-tree">1.1 The population model is a DAG, not a tree</h3>
+<p>Every sample owns one <code>GateNode</code> tree rooted at a sentinel "All Events" node (<code>sample.gate_tree</code>). Most populations are simple single-parent nodes — the intuitive gating hierarchy. But <code>GateNode.logic_operator</code> (<code>"AND"</code> / <code>"OR"</code> / <code>"NOT"</code>) plus <code>GateNode.parents: list[GateNode]</code> (plural) means a node can have <strong>more than one parent</strong>, making the structure a DAG, not a strict tree. This is what <code>analysis/gating/__init__.py</code>'s own docstring — "models, hierarchy, and factory" — is describing, and it's why serialization (<code>GateNode.to_dict()</code>/<code>from_dict()</code>) uses a <strong>flat node list with explicit parent-id references</strong>, not a nested JSON tree: a nested representation cannot express a node with two parents without duplicating it.</p>
+<p>Two structural flags disambiguate node roles that would otherwise be ambiguous from shape alone:</p>
+<ul>
+<li><strong><code>is_root</code></strong> (property): <code>True</code> only for the single sentinel root — <code>gate is None and not parents and not is_logic_node</code>.</li>
+<li><strong><code>is_logic_node</code></strong> (field): <code>True</code> for AND/OR/NOT nodes. Needed because a <strong>freshly created, unwired</strong> logic node also has <code>gate is None</code> and <code>parents == []</code> — structurally indistinguishable from the root without this explicit flag. <code>GateNode.is_root</code> checks <code>not self.is_logic_node</code> specifically to avoid this collision.</li>
+<li><strong><code>is_incomplete</code></strong> (property): <code>True</code> for a logic node that doesn't yet have enough <em>real</em> (non-root) parents wired in to be evaluated — <code>&lt; 1</code> for <code>NOT</code>, <code>&lt; LOGIC_GATE_MIN_PARENTS</code> (2) for <code>AND</code>/<code>OR</code>. Always <code>False</code> for non-logic nodes.</li>
+</ul>
+<pre class="mermaid"><code>graph TD
+    ROOT["Root: All Events&lt;br/&gt;(is_root=True)"]
+    LY["Lymphocytes&lt;br/&gt;RectangleGate"]
+    CD3["CD3+&lt;br/&gt;RectangleGate"]
+    CD4["CD4+&lt;br/&gt;RectangleGate"]
+    CD8["CD8+&lt;br/&gt;RectangleGate"]
+    LOGIC["AND&lt;br/&gt;(is_logic_node=True)&lt;br/&gt;parents=[CD4, CD8]"]
+    DP["Double Positive&lt;br/&gt;(no own gate — inherits AND's mask)"]
+
+    ROOT --&gt; LY --&gt; CD3
+    CD3 --&gt; CD4
+    CD3 --&gt; CD8
+    CD4 -.wired.-&gt; LOGIC
+    CD8 -.wired.-&gt; LOGIC
+    LOGIC --&gt; DP</code></pre>
+<h3 id="12-wiring-a-logic-node-add_connection-remove_connection">1.2 Wiring a logic node: <code>add_connection</code> / <code>remove_connection</code></h3>
+<p><code>add_logic_node(sample_id, operator, name=None)</code> (<code>GateMutationService</code>) creates a <code>GateNode</code> with <strong>no parents</strong> and does <em>not</em> attach it as a child of root in the normal sense — the comment in the source is explicit about why: attaching it directly to root and then hiding the root→logic edge in the canvas caused an "orphaned visual" bug. Instead the node is appended to <code>sample.gate_tree.children</code> (so <code>find_node_by_id</code> and the stats walker can still discover it) while its <code>.parents</code> list stays empty until the user drags real gate nodes onto it via <code>add_connection</code>.</p>
+<p><code>add_connection(sample_id, source_node_id, target_node_id)</code>:</p>
+<ol>
+<li>Rejects if either node is missing.</li>
+<li>Rejects wiring <strong>into the root</strong> (<code>target is sample.gate_tree</code>).</li>
+<li>Rejects if it would create a <strong>cycle</strong> (<code>target.find_node_by_id(source_node_id)</code> — if the source is reachable <em>below</em> the target, wiring source→target would loop).</li>
+<li>Adds the edge both ways (<code>target.parents.append(source)</code>, <code>source.children.append(target)</code>).</li>
+<li>Once the logic node has <strong>more than one</strong> real parent, the root sentinel is dropped from its <code>parents</code> list (it may have been added by <code>remove_connection</code>'s "reattach to root" fallback below) — but the node stays in <code>root.children</code> regardless, since that list is what the stats walker uses to discover reachable logic nodes; only the <em>visual</em> root→logic edge is suppressed, and only in the canvas layer.</li>
+<li>If the node is now fully wired (<code>not target.is_incomplete</code>), triggers <code>coordinator.recompute_all_stats(sample_id)</code> and publishes <code>GATE_STATS_UPDATED</code>. If still under-wired, it publishes the raw topic string <code>"flow.pipeline.connection_added"</code> instead — a cheap "just draw the wire" signal that deliberately skips the expensive full recompute + canvas refresh.</li>
+</ol>
+<p><code>remove_connection</code> is the inverse: unwires both directions, and if the target is left with <strong>zero</strong> parents, re-parents it onto the root sentinel (so it doesn't become unreachable) — guarding against double-appending it to <code>root.children</code> if it's already there. If removal leaves the node <code>is_incomplete</code> and it's a logic node, its statistics are explicitly zeroed (<code>count=0, pct_parent=0.0, pct_total=0.0, per_parent_pcts={}</code>) rather than left stale.</p>
+<h3 id="13-mask-combination-and-or-not">1.3 Mask combination — <code>AND</code> / <code>OR</code> / <code>NOT</code></h3>
+<p>Both <code>DagEvaluator._combine_parent_masks</code> (batch tree evaluation) and <code>GateNode._combine_parent_masks</code> (single-node query, used by <code>apply_hierarchy</code>) implement the <strong>same</strong> algorithm independently — they are not shared code, so a change to one must be mirrored in the other:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span> <span class="n">logic_operator</span> <span class="o">==</span> <span class="s2">"AND"</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">mask</span> <span class="o">=</span> <span class="n">parent_masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="k">for</span> <span class="n">pm</span> <span class="ow">in</span> <span class="n">parent_masks</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">pm</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">elif</span> <span class="n">logic_operator</span> <span class="o">==</span> <span class="s2">"OR"</span><span class="p">:</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">mask</span> <span class="o">=</span> <span class="n">parent_masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="k">for</span> <span class="n">pm</span> <span class="ow">in</span> <span class="n">parent_masks</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">mask</span> <span class="o">|=</span> <span class="n">pm</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">elif</span> <span class="n">logic_operator</span> <span class="o">==</span> <span class="s2">"NOT"</span><span class="p">:</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parent_masks</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">parent_masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="n">parent_masks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="k">for</span> <span class="n">pm</span> <span class="ow">in</span> <span class="n">parent_masks</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>            <span class="n">mask</span> <span class="o">&amp;=</span> <span class="o">~</span><span class="n">pm</span>            <span class="c1"># NOT with &gt;1 parent = AND NOT of every parent</span>
+</span></code></pre></div>
+<p>For a <strong>non-logic</strong> node (<code>logic_operator</code> is irrelevant — a normal gate has exactly one parent in practice), <code>_combine_parent_masks</code> with a single parent mask just returns that parent's mask unchanged for <code>AND</code>/<code>OR</code> regardless of operator, since there's nothing to combine it with.</p>
+<p>A node with <strong>zero parents</strong> (the root, or a not-yet-wired logic node) is handled specially, not through the operator switch: <code>_combine_parent_masks</code> short-circuits to <code>np.ones(total_count, dtype=bool)</code> when <code>not node.parents</code> — this is correct for the sentinel root ("all events pass") but would be <strong>wrong</strong> for an incomplete logic node ("no events should pass because there's no valid population yet"). That's exactly why <code>is_incomplete</code> exists as a <strong>prior check</strong> in both <code>DagEvaluator._combine_parent_masks</code> and <code>GateNode._get_mask</code>: an incomplete logic node returns <code>np.zeros(total_count, dtype=bool)</code> <em>before</em> the parent-count check ever runs.</p>
+<h3 id="14-dagevaluatorevaluate-full-tree-batch-evaluation">1.4 <code>DagEvaluator.evaluate</code> — full-tree batch evaluation</h3>
+<p><code>analysis/compute/dag_evaluator.py</code>'s <code>DagEvaluator.evaluate(root, events) -&gt; dict[node_id, NodeStatistics]</code> is the engine behind <code>GateCoordinator.recompute_all_stats</code> (via <code>StatisticsAnalysis</code>). It's a textbook <strong>Kahn's-algorithm topological sort</strong>, adapted to compute masks and statistics in the same pass:</p>
+<pre class="mermaid"><code>flowchart TD
+    A["_collect_nodes(root): DFS collect all reachable nodes"] --&gt; B["in_degrees[node] = len(node.parents)"]
+    B --&gt; C["ready = [nodes with in_degree == 0]"]
+    C --&gt; D{"ready queue empty?"}
+    D -- no --&gt; E["pop node from ready"]
+    E --&gt; F["mask = _combine_parent_masks(node, evaluated_masks)"]
+    F --&gt; G["mask = _apply_gate(node, events, mask) — intersect with node's own gate, if any"]
+    G --&gt; H["record count / pct_parent / pct_total; store node.statistics"]
+    H --&gt; I["for each child: in_degree -= 1; if 0, add to ready"]
+    I --&gt; D
+    D -- yes --&gt; J["return stats_out"]</code></pre>
+<p>Key details:</p>
+<ul>
+<li><strong>In-degree = parent count</strong>, not child count — this is a forward topological sort from root down, so a node becomes "ready" once every one of its parents has already been evaluated (their masks are in <code>evaluated_masks</code>).</li>
+<li><strong><code>_apply_gate(node, events, mask, total_count)</code></strong>: if the node has no <code>gate</code> (a logic node, or the root), the incoming combined-parent mask passes through unchanged. Otherwise it evaluates <code>node.gate.contains(events[mask])</code> <strong>only on the already-masked subset</strong> (not the full event set — an efficiency detail, though <code>contains()</code>'s own vectorized cost is roughly the same either way since it's mask-shaped output that then gets scattered back with <code>full_gate_mask[mask] = subset_mask</code>). If <code>node.negated</code>, the sub-mask is inverted <strong>before</strong> being scattered back. A <code>contains()</code> exception (e.g. a missing channel) is caught and logged, degrading to an all-<code>False</code> mask for that node rather than aborting the whole tree evaluation — one broken gate doesn't take down stats for the rest of the sample.</li>
+<li><strong><code>pct_parent</code></strong> is <code>count / parent_count * 100</code>, where <code>parent_count = np.sum(mask)</code> computed <strong>before</strong> <code>_apply_gate</code> narrows it — i.e. the size of the <em>parent</em> population, not <code>total_count</code>. For a node with no parents (root), <code>parent_count</code> is <code>total_count</code>, so root's <code>pct_parent</code> is 100% by construction.</li>
+<li><strong><code>pct_total</code></strong> is always <code>count / total_count * 100</code> regardless of tree depth.</li>
+<li>Both percentages are rounded to 2 decimal places before being stored.</li>
+<li>The function has a side effect: <code>node.statistics</code> is overwritten on every visited <code>GateNode</code> in addition to the returned dict — callers that only want the dict but not the mutation need to be aware evaluate() is not read-only on the tree.</li>
+</ul>
+<h3 id="15-gatenodeapply_hierarchy-single-path-query-evaluation">1.5 <code>GateNode.apply_hierarchy</code> — single-path query evaluation</h3>
+<p><code>GateNode._get_mask(events)</code> and <code>apply_hierarchy(events) -&gt; pd.DataFrame</code> implement the same AND/OR/NOT + gate-intersection logic as <code>DagEvaluator</code>, but <strong>recursively from a single target node upward</strong> rather than as one topological batch pass — used when only one population's actual gated events are needed (e.g. <code>PopulationService.get_gated_events</code>), not a full-tree stats recompute. Because it's a plain recursive walk (not memoized across sibling calls), calling it repeatedly for many nodes in the same tree re-evaluates shared ancestors redundantly — <code>DagEvaluator.evaluate</code> is the right choice whenever more than one node's result is needed at once, which is why <code>GateCoordinator.recompute_all_stats</code> uses <code>StatisticsAnalysis</code>/<code>DagEvaluator</code> rather than looping <code>apply_hierarchy</code> per node.</p>
+<h3 id="16-coordinate-spaces-raw-vs-display">1.6 Coordinate spaces: raw vs. display</h3>
+<p>Every geometric gate (<code>RectangleGate</code>, <code>PolygonGate</code>, <code>EllipseGate</code>, <code>QuadrantGate</code>, <code>RangeGate</code>) stores its bounds in <strong>raw (untransformed) data space</strong> — the same units as the FCS file's native channel values. But the user draws and sees gates in <strong>display space</strong> — after whatever <code>AxisScale</code>/<code>TransformType</code> (<code>linear</code>, <code>log</code>, <code>biexponential</code>) is active for that channel.</p>
+<p><code>contains()</code> therefore always does the same three-step dance:</p>
+<ol>
+<li>Resolve the active <code>TransformType</code> for the axis (<code>TransformTypeResolver.resolve(scale.transform_type)</code>), and, if biexponential, gather the logicle parameters (<code>t</code>, <code>w</code>, <code>m</code>, <code>a</code>) via <code>BiexponentialParameters(scale).to_dict()</code>.</li>
+<li>Project <strong>both</strong> the raw event values <em>and</em> the gate's own raw-space geometry (bounds, vertices, center, quadrant midpoint) through <code>apply_transform(raw_array, transform_type, **kwargs)</code> into the same display space.</li>
+<li>Run the geometric containment test entirely in display space.</li>
+</ol>
+<p>This matters for two reasons a maintainer needs to keep in mind:</p>
+<ul>
+<li><strong>A gate always "moves with" axis-scale changes.</strong> If a user switches a channel from linear to biexponential, no gate coordinates are rewritten — the <em>projection</em> changes on every <code>contains()</code> call, so the visual gate boundary and the actual filtered events stay in sync automatically. There's no explicit "re-fit gates to new scale" step anywhere in the mutation services.</li>
+<li><strong>Persisted gate geometry (<code>to_dict()</code>/serialized workflows) is scale-independent.</strong> A <code>RectangleGate</code>'s <code>x_min</code>/<code>x_max</code> in a saved workflow JSON are raw values; reloading the workflow with a different active <code>AxisScale</code> for that channel would visually reposition the gate on load. In practice <code>AxisScale</code> is <em>also</em> persisted per-group (<code>Group.channel_scales</code>), so this is consistent in normal use — but it's worth knowing when debugging a "gate looks wrong after loading an old workflow" report: check whether the channel's <code>AxisScale</code> round-tripped correctly before suspecting the gate geometry itself.</li>
+</ul>
+<h3 id="17-quadrant-gates-one-parent-gate-four-child-populations">1.7 Quadrant gates: one parent gate, four child populations</h3>
+<p><code>QuadrantGate.contains()</code> always returns all-<code>True</code> — the parent geometry itself gates nothing; it only defines <code>(x_mid, y_mid)</code>. The actual per-quadrant boolean test lives in <code>get_quadrant(events, quadrant)</code>, and <code>QuadrantGate.create_nodes()</code> <strong>overrides</strong> the <code>Gate</code> base's default (create one node) to create <strong>four</strong> <code>GateNode</code>s, each wrapping a <code>QuadrantSubGate(parent, "Q1"/"Q2"/"Q3"/"Q4")</code> whose <code>contains()</code> just delegates to <code>parent.get_quadrant(events, quadrant)</code>. Quadrant boundaries are (like all other gates) computed in display space after projecting both the raw midpoint and the raw event values.</p>
+<p>Because all four sub-gates share the same underlying <code>QuadrantGate</code> instance (<code>gate.parent</code>), moving the crosshair via <code>GateModifier.modify_gate</code> on <strong>any</strong> quadrant sub-node's <code>gate_id</code> is redirected onto <code>gate.parent</code> (see <code>GateModifier.modify_gate</code>'s explicit <code>isinstance(gate, QuadrantSubGate)</code> check) — a single mutation updates all four populations' boundaries simultaneously, with no extra fan-out logic needed.</p>
+<h3 id="18-subsetgate-index-based-membership-not-geometry">1.8 <code>SubsetGate</code>: index-based membership, not geometry</h3>
+<p><code>SubsetGate</code> is the one gate type that isn't a coordinate-space test at all — <code>contains(events)</code> is <code>events.index.isin(self.indices)</code>, i.e. <strong>DataFrame index-label membership</strong>, not a positional row test and not a geometric predicate in <code>x_param</code>/<code>y_param</code> space (both of which are dummy placeholders — <code>x_param="Subset"</code>, <code>y_param=None</code>). This exists specifically for populations produced by non-linear algorithms (UMAP clusters, HDBSCAN labels) where no 2-D boundary can express the membership. Because it keys off <code>events.index</code>, correctness depends entirely on the event DataFrame's index being stable/consistent between when the subset was computed and when <code>contains()</code> is later called against it — if a caller ever resets or re-derives the index between those two points, the subset silently stops matching the intended events.</p>
+<hr />
+<h2 id="part-2-compensation">Part 2 — Compensation</h2>
+<p><code>analysis/compensation.py</code> is the entire compensation subsystem. It correct a real physical phenomenon: fluorophores have overlapping emission spectra, so a detector assigned to one fluorophore's channel also picks up "spillover" signal from other fluorophores excited by the same lasers. Compensation is the linear-algebra correction for that overlap.</p>
+<div class="admonition note">
+<p class="admonition-title">Location</p>
+<p>This logic lives in <code>analysis/compensation.py</code>, not under <code>analysis/compute/</code> (which holds only the DAG evaluator) or <code>analysis/gating/</code> (the gate model). It has its own module because it's a fundamentally different kind of computation — spectral/linear-algebra correction of raw channel values, applied <em>before</em> any gating happens, not a boolean/geometric membership test.</p>
+</div>
+<h3 id="21-the-three-ways-a-spillover-matrix-is-obtained">2.1 The three ways a spillover matrix is obtained</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Function</th>
+<th><code>CompensationMatrix.source</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Computed from single-stain controls</td>
+<td><code>calculate_spillover_matrix(single_stains, unstained=None, fluorescence_channels=None)</code></td>
+<td><code>"computed"</code></td>
+</tr>
+<tr>
+<td>Cytometer-embedded metadata</td>
+<td><code>extract_spill_from_fcs(data: FCSData)</code></td>
+<td><code>"cytometer"</code></td>
+</tr>
+<tr>
+<td>External file</td>
+<td><code>import_matrix_from_csv(path)</code></td>
+<td><code>"imported"</code></td>
+</tr>
+</tbody>
+</table>
+<p>All three return a <code>CompensationMatrix</code> — a dataclass wrapping an <code>N×N</code> <code>np.ndarray</code> (rows = detector, columns = fluorophore) plus <code>channel_names: list[str]</code> and the <code>source</code> tag. <code>CompensationMatrix.inverse</code> is a computed property (<code>np.linalg.inv(self.matrix)</code>, recomputed on every access — not cached).</p>
+<h3 id="22-calculate_spillover_matrix-the-median-ratio-algorithm">2.2 <code>calculate_spillover_matrix</code> — the median-ratio algorithm</h3>
+<p>Implements the classic single-stain-control compensation algorithm (Roederer, 2001, cited in the module docstring):</p>
+<pre class="mermaid"><code>flowchart TD
+    A["single_stains: one FCSData per dye&lt;br/&gt;+ optional unstained control"] --&gt; B["bg[channel] = median(unstained[channel])&lt;br/&gt;(0 if no unstained control)"]
+    B --&gt; C["For each single-stain sample:&lt;br/&gt;medians[ch] = median(sample[ch]) - bg[ch]"]
+    C --&gt; D["primary_idx = argmax(medians)&lt;br/&gt;— the channel this dye stains brightest"]
+    D --&gt; E{"primary_median &lt;= 0?"}
+    E -- yes --&gt; F["Skip this sample&lt;br/&gt;(logged as warning)"]
+    E -- no --&gt; G["For every channel j:&lt;br/&gt;spillover[primary_idx, j] = max(0, medians[j]) / primary_median"]
+    G --&gt; H["Diagonal spillover[primary_idx, primary_idx] = 1.0"]
+    H --&gt; I["Repeat for next single-stain sample"]
+    I --&gt; J["Unassigned channels (no single-stain&lt;br/&gt;identified them as primary) keep&lt;br/&gt;the identity row from np.eye(n) — logged as a warning"]</code></pre>
+<p>Precisely:</p>
+<ol>
+<li>If <code>fluorescence_channels</code> is not given explicitly, it's auto-detected from the <strong>first</strong> single-stain sample via <code>_detect_fluorescence_channels</code>: every channel <strong>not</strong> starting with <code>"FSC"</code>, <code>"SSC"</code>, <code>"Time"</code>, or <code>"time"</code> is treated as a fluorescence channel. This is a naive prefix heuristic — it has no knowledge of actual detector/laser configuration.</li>
+<li>The spillover matrix starts as <code>np.eye(n)</code> (identity) — every channel begins assumed non-spilling into every other.</li>
+<li><strong>Background subtraction</strong>: if an <code>unstained</code> control is provided, its per-channel median becomes <code>bg[i]</code>; every single-stain sample's per-channel median has this subtracted before use. Without an unstained control, <code>bg</code> stays all-zero.</li>
+<li>For each single-stain sample, <code>medians[i] = median(sample[channel_i]) - bg[i]</code> is computed for every channel, then <code>primary_idx = argmax(medians)</code> — the assumption is that a single-stain control's brightest channel (after background subtraction) is the one the dye is "supposed" to be measured in.</li>
+<li>If <code>primary_median &lt;= 0</code> (the dye's own channel isn't actually positive after background subtraction — a bad/mislabeled control), the sample is <strong>skipped entirely</strong> with a warning; it contributes no row to the matrix.</li>
+<li>For every other channel <code>j</code>, the spillover ratio is <code>max(0.0, medians[j]) / primary_median</code> — negative differences (channel dimmer than its own background-subtracted baseline) are clamped to zero rather than producing a negative spillover coefficient.</li>
+<li>If two single-stain samples claim the same <code>primary_idx</code> (two controls both peak in the same channel — a data-quality problem), the second silently <strong>overwrites</strong> the first's row, with only a warning logged — there's no error raised and no averaging of the two.</li>
+<li>Any channel that never got assigned by any single-stain sample keeps its initial identity row (spillover 1.0 into itself, 0.0 elsewhere) — logged as a warning, not an error; the returned matrix is always fully populated and always invertible in the trivial case (though not necessarily <em>correct</em> for that channel).</li>
+</ol>
+<p><code>MIN_SINGLE_STAINS = 2</code> (from <code>analysis/constants.py</code>) is the hard floor — fewer than 2 single-stain samples raises <code>ValueError</code> immediately. <code>SPILLOVER_SIGNIFICANCE_THRESHOLD = 0.005</code> (0.5%) is used only to decide whether a computed ratio is worth a debug-level log line (<code>"-&gt; into {channel}: {pct}%"</code>) — it has no effect on the computed matrix itself.</p>
+<h3 id="23-extract_spill_from_fcs-cytometer-embedded-matrices">2.3 <code>extract_spill_from_fcs</code> — cytometer-embedded matrices</h3>
+<p>Many cytometers write a computed spillover matrix directly into the FCS file's TEXT segment under the <code>$SPILL</code> or <code>$SPILLOVER</code> keyword (the function also checks the un-prefixed and lowercase variants: <code>SPILLOVER</code>, <code>SPILL</code>, <code>spill</code>, <code>spillover</code>). The format is a single comma-separated string: <code>n, ch1, ch2, ..., chN, s11, s12, ..., sNN</code> — channel count, then channel names, then the matrix values in row-major order. Parsing is straightforward string-splitting and <code>reshape(n, n)</code>; a mismatch between the declared <code>n*n</code> and the actual value count is logged as a warning and returns <code>None</code> rather than raising, so a malformed keyword degrades gracefully to "no matrix found" instead of crashing sample load.</p>
+<h3 id="24-application-apply_compensation">2.4 Application — <code>apply_compensation</code></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">apply_compensation</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">FCSData</span><span class="p">,</span> <span class="n">comp</span><span class="p">:</span> <span class="n">CompensationMatrix</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</span></code></pre></div>
+<p>The compensated-event calculation is a matrix projection: <code>Compensated = Raw @ inverse(Spillover)</code>. Concretely:</p>
+<ol>
+<li>Source events: prefers <code>data.raw_events</code> (the pristine, never-compensated copy retained specifically so compensation can be toggled on/off or recomputed without re-reading the FCS file) over <code>data.events</code>, falling back only if <code>raw_events</code> is unset.</li>
+<li><code>comp is None</code> → returns the source events unchanged (a legitimate no-op call site, not an error path — e.g. <code>apply_compensation</code> is safely called even when no matrix has been set up yet).</li>
+<li><strong>Only channels present in both <code>comp.channel_names</code> and the DataFrame's columns are compensated</strong> (<code>present = [ch for ch in channels if ch in df.columns]</code>); if none match, the data is returned unchanged with a warning logged. Non-fluorescence columns (FSC, SSC, Time) are never touched — they're simply never in <code>comp.channel_names</code>, since <code>_detect_fluorescence_channels</code> excluded them when the matrix was built.</li>
+<li>The compensation submatrix for the present channels is built by indexing <code>comp.matrix[np.ix_(idx, idx)]</code> and <strong>then</strong> inverting that submatrix — explicitly <strong>not</strong> by slicing the already-inverted full matrix.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Why the submatrix must be inverted after slicing, not before</p>
+<p><code>np.linalg.inv(M)[idx, idx] != np.linalg.inv(M[idx, idx])</code> in general whenever <code>idx</code> is a strict subset of the matrix's full index range. If some channel the matrix was computed for is absent from a given sample's data (e.g. a panel that dropped one fluorophore), slicing the full inverse first would silently produce mathematically wrong compensated values for every remaining channel — not just the missing one. The code comment in <code>apply_compensation</code> calls this out explicitly as a fixed bug, not a stylistic choice: always invert the already-subsetted submatrix, never subset an already-inverted matrix.</p>
+</div>
+<ol>
+<li>The actual projection: <code>compensated = raw[present].values @ sub_matrix</code> — matrix multiplication of the <code>(n_events, n_present_channels)</code> raw block against the <code>(n_present, n_present)</code> inverted submatrix, and the result is written back into those same DataFrame columns.</li>
+</ol>
+<h3 id="25-toggling-compensation-onoff">2.5 Toggling compensation on/off</h3>
+<p>Because <code>FCSData.raw_events</code> is always retained separately from <code>FCSData.events</code>, compensation is fully reversible without re-reading the file: <code>compensation_ribbon.py._on_toggle_compensation</code> turns compensation <strong>off</strong> by simply doing <code>sample.fcs_data.events = sample.fcs_data.raw_events.copy()</code> and setting <code>is_compensated = False</code>, and turns it <strong>on</strong> by re-running <code>apply_compensation(sample.fcs_data, state.data.compensation)</code>. <code>DataLoaderService.reload_sample</code>/<code>reload_samples_batch</code> mirror this on reload: if a sample was compensated when the workflow was saved (<code>sample.is_compensated</code>) and a compensation matrix is available, compensation is silently re-applied to the freshly re-read <code>FCSData</code> before it replaces <code>sample.fcs_data</code>.</p>
+<h3 id="26-distinguishing-this-from-spectral_mathpy">2.6 Distinguishing this from <code>spectral_math.py</code></h3>
+<p><code>analysis/spectral_math.py</code> computes a <strong>different, unrelated</strong> number that is easy to confuse with spillover: a Bhattacharyya-style normalized-integral <strong>overlap percentage</strong> between two dyes' <em>published emission curves</em> (used by the Spectral Viewer and the "Learning Compensation" teaching widget). That's a theoretical estimate from spectral shape alone. <code>calculate_spillover_matrix</code> measures the <strong>empirical</strong> spillover from real single-stain event data on the instrument in use — detector gain, laser power, and filter bandpass all shift the true value away from the theoretical spectral-overlap number. The module docstring in <code>spectral_math.py</code> makes this distinction explicit; don't conflate the two when reading either module.</p>
+<h3 id="27-serialization">2.7 Serialization</h3>
+<p><code>CompensationMatrix.to_dict()</code> / <code>from_dict()</code> round-trip through <code>matrix.tolist()</code> / <code>np.array(data["matrix"])</code>, plus <code>channel_names</code> and <code>source</code>. This is what <code>WorkflowService.export_workflow</code>/<code>load_workflow</code> persists as <code>payload["compensation"]</code>, and what <code>state.data.compensation</code> (<code>ExperimentState.compensation: CompensationMatrix | None</code>) holds at runtime — there is exactly one active compensation matrix per experiment session, applied uniformly across all samples (not per-sample or per-group).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
