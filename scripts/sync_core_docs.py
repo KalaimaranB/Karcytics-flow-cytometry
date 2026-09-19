@@ -15,13 +15,13 @@ def sync():
         return
 
     install_src = core_dir / "docs" / "user" / "06_Installation.md"
-    install_dest = Path("includes") / "06_Installation.md"
+    install_dest = Path("docs") / "user" / "14_INSTALLATION.md"
     
     # In core, the images are in docs/user/image/06_Installation
     img_src = core_dir / "docs" / "user" / "image" / "06_Installation"
-    # But when rendered into flow's docs/index.md, the relative path `image/...` 
-    # looks in docs/image/
-    img_dest = Path("docs") / "image" / "06_Installation"
+    # When rendered as docs/user/14_INSTALLATION.md, relative path `image/...` 
+    # looks in docs/user/image/
+    img_dest = Path("docs") / "user" / "image" / "06_Installation"
 
     # Copy markdown
     install_dest.parent.mkdir(parents=True, exist_ok=True)

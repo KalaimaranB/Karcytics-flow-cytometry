@@ -69,6 +69,7 @@ nav:
       - "Scientific Logic": user/11_SCIENTIFIC_LOGIC.md
       - "Keyboard Shortcuts": user/12_KEYBOARD_SHORTCUTS.md
       - "Troubleshooting": user/13_TROUBLESHOOTING.md
+      - "Installation": user/14_INSTALLATION.md
   - "Developer Guide":
       - "Architecture Overview": developer/00_ARCHITECTURE_OVERVIEW.md
       - "API Reference": developer/01_API_REFERENCE.md
