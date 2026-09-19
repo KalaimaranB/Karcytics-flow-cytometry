@@ -1,0 +1,2046 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/user/13_TROUBLESHOOTING/">
+      
+      
+        <link rel="prev" href="../12_KEYBOARD_SHORTCUTS/">
+      
+      
+        <link rel="next" href="../14_INSTALLATION/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Troubleshooting - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#troubleshooting-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-loading-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Loading Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Loading Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-fcs-file-not-found-or-permission-denied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "FCS File Not Found" or "Permission Denied"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-unrecognized-fcs-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Unrecognized FCS Format"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-slowness-or-instability-with-very-large-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Slowness or instability with very large datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualization-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualization Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Visualization Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-empty-plot-or-no-events-displayed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Empty Plot" or "No Events Displayed"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-plot-rendering-is-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Plot Rendering is Slow"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-gates-not-visible-on-plot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Gates Not Visible on Plot"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gating-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gating Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gating Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-gates-not-propagating-to-other-samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Gates Not Propagating to Other Samples"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-cannot-draw-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Cannot Draw Gate"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compensation-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compensation Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compensation Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-spillover-matrix-computation-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Spillover Matrix Computation Failed"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-compensation-looks-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Compensation Looks Wrong"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistics-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Statistics Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-statistics-show-0-nan-or-blank-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Statistics show 0, NaN, or blank values
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-crashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance &amp; Crashes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance &amp; Crashes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-karcytics-crashes-or-reports-an-unexpected-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Karcytics crashes or reports an unexpected error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-loading-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Loading Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Loading Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-fcs-file-not-found-or-permission-denied" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "FCS File Not Found" or "Permission Denied"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-unrecognized-fcs-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Unrecognized FCS Format"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-slowness-or-instability-with-very-large-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Slowness or instability with very large datasets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#visualization-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualization Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Visualization Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-empty-plot-or-no-events-displayed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Empty Plot" or "No Events Displayed"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-plot-rendering-is-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Plot Rendering is Slow"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-gates-not-visible-on-plot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Gates Not Visible on Plot"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gating-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gating Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gating Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-gates-not-propagating-to-other-samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Gates Not Propagating to Other Samples"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-cannot-draw-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Cannot Draw Gate"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compensation-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compensation Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compensation Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-spillover-matrix-computation-failed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Spillover Matrix Computation Failed"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#issue-compensation-looks-wrong" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: "Compensation Looks Wrong"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#statistics-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Statistics Issues
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Statistics Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-statistics-show-0-nan-or-blank-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Statistics show 0, NaN, or blank values
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-crashes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance &amp; Crashes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance &amp; Crashes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#issue-karcytics-crashes-or-reports-an-unexpected-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issue: Karcytics crashes or reports an unexpected error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#system-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Documentation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="troubleshooting-guide">Troubleshooting Guide</h1>
+<p>Common issues, error messages, and solutions for Karcytics Flow Cytometry analysis.</p>
+<hr />
+<h2 id="data-loading-issues">Data Loading Issues</h2>
+<h3 id="issue-fcs-file-not-found-or-permission-denied">Issue: "FCS File Not Found" or "Permission Denied"</h3>
+<p><strong>Symptoms:</strong> Error when trying to open FCS file.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Verify file path is correct (no typos or moved files).</li>
+<li>Check the file isn't locked by another application (e.g. open in FlowJo).</li>
+<li>Try copying the file into your project's own <code>assets</code> folder and re-adding it from there — Karcytics offers to do this automatically the first time you add a file from outside the project (see <a href="../02_WORKSPACE/#1-importing-data">Workspace</a>).</li>
+<li>On network drives, verify the connection is active before retrying.</li>
+</ol>
+<hr />
+<h3 id="issue-unrecognized-fcs-format">Issue: "Unrecognized FCS Format"</h3>
+<p><strong>Symptoms:</strong> An error parsing the file header when loading.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Verify the file is actually FCS format (not a renamed <code>.txt</code>/<code>.csv</code>).</li>
+<li>Check the FCS version — Karcytics supports <strong>FCS 2.0, 3.0, and 3.1</strong>. Very old (1.0) or newer, less common variants may not parse correctly.</li>
+<li>Try opening the file in another tool (e.g. FlowJo) to confirm it isn't corrupted.</li>
+<li>If it still fails, contact your instrument core — the export may be non-standard.</li>
+</ol>
+<hr />
+<h3 id="issue-slowness-or-instability-with-very-large-datasets">Issue: Slowness or instability with very large datasets</h3>
+<p><strong>Symptoms:</strong> Sluggish plotting or high memory use with samples in the millions of events.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Open the sample's plot and click <strong>⚙ Settings</strong> — every render mode has a <strong>Max Events</strong> cap with quick-set buttons (e.g. 10k/50k/100k/All in Dot Plot) that limits how many events are actually drawn.</li>
+<li>Switch to the <strong>Fast Preview</strong> quick preset in the same dialog while you're actively exploring, then switch back to <strong>Standard</strong> or <strong>Publication</strong> once you've settled on a view. See <a href="../02_WORKSPACE/#4-global-rendering-settings">Global Rendering Settings</a>.</li>
+<li>Close other applications to free RAM.</li>
+<li>If problems persist on very large panels, consider gating out unneeded populations early so downstream plots and statistics run against fewer events.</li>
+</ol>
+<hr />
+<h2 id="visualization-issues">Visualization Issues</h2>
+<h3 id="issue-empty-plot-or-no-events-displayed">Issue: "Empty Plot" or "No Events Displayed"</h3>
+<p><strong>Symptoms:</strong> Canvas shows a blank plot despite data being loaded.</p>
+<p><strong>Possible Causes &amp; Solutions:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wrong axis selected</td>
+<td>Check the <strong>X:</strong> / <strong>Y:</strong> dropdowns above the plot</td>
+</tr>
+<tr>
+<td>Data out of display range</td>
+<td>Press <strong>F</strong> with the mouse over the plot to fit the view to your data</td>
+</tr>
+<tr>
+<td>Gate too restrictive</td>
+<td>Double-click a less-restrictive population (e.g. the root) in the <strong>Gating Hierarchy</strong> panel</td>
+</tr>
+<tr>
+<td>Transform mismatch</td>
+<td>Open <strong>⚙ Transforms</strong> and try a different scale (Linear, Log, Biexponential)</td>
+</tr>
+<tr>
+<td>Compensation not applied</td>
+<td>If you expect compensated data, check for the <strong>[Comp]</strong> tag on the sample in the Sample List</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="issue-plot-rendering-is-slow">Issue: "Plot Rendering is Slow"</h3>
+<p><strong>Symptoms:</strong> The plot takes a noticeable amount of time to update after a change.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Open <strong>⚙ Settings</strong> on the plot and switch to the <strong>Fast Preview</strong> quick preset, or lower <strong>Max Events</strong> and <strong>Population Detail</strong> manually.</li>
+<li>If the sample has millions of events, consider gating down to a smaller population before fine-tuning a plot.</li>
+<li>Close other applications to free CPU.</li>
+<li>Restart Karcytics if a session has been open a very long time and performance has visibly degraded.</li>
+</ol>
+<hr />
+<h3 id="issue-gates-not-visible-on-plot">Issue: "Gates Not Visible on Plot"</h3>
+<p><strong>Symptoms:</strong> You drew a gate but can't see it overlaid on the canvas.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Confirm you're looking at the same population the gate was drawn on — double-click the gate's node in the <strong>Gating Hierarchy</strong> panel to navigate to it directly.</li>
+<li>Press <strong>F</strong> with the mouse over the plot to fit the view — the gate may simply be outside the current zoom/pan.</li>
+<li>Make sure you're on the sample the gate was actually drawn on (or a group member it propagated to), not an unrelated sample.</li>
+</ol>
+<hr />
+<h2 id="gating-issues">Gating Issues</h2>
+<h3 id="issue-gates-not-propagating-to-other-samples">Issue: "Gates Not Propagating to Other Samples"</h3>
+<p><strong>Symptoms:</strong> You drew a gate on one sample, but it doesn't appear on other samples you expected.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Verify the samples are actually in the same <strong>Group</strong> — check the <strong>Groups</strong> panel, or drag the samples together into one group (see <a href="../02_WORKSPACE/#dataset-grouping">Workspace</a>).</li>
+<li>Manually push the gate to every sample in the group with <strong>📋 Copy Gates</strong> on the <strong><a href="../04_GATING/">Gating</a></strong> ribbon — this works regardless of the automatic propagation state.</li>
+<li>Remember propagation only copies a gate to samples that share the same parent population by name; a sample missing that parent population won't receive the child gate.</li>
+</ol>
+<hr />
+<h3 id="issue-cannot-draw-gate">Issue: "Cannot Draw Gate"</h3>
+<p><strong>Symptoms:</strong> Clicking a gate tool does nothing, or drawing doesn't register.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Confirm the tool is actually selected on the <strong><a href="../04_GATING/">Gating</a></strong> ribbon (Rect, Polygon, Ellipse, Quad, or Range) — the currently active tool is highlighted.</li>
+<li>Make sure you're drawing on the plot canvas itself, not on the axis labels or outside the plot area.</li>
+<li>For Polygon gates: click to place each vertex, then double-click or press <strong>Enter</strong> to close the shape — a single click-and-drag won't work the way it does for Rectangle or Ellipse.</li>
+<li>Press <strong>Esc</strong> at any time to cancel a gate you started by mistake and try again.</li>
+</ol>
+<hr />
+<h2 id="compensation-issues">Compensation Issues</h2>
+<h3 id="issue-spillover-matrix-computation-failed">Issue: "Spillover Matrix Computation Failed"</h3>
+<p><strong>Symptoms:</strong> An error, or an obviously wrong matrix, when calculating from controls.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Confirm your control samples have the correct <strong>Role</strong> assigned in the Workspace <strong>Properties Panel</strong> — each single-stain control needs <strong>Single Stain</strong>, and you need one <strong>Unstained</strong> sample as the baseline (see <a href="../02_WORKSPACE/#assigning-sample-roles">Workspace</a>).</li>
+<li>Check that each single-stain control actually shows a clear positive population in its primary detector — a weak or absent stain will produce an unreliable spillover coefficient.</li>
+<li>If a specific control looks wrong, reassign its role to <strong>Other</strong> temporarily and recompute without it to isolate the problem control.</li>
+<li>See <a href="../11_SCIENTIFIC_LOGIC/">Scientific Logic</a> for the underlying linear algebra.</li>
+</ol>
+<hr />
+<h3 id="issue-compensation-looks-wrong">Issue: "Compensation Looks Wrong"</h3>
+<p><strong>Symptoms:</strong> After applying compensation, populations look over- or under-corrected (e.g. a diagonal "smear" that should be resolved, or a population bowing the other way).</p>
+<p><strong>Possible Causes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spillover matrix computed from a weak/noisy control</td>
+<td>Recompute using a cleaner single-stain control</td>
+</tr>
+<tr>
+<td>A control is mislabeled</td>
+<td>Verify each Single Stain sample actually contains only that one dye</td>
+</tr>
+<tr>
+<td>Comparing against already-compensated data</td>
+<td>Check the sample's <strong>[Comp]</strong> tag — applying a second matrix on top of an already-compensated file will distort it</td>
+</tr>
+<tr>
+<td>Overcompensation ("bowing")</td>
+<td>Use <strong>🔄 Toggle Compensation</strong> on the <a href="../03_COMPENSATION/">Compensation</a> ribbon to compare raw vs. corrected and confirm the correction direction</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="statistics-issues">Statistics Issues</h2>
+<h3 id="issue-statistics-show-0-nan-or-blank-values">Issue: Statistics show 0, NaN, or blank values</h3>
+<p><strong>Symptoms:</strong> The Statistics results table shows unexpected values.</p>
+<p><strong>Solutions:</strong></p>
+<ol>
+<li>Check the population actually has events — select it in the <strong>Gating Hierarchy</strong> and confirm <strong>Event Count</strong> in the Properties Panel is greater than 0. A count of 0 means the gate was too restrictive (or drawn on the wrong parent).</li>
+<li>Some statistics need variance to be meaningful — <strong>CV</strong> on a population with a single repeated value, or on a very small population, can legitimately read 0 or be unstable.</li>
+<li>Make sure you clicked <strong>Compute Statistics</strong> again after changing your sample/population/statistic selection — see <a href="../06_STATISTICS/">Statistics</a>.</li>
+</ol>
+<hr />
+<h2 id="performance-crashes">Performance &amp; Crashes</h2>
+<h3 id="issue-karcytics-crashes-or-reports-an-unexpected-error">Issue: Karcytics crashes or reports an unexpected error</h3>
+<p>When the core application or a plugin hits a fatal error, Karcytics shows a <strong>"System Alert — Karcytics Diagnostic"</strong> dialog automatically, with a summary of what happened, the recent log lines, and an optional field for describing what you were doing. Click <strong>Send to Sentry</strong> to send that report directly — this is the primary way to report a bug, no separate bug tracker step needed.</p>
+<p>If you'd rather not send a report automatically, or want to gather details to share yourself:</p>
+<ul>
+<li>Open <strong>Preferences</strong> (Edit menu, or <strong>Ctrl+,</strong> / <strong>Cmd+,</strong>) → <strong>Privacy &amp; Diagnostics</strong>, which has <strong>Open Logs Folder</strong> and <strong>Copy Diagnostic Report</strong> buttons.</li>
+<li>Logs are written to <code>~/.karcytics/logs/</code> on every OS (Windows, macOS, and Linux all use the same home-directory-relative path) — <code>core.log</code> for the main application, and a per-plugin log under <code>plugin_workers/</code> for the Flow Cytometry module specifically.</li>
+<li>You can also reach out to the developer directly, or file an issue at <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry/issues">Karcytics-flow-cytometry/issues</a> for the Flow Cytometry plugin specifically.</li>
+</ul>
+<h3 id="system-requirements">System requirements</h3>
+<p>Karcytics is primarily supported on modern <strong>Windows</strong> and <strong>macOS</strong>. Linux is not currently a first-class packaged target — it can be run from source, but isn't part of the main packaged release. It requires <strong>Python 3.11 or 3.12</strong>. For more detail see the main Karcytics installation guide.</p>
+<hr />
+<h2 id="related-documentation">Related Documentation</h2>
+<ul>
+<li><strong><a href="../01_GETTING_STARTED/">Getting Started</a></strong>: Basic workflow tutorial</li>
+<li><strong><a href="../12_KEYBOARD_SHORTCUTS/">Keyboard Shortcuts</a></strong>: The real, current set of key bindings</li>
+<li><strong><a href="../11_SCIENTIFIC_LOGIC/">Scientific Logic</a></strong>: Mathematical principles behind compensation and transforms</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
