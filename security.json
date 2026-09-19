@@ -46,7 +46,7 @@
         "docs/images/fluidics_diagram.png": "4239e0341c4243f1622505d28fa961dde3a2e4969735ac370d9072fb82a0f605",
         "docs/images/spectral_overlap.png": "de02c958594243e6e68aa9909b79e4459e64e635c2b52e5ac12192fa7dff3595",
         "mkdocs.yml": "6c3116d75866a41f72b29823569d93c97be4b2381e0d424b67ce0d9475a6eca8",
-        "scripts/sync_core_docs.py": "2c1c2e8e2f12cf8b81cd98ba8e85919d26a3f4f67327c1fa079bb9b54612f547",
+        "scripts/sync_core_docs.py": "ff6ca6d17a0c77ce56b38a4d67a12319142b5560c54ba43e621ee1bc1b5d9c3a",
         "scripts/verify_security_ledger.py": "46866d8904736277f511c3447de2fd61554bae199b24a3b6420e57859aadc9a6",
         "src/karcytics_plugins/flow_cytometry/__init__.py": "1a5b7a02d3158fb86e508753dc4c93dea95fa747ff3859df1c3c7fb0946a1117",
         "src/karcytics_plugins/flow_cytometry/analysis/__init__.py": "7b778923ebdc3c478a82e75f183491a6583ce83f1e8b6b8740d8cc05a1601772",

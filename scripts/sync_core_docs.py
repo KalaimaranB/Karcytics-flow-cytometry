@@ -3,7 +3,13 @@ import shutil
 from pathlib import Path
 
 def sync():
-    core_dir = Path("../Karcytics")
+    # First check if running in CI (where we check it out to external_core)
+    core_dir = Path("external_core")
+    
+    # Fallback to local development path
+    if not core_dir.exists():
+        core_dir = Path("../Karcytics")
+        
     if not core_dir.exists():
         print(f"Warning: Core directory {core_dir.absolute()} not found. Skipping sync.")
         return
