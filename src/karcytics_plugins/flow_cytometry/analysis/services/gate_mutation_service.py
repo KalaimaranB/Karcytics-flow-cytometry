@@ -322,16 +322,9 @@ class GateMutationService:
         if node is None:
             return False
 
-        # Find all target samples in the same group(s)
-        target_ids = set()
-        for group_id in sample.group_ids:
-            group = self._state.data.experiment.groups.get(group_id)
-            if group:
-                target_ids.update(group.sample_ids)
-
-        # If no groups or standalone sample, at least update the current one
-        if not target_ids:
-            target_ids.add(sample_id)
+        target_samples = self._coordinator.propagator._find_targets(sample_id, self._state)
+        target_ids = {t.sample_id for t in target_samples}
+        target_ids.add(sample_id)
 
         renamed_any = False
         for sid in target_ids:

@@ -4,7 +4,7 @@ The **Population Analysis** tab runs UMAP (Uniform Manifold Approximation and Pr
 
 This tab has no ribbon toolbar. Every control lives in the left panel of the workspace, which mirrors the same layout pattern as Statistics and Comparisons: a fixed sidebar for configuration, and a right-hand workspace for results.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/population-analysis-overview.png — the full tab with the configuration sidebar on the left and a completed UMAP embedding plot on the right -->
+![alt text](../images/08_population_analysis/analysis_overview.png)
 
 ## 1. Configuring a run
 
@@ -15,7 +15,6 @@ This tab has no ribbon toolbar. Every control lives in the left panel of the wor
 - **Population (Gate)** — optionally restrict the analysis to a specific gated population rather than the whole sample. This is strongly recommended: running UMAP on ungated debris and dead cells distorts the projection, so gating out Live/Singlets first and running UMAP on that population gives a much cleaner map.
 - **Select Channels** — the fluorescence parameters fed into the reduction. Uncheck anything already used for gating upstream (viability dyes, scatter parameters) — they add noise rather than useful biological variance to the clustering.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/target-data-config.png — the Sample, Population (Gate), and channel checklist sections of the sidebar -->
 
 ### Run parameters
 
@@ -28,7 +27,6 @@ This tab has no ribbon toolbar. Every control lives in the left panel of the wor
 | Distance Metric | How "distance" between two cells is measured: **euclidean** (straight-line, general default), **cosine** (angle rather than magnitude — useful if absolute intensity varies due to staining artifacts), or **manhattan** (grid-like, more robust to outliers) |
 | Random Seed | Fixes the algorithm's randomness so the same data and settings reproduce the exact same layout every time — change it deliberately to see an alternative valid embedding |
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/parameter-sliders.png — the Neighbors, Min Distance, Subsample Events sliders and the Metric/Seed fields -->
 
 !!! tip "Why the layout doesn't shuffle every run"
     By default, UMAP implementations start from a randomized layout and can fracture continuous biological gradients (like a maturation trajectory) into disconnected artifacts purely from that random start. Karcytics always initializes the projection from PCA instead — this is not a user-configurable setting — so the overall orientation of the map stays stable across repeated runs and different sample sizes, and continuous gradients render as one continuous shape rather than being torn apart by chance.
@@ -39,7 +37,7 @@ Check **Run HDBSCAN Auto-Clustering** to automatically detect density-based clus
 
 Set **Min Cluster Size** to control how many cells are required before a group counts as a real cluster; smaller values find rarer populations but risk over-segmenting the data, larger values merge small groups together or label them as noise.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/hdbscan-checkbox.png — the Run HDBSCAN Auto-Clustering checkbox with Min Cluster Size control expanded -->
+![alt text](../images/08_population_analysis/hdbs_scan.png)
 
 ## 2. Running the analysis
 
@@ -49,7 +47,7 @@ Click **Run Analysis** to start. Both the projection and (if enabled) the cluste
 
 The moment you click Run Analysis, a roughly 25-second 3D animation plays automatically in the results area, illustrating what UMAP is actually doing to your data. It runs on a lightweight subset of events purely for visual clarity — it does not block or slow down the full, accurate analysis running concurrently in the background, which continues independently and takes over once both finish.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/umap-animation-frame.png — a mid-animation frame showing the rotating 3D point cloud with connecting edges -->
+![alt text](../images/08_population_analysis/animation.png)
 
 The animation moves through five phases:
 
@@ -69,15 +67,13 @@ The first results tab is a gallery of scatter plots on the same UMAP coordinates
 
 Right-click any plot to **copy the image to the clipboard** — useful for quickly dropping a figure into a slide deck or lab notebook.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/plot-gallery.png — the plot gallery grid showing the cluster ID plot and several per-marker intensity plots -->
-
 ### Interactive Map (HDBSCAN runs only)
 
 When clustering was run, a second tab lets you explore one plot at a time — switch the colouring between Auto-Cluster ID or any individual marker via the dropdown. Hover anywhere on the plot to see a small floating panel reporting the mean expression of every marker across the 50 nearest neighboring cells at that point — a quick way to probe what's biologically distinctive about a specific region without leaving the plot.
 
 You can also **draw a custom population** directly on this plot: click **Draw Custom Population**, click to place polygon vertices around a region of interest, and press Enter or double-click to close the shape. Cells inside the polygon are pulled out into their own named population (and removed from whichever auto-cluster they belonged to), letting you correct or refine HDBSCAN's boundaries by eye.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/interactive-map-hover.png — the Interactive Map tab with the hover neighborhood-stats panel visible and a drawn custom polygon population -->
+![alt text](../images/08_population_analysis/interactive_plot.png)
 
 ### Population Statistics (HDBSCAN runs only)
 
@@ -85,7 +81,7 @@ The third tab summarizes every cluster (auto-detected and custom-drawn) as a tab
 
 On the right, each cluster has a checkbox and an editable name field. Rename clusters to something biologically meaningful (e.g. "CD4 Effector Memory" instead of "Cluster 3"), then click **Create Populations** to export the checked clusters into your gating hierarchy as real gates, nested under a new **"UMAP Reduction"** parent node in the Pipeline. From there they behave like any other gate — you can compute statistics on them, or gate further within them.
 
-<!-- SCREENSHOT: docs/images/user/population-analysis/population-statistics-export.png — the Population Statistics tab with the cluster table, heatmap, and the Create Populations button -->
+![alt text](../images/08_population_analysis/export_stuff.png)
 
 !!! tip
     Exporting clusters as gates is a one-way bridge from data-driven discovery back into your structured gating strategy — it's the intended way to turn "UMAP found something interesting here" into a population you can report statistics on and compare across samples in the Statistics or Comparisons tabs.
@@ -93,5 +89,3 @@ On the right, each cluster has a checkbox and an editable name field. Rename clu
 ## 5. Run History
 
 Every completed run — its parameters, embedding, and cluster results — is saved automatically to the **History** dropdown, scoped to the specific sample and gate it was run on (running UMAP on a different population keeps a separate, parallel history). Selecting a past run restores its exact configuration in read-only form and redisplays its results, so you can compare how different neighbor/min-distance settings behaved without losing earlier work. **Delete Run** permanently removes a run from history.
-
-<!-- SCREENSHOT: docs/images/user/population-analysis/run-history-dropdown.png — the Run History dropdown with several past runs listed and one selected -->

@@ -703,8 +703,8 @@ course_1_fundamentals = Course(
                 "Your gate will be evaluated automatically once you finish drawing."
             ),
             cyto_emotion="pointing",
-            target_widget_name="FlowCanvas",
-            event_trigger="gate_created",
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
             target_widget_names=["Tool_polygon", "FlowCanvas"],
             metadata={
                 "guide_data_poly": [(8000, 38000), (248000, 34000), (248000, 500), (8000, 1000)]
@@ -901,8 +901,8 @@ course_1_fundamentals = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_range", "FlowCanvas"],
-            target_widget_name="FlowCanvas",
-            event_trigger="gate_created",
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
             metadata={"guide_range": (-1000.0, 10000.0)},
             next_step_id="c1_s27f_draw_live_gate_verify",
             stuck_hint_text=(
@@ -1111,8 +1111,8 @@ course_1_fundamentals = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_rectangle", "FlowCanvas"],
-            target_widget_name="FlowCanvas",
-            event_trigger="gate_created",
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
             metadata={"guide_rect": (2000.0, 200000.0, 500.0, 37000.0)},
             next_step_id="c1_s30h_draw_gate_verify",
             stuck_hint_text=(

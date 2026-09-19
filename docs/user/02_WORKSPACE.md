@@ -32,7 +32,7 @@ By default, newly parsed datasets are assigned the generic role of **Other**. To
    - **Full Panel**: A real, fully stained experimental sample.
    - **Other**: The default for anything that doesn't fit the roles above.
 
-<!-- SCREENSHOT: docs/images/user/workspace/role-dropdown.png — the Properties Panel with the Role dropdown open, showing all six roles -->
+![alt text](../images/02_workspace/properties.png)
 
 ### Bulk Role Assignment
 
@@ -52,7 +52,7 @@ Groups control **gate propagation**: draw a gate on one sample and, if Auto-Prop
 
 Double-clicking any sample in the **Sample List** opens it as a new tab in the center canvas — this is where the bulk of your day-to-day work happens, whether you got here from Workspace, Compensation, Gating, or Pipeline. If you already have a gate selected in the **Gating Hierarchy**, Karcytics preserves that context and opens the new sample at the same population instead of resetting you to the root.
 
-<!-- SCREENSHOT: docs/images/user/workspace/sample-plot-view.png — a freshly opened sample tab, showing the axis control bar, plot canvas, Gating Hierarchy panel on the left, and Properties Panel with Group Preview on the right -->
+![alt text](../images/02_workspace/sample.png)
 
 ### Axis controls
 
@@ -101,13 +101,13 @@ The **Gating Hierarchy** panel (left sidebar) shows the current sample's gate tr
 - Right-click a gate for **Rename Gate**, **Delete Gate**, and (when applicable) **Propagate Gate to All Groups**. The root population can't be renamed or deleted.
 - **+** / **−** buttons zoom the tree view; **Fit View** (or pressing **F** with the mouse over the tree) fits it to the window; **⊞** opens an **All Samples Overview** popup.
 
-<!-- SCREENSHOT: docs/images/user/workspace/gating-hierarchy-panel.png — the Gating Hierarchy panel with a multi-level gate tree and the right-click context menu open on a gate -->
+![alt text](../images/02_workspace/gating.png)
 
 ### Group Preview
 
 The **Group Preview** panel lives inside the **Properties Panel** on the right, below the sample's live statistics. It renders a small grid of thumbnail plots — one per other sample in the current group — so you can see a gate you're drawing land on every peer sample in real time. A sample that doesn't yet have the matching population shows "Not gated on this sample" instead of a thumbnail.
 
-<!-- SCREENSHOT: docs/images/user/workspace/group-preview-panel.png — the Group Preview panel showing a grid of sample thumbnails with a new gate visible on several of them -->
+![alt text](../images/02_workspace/group_preview.png)
 
 ## 4. Global Rendering Settings
 

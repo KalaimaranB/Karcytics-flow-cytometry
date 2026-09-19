@@ -113,6 +113,7 @@ class FlowCytometryPanel(PluginBase):
     # data_ready:  data loaded + graphs rendered — PluginLoaderManager cross-fades.
     panel_ready = pyqtSignal()
     data_ready = pyqtSignal()
+    gate_added_to_tree = pyqtSignal()
 
     def __init__(self, plugin_id: str = "flow_cytometry", parent=None) -> None:
         logger.warning("[phase1] FlowCytometryPanel.__init__: super().__init__ start")

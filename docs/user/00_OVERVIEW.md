@@ -32,7 +32,7 @@ Every screen in the module shares the same skeleton:
 
 Four tabs — **Workspace**, **Compensation**, **Gating**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other four — **Statistics**, **Spectral**, **Population Analysis**, and **Comparisons** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
 
-<!-- SCREENSHOT: docs/images/user/overview/tab-bar-overview.png — close-up of the tab bar showing all eight tab labels plus the Academy and Save Workspace buttons on the right -->
+![alt text](../images/00_overview/tabs.png)
 
 ## The eight tabs
 
@@ -72,7 +72,7 @@ Five dedicated chart types for putting populations and samples side by side: Vio
 
 Every capability described above is also taught hands-on, inside the app, by the **Academy** — three structured courses that walk you through real UI interactions with on-screen spotlighting, live checks against what you've actually done (not just "click Next"), and their own demo data so you don't need a dataset of your own to get started.
 
-<!-- SCREENSHOT: docs/images/user/overview/academy-button.png — close-up of the 🎓 Cyto Academy button in the top-right of the tab bar -->
+![alt text](../images/00_overview/academy.png)
 
 → [Academy & Guided Tutorials](./10_ACADEMY_TUTORIALS.md)
 

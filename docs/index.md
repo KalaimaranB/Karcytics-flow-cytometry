@@ -7,6 +7,10 @@ Welcome to the centralized documentation for the Karcytics Flow Cytometry module
 
 ---
 
+--8<-- "internal/06_Installation.md"
+
+---
+
 ## For Scientists & Researchers
 Comprehensive guides for data analysis workflows, visual refinement, and publication preparation, organized in the same order as the tabs across the top of the app.
 

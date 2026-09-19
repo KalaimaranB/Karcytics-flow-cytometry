@@ -525,6 +525,11 @@ class GateShapeValidator(FlowValidator):
         self.last_misnamed_node_id: str | None = None
         self.last_failed_node_id: str | None = None
         self.last_misnamed_sample_id: str | None = None
+        self.explicit_failed_node_id: str | None = None
+
+    def set_explicit_failure(self, node_id: str) -> None:
+        """Mark a gate as having explicitly failed shape validation upon creation."""
+        self.explicit_failed_node_id = node_id
 
     def validate_flow(self, app_state: FlowState) -> bool:  # noqa: PLR0912, PLR0915
         import logging
@@ -559,18 +564,16 @@ class GateShapeValidator(FlowValidator):
             found_sample_id = sample_id
 
             def check_node(node: Any, sid: str) -> bool:
-                if getattr(node, "node_id", None):
-                    if self.validate_shape(app_state, node.node_id, sid):
-                        if (
-                            self.target_name
-                            and (getattr(node, "name", "") or "").lower()
-                            != self.target_name.lower()
-                        ):
-                            misnamed_nodes.append(node)
-                        else:
-                            return True
-                    elif node.node_id == getattr(app_state.view, "current_gate_id", None):
-                        self.last_failed_node_id = node.node_id
+                if getattr(node, "node_id", None) and self.validate_shape(
+                    app_state, node.node_id, sid
+                ):
+                    if (
+                        self.target_name
+                        and (getattr(node, "name", "") or "").lower() != self.target_name.lower()
+                    ):
+                        misnamed_nodes.append(node)
+                    else:
+                        return True
                 return any(check_node(child, sid) for child in getattr(node, "children", []))
 
             success = False
@@ -593,13 +596,14 @@ class GateShapeValidator(FlowValidator):
                 return True
 
             logger.info(f"check_node finished. misnamed_nodes count: {len(misnamed_nodes)}")
-            current_gate_id = getattr(app_state.view, "current_gate_id", None)
 
-            # If the currently selected gate failed shape validation, prioritize this failure
-            # over attempting to auto-correct old, unrelated misnamed gates in the tree.
-            if self.last_failed_node_id and self.last_failed_node_id == current_gate_id:
+            # If a newly drawn gate explicitly failed shape validation, report it
+            # so the tutorial can route to the retry step.
+            if getattr(self, "explicit_failed_node_id", None):
+                self.last_failed_node_id = self.explicit_failed_node_id
+                self.explicit_failed_node_id = None
                 _TUTORIAL_STATE["last_failed_node_id"] = self.last_failed_node_id
-                return self.log_failure("Currently selected gate failed shape validation.")
+                return self.log_failure("Freshly drawn gate failed shape validation.")
 
             if misnamed_nodes:
                 import difflib
@@ -623,7 +627,10 @@ class GateShapeValidator(FlowValidator):
 
                 # Fallback to the currently selected gate
                 if not target:
-                    target = next((n for n in misnamed_nodes if n.node_id == current_gate_id), None)
+                    target = next(
+                        (n for n in misnamed_nodes if n.node_id == app_state.view.current_gate_id),
+                        None,
+                    )
 
                 # Fallback to the most recently evaluated node (deepest/last child)
                 if not target:

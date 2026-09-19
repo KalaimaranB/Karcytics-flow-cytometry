@@ -168,12 +168,15 @@ class MainPanelController:
             if validator and not validator.validate_shape(
                 tutorial_manager.app_state, node_id, sample_id
             ):
+                if hasattr(validator, "set_explicit_failure"):
+                    validator.set_explicit_failure(node_id)
                 # Validation failed! Auto-delete the gate.
                 panel._gate_coordinator.remove_population(sample_id, node_id)
                 _show_invalid_gate_flash()
                 return
 
             panel._on_gate_added(sample_id, node_id)
+            panel.gate_added_to_tree.emit()
 
         def _handle_gates_created(payload):
             """Batched counterpart of _handle_gate_created for gates that create

@@ -263,8 +263,8 @@ course_2_gating = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_rectangle", "FlowCanvas", "GroupPreviewPanel"],
-            target_widget_name="FlowCanvas",
-            event_trigger="gate_created",
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
             metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
             next_step_id="c2_s07_draw_tcell_verify",
             stuck_hint_text=(
@@ -428,8 +428,8 @@ course_2_gating = Course(
             ),
             cyto_emotion="pointing",
             target_widget_names=["Tool_range", "FlowCanvas"],
-            target_widget_name="FlowCanvas",
-            event_trigger="gate_created",
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
             metadata={"guide_range": (4000.0, 100000.0)},
             stuck_hint_text=(
                 "Still there? Click the **Range** tool, then drag starting at the red "
@@ -672,8 +672,8 @@ course_2_gating = Course(
             ),
             cyto_emotion="thinking",
             target_widget_names=["Tool_quadrant", "FlowCanvas"],
-            target_widget_name="FlowCanvas",
-            event_trigger="gate_created",
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
             metadata={"guide_quadrant": (5000.0, 5000.0)},
             next_step_id="c2_s37_draw_quadrant_verify",
             stuck_hint_text=(

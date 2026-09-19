@@ -4,7 +4,7 @@ The **Statistics** tab is a dedicated, full-screen workspace for turning your ga
 
 This tab has no ribbon toolbar above it — every control lives in the left-hand panel of the workspace itself.
 
-<!-- SCREENSHOT: docs/images/user/statistics/statistics-overview.png — the full Statistics tab, left sidebar with sample/population/stat selection and a populated results table on the right -->
+![alt text](../images/06_statistics/stats_overview.png)
 
 ## 1. Choosing what to analyze
 
@@ -53,8 +53,6 @@ If any ★-marked statistic is checked, choose the fluorescence channel it shoul
 ## 4. Computing
 
 Click **Compute Statistics** to run. The calculation happens on a background thread, so the interface stays responsive — you can keep working while a large multi-sample computation finishes. A thin progress indicator appears above the button while it runs, and the status line at the top of the results panel reports how many populations, statistics, and samples were processed once it completes.
-
-<!-- SCREENSHOT: docs/images/user/statistics/compute-in-progress.png — the Compute button area showing the progress bar while a calculation runs in the background -->
 
 ## 5. Reading the results
 

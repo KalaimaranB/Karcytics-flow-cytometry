@@ -4,13 +4,11 @@ The **Comparisons** tab is a dedicated workspace for putting multiple samples or
 
 The tab has no ribbon toolbar; every control — plot type, sample and population selection, plot-specific options — lives in the left sidebar of the workspace itself.
 
-<!-- SCREENSHOT: docs/images/user/comparisons/comparisons-overview.png — the full Comparisons tab with the sidebar controls on the left and a generated comparison plot on the right -->
+![alt text](../images/09_comparisons/comparisons_plot.png)
 
 ## 1. Choosing a plot type
 
 The **Plot Type** dropdown at the top of the sidebar selects one of five comparison views. Each plot type has its own constraints on how many samples/populations/channels it needs — the sidebar automatically adjusts (e.g. switching the sample list to single-select, or hiding the channel list) to only offer choices that plot type can actually use.
-
-<!-- SCREENSHOT: docs/images/user/comparisons/plot-type-dropdown.png — the Plot Type dropdown expanded, showing all five options -->
 
 | Plot type | What it shows | Samples | Populations | Channels |
 |---|---|---|---|---|
@@ -24,7 +22,6 @@ The **Plot Type** dropdown at the top of the sidebar selects one of five compari
 
 The shared sample/population selector works the same way as in the Statistics tab: check samples in the top list, then check populations from the **Shared Populations** (present under the same name across every checked sample) or **Sample-Specific** groups below it. For Violin and other "one population per sample" plot types, the selector switches to a per-sample radio pick instead of a checklist, since those plot types can only use one population from each sample.
 
-<!-- SCREENSHOT: docs/images/user/comparisons/sample-population-selector.png — the sample and population selector, showing the Shared/Sample-Specific grouping -->
 
 ## 3. Choosing channels
 
@@ -44,15 +41,13 @@ Each plot type has its own options panel below the channel list, swapped in auto
 
 **Pseudocolor Overlay** — X and Y axis channel pickers (typically FSC/SSC for a classic scatter view, or two fluorescence channels), a toggle for whether the base "All Events" layer renders as a density-shaded pseudocolor cloud (matching the main gating canvas) or a flat grey scatter for faster rendering on very large samples, and an opacity slider for the overlaid populations.
 
-<!-- SCREENSHOT: docs/images/user/comparisons/plot-options-panel.png — one of the plot-specific options panels, e.g. the Histogram Overlay options with Ridge layout selected -->
 
 ## 5. Generating and reading the plot
 
 Click **Generate Plot**. Rendering happens on a background thread, so a busy comparison across many samples doesn't freeze the interface — a thin progress bar appears above the results area while it works. Each sample or population gets a consistent colour from Comparisons' own palette, auto-assigned rather than manually picked, so colours stay consistent if you regenerate the same selection with different options.
 
-<!-- SCREENSHOT: docs/images/user/comparisons/side-by-side-histograms.png — a generated Histogram Overlay plot in Ridge layout comparing several populations -->
 
-<!-- SCREENSHOT: docs/images/user/comparisons/radar-chart-example.png — a generated Radar Chart comparing the immunophenotype fingerprints of two or more populations -->
+![alt text](../images/09_comparisons/radarplot.png)
 
 ## 6. Exporting
 
