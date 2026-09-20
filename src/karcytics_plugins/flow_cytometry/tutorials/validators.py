@@ -531,12 +531,28 @@ class GateShapeValidator(FlowValidator):
         """Mark a gate as having explicitly failed shape validation upon creation."""
         self.explicit_failed_node_id = node_id
 
-    def validate_flow(self, app_state: FlowState) -> bool:  # noqa: PLR0912, PLR0915
-        import logging
+    def validate_flow(self, app_state: FlowState) -> bool:
+        """Checks only the gate the user currently has selected — not every
+        gate on every sample.
 
-        logger = logging.getLogger(__name__)
-        logger.info(f"validate_flow started for target_name={self.target_name}")
+        Previously this walked the *entire* gate tree of every sample on
+        every ~2s poll tick, hunting for any node whose bounds happened to
+        match the target — expensive (grows with the whole experiment, not
+        with the tutorial), and imprecise (a coincidentally-matching node
+        left over from an earlier step could satisfy it).
 
+        `GateMutationService.add_gate()` always ends by calling
+        `GateSelectionService.select_gate()` on the node(s) it just created
+        (see gate_mutation_service.py) — so `current_gate_id`/
+        `current_sample_id` on the view already name exactly the gate the
+        user just drew, for free, via the same mechanism every other
+        selection-based validator here already relies on. No separate
+        tracking needed: just read it. For a Quadrant, `select_gate` lands
+        on one of the 4 sibling leaves, which is sufficient — they all
+        share the same parent `QuadrantGate`, so shape validation (which
+        checks the parent's threshold position, not the individual leaf)
+        gives the same answer regardless of which leaf is selected.
+        """
         try:
             self.last_misnamed_node_id = None
             self.last_failed_node_id = None
@@ -549,105 +565,44 @@ class GateShapeValidator(FlowValidator):
             _TUTORIAL_STATE["last_failed_node_id"] = None
             _TUTORIAL_STATE["last_misnamed_sample_id"] = None
 
-            sample_id = app_state.view.current_sample_id
-            if not sample_id:
-                return self.log_failure("No active sample ID in view.")
-
-            # Search the current sample first, then fall back to all samples
-            # (propagation may shift current_sample_id away from the drawing sample)
-            candidates: list[str] = [sample_id]
-            for sid in app_state.data.experiment.samples:
-                if sid != sample_id:
-                    candidates.append(sid)
-
-            misnamed_nodes = []
-            found_sample_id = sample_id
-
-            def check_node(node: Any, sid: str) -> bool:
-                if getattr(node, "node_id", None) and self.validate_shape(
-                    app_state, node.node_id, sid
-                ):
-                    if (
-                        self.target_name
-                        and (getattr(node, "name", "") or "").lower() != self.target_name.lower()
-                    ):
-                        misnamed_nodes.append(node)
-                    else:
-                        return True
-                return any(check_node(child, sid) for child in getattr(node, "children", []))
-
-            success = False
-            for sid in candidates:
-                sample = app_state.data.experiment.samples.get(sid)
-                if not sample:
-                    continue
-                logger.info(f"validate_flow checking sample {sid}")
-                misnamed_nodes.clear()
-                if check_node(sample.gate_tree, sid):
-                    logger.info(f"validate_flow succeeded on sample {sid}")
-                    success = True
-                    break
-                if misnamed_nodes:
-                    found_sample_id = sid
-                    logger.info(f"validate_flow found misnamed on sample {sid}")
-                    break
-
-            if success:
-                return True
-
-            logger.info(f"check_node finished. misnamed_nodes count: {len(misnamed_nodes)}")
-
-            # If a newly drawn gate explicitly failed shape validation, report it
-            # so the tutorial can route to the retry step.
+            # An immediate hit from `_handle_gate_created`
+            # (main_panel_controller) already knows exactly which
+            # freshly-drawn node failed shape validation — trust it over
+            # re-deriving the same answer below.
             if getattr(self, "explicit_failed_node_id", None):
                 self.last_failed_node_id = self.explicit_failed_node_id
                 self.explicit_failed_node_id = None
                 _TUTORIAL_STATE["last_failed_node_id"] = self.last_failed_node_id
                 return self.log_failure("Freshly drawn gate failed shape validation.")
 
-            if misnamed_nodes:
-                import difflib
+            sample_id = app_state.view.current_sample_id
+            node_id = app_state.view.current_gate_id
+            if not sample_id or not node_id:
+                return self.log_failure("No gate has been drawn yet.")
 
-                target = None
+            sample = app_state.data.experiment.samples.get(sample_id)
+            node = sample.gate_tree.find_node_by_id(node_id) if sample else None
+            if node is None:
+                return self.log_failure("No gate has been drawn yet.")
 
-                if self.target_name:
-                    best_ratio = 0.0
-                    best_node = None
-                    target_lower = self.target_name.lower()
-                    for n in misnamed_nodes:
-                        n_name = (getattr(n, "name", "") or "").lower()
-                        ratio = difflib.SequenceMatcher(None, target_lower, n_name).ratio()
-                        if ratio > best_ratio:
-                            best_ratio = ratio
-                            best_node = n
+            shape_ok = self.validate_shape(app_state, node_id, sample_id)
+            if not shape_ok:
+                self.last_failed_node_id = node_id
+                _TUTORIAL_STATE["last_failed_node_id"] = node_id
+                return self.log_failure("No gate matching target shape bounds/polygon found.")
 
-                    # If the user made a typo or partial match, prioritize it.
-                    if best_ratio >= 0.4 and best_node:  # noqa: PLR2004
-                        target = best_node
-
-                # Fallback to the currently selected gate
-                if not target:
-                    target = next(
-                        (n for n in misnamed_nodes if n.node_id == app_state.view.current_gate_id),
-                        None,
-                    )
-
-                # Fallback to the most recently evaluated node (deepest/last child)
-                if not target:
-                    target = misnamed_nodes[-1]
-
-                self.last_misnamed_node_id = target.node_id
-                self.last_misnamed_sample_id = found_sample_id
-                _TUTORIAL_STATE["last_misnamed_node_id"] = target.node_id
-                _TUTORIAL_STATE["last_misnamed_sample_id"] = found_sample_id
-                logger.info(
-                    f"Setting last_misnamed_node_id={self.last_misnamed_node_id} on sample={found_sample_id}"
-                )
+            if (
+                self.target_name
+                and (getattr(node, "name", "") or "").lower() != self.target_name.lower()
+            ):
+                self.last_misnamed_node_id = node_id
+                self.last_misnamed_sample_id = sample_id
+                _TUTORIAL_STATE["last_misnamed_node_id"] = node_id
+                _TUTORIAL_STATE["last_misnamed_sample_id"] = sample_id
                 return self.log_failure("Gate shape is correct but misnamed.")
 
-            if self.last_failed_node_id:
-                _TUTORIAL_STATE["last_failed_node_id"] = self.last_failed_node_id
-            return self.log_failure("No gate matching target shape bounds/polygon found.")
+            logger.info(f"validate_flow succeeded on node {node_id} (sample {sample_id})")
+            return True
         except Exception as e:
             logger.exception("Exception in validate_flow!")
             raise e

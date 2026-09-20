@@ -68,7 +68,7 @@ If Karcytics already auto-applied an embedded matrix in Step 1, every sample alr
 1. Click **📄 Extract from FCS** — this reads the `$SPILL` keyword from the first file that has one and opens a dialog showing the extracted matrix values (the diagonal is normally 1.0; off-diagonal values show how much light spills between detectors).
 2. Click **✅ Apply to All** to apply it across every sample. If it's already applied, Karcytics simply tells you the samples were skipped because they're already compensated.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/compensation-matrix-dialog.png — the extracted spillover matrix dialog, showing a grid of channel-by-channel values with a strong diagonal -->
+![alt text](../images/01_getting_started/comp_matrix.png)
 
 If none of your files carry an embedded matrix, tag your Single Stain controls with their role in Step 3 first — Karcytics uses exactly those controls to compute a spillover matrix algorithmically, the same math described in [Scientific Logic](./11_SCIENTIFIC_LOGIC.md).
 
@@ -83,11 +83,9 @@ Switch to the **Gating** tab, where the Rectangle, Polygon, Ellipse, Quadrant, a
 
 Open your **Unstained** (or otherwise dye-free) sample by double-clicking it in the Sample List — it's the best baseline because with no dyes involved, differences on the plot come down purely to physical size and complexity. The plot opens by default on **FSC-A** (Forward Scatter — roughly cell size) vs. **SSC-A** (Side Scatter — roughly internal complexity).
 
-<!-- SCREENSHOT: docs/images/user/getting-started/fsc-ssc-plot.png — the FSC-A vs SSC-A pseudocolor plot on an unstained sample, showing a dense oval cell cluster and a smaller debris cloud near the origin -->
-
 Select the **Polygon** tool, click around the main cell cluster to trace it (excluding the debris cloud, usually near the bottom-left corner), double-click to close the shape, and name it something like **Cells** when prompted.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/cells-gate-drawn.png — the polygon "Cells" gate outlined on the FSC-A/SSC-A plot, now appearing as a new node in the Gating Hierarchy panel -->
+![alt text](../images/01_getting_started/cell_gate.png)
 
 Once it's drawn, it appears immediately in the **Gating Hierarchy** panel on the left, and — because Auto-Propagate is on by default — it's copied to every other sample in the same group in the background.
 
@@ -97,7 +95,7 @@ If you have a viability dye (e.g. a single-stain propidium iodide/PI control), o
 
 Two things happen automatically: Karcytics opens the sample directly at your **Cells** population (it always preserves your gating context between samples), and the axis switches itself to **Biexponential** — because compensated fluorescence data can legitimately dip slightly negative, and only a biexponential (Logicle) scale displays that correctly.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/viability-biexponential-plot.png — a viability-channel histogram/plot on Biexponential scale, showing a dim (live) population and a brighter (dead) population -->
+![alt text](../images/01_getting_started/live_cell_check.png)
 
 !!! tip "Seeing a clipped edge?"
     By default the plot trims the extreme 0.1% of outliers so a stray spike doesn't blow out your scale. If a population looks cut off at the edge, open **⚙ Transforms** and set **Outliers** to **0%** to see the full tail.
@@ -108,13 +106,12 @@ Select the **Range** tool and drag across the dim (live) population to capture i
 
 For any lineage marker you want to gate on, open its matching **FMO Control** first — since it contains every dye except that one, any signal it shows in that marker's channel is pure background, not staining.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/fmo-background-plot.png — the FMO control sample plotted with the marker channel on X, showing a dense negative cluster and a faint autofluorescence tail with no real positive population -->
+![alt text](../images/01_getting_started/fmo_check.png)
 
 Draw a gate (typically **Rectangle** or **Range**) that starts just past that background tail — since this sample has zero real signal for the marker, everything in view genuinely *is* background, so you can set the boundary with confidence before ever looking at a stained sample. Watch the **Group Preview** panel (bottom-right of the Properties Panel) as you draw — it live-previews the same gate landing on every other sample in the group.
 
 Then open a real stained sample to confirm: the exact same boundary should now separate the negative cluster from a clear positive population.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/group-preview-panel.png — the Group Preview panel showing small thumbnail plots of several other samples, each with the new gate already drawn on them -->
 
 !!! note "The axes won't jump around on you"
     The first time you pick a channel for an axis, Karcytics calculates the zoom once and then locks it for that channel across every sample in the group. That's deliberate — it means switching between controls and real samples never re-zooms or jumps the view out from under you.
@@ -123,7 +120,7 @@ Then open a real stained sample to confirm: the exact same boundary should now s
 
 With any gate selected in the Gating Hierarchy, the **Properties Panel** on the right shows its live statistics: **Event Count**, **% Parent** (share of its immediate parent population), and **% Total** (share of the whole tube), updating instantly as you refine the gate shape.
 
-<!-- SCREENSHOT: docs/images/user/getting-started/properties-panel-stats.png — the Properties Panel showing event count, % Parent, and % Total for a selected gate -->
+![alt text](../images/01_getting_started/gate_stats.png)
 
 For a broader view across every sample and population at once, see the [Statistics guide](./06_STATISTICS.md).
 
@@ -133,8 +130,6 @@ Once you have a gating hierarchy you're happy with, click the **Save Workspace**
 
 - The first time you save, a small dialog asks for a name (and optional description) for the workflow.
 - After that, the same button updates your saved workflow in place — it visually indicates when you have unsaved changes, so you always know whether it's safe to close the workspace.
-
-<!-- SCREENSHOT: docs/images/user/getting-started/save-workspace-dialog.png — the Save Workspace naming dialog with a workflow name entered -->
 
 Your saved workflow — every sample, group, role, compensation matrix, and gate — can be reopened later from your Karcytics project, exactly as you left it.
 

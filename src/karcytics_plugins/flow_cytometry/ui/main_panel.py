@@ -120,6 +120,12 @@ class FlowCytometryPanel(PluginBase):
         super().__init__(plugin_id, parent)
         logger.warning("[phase1] FlowCytometryPanel.__init__: super().__init__ done")
 
+        # Academy InteractionSteps (course1/course2 gate steps) target this
+        # panel by objectName to wire up gate_added_to_tree — without this,
+        # AcademyStepDriver's findChildren lookup finds nothing and those
+        # steps never auto-advance.
+        self.setObjectName("MainPanel")
+
         # ── State ─────────────────────────────────────────────────────
         self.state = FlowState()
         self._propagation_active = True  # matches PropagationToggle default (ON)
@@ -648,8 +654,17 @@ class FlowCytometryPanel(PluginBase):
             )
 
             if not ok or not typed_name.strip():
-                # User canceled or entered blank name; abort creation.
-                self._gating_ribbon.reset_to_select()
+                # User canceled (Escape/Cancel) or entered a blank name; abort
+                # creation but leave the drawing tool exactly as it was — do
+                # NOT reset to "select" here. Escape is QInputDialog's own
+                # cancel shortcut, so a user who backs out of just the naming
+                # step (e.g. to redraw the shape) would otherwise have their
+                # tool silently deselected with no visual cue. Any further
+                # canvas clicks would then be interpreted as gate *selection*
+                # instead of drawing, so nothing ever gets created again —
+                # which, for an Academy step waiting on a gate being drawn,
+                # looks exactly like the tutorial "not recognizing" a
+                # perfectly good redraw when the user tries again.
                 return
             name = typed_name.strip()
 
