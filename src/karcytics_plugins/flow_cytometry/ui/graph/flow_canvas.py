@@ -125,6 +125,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     render_requested = pyqtSignal()  # Emitted on context menu "Render"
     quality_mode_changed = pyqtSignal(str)  # "optimized" or "transparent"
     gate_preview_emitted = pyqtSignal(object)  # Temporary gate object
+    drawing_cancelled = pyqtSignal()  # Emitted when user cancels drawing via Esc
 
     def __init__(  # noqa: PLR0913, PLR0915
         self,
@@ -574,6 +575,14 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         else:
             self.setCursor(_Qt.CursorShape.CrossCursor)
             self._show_instruction(mode)
+            # Grab keyboard focus so Escape reaches keyPressEvent right away.
+            # Every other tool's first "cancelable" moment is a click/drag,
+            # which transfers focus to the canvas as a side effect. Quadrant
+            # has no such moment — it finalizes on mouse *press* with no
+            # drag — so its only in-progress phase is the crosshair preview
+            # *before* any click, when focus would otherwise still be on
+            # whichever ribbon button the user just clicked.
+            self.setFocus()
 
     def set_gates(self, gates: list[Gate], gate_nodes: list[GateNode] | None = None) -> None:
         """Set the gates to render as overlays.

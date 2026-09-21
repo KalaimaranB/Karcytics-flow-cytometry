@@ -20,7 +20,7 @@ import pytest
 from karcytics_sdk.plugin.tutorial_models import InteractionStep, VerificationStep
 
 from karcytics_plugins.flow_cytometry.analysis.gating.polygon import PolygonGate
-from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate
+from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate, QuadrantSubGate
 from karcytics_plugins.flow_cytometry.analysis.gating.range import RangeGate
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
 from karcytics_plugins.flow_cytometry.tutorials import course1, course2
@@ -38,7 +38,17 @@ def _gate_matching_guide(metadata: dict):
         )
     if "guide_quadrant" in metadata:
         x_mid, y_mid = metadata["guide_quadrant"]
-        return QuadrantGate(x_param="x", y_param="y", x_mid=x_mid, y_mid=y_mid)
+        # Wrapped in a QuadrantSubGate, matching what's actually stored as
+        # node.gate at runtime: QuadrantGate.create_nodes() only ever attaches
+        # QuadrantSubGate leaves (see quadrant.py), never the parent
+        # QuadrantGate directly, and GateMutationService.add_gate() selects
+        # one of those leaves after creation. A bare QuadrantGate here would
+        # miss GateShapeValidator's QuadrantSubGate->parent unwrap step
+        # entirely (see validators.py), which is exactly how a typo'd
+        # attribute name there (parent_gate vs parent) silently turned
+        # quadrant shape checking into a no-op that accepted any position.
+        parent = QuadrantGate(x_param="x", y_param="y", x_mid=x_mid, y_mid=y_mid)
+        return QuadrantSubGate(parent, "Q1")
     if "guide_data_poly" in metadata:
         return PolygonGate(x_param="x", y_param="y", vertices=list(metadata["guide_data_poly"]))
     return None
@@ -99,3 +109,33 @@ def test_gate_matching_the_shown_guide_box_is_accepted(case_id, metadata, valida
     # bool_ (iou >= 0.90), and numpy.bool_(True) is not the `is`-identical
     # to Python's True singleton.
     assert validator.validate_shape(app_state, node_id="node_1", sample_id="s1")
+
+
+_QUADRANT_CASES = [
+    (case_id, metadata, validator)
+    for case_id, metadata, validator in _CASES
+    if "guide_quadrant" in metadata
+]
+
+
+@pytest.mark.parametrize(
+    "case_id, metadata, validator", _QUADRANT_CASES, ids=[c[0] for c in _QUADRANT_CASES]
+)
+def test_quadrant_gate_far_from_the_guide_is_rejected(case_id, metadata, validator):  # noqa: ARG001
+    """A gate drawn to match the guide box is asserted accepted above, but that
+    alone can pass vacuously if shape checking is silently a no-op for this
+    gate type (exactly what happened when GateShapeValidator's
+    QuadrantSubGate->parent unwrap read the wrong attribute name and always
+    fell through to "skip unknown gate types" — see validators.py). This
+    checks the other direction: a quadrant crosshair placed nowhere near the
+    guide must be rejected.
+    """
+    x_mid, y_mid = metadata["guide_quadrant"]
+    far_parent = QuadrantGate(
+        x_param="x", y_param="y", x_mid=x_mid + 100000.0, y_mid=y_mid + 100000.0
+    )
+    far_gate = QuadrantSubGate(far_parent, "Q1")
+
+    app_state = _fake_app_state(far_gate)
+
+    assert not validator.validate_shape(app_state, node_id="node_1", sample_id="s1")

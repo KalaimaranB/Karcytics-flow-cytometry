@@ -228,6 +228,29 @@ class FmoRoleValidator(FlowValidator):
         return True
 
 
+class FmoOverlayValidator(FlowValidator):
+    """Verifies that the active FMO overlay is set to a specific control."""
+
+    def __init__(self, expected_fmo_name: str) -> None:
+        self.expected_fmo_name = expected_fmo_name.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        fmo_sample_id = app_state.view.active_fmo_sample_id
+        if not fmo_sample_id:
+            return self.log_failure("No FMO overlay is active.")
+
+        fmo_sample = app_state.data.experiment.samples.get(fmo_sample_id)
+        if not fmo_sample:
+            return self.log_failure(f"Active FMO sample '{fmo_sample_id}' not found in experiment.")
+
+        if self.expected_fmo_name not in fmo_sample.display_name.lower():
+            return self.log_failure(
+                f"Expected FMO containing '{self.expected_fmo_name}', but got '{fmo_sample.display_name}'."
+            )
+
+        return True
+
+
 class RoleAssignmentValidator(FlowValidator):
     """Verifies that the 4 essential roles have been assigned to at least one sample each,
     and that there are at least 3 FULL_PANEL samples (A, B, C).
@@ -667,7 +690,7 @@ class GateShapeValidator(FlowValidator):
         gate_type = type(gate).__name__
 
         if gate_type == "QuadrantSubGate":
-            gate = getattr(gate, "parent_gate", gate)
+            gate = getattr(gate, "parent", gate)
             gate_type = type(gate).__name__
 
         # Exact shape matching for Polygons via rasterization

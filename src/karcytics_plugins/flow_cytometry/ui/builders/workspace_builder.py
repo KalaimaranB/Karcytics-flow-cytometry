@@ -214,7 +214,13 @@ class WorkspaceBuilder:
         footer_line.setStyleSheet(f"background-color: {Colors.BORDER}; border: none;")
         root.addWidget(footer_line)
 
-        panel._footer = BioFooter(initial_text="Welcome to the Flow Cytometry module", parent=panel)
+        from karcytics_plugins.flow_cytometry import __version__ as _module_version
+
+        panel._footer = BioFooter(
+            initial_text="Welcome to the Flow Cytometry module",
+            copyright_text=f"Flow Cytometry (v{_module_version})  © Kalaimaran Balasothy",
+            parent=panel,
+        )
         root.addWidget(panel._footer)
 
     # ── Phase 2 — individual steps (one heavy view each) ──────────────

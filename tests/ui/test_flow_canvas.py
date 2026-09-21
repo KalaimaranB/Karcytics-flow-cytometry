@@ -274,6 +274,32 @@ class TestFlowCanvasGateDrawingStateMachine:
         assert len(canvas._fsm._polygon_vertices) == 0
 
     @pytest.mark.ui
+    def test_set_drawing_mode_grabs_focus_for_active_tools(self):
+        """Selecting a drawing tool must grab keyboard focus immediately.
+
+        Quadrant finalizes on mouse *press* (no drag), so its only
+        cancelable phase is the crosshair preview *before* any click —
+        Escape can only cancel it if the canvas already has focus at that
+        point, since a plain mouse hover never transfers focus on its own.
+        """
+        parent = None
+        canvas = FlowCanvas(parent=parent)
+        canvas.setFocus = Mock()
+
+        canvas.set_drawing_mode(GateDrawingMode.QUADRANT)
+        canvas.setFocus.assert_called_once()
+
+    @pytest.mark.ui
+    def test_set_drawing_mode_none_does_not_grab_focus(self):
+        """Switching back to the select tool shouldn't steal focus."""
+        parent = None
+        canvas = FlowCanvas(parent=parent)
+        canvas.setFocus = Mock()
+
+        canvas.set_drawing_mode(GateDrawingMode.NONE)
+        canvas.setFocus.assert_not_called()
+
+    @pytest.mark.ui
     def test_multiple_mode_transitions(self):
         """Should handle multiple mode transitions."""
         parent = None

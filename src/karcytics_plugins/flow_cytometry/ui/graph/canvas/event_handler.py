@@ -110,8 +110,15 @@ class CanvasEventHandler:
 
         if event.key() == _Qt.Key.Key_Escape:
             if canvas._drawing_mode != GateDrawingMode.NONE:
+                from ..gate_drawing_fsm import DrawingState
+
+                was_idle = getattr(canvas._fsm, "state", None) == DrawingState.IDLE
+
                 canvas._cancel_drawing()
                 canvas._render_gate_layer()
+
+                if was_idle:
+                    canvas.drawing_cancelled.emit()
 
     # ── Finalization methods (called by FSM) ──────────────────────────
 

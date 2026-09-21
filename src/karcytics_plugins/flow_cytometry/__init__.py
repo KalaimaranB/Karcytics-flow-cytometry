@@ -5,9 +5,42 @@ navigation, FMO-guided gating, adaptive gates, and reusable workflow templates.
 """
 
 import os
+from typing import Any
 
-__version__ = "0.8.0.6"
 __plugin_id__ = "flow_cytometry"
+
+
+def _read_version() -> str:
+    """Single source of truth: pyproject.toml's [project].version.
+
+    A hardcoded copy of this string lived here before and silently drifted
+    out of sync with pyproject.toml's real, CI-authoritative version (the
+    release workflow reads pyproject.toml directly to tag/name releases —
+    see .github/workflows/release.yml). Tries `importlib.metadata` first
+    (the normal path once this plugin is installed as a package), then
+    falls back to parsing pyproject.toml straight from the source tree —
+    how this plugin is actually loaded today, via a sys.path insert rather
+    than a pip install (see tests/conftest.py).
+    """
+    try:
+        from importlib.metadata import version as _pkg_version
+
+        return _pkg_version(__plugin_id__)
+    except Exception:
+        pass
+
+    try:
+        import tomllib
+        from pathlib import Path
+
+        pyproject_path = Path(__file__).resolve().parents[3] / "pyproject.toml"
+        with pyproject_path.open("rb") as f:
+            return tomllib.load(f)["project"]["version"]
+    except Exception:
+        return "0.0.0"
+
+
+__version__ = _read_version()
 
 # CRITICAL: Prevent OpenBLAS/MKL from spawning nested thread pools inside
 # Qt's QThreadPool worker threads. Worker threads have small stacks, and
@@ -31,9 +64,6 @@ os.environ["NUMEXPR_NUM_THREADS"] = "1"
 # operation ends up triggering the pyarrow call. Same "must be set before
 # the native lib initializes" constraint as the BLAS vars above.
 os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
-
-
-from typing import Any
 
 
 def register_courses(manager: Any) -> None:

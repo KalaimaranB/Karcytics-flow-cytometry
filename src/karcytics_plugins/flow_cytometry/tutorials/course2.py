@@ -35,10 +35,12 @@ from .validators import (
     AxisYChannelValidator,
     Course1StateValidator,
     ExactSampleOpenValidator,
+    FmoOverlayValidator,
     GateActiveValidator,
     GateShapeValidator,
     LearningCompensationCompleteValidator,
     PipelineOrientationValidator,
+    PlotTypeValidator,
     PopupClosedValidator,
     QuadrantPositionNamedValidator,
     SampleAndGateOpenValidator,
@@ -385,7 +387,29 @@ course_2_gating = Course(
             target_widget_names=["DisplayModeCombo"],
             event_trigger="activated",
             cyto_emotion="pointing",
-            next_step_id="c2_s16_fmo_overlay",
+            next_step_id="c2_s15_verify_histogram",
+        ),
+        VerificationStep(
+            id="c2_s15_verify_histogram",
+            text="Checking display mode...",
+            cyto_emotion="scanning",
+            allow_interaction=False,
+            hide_next_button=True,
+            validator=PlotTypeValidator("histogram"),
+            on_success_step_id="c2_s16_fmo_overlay",
+            on_fail_step_id="c2_s15_histogram_retry",
+        ),
+        InteractionStep(
+            id="c2_s15_histogram_retry",
+            text=(
+                "Oops, that's not Histogram mode!<br><br>"
+                "Make sure you select **Histogram** from the Display Mode dropdown."
+            ),
+            target_widget_name="DisplayModeCombo",
+            target_widget_names=["DisplayModeCombo"],
+            event_trigger="activated",
+            cyto_emotion="surprised",
+            next_step_id="c2_s15_verify_histogram",
         ),
         InteractionStep(
             id="c2_s16_fmo_overlay",
@@ -400,7 +424,30 @@ course_2_gating = Course(
             target_widget_names=["AxisSelectorFMO"],
             event_trigger="currentTextChanged",
             cyto_emotion="pointing",
-            next_step_id="c2_s17_threshold_info",
+            next_step_id="c2_s16_verify_fmo",
+        ),
+        VerificationStep(
+            id="c2_s16_verify_fmo",
+            text="Checking FMO selection...",
+            cyto_emotion="scanning",
+            allow_interaction=False,
+            hide_next_button=True,
+            validator=FmoOverlayValidator("fmo fitc"),
+            on_success_step_id="c2_s17_threshold_info",
+            on_fail_step_id="c2_s16_fmo_retry",
+        ),
+        InteractionStep(
+            id="c2_s16_fmo_retry",
+            text=(
+                "Wait, that's not the FITC FMO!<br><br>"
+                "Make sure you select **FMO FITC** from the dropdown so the "
+                "threshold line calculation matches your B220 (FITC) axis."
+            ),
+            target_widget_name="AxisSelectorFMO",
+            target_widget_names=["AxisSelectorFMO"],
+            event_trigger="currentTextChanged",
+            cyto_emotion="surprised",
+            next_step_id="c2_s16_verify_fmo",
         ),
         InfoStep(
             id="c2_s17_threshold_info",
@@ -562,6 +609,32 @@ course_2_gating = Course(
                 "Course 3."
             ),
             cyto_emotion="talking",
+            target_widget_names=["PipelineCanvas"],
+            next_step_id="c2_s27b_pipeline_thumbnails",
+        ),
+        InfoStep(
+            id="c2_s27b_pipeline_thumbnails",
+            text=(
+                "One more thing before you go — why the node plots look the way "
+                "they do 🔍<br><br>"
+                "**Leukocytes** shows CD3 vs B220 because that's the exact view "
+                "you were in when you drew **T-cells**, the first split beneath "
+                "it. **B-cells** shares that same B220 (X) axis, so its range "
+                "gate rides along too — that's the shaded band on the right.<br><br>"
+                "Notice that band is on a **pseudocolor** plot, even though you "
+                "actually drew the B-cells gate back in **Histogram** mode. Same "
+                "threshold either way — a 1D range only ever needs its one axis, "
+                "so it projects cleanly onto Leukocytes' 2D view here as a "
+                "vertical line instead of forcing a whole separate histogram "
+                "into this spot.<br><br>"
+                "**B-cells** itself, though, renders as a **histogram** — you drew "
+                "that gate as a 1D range on B220 alone, with no second axis to "
+                "fall back on. Karcytics remembers exactly how each gate was "
+                "drawn and reconstructs that same view for its node here, so "
+                "every plot in the Pipeline shows the real evidence behind it "
+                "instead of a generic icon."
+            ),
+            cyto_emotion="thinking",
             target_widget_names=["PipelineCanvas"],
             next_step_id="c2_s29_verify_gating_tab",
         ),

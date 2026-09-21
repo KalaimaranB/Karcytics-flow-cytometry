@@ -208,6 +208,14 @@ class MainPanelController:
 
             if valid_node_ids:
                 panel._on_gates_added(sample_id, valid_node_ids)
+                # _handle_gate_created (the single-node path) emits this after
+                # _on_gate_added — a quadrant gate always creates 4 nodes at
+                # once via this batched path instead, so without emitting it
+                # here too, any InteractionStep wired to event_trigger=
+                # "gate_added_to_tree" (e.g. course2.py's c2_s37_draw_quadrant)
+                # never advances: the tutorial waits forever even after a
+                # correctly-drawn quadrant.
+                panel.gate_added_to_tree.emit()
 
         _subscribe(events.GATE_CREATED, _handle_gate_created)
         _subscribe(events.GATES_CREATED, _handle_gates_created)

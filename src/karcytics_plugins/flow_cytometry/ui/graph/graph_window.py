@@ -242,6 +242,7 @@ class GraphWindow(QWidget):
         self._canvas.gate_created.connect(self._on_gate_created)
         self._canvas.gate_selected.connect(self._on_gate_selected)
         self._canvas.render_requested.connect(self._on_render_full_quality)
+        self._canvas.drawing_cancelled.connect(lambda: self.tool_change_requested.emit("select"))
 
         # ── Gate info bar ─────────────────────────────────────────────
         self._gate_info = QLabel()

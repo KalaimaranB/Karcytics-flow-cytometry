@@ -7,8 +7,9 @@ authors = [
   { name = "Kalaimaran Balasothy" },
 ]
 dependencies = [
-    "karcytics-sdk>=2.1.4",
+    "karcytics-sdk>=2.1.7",
     "msgpack>=1.0.0, <2.0.0",
+    "pyobjc-framework-cocoa>=12.2.1 ; sys_platform == 'darwin'",
     "numpy==1.26.4",
     "pandas==3.0.3",
     "matplotlib==3.11.0",

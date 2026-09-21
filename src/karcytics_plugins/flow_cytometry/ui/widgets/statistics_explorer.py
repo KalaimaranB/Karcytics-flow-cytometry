@@ -30,9 +30,11 @@ from karcytics_sdk.plugin.components import (
     SecondaryButton,
 )
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
-from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
+from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color, theme_manager
+from karcytics_sdk.plugin.worker_thread import OneShotWorkerThread
+from matplotlib.colors import LinearSegmentedColormap, to_hex
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QFont
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -110,10 +112,7 @@ _STAT_HELP = {
 _CHART_TYPES = ["Grouped Bar", "Horizontal Bar", "Heatmap"]
 
 
-class ComputeWorker(QThread):
-    finished_ok = pyqtSignal(list)
-    finished_err = pyqtSignal(str)
-
+class ComputeWorker(OneShotWorkerThread):
     def __init__(
         self,
         explorer: StatisticsExplorer,
@@ -122,23 +121,19 @@ class ComputeWorker(QThread):
         selected_stats: list[StatType],
         channel: str | None,
     ):
-        super().__init__()
+        super().__init__(explorer)
         self.explorer = explorer
         self.sample_ids = sample_ids
         self.pop_pairs = pop_pairs
         self.selected_stats = selected_stats
         self.channel = channel
 
-    def run(self):
-        try:
-            # We call the computation method on the background thread.
-            # This method ONLY reads data, so it is safe to run off the main thread.
-            results = self.explorer._compute_results(
-                self.sample_ids, self.pop_pairs, self.selected_stats, self.channel
-            )
-            self.finished_ok.emit(results)
-        except Exception as exc:
-            self.finished_err.emit(str(exc))
+    def _execute(self):
+        # We call the computation method on the background thread.
+        # This method ONLY reads data, so it is safe to run off the main thread.
+        return self.explorer._compute_results(
+            self.sample_ids, self.pop_pairs, self.selected_stats, self.channel
+        )
 
 
 class StatisticsExplorer(QWidget):
@@ -178,8 +173,14 @@ class StatisticsExplorer(QWidget):
     def _cleanup(self) -> None:
         """Disconnect from theme_manager so a destroyed Qt widget isn't
         invoked by a later theme change (RuntimeError: wrapped C/C++ object
-        has been deleted).
+        has been deleted), and block on any in-flight compute so its worker
+        thread can't be torn down mid-run (Qt aborts if a QThread is
+        destroyed while still running). This widget is tab-embedded, not a
+        window, so `closeEvent` never fires here -- `destroyed` (connected
+        above) is the one teardown hook Qt guarantees for it.
         """
+        if self._worker is not None:
+            self._worker.stop_and_wait()
         try:
             theme_manager.theme_changed.disconnect(self._on_theme_changed)
         except (TypeError, RuntimeError):
@@ -561,6 +562,9 @@ class StatisticsExplorer(QWidget):
     # ── Core computation ──────────────────────────────────────────────────────
 
     def _on_compute(self) -> None:
+        if self._worker is not None and self._worker.isRunning():
+            return
+
         sample_ids = self._selector.get_checked_sample_ids()
         pop_pairs = self._selector.get_checked_populations()
         selected_stats = self._get_selected_stats()
@@ -631,8 +635,10 @@ class StatisticsExplorer(QWidget):
                 f"{len(self._current_stats)} stat{'s' if len(self._current_stats) != 1 else ''} "
                 f"across {len(self._current_sample_ids)} sample{'s' if len(self._current_sample_ids) != 1 else ''}."
             )
-            # Switch to table view automatically
-            self._display_stack.setCurrentIndex(1)
+            # Switch to table view automatically, keeping the toggle buttons
+            # and chart-only controls (type/stat combos, export button) in
+            # sync with the now-active view.
+            self._set_view(0)
         except Exception as exc:
             logger.exception("UI update after stats compute failed: %s", exc)
             self._status_lbl.setText(f"❌ Error updating UI: {exc}")
@@ -962,14 +968,21 @@ class StatisticsExplorer(QWidget):
                     except (ValueError, TypeError):
                         data[p_idx, s_idx] = 0.0
 
-            im = ax.imshow(data, aspect="auto", cmap="viridis")
+            # Theme-derived sequential colormap (low -> high) instead of a fixed
+            # matplotlib colormap, so the heatmap matches the active theme.
+            heatmap_cmap = LinearSegmentedColormap.from_list(
+                "theme_heatmap", [Colors.BG_DARK, Colors.ACCENT_PRIMARY]
+            )
+            im = ax.imshow(data, aspect="auto", cmap=heatmap_cmap)
 
+            vmin, vmax = data.min(), data.max()
             # Add text annotations
             for i in range(len(pop_labels)):
                 for j in range(n_samples):
                     val = data[i, j]
-                    # If value is > 50% of max, use dark text, else light
-                    text_col = "black" if val > (data.max() * 0.6) else "white"
+                    norm_val = 0.0 if vmax <= vmin else (val - vmin) / (vmax - vmin)
+                    cell_hex = to_hex(heatmap_cmap(norm_val))
+                    text_col = get_contrast_text_color(cell_hex)
                     ax.text(
                         j,
                         i,

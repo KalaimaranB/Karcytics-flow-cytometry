@@ -169,8 +169,14 @@ class ComparisonsViewer(QWidget):
     def _cleanup(self) -> None:
         """Disconnect from theme_manager so a destroyed Qt widget isn't
         invoked by a later theme change (RuntimeError: wrapped C/C++ object
-        has been deleted).
+        has been deleted), and block on any in-flight render so its worker
+        thread can't be torn down mid-run (Qt aborts if a QThread is
+        destroyed while still running). This widget is tab-embedded, not a
+        window, so `closeEvent` never fires here -- `destroyed` (connected
+        above) is the one teardown hook Qt guarantees for it.
         """
+        if self._worker is not None:
+            self._worker.stop_and_wait()
         try:
             theme_manager.theme_changed.disconnect(self._apply_theme_styles)
         except (TypeError, RuntimeError):
@@ -261,14 +267,14 @@ class ComparisonsViewer(QWidget):
         csl.addWidget(self._channel_list)
 
         ch_btns = QHBoxLayout()
-        btn_all_ch = SecondaryButton("All")
-        btn_all_ch.setStyleSheet(_mini)
-        btn_all_ch.clicked.connect(lambda: self._check_all_list(self._channel_list, True))
-        btn_none_ch = SecondaryButton("None")
-        btn_none_ch.setStyleSheet(_mini)
-        btn_none_ch.clicked.connect(lambda: self._check_all_list(self._channel_list, False))
-        ch_btns.addWidget(btn_all_ch)
-        ch_btns.addWidget(btn_none_ch)
+        self._btn_all_ch = SecondaryButton("All")
+        self._btn_all_ch.setStyleSheet(_mini)
+        self._btn_all_ch.clicked.connect(lambda: self._check_all_list(self._channel_list, True))
+        self._btn_none_ch = SecondaryButton("None")
+        self._btn_none_ch.setStyleSheet(_mini)
+        self._btn_none_ch.clicked.connect(lambda: self._check_all_list(self._channel_list, False))
+        ch_btns.addWidget(self._btn_all_ch)
+        ch_btns.addWidget(self._btn_none_ch)
         ch_btns.addStretch()
         csl.addLayout(ch_btns)
 
@@ -422,6 +428,12 @@ class ComparisonsViewer(QWidget):
         if not multi_ch and not no_channels:
             self._enforce_single_channel_selection()
 
+        # "All"/"None" only make sense when more than one channel can be
+        # checked — hide them in single-channel mode instead of leaving a
+        # control visible that silently does nothing useful.
+        self._btn_all_ch.setVisible(multi_ch)
+        self._btn_none_ch.setVisible(multi_ch)
+
         # Apply this plot type's sample/population constraints: force a
         # single checked sample (radio) when the renderer only supports one,
         # and switch the population selector between grouped multi-select
@@ -449,9 +461,17 @@ class ComparisonsViewer(QWidget):
         pop_pairs = self._selector.get_checked_populations()
         channel_keys = self._get_checked_channels() if spec.channel_mode != ChannelMode.NONE else []
 
-        # Validate
+        # Validate. Every plot type requires at least one population
+        # (PlotTypeSpec.population_mode is always ONE_PER_SAMPLE or MULTI,
+        # never "none") — checked here generically so an empty selection
+        # can't silently fall through to a builder that treats "no
+        # population" as "All Events" (e.g. Violin) and plots that instead
+        # without telling the user nothing was actually selected.
         if not sample_ids:
             self._status_lbl.setText("⚠ No samples selected.")
+            return
+        if not pop_pairs:
+            self._status_lbl.setText("⚠ No populations selected.")
             return
 
         try:
@@ -474,7 +494,7 @@ class ComparisonsViewer(QWidget):
         )
 
         renderer = spec.renderer_cls()
-        self._worker = ComparisonsWorker(renderer, render_kwargs)
+        self._worker = ComparisonsWorker(renderer, render_kwargs, self)
         self._worker.finished_ok.connect(self._on_render_done)
         self._worker.finished_err.connect(self._on_render_error)
         self._worker.start()

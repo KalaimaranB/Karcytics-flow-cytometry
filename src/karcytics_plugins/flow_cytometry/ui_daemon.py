@@ -255,6 +255,7 @@ def main() -> None:
         window_title="Flow Cytometry",
         window_size=(1400, 900),
         plugin_id="flow_cytometry",
+        icon_path=Path(__file__).parent / "icon.png",
         on_panel_ready=_maybe_start_onboarding_handoff,
     )
 

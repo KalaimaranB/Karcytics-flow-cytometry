@@ -163,7 +163,7 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 
 ### Issue: Karcytics crashes or reports an unexpected error
 
-When the core application or a plugin hits a fatal error, Karcytics shows a **"System Alert — Karcytics Diagnostic"** dialog automatically, with a summary of what happened, the recent log lines, and an optional field for describing what you were doing. Click **Send to Sentry** to send that report directly — this is the primary way to report a bug, no separate bug tracker step needed.
+When the core application or a plugin hits a fatal error, Karcytics shows a **"System Alert — Karcytics Diagnostic"** dialog automatically, with a summary of what happened, the recent log lines, and an optional field for describing what you were doing. Click **Send to Developer** to send that report directly — this is the primary way to report a bug, no separate bug tracker step needed.
 
 If you'd rather not send a report automatically, or want to gather details to share yourself:
 

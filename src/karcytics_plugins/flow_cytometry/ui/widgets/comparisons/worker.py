@@ -8,28 +8,26 @@ from __future__ import annotations
 
 import threadpoolctl
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
-from PyQt6.QtCore import QThread, pyqtSignal
+from karcytics_sdk.plugin.worker_thread import OneShotWorkerThread
+from PyQt6.QtCore import QObject
 
 from .renderers.base import IPlotRenderer
 
 
-class ComparisonsWorker(QThread):
+class ComparisonsWorker(OneShotWorkerThread):
     """Background thread for comparison plot rendering.
 
     DIP: depends on IPlotRenderer, not on any concrete renderer class.
     The caller injects the concrete renderer instance at construction time.
     """
 
-    finished_ok = pyqtSignal(object)  # emits matplotlib.figure.Figure
-    finished_err = pyqtSignal(str)  # emits error message string
-
-    def __init__(self, renderer: IPlotRenderer, kwargs: dict) -> None:
-        super().__init__()
+    def __init__(self, renderer: IPlotRenderer, kwargs: dict, parent: QObject) -> None:
+        super().__init__(parent)
         self._renderer = renderer
         self._kwargs = kwargs
 
-    def run(self) -> None:
-        """SRP: call renderer.render() and emit result or error.
+    def _execute(self):
+        """SRP: call renderer.render() and return the resulting Figure.
 
         Renderers build matplotlib Figures and call tight_layout(), which
         invokes the Agg/FreeType C backend. That backend is not thread-safe
@@ -49,9 +47,5 @@ class ComparisonsWorker(QThread):
         usage already triggered that first — so force it explicitly here too,
         at the actual call site, rather than relying on process-wide state.
         """
-        try:
-            with threadpoolctl.threadpool_limits(1), MPL_RASTER_LOCK:
-                fig = self._renderer.render(**self._kwargs)
-            self.finished_ok.emit(fig)
-        except Exception as exc:
-            self.finished_err.emit(str(exc))
+        with threadpoolctl.threadpool_limits(1), MPL_RASTER_LOCK:
+            return self._renderer.render(**self._kwargs)

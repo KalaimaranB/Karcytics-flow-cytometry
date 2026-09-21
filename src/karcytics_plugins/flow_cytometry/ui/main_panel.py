@@ -357,6 +357,13 @@ class FlowCytometryPanel(PluginBase):
         """
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
+        # Best-effort, non-blocking: runs on a background thread and only
+        # ever shows a toast if GitHub actually has a newer release.
+        self.check_for_updates(
+            repo_url="https://github.com/KalaimaranB/Karcytics-flow-cytometry",
+            display_name="Flow Cytometry",
+        )
+
         logger.warning("[phase2] begin_async_init: scheduling queue")
         self._phase2_queue = [
             ("graph_manager", lambda: WorkspaceBuilder.build_step_graph_manager(self)),

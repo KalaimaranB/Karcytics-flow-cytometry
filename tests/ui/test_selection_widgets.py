@@ -69,36 +69,73 @@ def test_unchecking_a_sample_removes_its_populations(qtbot, two_samples_shared_a
     assert checked_sids == {"s1"}
 
 
+def _find_tree_item(tree, text_fragment: str):
+    from PyQt6.QtWidgets import QTreeWidgetItemIterator
+
+    it = QTreeWidgetItemIterator(tree)
+    while it.value():
+        item = it.value()
+        if text_fragment in item.text(0):
+            return item
+        it += 1
+    return None
+
+
 @pytest.mark.ui
-def test_single_select_mode_enforces_one_population_per_sample(
+def test_single_select_mode_defaults_to_all_events_per_sample(
     qtbot, two_samples_shared_and_specific
 ):
     widget = SampleAndPopulationSelector(multi_population=False)
     qtbot.addWidget(widget)
     widget.refresh(two_samples_shared_and_specific)
 
-    # Default: only "All Events" checked per sample.
     checked = widget.get_checked_populations()
     assert len(checked) == 2  # one per sample
     assert all(label == "All Events" for _sid, _nid, label in checked)
 
-    # Check "Lymphocytes" under s1 — should uncheck "All Events" for s1 only.
-    tree = widget.population_tree.tree
+
+@pytest.mark.ui
+def test_single_select_mode_shared_label_applies_to_every_sample(
+    qtbot, two_samples_shared_and_specific
+):
+    """Checking a shared population ("Lymphocytes", present on both samples)
+    picks it for every sample at once — the whole point of reusing the
+    grouped Shared/Sample-Specific tree for one-per-sample mode instead of
+    the old flat per-sample tree, which required clicking it under every
+    sample individually.
+    """
+    widget = SampleAndPopulationSelector(multi_population=False)
+    qtbot.addWidget(widget)
+    widget.refresh(two_samples_shared_and_specific)
+
     from PyQt6.QtCore import Qt
 
-    for i in range(tree.topLevelItemCount()):
-        sample_item = tree.topLevelItem(i)
-        if sample_item.data(0, Qt.ItemDataRole.UserRole) != "s1":
-            continue
-        for c in range(sample_item.childCount()):
-            child = sample_item.child(c)
-            if "Lymphocytes" in child.text(0):
-                child.setCheckState(0, Qt.CheckState.Checked)
+    lymph_item = _find_tree_item(widget.population_tree.tree, "Lymphocytes")
+    assert lymph_item is not None
+    lymph_item.setCheckState(0, Qt.CheckState.Checked)
 
     checked = widget.get_checked_populations()
-    s1_checked = [(nid, label) for sid, nid, label in checked if sid == "s1"]
-    s2_checked = [(nid, label) for sid, nid, label in checked if sid == "s2"]
-    assert len(s1_checked) == 1
-    assert s1_checked[0][1] == "Lymphocytes"
-    assert len(s2_checked) == 1
-    assert s2_checked[0][1] == "All Events"
+    labels_by_sid = {sid: label for sid, _nid, label in checked}
+    assert labels_by_sid == {"s1": "Lymphocytes", "s2": "Lymphocytes"}
+
+
+@pytest.mark.ui
+def test_single_select_mode_specific_label_overrides_just_that_sample(
+    qtbot, two_samples_shared_and_specific
+):
+    """Checking a sample-specific population ("Debris", only on s1) overrides
+    just s1's pick, leaving s2's ("All Events", the shared default) untouched.
+    """
+    widget = SampleAndPopulationSelector(multi_population=False)
+    qtbot.addWidget(widget)
+    widget.refresh(two_samples_shared_and_specific)
+
+    from PyQt6.QtCore import Qt
+
+    debris_item = _find_tree_item(widget.population_tree.tree, "Debris")
+    assert debris_item is not None
+    debris_item.setCheckState(0, Qt.CheckState.Checked)
+
+    checked = widget.get_checked_populations()
+    labels_by_sid = {sid: label for sid, _nid, label in checked}
+    assert labels_by_sid == {"s1": "Debris", "s2": "All Events"}

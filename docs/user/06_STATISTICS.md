@@ -15,7 +15,7 @@ The left sidebar walks top-to-bottom through everything needed for a computation
 - Check one or more **samples** — each checked sample becomes its own column group in the results table.
 - Check one or more **populations** (gates) from the tree below it. Populations are split into **Shared Populations** — gates present under the same name in every checked sample, typically the result of propagating a gating strategy across a group — and **Sample-Specific** populations, which don't line up across every checked sample. Check **All Events** to include the whole ungated sample as a row.
 
-<!-- SCREENSHOT: docs/images/user/statistics/sample-population-selector.png — the sample checklist and the Shared/Sample-Specific population tree -->
+![alt text](../images/06_statistics/population_coverage.png)
 
 !!! tip
     Selecting multiple samples and multiple populations at once builds a single combined table — you don't need to run the computation once per sample.
@@ -44,7 +44,7 @@ Every checkbox has its own help icon with guidance on when to use it — for exa
 
 Statistics marked with a **★** in the checklist need a channel to compute — you'll select that channel in the next step.
 
-<!-- SCREENSHOT: docs/images/user/statistics/stat-checklist.png — the statistics checklist with the star markers and a help tooltip open -->
+![alt text](../images/06_statistics/stats_selection.png)
 
 ## 3. Picking a channel
 
@@ -61,7 +61,7 @@ Results land in a **Table** view by default: one row per population, with each c
 - Right-click any row for a context menu to copy selected rows, copy the whole table, or export to CSV.
 - **Copy All** and **Export CSV** in the sidebar do the same for the entire table without needing to select rows first.
 
-<!-- SCREENSHOT: docs/images/user/statistics/results-table.png — a populated results table with multiple sample column groups and the colour-coded separators visible -->
+![alt text](../images/06_statistics/basic_bar.png)
 
 ### Chart view
 
@@ -73,7 +73,7 @@ Switch to **Chart** using the toggle above the results area to visualize one sta
 
 Use the stat dropdown next to the chart-type picker to choose which statistic is plotted (only statistics you actually computed are available). Export the chart to PNG or SVG with the **Export** button in the toolbar — matplotlib renders at 300 DPI, suitable for figures.
 
-<!-- SCREENSHOT: docs/images/user/statistics/chart-view-heatmap.png — the Chart view showing the Heatmap option with population rows and sample columns -->
+![alt text](../images/06_statistics/heatmap.png)
 
 !!! warning
     The chart and export actions always use the data from the last time you clicked **Compute Statistics** — if you check a new sample or population afterward without recomputing, the chart won't include it. Recompute after changing your selection.
