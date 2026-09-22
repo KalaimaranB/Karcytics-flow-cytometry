@@ -609,6 +609,13 @@ class GateDrawingFSM:
                 if len(pts) > 1:
                     xs = [p[0] for p in pts]
                     ys = [p[1] for p in pts]
+                    # Once there are enough vertices to form a polygon, also draw
+                    # the closing segment back to the first vertex so the main
+                    # plot previews the finished gate, matching the subplots
+                    # (see GroupPreviewPanel.preview_temp_gate).
+                    if len(pts) > 2:  # noqa: PLR2004
+                        xs.append(pts[0][0])
+                        ys.append(pts[0][1])
                     (line,) = ax.plot(
                         xs,
                         ys,

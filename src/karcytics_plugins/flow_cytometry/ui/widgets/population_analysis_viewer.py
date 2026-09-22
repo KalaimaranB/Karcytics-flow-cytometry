@@ -125,6 +125,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addWidget(self._algo_combo)
 
         self._sample_combo = BioComboBox()
+        self._sample_combo.setObjectName("UmapSampleCombo")
         self._sample_combo.currentIndexChanged.connect(self._on_sample_combo_changed)
         sample_layout = QHBoxLayout()
         sample_layout.addWidget(QLabel("Sample:"))
@@ -139,6 +140,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addWidget(self._sample_combo)
 
         self._gate_combo = BioComboBox()
+        self._gate_combo.setObjectName("UmapGateCombo")
         self._gate_combo.currentIndexChanged.connect(self._on_gate_combo_changed)
         gate_layout = QHBoxLayout()
         gate_layout.addWidget(QLabel("Population (Gate):"))
@@ -167,6 +169,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addLayout(channel_layout)
 
         self._channel_list = BioListWidget()
+        self._channel_list.setObjectName("UmapChannelList")
         self._channel_list.setMaximumHeight(150)
         scroll_layout.addWidget(self._channel_list)
 
@@ -180,6 +183,7 @@ class PopulationAnalysisViewer(QWidget):
         name_lbl.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-size: 11px;")
         scroll_layout.addWidget(name_lbl)
         self._run_name_input = BioLineEdit("")
+        self._run_name_input.setObjectName("UmapRunNameInput")
         self._run_name_input.setPlaceholderText("e.g., Global Overview")
         scroll_layout.addWidget(self._run_name_input)
 
@@ -206,6 +210,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addLayout(n_neigh_lbl_layout)
 
         self._n_neigh_slider = QSlider(Qt.Orientation.Horizontal)
+        self._n_neigh_slider.setObjectName("UmapNeighborsSlider")
         self._n_neigh_slider.setRange(5, 50)
         self._n_neigh_slider.setValue(15)
         self._n_neigh_slider.setToolTip(
@@ -241,6 +246,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addLayout(min_dist_lbl_layout)
 
         self._min_dist_slider = QSlider(Qt.Orientation.Horizontal)
+        self._min_dist_slider.setObjectName("UmapMinDistSlider")
         self._min_dist_slider.setRange(1, 50)  # Represents 0.01 to 0.50
         self._min_dist_slider.setValue(10)
         self._min_dist_slider.setToolTip("Lower = tighter packed islands.")
@@ -269,6 +275,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addLayout(n_events_lbl_layout)
 
         self._n_events_slider = QSlider(Qt.Orientation.Horizontal)
+        self._n_events_slider.setObjectName("UmapSubsampleSlider")
         self._n_events_slider.setRange(1, 100)
         self._n_events_slider.setValue(10)
         self._n_events_slider.setToolTip("Percentage of events to subsample. Max is all events.")
@@ -292,6 +299,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addLayout(metric_lbl_layout)
 
         self._metric_combo = BioComboBox()
+        self._metric_combo.setObjectName("UmapMetricCombo")
         self._metric_combo.addItems(["euclidean", "cosine", "manhattan"])
         scroll_layout.addWidget(self._metric_combo)
 
@@ -312,6 +320,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addLayout(seed_lbl_layout)
 
         self._seed_input = BioLineEdit("42")
+        self._seed_input.setObjectName("UmapSeedInput")
         self._seed_input.setValidator(QIntValidator(0, 999999))
         scroll_layout.addWidget(self._seed_input)
 
@@ -322,6 +331,7 @@ class PopulationAnalysisViewer(QWidget):
 
         clustering_lbl_layout = QHBoxLayout()
         self._run_hdbscan_cb = QCheckBox("Run HDBSCAN Auto-Clustering")
+        self._run_hdbscan_cb.setObjectName("UmapHdbscanCheckbox")
         self._run_hdbscan_cb.setStyleSheet(checkbox_qss())
         self._run_hdbscan_cb.setToolTip("Perform automatic density-based clustering.")
 
@@ -339,6 +349,7 @@ class PopulationAnalysisViewer(QWidget):
         min_cluster_layout = QHBoxLayout()
         min_cluster_layout.setContentsMargins(0, 0, 0, 0)
         self._min_cluster_size_box = BioSpinBox()
+        self._min_cluster_size_box.setObjectName("UmapMinClusterSizeBox")
         self._min_cluster_size_box.setRange(2, 500)
         self._min_cluster_size_box.setValue(100)
         self._min_cluster_size_box.setPrefix("Min Cluster Size: ")

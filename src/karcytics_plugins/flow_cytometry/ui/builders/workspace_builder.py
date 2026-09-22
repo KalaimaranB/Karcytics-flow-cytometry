@@ -297,6 +297,7 @@ class WorkspaceBuilder:
             gate_coordinator=panel._gate_coordinator,
             parent=panel,
         )
+        panel.state.view._population_analysis_viewer = panel._population_analysis_viewer
 
     @staticmethod
     def build_step_statistics(panel: FlowCytometryPanel) -> None:

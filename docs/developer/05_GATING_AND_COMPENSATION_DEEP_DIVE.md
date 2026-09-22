@@ -68,7 +68,7 @@ elif logic_operator == "NOT":
     else:
         mask = parent_masks[0].copy()
         for pm in parent_masks[1:]:
-            mask &= ~pm            # NOT with >1 parent = AND NOT of every parent
+            mask &= ~pm  # NOT with >1 parent = AND NOT of every parent
 ```
 
 For a **non-logic** node (`logic_operator` is irrelevant — a normal gate has exactly one parent in practice), `_combine_parent_masks` with a single parent mask just returns that parent's mask unchanged for `AND`/`OR` regardless of operator, since there's nothing to combine it with.

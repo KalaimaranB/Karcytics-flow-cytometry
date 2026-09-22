@@ -11,7 +11,7 @@ def sync():
         core_dir = Path("../Karcytics")
 
     if not core_dir.exists():
-        print(f"Warning: Core directory {core_dir.absolute()} not found. Skipping sync.")
+        print(f"Warning: Core directory {core_dir.absolute()} not found. Skipping sync.")  # noqa: T201
         return
 
     install_src = core_dir / "docs" / "user" / "06_Installation.md"
@@ -27,7 +27,7 @@ def sync():
     install_dest.parent.mkdir(parents=True, exist_ok=True)
     if install_src.exists():
         shutil.copy2(install_src, install_dest)
-        print(f"Copied {install_src} to {install_dest}")
+        print(f"Copied {install_src} to {install_dest}")  # noqa: T201
 
     # Copy images
     if img_src.exists():
@@ -35,7 +35,8 @@ def sync():
             shutil.rmtree(img_dest)
         img_dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(img_src, img_dest)
-        print(f"Copied images from {img_src} to {img_dest}")
+        print(f"Copied images from {img_src} to {img_dest}")  # noqa: T201
+
 
 if __name__ == "__main__":
     sync()

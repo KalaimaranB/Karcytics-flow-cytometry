@@ -6,7 +6,12 @@ DIP: ComparisonsViewer depends on this, not on concrete panel classes.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from PyQt6.QtWidgets import QWidget
+
+if TYPE_CHECKING:
+    from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 
 class IOptionsPanel(QWidget):
@@ -35,9 +40,22 @@ class IOptionsPanel(QWidget):
         """
         raise NotImplementedError
 
-    def populate_channels(self, channels: list[tuple[str, str]]) -> None:
+    def populate_channels(
+        self, channels: list[tuple[str, str]], sample_id: str | None = None
+    ) -> None:
         """Optional: populate channel dropdowns from (label, key) pairs.
 
-        Concrete panels that expose channel pickers should override this.
-        Default is a no-op so callers can call it unconditionally.
+        ``sample_id`` is the currently-active sample this channel list came
+        from — panels that need to pull raw data on demand (e.g. for an
+        Auto-Range button) can stash it. Concrete panels that expose channel
+        pickers should override this. Default is a no-op so callers can call
+        it unconditionally.
+        """
+
+    def bind_state(self, state: FlowState) -> None:
+        """Optional: seed initial control values from the shared FlowState.
+
+        Concrete panels that want to default to app-wide settings (e.g.
+        mirroring the workspace tab's global render config) should override
+        this. Default is a no-op so callers can call it unconditionally.
         """

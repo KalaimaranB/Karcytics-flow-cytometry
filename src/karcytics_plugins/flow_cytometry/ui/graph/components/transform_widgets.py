@@ -56,6 +56,10 @@ class AxisTransformPanel(QWidget):
         self._change_timer.setInterval(150)
         self._change_timer.timeout.connect(self.scale_changed)
 
+        self._themed_buttons: list[QPushButton] = []
+        self._section_labels: list[QLabel] = []
+        self._separators: list[QWidget] = []
+
         self._setup_ui()
         self._load_from_scale()
 
@@ -75,6 +79,7 @@ class AxisTransformPanel(QWidget):
 
         lbl_type = QLabel("Scale Type")
         lbl_type.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
+        self._section_labels.append(lbl_type)
         type_layout.addWidget(lbl_type)
 
         self._type_group = QButtonGroup(self)
@@ -106,6 +111,7 @@ class AxisTransformPanel(QWidget):
         hbox_range_header = QHBoxLayout()
         lbl_range = QLabel("Display Range")
         lbl_range.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
+        self._section_labels.append(lbl_range)
         hbox_range_header.addWidget(lbl_range)
 
         self._btn_auto = QPushButton("Auto-Range")
@@ -171,21 +177,19 @@ class AxisTransformPanel(QWidget):
 
         lbl_logicle = QLabel("Biexponential (Logicle) Parameters")
         lbl_logicle.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
+        self._section_labels.append(lbl_logicle)
         logicle_layout.addWidget(lbl_logicle)
 
         # Short explainer
-        lbl_hint = QLabel(
+        self._lbl_hint = QLabel(
             "T: instrument max value (sets positive ceiling)\n"
             "W: linearization width around 0 (compress/expand near-zero)\n"
             "M: total positive decades shown (e.g. 4.5 = up to ~10⁴·⁵)\n"
             "A: extra negative decades (0 = no negatives shown)"
         )
-        lbl_hint.setStyleSheet(
-            f"color: {Colors.FG_DISABLED}; font-size: 10px; "
-            f"background: {Colors.BG_DARKEST}; padding: 4px; border-radius: 4px;"
-        )
-        lbl_hint.setWordWrap(True)
-        logicle_layout.addWidget(lbl_hint)
+        self._style_hint_label(self._lbl_hint)
+        self._lbl_hint.setWordWrap(True)
+        logicle_layout.addWidget(self._lbl_hint)
 
         form_logicle = QFormLayout()
         form_logicle.setContentsMargins(0, 8, 0, 0)
@@ -279,6 +283,7 @@ class AxisTransformPanel(QWidget):
         sep = QWidget()
         sep.setFixedHeight(1)
         sep.setStyleSheet(f"background: {Colors.BORDER};")
+        self._separators.append(sep)
         layout.addWidget(sep)
 
     def _style_button(self, btn: QPushButton) -> None:
@@ -288,6 +293,32 @@ class AxisTransformPanel(QWidget):
             f" padding: 4px 8px; }}"
             f"QPushButton:hover {{ background: {Colors.ACCENT_PRIMARY}; color: {Colors.BG_DARKEST}; }}"
         )
+        if btn not in self._themed_buttons:
+            self._themed_buttons.append(btn)
+
+    def _style_hint_label(self, lbl: QLabel) -> None:
+        lbl.setStyleSheet(
+            f"color: {Colors.FG_DISABLED}; font-size: 10px; "
+            f"background: {Colors.BG_DARKEST}; padding: 4px; border-radius: 4px;"
+        )
+
+    # ── Theme ─────────────────────────────────────────────────────────
+
+    def _apply_theme_styles(self) -> None:
+        """Re-apply Colors-derived QSS baked in at construction time.
+
+        The workspace's TransformDialog always rebuilds this panel fresh
+        (so it's never stale), but a caller that constructs it once and
+        reuses it (e.g. the Comparisons tab's embedded copy) needs to call
+        this on every theme change to avoid frozen colors.
+        """
+        for btn in self._themed_buttons:
+            self._style_button(btn)
+        for lbl in self._section_labels:
+            lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
+        self._style_hint_label(self._lbl_hint)
+        for sep in self._separators:
+            sep.setStyleSheet(f"background: {Colors.BORDER};")
 
     # ── State Sync ────────────────────────────────────────────────────
 

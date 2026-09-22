@@ -68,7 +68,7 @@ class Gate(ABC):
             Filtered DataFrame containing only gated events.
         """
         mask = self.contains(_events)
-        return _events.loc[mask].copy()
+        return _events.loc[mask]
 
     def adapt(self, _events: pd.DataFrame) -> None:
         """Re-position the gate to fit a new dataset.

@@ -88,7 +88,7 @@ class StatisticsAnalysis(AnalysisBase):
                     mask = child.gate.contains(parent_events)
                     if child.negated:
                         mask = ~mask
-                    gated_events = parent_events[mask].copy()
+                    gated_events = parent_events[mask]
                 else:
                     # Skip pure root nodes if recursed into
                     continue

@@ -373,18 +373,13 @@ class SampleList(QWidget):
 
     def _delete_samples(self, items: list[QTreeWidgetItem]) -> None:
         """Remove the selected samples from the workspace."""
-        from PyQt6.QtWidgets import QMessageBox
+        from karcytics_sdk.plugin.dialogs import ask_yes_no
 
         count = len(items)
         msg = f"Are you sure you want to remove the selected sample{'s' if count > 1 else ''} from the workspace?\n\nThis will not delete any files from your disk."
-        reply = QMessageBox.question(
-            self,
-            "Remove Sample",
-            msg,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
+        confirmed = ask_yes_no(self, "Remove Sample", msg)
 
-        if reply == QMessageBox.StandardButton.Yes:
+        if confirmed:
             changed = False
             for item in items:
                 sample_id = item.data(0, Qt.ItemDataRole.UserRole)

@@ -223,12 +223,12 @@ Evaluates the **entire** gate DAG in one topological pass (Kahn's algorithm over
 ```python
 @dataclass
 class CompensationMatrix:
-    matrix: np.ndarray                      # N×N, rows=detector, cols=fluorophore
+    matrix: np.ndarray  # N×N, rows=detector, cols=fluorophore
     channel_names: list[str] = []
-    source: str = "computed"                # "computed" | "imported" | "cytometer"
+    source: str = "computed"  # "computed" | "imported" | "cytometer"
 
     @property
-    def inverse(self) -> np.ndarray: ...    # np.linalg.inv(self.matrix)
+    def inverse(self) -> np.ndarray: ...  # np.linalg.inv(self.matrix)
     @property
     def n_channels(self) -> int: ...
     def to_dict(self) -> dict: ...

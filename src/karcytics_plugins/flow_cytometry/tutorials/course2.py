@@ -1161,11 +1161,12 @@ course_2_gating = Course(
             id="c2_s55_course3_teaser",
             text=(
                 "Course 3 goes deeper 🔬<br><br>"
-                "In Course 3 you'll build on this result with real statistics, "
-                "chart every population across all three samples in five "
-                "different ways, and let **UMAP + HDBSCAN** independently cluster "
-                "the raw data with zero manual gating — extra rigor on top of "
-                "what you've already nailed."
+                "In Course 3 you'll hand this same gated data to **UMAP + "
+                "HDBSCAN** — letting an algorithm that has never seen your "
+                "gates independently cluster the raw data, watch it happen "
+                "live in a real, data-driven animation, and explore the "
+                "result on an Interactive Map — extra rigor on top of what "
+                "you've already nailed."
             ),
             cyto_emotion="pointing",
             next_step_id="c2_s58_outro",

@@ -218,7 +218,6 @@ class ContourConfig:
 
 
 @dataclass
-@dataclass
 class RenderConfig:
     """Global render configuration — one instance shared across all plots.
 

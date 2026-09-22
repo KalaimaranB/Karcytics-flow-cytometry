@@ -25,7 +25,14 @@ from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import (
     SampleMode,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.registry import PLOT_REGISTRY
-from karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer import ComparisonsViewer
+from karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer import Colors, ComparisonsViewer
+
+# conftest's DummyColors returns "#000000" for *any* attribute via a metaclass
+# __getattr__ fallback — that shadows CHART_COLORS's real list-of-hex-strings
+# shape in production (see test_spectral_viewer_autofill.py for the same fix),
+# so pin a real class attribute on the exact `Colors` object comparisons_viewer.py
+# itself resolved at import time before _on_generate() injects it as "palette".
+Colors.CHART_COLORS = ["#58a6ff", "#3fb950", "#d29922", "#f85149", "#a371f7", "#f778ba"]
 
 _CHANNELS = ["FSC-A", "SSC-A", "CD3", "CD4", "CD8"]
 

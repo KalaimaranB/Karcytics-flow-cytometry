@@ -1237,3 +1237,167 @@ class PopupClosedValidator(FlowValidator):
             except Exception:
                 return True
         return True
+
+
+class Course2GatingCompleteValidator(FlowValidator):
+    """Verifies Course 2's core gating (Leukocytes, T-cells, B-cells) exists
+    on every FULL_PANEL sample, before Course 3 starts leaning on it.
+
+    Same AND-composition pattern as ``Course1StateValidator`` above.
+    """
+
+    def __init__(self) -> None:
+        self._leukocytes = GateExistsOnAllValidator("leukocytes")
+        self._tcells = GateExistsOnAllValidator("t-cells")
+        self._bcells = GateExistsOnAllValidator("b-cells")
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        if not self._leukocytes.validate(app_state):
+            return False
+        if not self._tcells.validate(app_state):
+            return False
+        return self._bcells.validate(app_state)
+
+
+class UmapSampleSelectedValidator(FlowValidator):
+    """Verifies the Population Analysis sidebar's sample combo shows a specific sample."""
+
+    def __init__(self, sample_substr: str) -> None:
+        self._sample = sample_substr.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer or not hasattr(viewer, "_sample_combo"):
+            return self.log_failure("Population analysis viewer or sample combo missing.")
+        current = viewer._sample_combo.currentText().lower()
+        if self._sample not in current:
+            return self.log_failure(f"Selected sample is '{current}', expected '{self._sample}'.")
+        return True
+
+
+class UmapGateSelectedValidator(FlowValidator):
+    """Verifies the Population Analysis sidebar's population/gate combo matches a target."""
+
+    def __init__(self, gate_substr: str) -> None:
+        self._gate = gate_substr.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer or not hasattr(viewer, "_gate_combo"):
+            return self.log_failure("Population analysis viewer or gate combo missing.")
+        current = viewer._gate_combo.currentText().lower()
+        if self._gate not in current:
+            return self.log_failure(f"Selected gate is '{current}', expected '{self._gate}'.")
+        return True
+
+
+class UmapChannelExcludedValidator(FlowValidator):
+    """Verifies specific channels (by raw FCS channel key) are unchecked in the
+    Population Analysis channel list, and every other channel stays checked.
+    """
+
+    def __init__(self, *excluded_channel_keys: str) -> None:
+        self._excluded = {k.lower() for k in excluded_channel_keys}
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        from PyQt6.QtCore import Qt as _Qt
+
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer or not hasattr(viewer, "_channel_list"):
+            return self.log_failure("Population analysis viewer or channel list missing.")
+
+        channel_list = viewer._channel_list
+        if channel_list.count() == 0:
+            return self.log_failure("Channel list is empty — no sample selected yet.")
+
+        for i in range(channel_list.count()):
+            item = channel_list.item(i)
+            key = (item.data(_Qt.ItemDataRole.UserRole) or "").lower()
+            is_checked = item.checkState() == _Qt.CheckState.Checked
+            if key in self._excluded and is_checked:
+                return self.log_failure(f"Channel '{key}' should be excluded but is still checked.")
+            if key not in self._excluded and not is_checked:
+                return self.log_failure(f"Channel '{key}' should stay included but is unchecked.")
+        return True
+
+
+class UmapRunNameProvidedValidator(FlowValidator):
+    """Verifies the Population Analysis run-name field is non-empty."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer or not hasattr(viewer, "_run_name_input"):
+            return self.log_failure("Population analysis viewer or run name input missing.")
+        if not viewer._run_name_input.text().strip():
+            return self.log_failure("Run name is empty.")
+        return True
+
+
+class UmapSubsampleValueValidator(FlowValidator):
+    """Verifies the Population Analysis subsample-events slider matches a target percentage."""
+
+    def __init__(self, expected_pct: int) -> None:
+        self._expected = expected_pct
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer or not hasattr(viewer, "_n_events_slider"):
+            return self.log_failure("Population analysis viewer or subsample slider missing.")
+        current = viewer._n_events_slider.value()
+        if current != self._expected:
+            return self.log_failure(f"Subsample is {current}%, expected {self._expected}%.")
+        return True
+
+
+class UmapHdbscanEnabledValidator(FlowValidator):
+    """Verifies the Population Analysis HDBSCAN checkbox is checked."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer or not hasattr(viewer, "_run_hdbscan_cb"):
+            return self.log_failure("Population analysis viewer or HDBSCAN checkbox missing.")
+        if not viewer._run_hdbscan_cb.isChecked():
+            return self.log_failure("HDBSCAN checkbox is not checked.")
+        return True
+
+
+class UmapResultsReadyValidator(FlowValidator):
+    """Verifies a UMAP run has fully finished: real results are in, and neither
+    the background analysis nor the animation is still in flight.
+
+    Mirrors the same three-flag check ``_check_transition_to_results()``
+    uses internally, so this reports "ready" at exactly the moment the
+    real UI would itself transition to showing results.
+    """
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        if not viewer:
+            return self.log_failure("Population analysis viewer missing.")
+        if getattr(viewer, "_is_analysis_running", False):
+            return self.log_failure("Analysis is still running.")
+        if getattr(viewer, "_is_animation_playing", False):
+            return self.log_failure("Animation is still playing.")
+        if getattr(viewer, "_last_results", None) is None:
+            return self.log_failure("No results yet.")
+        return True
+
+
+class ClusterResultsTabActiveValidator(FlowValidator):
+    """Verifies the results panel's own sub-tab widget (Plot Gallery /
+    Interactive Map / Population Statistics) is showing a specific tab.
+    """
+
+    def __init__(self, tab_label: str) -> None:
+        self._label = tab_label.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        results_panel = getattr(viewer, "_results_panel", None) if viewer else None
+        tabs = getattr(results_panel, "_tabs", None)
+        if not tabs:
+            return self.log_failure("Cluster results tabs not available yet.")
+        current = tabs.tabText(tabs.currentIndex()).lower()
+        if self._label not in current:
+            return self.log_failure(f"Active results tab is '{current}', expected '{self._label}'.")
+        return True

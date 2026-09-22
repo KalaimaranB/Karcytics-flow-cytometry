@@ -3,7 +3,10 @@
 import numpy as np
 from matplotlib.ticker import FixedFormatter, FixedLocator
 
-from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
+from karcytics_plugins.flow_cytometry.analysis.transforms import (
+    TransformType,
+    biological_tick_values,
+)
 
 
 class AxisFormatter:
@@ -64,17 +67,7 @@ class AxisFormatter:
             )
 
     def _build_bio_ticks(self, scale, is_biex):
-        pos_decades = [10**3, 10**4, 10**5]
-        pos_labels = ["$10^3$", "$10^4$", "$10^5$"]
+        show_neg = False
         if is_biex:
             show_neg = scale.logicle_a > 0 or (scale.min_val is not None and scale.min_val < 0)
-            if show_neg:
-                raw = np.array([-(10**3), 0] + pos_decades, dtype=float)
-                lbl = [r"$-10^3$", "0"] + pos_labels
-            else:
-                raw = np.array([0] + pos_decades, dtype=float)
-                lbl = ["0"] + pos_labels
-        else:
-            raw = np.array(pos_decades, dtype=float)
-            lbl = pos_labels
-        return raw, lbl
+        return biological_tick_values(is_biex, show_neg)

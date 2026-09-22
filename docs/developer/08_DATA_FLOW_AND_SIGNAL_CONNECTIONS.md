@@ -132,7 +132,7 @@ node's wiring requirements goes through a **separate**, similarly-named but
 distinct handler:
 
 ```python
-def _on_connection_pending(payload):   # MainPanelController's own copy
+def _on_connection_pending(payload):  # MainPanelController's own copy
     if not getattr(panel, "_loading", False):
         panel.push_state()
         panel.set_dirty(True)

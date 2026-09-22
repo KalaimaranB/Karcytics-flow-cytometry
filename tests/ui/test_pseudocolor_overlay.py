@@ -110,11 +110,10 @@ def test_comparisons_viewer_builds_pseudocolor_overlay_kwargs(qtbot):
 
     # And the renderer must actually use the pre-computed density rather
     # than silently recomputing it — even if we sabotage base_x/base_y so a
-    # from-scratch computation would produce different data.
+    # from-scratch computation would produce different data. build_kwargs()
+    # already sets bg_color/fg_color/border_color (fixed white chrome — see
+    # pseudocolor_overlay_renderer.py), so no need to pass them again here.
     fig = spec.renderer_cls().render(
         **{**kwargs, "base_x": np.array([]), "base_y": np.array([])},
-        bg_color="#0d1117",
-        fg_color="#e6edf3",
-        border_color="#30363d",
     )
     assert fig is not None

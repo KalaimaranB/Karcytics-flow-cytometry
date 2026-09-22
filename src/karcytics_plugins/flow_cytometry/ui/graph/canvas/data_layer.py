@@ -16,11 +16,13 @@ import numpy as np
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.rendering.pipeline import RasterizeStage, RenderComputeStage, RenderData
 
-from karcytics_plugins.flow_cytometry.analysis.scaling import calculate_auto_range
-from karcytics_plugins.flow_cytometry.analysis.transforms import (
-    TransformType,
-    apply_transform,
+from karcytics_plugins.flow_cytometry.analysis.scaling import (
+    compute_axis_limits as _compute_limits,
 )
+from karcytics_plugins.flow_cytometry.analysis.scaling import (
+    get_transform_kwargs as _get_transform_kwargs,
+)
+from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
 
 from ..renderers.factory import RenderStrategyFactory
 
@@ -79,34 +81,6 @@ class FlowRenderData(RenderData):
     strategy_data: Any = None
     strategy_kwargs: dict = field(default_factory=dict)
     event_count: int = 0
-
-
-def _get_transform_kwargs(scale: AxisScale) -> dict:
-    if scale.transform_type == TransformType.BIEXPONENTIAL:
-        return {
-            "top": scale.logicle_t,
-            "width": scale.logicle_w,
-            "positive": scale.logicle_m,
-            "negative": scale.logicle_a,
-        }
-    return {}
-
-
-def _compute_limits(
-    raw_data: np.ndarray, scale: AxisScale, kwargs: dict
-) -> tuple[float, float] | None:
-    """Pure-value equivalent of the old ``_setup_limits()`` — returns a tuple instead of mutating ax."""
-    if scale.min_val is not None and scale.max_val is not None:
-        lim = apply_transform(
-            np.array([scale.min_val, scale.max_val]), scale.transform_type, **kwargs
-        )
-        return (lim[0], lim[1])
-    valid_raw = raw_data[np.isfinite(raw_data)]
-    if len(valid_raw) > 0:
-        raw_min, raw_max = calculate_auto_range(valid_raw, scale.transform_type)
-        lim = apply_transform(np.array([raw_min, raw_max]), scale.transform_type, **kwargs)
-        return (lim[0], lim[1])
-    return None
 
 
 class FlowDataComputeStage(RenderComputeStage):

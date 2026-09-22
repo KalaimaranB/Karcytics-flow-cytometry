@@ -67,6 +67,20 @@ def _get_theme_tokens():
     return Colors, theme_manager
 
 
+def _checked_suffix(count: int) -> str:
+    """Badge text like " · 3 checked" for a header row; "" when count is 0.
+
+    Headers for collapsed sections (Sample-Specific, and each per-sample row
+    under it) give no other indication that something inside is checked —
+    refresh() defaults newly-discovered populations to checked, including
+    deeply nested per-sample leaf gates, so a section can easily end up with
+    checked rows the user never consciously touched and never expanded that
+    branch to notice. Omitted entirely when 0 so the common "nothing checked
+    in here" case doesn't add visual noise.
+    """
+    return f" · {count} checked" if count > 0 else ""
+
+
 def _filter_item(item: QTreeWidgetItem, needle: str) -> bool:
     """Hide rows that don't match `needle` unless a descendant matches. Returns visibility."""
     self_match = (not needle) or (needle in item.text(0).lower())
@@ -105,6 +119,15 @@ class PopulationTreeWidget(QWidget):
         self._known_shared: set[str] = set()
         self._checked_per_sample: dict[str, set[str]] = {}
         self._known_per_sample: dict[str, set[str]] = {}
+
+        # Header item references, kept so a single checkbox toggle can update
+        # just the 3 header labels in place (see _update_header_labels())
+        # instead of a full _rebuild() — a full rebuild would also reset
+        # every branch's expand/collapse state, which is exactly the state a
+        # user just changed to go looking at what's checked in there.
+        self._shared_header_item: QTreeWidgetItem | None = None
+        self._specific_header_item: QTreeWidgetItem | None = None
+        self._sample_header_items: dict[str, QTreeWidgetItem] = {}
 
         self._search_text = ""
 
@@ -316,12 +339,79 @@ class PopulationTreeWidget(QWidget):
                 if top is not None:
                     _filter_item(top, self._search_text)
 
+    def _specific_samples(self) -> list[str]:
+        return [sid for sid in self._checked_sample_ids if self._groups.per_sample.get(sid)]
+
+    def _header_labels(self) -> tuple[str, str, dict[str, str]]:
+        """Compute all 3 header levels' display text from current state.
+
+        Every count is named explicitly ("N population(s)", "N sample(s)")
+        rather than a bare "(N)" — a parenthetical number alone doesn't say
+        what it's counting, especially once two different kinds of count
+        (samples vs. populations) appear at different tree levels. The
+        "· N checked" suffix is appended only when non-zero, so a checkbox
+        ticked inside a currently-collapsed branch stays visible without
+        expanding it — see _update_header_labels() for why this needs to
+        recompute on every checkbox toggle, not just on a full rebuild.
+        """
+        shared_checked_n = len(self._checked_shared & set(self._groups.shared))
+        shared_text = (
+            f"▾ Shared Populations — {len(self._groups.shared)} population(s)"
+            f"{_checked_suffix(shared_checked_n)}"
+        )
+
+        specific_samples = self._specific_samples()
+        specific_checked_counts = {
+            sid: len(
+                self._checked_per_sample.get(sid, set()) & set(self._groups.per_sample.get(sid, []))
+            )
+            for sid in specific_samples
+        }
+        total_specific_pops = sum(
+            len(self._groups.per_sample.get(sid, [])) for sid in specific_samples
+        )
+        specific_text = (
+            f"▾ Sample-Specific — {len(specific_samples)} sample(s), "
+            f"{total_specific_pops} population(s)"
+            f"{_checked_suffix(sum(specific_checked_counts.values()))}"
+        )
+
+        sample_texts = {}
+        for sid in specific_samples:
+            sample = self._samples.get(sid)
+            n_pops = len(self._groups.per_sample.get(sid, []))
+            name = sample.display_name if sample else sid
+            sample_texts[sid] = (
+                f"{name} — {n_pops} population(s){_checked_suffix(specific_checked_counts[sid])}"
+            )
+        return shared_text, specific_text, sample_texts
+
+    def _update_header_labels(self) -> None:
+        """Refresh header text in place — no rebuild, no expand/collapse reset.
+
+        Called after every checkbox toggle (_on_item_changed) so the
+        "· N checked" badges (and the population/sample counts they sit
+        next to) never go stale relative to the tree's actual check state,
+        including for a branch the user currently has collapsed.
+        """
+        shared_text, specific_text, sample_texts = self._header_labels()
+        if self._shared_header_item is not None:
+            self._shared_header_item.setText(0, shared_text)
+        if self._specific_header_item is not None:
+            self._specific_header_item.setText(0, specific_text)
+        for sid, item in self._sample_header_items.items():
+            if sid in sample_texts:
+                item.setText(0, sample_texts[sid])
+
     def _rebuild_tree(self) -> None:
-        shared_header = QTreeWidgetItem([f"▾ Shared Populations ({len(self._groups.shared)})"])
+        shared_text, specific_text, sample_texts = self._header_labels()
+
+        shared_header = QTreeWidgetItem([shared_text])
         shared_header.setData(0, Qt.ItemDataRole.UserRole, _HEADER)
         shared_header.setData(0, Qt.ItemDataRole.UserRole + 1, _HEADER)
         shared_header.setFlags(Qt.ItemFlag.ItemIsEnabled)
         self.tree.addTopLevelItem(shared_header)
+        self._shared_header_item = shared_header
         self._build_nested_rows(
             shared_header,
             self._groups.shared,
@@ -331,27 +421,23 @@ class PopulationTreeWidget(QWidget):
         )
         shared_header.setExpanded(True)
 
-        specific_samples = [
-            sid for sid in self._checked_sample_ids if self._groups.per_sample.get(sid)
-        ]
-        specific_header = QTreeWidgetItem(
-            [f"▾ Sample-Specific ({len(specific_samples)} sample(s))"]
-        )
+        specific_samples = self._specific_samples()
+        specific_header = QTreeWidgetItem([specific_text])
         specific_header.setData(0, Qt.ItemDataRole.UserRole, _HEADER)
         specific_header.setData(0, Qt.ItemDataRole.UserRole + 1, _HEADER)
         specific_header.setFlags(Qt.ItemFlag.ItemIsEnabled)
         self.tree.addTopLevelItem(specific_header)
+        self._specific_header_item = specific_header
+        self._sample_header_items = {}
 
         for sid in specific_samples:
-            sample = self._samples.get(sid)
             labels = self._groups.per_sample.get(sid, [])
-            sample_header = QTreeWidgetItem(
-                [f"{sample.display_name if sample else sid} ({len(labels)})"]
-            )
+            sample_header = QTreeWidgetItem([sample_texts[sid]])
             sample_header.setData(0, Qt.ItemDataRole.UserRole, _HEADER)
             sample_header.setData(0, Qt.ItemDataRole.UserRole + 1, _HEADER)
             sample_header.setFlags(Qt.ItemFlag.ItemIsEnabled)
             specific_header.addChild(sample_header)
+            self._sample_header_items[sid] = sample_header
             self._build_nested_rows(
                 sample_header,
                 labels,
@@ -426,6 +512,7 @@ class PopulationTreeWidget(QWidget):
             bucket.add(label)
         else:
             bucket.discard(label)
+        self._update_header_labels()
         self.selectionChanged.emit()
 
     def _enforce_one_per_sample(self, item: QTreeWidgetItem, role: str) -> None:

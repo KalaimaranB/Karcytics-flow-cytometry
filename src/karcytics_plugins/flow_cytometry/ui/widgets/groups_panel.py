@@ -218,7 +218,8 @@ class GroupsPanel(QWidget):
         if not group_id or group_id == "__all__":
             return
 
-        from PyQt6.QtWidgets import QInputDialog, QMenu, QMessageBox
+        from karcytics_sdk.plugin.dialogs import ask_yes_no
+        from PyQt6.QtWidgets import QInputDialog, QMenu
 
         menu = QMenu(self)
 
@@ -243,13 +244,12 @@ class GroupsPanel(QWidget):
                     CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "GroupsPanel"})
 
         elif action == delete_action:
-            reply = QMessageBox.question(
+            confirmed = ask_yes_no(
                 self,
                 "Delete Group",
                 "Are you sure you want to delete this group?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
-            if reply == QMessageBox.StandardButton.Yes:
+            if confirmed:
                 group = self._state.data.experiment.groups.get(group_id)
                 if group:
                     # Remove from all samples

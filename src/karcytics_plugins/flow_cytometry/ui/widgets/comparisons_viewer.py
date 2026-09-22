@@ -63,22 +63,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Karcytics gate palette — auto-assigned per sample/population
-_PALETTE = [
-    "#00bcd4",
-    "#ef5350",
-    "#66bb6a",
-    "#ffa726",
-    "#ab47bc",
-    "#26c6da",
-    "#ff7043",
-    "#9ccc65",
-    "#29b6f6",
-    "#ec407a",
-    "#d4e157",
-    "#8d6e63",
-]
-
 
 class DynamicStackedWidget(QStackedWidget):
     """QStackedWidget whose height dynamically matches only the current active widget."""
@@ -289,6 +273,7 @@ class ComparisonsViewer(QWidget):
         self._options_stack = DynamicStackedWidget()
         for name, spec in PLOT_REGISTRY.items():
             panel = spec.options_panel_cls()
+            panel.bind_state(self._state)
             self._options_panels[name] = panel
             self._options_stack.addWidget(panel)
         cl.addWidget(self._options_stack)
@@ -482,16 +467,20 @@ class ComparisonsViewer(QWidget):
             self._status_lbl.setText(f"⚠ {e}")
             return
 
-        # Inject theme colors (DIP: renderers don't import Qt/theme)
-        render_kwargs.update(
-            {
-                "bg_color": Colors.BG_DARKEST,
-                "fg_color": Colors.FG_PRIMARY,
-                "border_color": Colors.BORDER,
-                "accent_color": Colors.ACCENT_PRIMARY,
-                "palette": _PALETTE,
-            }
-        )
+        # Inject theme colors (DIP: renderers don't import Qt/theme). Uses
+        # setdefault rather than update() so a plot type whose kwargs builder
+        # already set one of these (e.g. Pseudocolor Overlay, which needs a
+        # fixed white background + jet-safe palette instead of the app's
+        # dark/light theme — see build_pseudocolor_overlay_kwargs) keeps its
+        # own value instead of being overwritten.
+        for key, value in {
+            "bg_color": Colors.BG_DARKEST,
+            "fg_color": Colors.FG_PRIMARY,
+            "border_color": Colors.BORDER,
+            "accent_color": Colors.ACCENT_PRIMARY,
+            "palette": Colors.CHART_COLORS,
+        }.items():
+            render_kwargs.setdefault(key, value)
 
         renderer = spec.renderer_cls()
         self._worker = ComparisonsWorker(renderer, render_kwargs, self)
@@ -743,7 +732,7 @@ class ComparisonsViewer(QWidget):
         if not sample_ids:
             return
         channels = self._extractor.get_channel_list(self._state, sample_ids[0])
-        panel.populate_channels(channels)
+        panel.populate_channels(channels, sample_id=sample_ids[0])
 
     # ── Theme ────────────────────────────────────────────────────────────────
 

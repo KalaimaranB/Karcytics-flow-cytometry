@@ -175,7 +175,7 @@ class GateNode:
             pd.DataFrame: A subset of events that fall within this hierarchical path.
         """
         mask = self._get_mask(events)
-        return events.loc[mask].copy()
+        return events.loc[mask]
 
     def adapt_all(self, events: pd.DataFrame) -> None:
         """Recursively adapt all adaptive gates in the tree.

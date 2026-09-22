@@ -14,12 +14,12 @@ from pathlib import Path
 
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.dialogs import show_error, show_info, show_warning
 from karcytics_sdk.plugin.theme_fallback import Colors
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
-    QMessageBox,
     QWidget,
 )
 
@@ -125,7 +125,7 @@ class CompensationRibbon(QWidget):
         ss_data = [s.fcs_data for s in single_stains if s.fcs_data is not None]
 
         if len(ss_data) < 2:  # noqa: PLR2004
-            QMessageBox.warning(
+            show_warning(
                 self,
                 "Insufficient Controls",
                 f"Found {len(ss_data)} single-stain controls.\n\n"
@@ -147,7 +147,7 @@ class CompensationRibbon(QWidget):
             self._state.data.compensation = comp
 
             matrix_str = "\n".join([", ".join([f"{v:.3f}" for v in row]) for row in comp.matrix])
-            QMessageBox.information(
+            show_info(
                 self,
                 "Matrix Computed",
                 f"Successfully computed a {comp.n_channels}×{comp.n_channels} "
@@ -160,7 +160,7 @@ class CompensationRibbon(QWidget):
 
         except Exception as exc:
             logger.error("Compensation calculation failed: %s", exc)
-            QMessageBox.critical(
+            show_error(
                 self,
                 "Computation Error",
                 f"Failed to compute compensation matrix:\n{exc}",
@@ -184,7 +184,7 @@ class CompensationRibbon(QWidget):
                 from PyQt6.QtCore import QTimer
 
                 def show_dialog():
-                    QMessageBox.information(
+                    show_info(
                         self,
                         "Matrix Extracted",
                         f"Found embedded {comp.n_channels}×{comp.n_channels} "  # noqa: B023
@@ -200,8 +200,8 @@ class CompensationRibbon(QWidget):
 
         from PyQt6.QtCore import QTimer
 
-        def show_warning():
-            QMessageBox.warning(
+        def _show_no_matrix_warning():
+            show_warning(
                 self,
                 "No Matrix Found",
                 "None of the loaded FCS files contain a $SPILL or $SPILLOVER "
@@ -210,7 +210,7 @@ class CompensationRibbon(QWidget):
                 "import one from CSV instead.",
             )
 
-        QTimer.singleShot(0, show_warning)
+        QTimer.singleShot(0, _show_no_matrix_warning)
 
     def _on_import_csv(self) -> None:
         """Import a spillover matrix from CSV/TSV."""
@@ -227,7 +227,7 @@ class CompensationRibbon(QWidget):
             comp = import_matrix_from_csv(Path(path))
             self._state.data.compensation = comp
 
-            QMessageBox.information(
+            show_info(
                 self,
                 "Matrix Imported",
                 f"Imported {comp.n_channels}×{comp.n_channels} matrix "
@@ -238,12 +238,12 @@ class CompensationRibbon(QWidget):
 
         except Exception as exc:
             logger.error("Matrix import failed: %s", exc)
-            QMessageBox.critical(self, "Import Error", f"Failed to import matrix:\n{exc}")
+            show_error(self, "Import Error", f"Failed to import matrix:\n{exc}")
 
     def _on_export_csv(self) -> None:
         """Export the current matrix to CSV."""
         if self._state.data.compensation is None:
-            QMessageBox.information(
+            show_info(
                 self,
                 "No Matrix",
                 "No compensation matrix is currently loaded.\nCalculate or import one first.",
@@ -261,7 +261,7 @@ class CompensationRibbon(QWidget):
 
         try:
             export_matrix_to_csv(self._state.data.compensation, Path(path))
-            QMessageBox.information(
+            show_info(
                 self,
                 "Matrix Exported",
                 f"Spillover matrix saved to:\n{Path(path).name}",
@@ -273,7 +273,7 @@ class CompensationRibbon(QWidget):
         """Apply compensation to all loaded samples."""
         comp = self._state.data.compensation
         if comp is None:
-            QMessageBox.information(
+            show_info(
                 self,
                 "No Matrix",
                 "No compensation matrix is loaded.\nCalculate, extract, or import one first.",
@@ -308,7 +308,7 @@ class CompensationRibbon(QWidget):
         if no_data_count > 0:
             msg += f"\n{no_data_count} sample(s) skipped (no data)."
 
-        QMessageBox.information(self, "Compensation Applied", msg)
+        show_info(self, "Compensation Applied", msg)
         self.compensation_changed.emit()
         logger.info(
             "Compensation applied: %d applied, %d already compensated, %d no data.",
@@ -324,7 +324,7 @@ class CompensationRibbon(QWidget):
         )
 
         if self._state.data.compensation is None:
-            QMessageBox.information(
+            show_info(
                 self,
                 "No Matrix",
                 "No compensation matrix is currently loaded.\n"
@@ -375,7 +375,7 @@ class CompensationRibbon(QWidget):
             logger.info(f"Compensation Toggled: Turned {state_str} for {toggled_count} samples.")
             self.compensation_changed.emit()
         else:
-            QMessageBox.information(
+            show_info(
                 self,
                 "No Action",
                 "Could not toggle compensation. Ensure samples have a raw data backup and a matrix is loaded.",

@@ -77,7 +77,7 @@ class DagEvaluator:
         if not node.gate:
             return mask
         try:
-            subset_events = events[mask].copy()
+            subset_events = events[mask]
             subset_mask = node.gate.contains(subset_events)
             if getattr(node, "negated", False):
                 subset_mask = ~subset_mask

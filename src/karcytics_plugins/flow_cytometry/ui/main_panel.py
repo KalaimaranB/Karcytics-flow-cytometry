@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from karcytics_sdk.plugin import PluginBase, get_logger
+from karcytics_sdk.plugin.dialogs import show_error, show_warning
 from karcytics_sdk.plugin.runtime_services import (
     KarcyticsEvent,
     event_bus,
@@ -28,7 +29,6 @@ from karcytics_sdk.plugin.runtime_services import (
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
-    QMessageBox,
     QSizePolicy,
     QWidget,
 )
@@ -176,6 +176,16 @@ class FlowCytometryPanel(PluginBase):
 
         self._is_dirty = False
 
+        # Shared SDK loop (PluginBase.setup_workflow_autosave): every 15
+        # minutes, silently re-saves a workflow that's already been saved
+        # manually at least once (toast on success), or reminds the user
+        # it's unsaved otherwise. Also contributes this panel's "Workspace"
+        # preferences page automatically (see PluginBase.populate_preferences).
+        self._workflow_autosave_controller = self.setup_workflow_autosave(
+            has_saved_once=lambda: bool(getattr(self, "_current_workflow_filename", None)),
+            save=self._workspace_io_handler.handle_autosave,
+        )
+
     def _setup_footer_events(self) -> None:
         """Subscribe to events to update the footer message."""
         from karcytics_sdk.plugin import CentralEventBus
@@ -231,6 +241,12 @@ class FlowCytometryPanel(PluginBase):
             )
             self._btn_smart_save.set_workflow_active(has_wf)
             self._btn_smart_save.set_dirty(dirty)
+        # Every point that clears the dirty flag is a point the workspace is
+        # known to be in sync with disk (a manual save/update/load, or this
+        # controller's own autosave) — restart the 15-minute countdown from
+        # here rather than from whenever the plugin happened to start.
+        if not dirty and hasattr(self, "_workflow_autosave_controller"):
+            self._workflow_autosave_controller.notify_saved()
 
     # ── UI Construction ───────────────────────────────────────────────
 
@@ -477,7 +493,7 @@ class FlowCytometryPanel(PluginBase):
                 "FCS reload did not complete within 45s — forcing UI to show anyway. "
                 "Samples/gates may display as empty or 0 events until the load finishes."
             )
-            QMessageBox.warning(
+            show_warning(
                 self,
                 "Workspace Load Taking Too Long",
                 "Sample data is still loading after 45 seconds, so the workspace is "
@@ -1301,7 +1317,7 @@ class FlowCytometryPanel(PluginBase):
             failed = (reload_result or {}).get("failed") or []
             if failed:
                 self.logger.error(f"FCS reload failed for {len(failed)} sample(s): {failed}")
-                QMessageBox.warning(
+                show_warning(
                     self,
                     "Some Samples Failed to Load",
                     f"{len(failed)} sample(s) could not be reloaded and will show 0 events:\n\n"
@@ -1350,7 +1366,7 @@ class FlowCytometryPanel(PluginBase):
         else:
             # Try to grab the last exception if we stored it
             error_msg = getattr(self._workflow_service, "_last_error", "Check logs for details.")
-            QMessageBox.critical(self, "Load Error", f"Failed to restore workflow. {error_msg}")
+            show_error(self, "Load Error", f"Failed to restore workflow. {error_msg}")
 
     # ── Internal helpers ──────────────────────────────────────────────
 

@@ -27,7 +27,14 @@ class ComparisonsWorker(OneShotWorkerThread):
         self._kwargs = kwargs
 
     def _execute(self):
-        """SRP: call renderer.render() and return the resulting Figure.
+        """SRP: call renderer.prepare() then renderer.render(), returning the Figure.
+
+        prepare() runs first, on this background thread, *without* holding
+        MPL_RASTER_LOCK — it's where a renderer does any real numpy/scipy
+        computation (density estimation, histogram binning, ...). Only
+        render()'s matplotlib Figure/Axes construction and drawing calls run
+        under the lock. Renderers that don't override prepare() (the
+        default no-op) behave exactly as before this split existed.
 
         Renderers build matplotlib Figures and call tight_layout(), which
         invokes the Agg/FreeType C backend. That backend is not thread-safe
@@ -47,5 +54,7 @@ class ComparisonsWorker(OneShotWorkerThread):
         usage already triggered that first — so force it explicitly here too,
         at the actual call site, rather than relying on process-wide state.
         """
-        with threadpoolctl.threadpool_limits(1), MPL_RASTER_LOCK:
-            return self._renderer.render(**self._kwargs)
+        with threadpoolctl.threadpool_limits(1):
+            prepared_kwargs = self._renderer.prepare(**self._kwargs)
+            with MPL_RASTER_LOCK:
+                return self._renderer.render(**prepared_kwargs)

@@ -309,10 +309,6 @@ class RenderTask(AnalysisBase):
             # Free memory
             fig.clf()
 
-        import gc
-
-        gc.collect()
-
         actual_width = int(c["width"] * (target_dpi / base_dpi))
         actual_height = int(c["height"] * (target_dpi / base_dpi))
 

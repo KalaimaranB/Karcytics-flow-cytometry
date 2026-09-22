@@ -19,10 +19,30 @@ class IPlotRenderer(ABC):
     This makes renderers independently testable without a Qt application.
     """
 
+    def prepare(self, **kwargs) -> dict:
+        """Optional heavy-computation step, run *before* MPL_RASTER_LOCK.
+
+        ComparisonsWorker calls this on the background thread first, then
+        acquires MPL_RASTER_LOCK and calls render() with whatever this
+        returns (see worker.py). Default is a no-op passthrough — most
+        renderers do cheap-enough work that splitting it out isn't worth
+        the complexity. Override this only when render() would otherwise
+        need real numpy/scipy computation (density estimation, histogram
+        binning, etc.): see HistogramOverlayRenderer for the reference
+        implementation. MPL_RASTER_LOCK is a process-wide lock shared with
+        the main gating canvas's paint events — holding it around anything
+        beyond the final matplotlib draw starves unrelated UI rendering
+        elsewhere in the app for no thread-safety benefit (see
+        karcytics_sdk.plugin.rendering.lock.RasterLock's docstring).
+        """
+        return kwargs
+
     @abstractmethod
     def render(self, **kwargs) -> Figure:
         """Render the plot and return a matplotlib Figure.
 
-        The caller (ComparisonsWorker) is responsible for running this
-        on a background thread.  Implementations must be thread-safe.
+        Must be cheap: only matplotlib Figure/Axes construction and
+        drawing calls. The caller (ComparisonsWorker) runs this on a
+        background thread while holding MPL_RASTER_LOCK — see prepare().
+        Implementations must be thread-safe.
         """

@@ -32,6 +32,15 @@ class DummyPluginBase(QWidget):
         super().__init__()
         self.plugin_id = kwargs.get("plugin_id", args[0] if args else "")
 
+    def setup_workflow_autosave(self, has_saved_once, save, **kwargs):
+        """Stub for PluginBase.setup_workflow_autosave (karcytics_sdk.plugin
+        is mocked wholesale here) — returns a MagicMock standing in for the
+        real WorkflowAutosaveController, since these tests exercise
+        FlowCytometryPanel's own construction, not the SDK's autosave loop
+        (that's covered in the SDK's own test suite).
+        """
+        return MagicMock()
+
 
 class DummyAnalysisBase:
     def __init__(self, *args, **kwargs):

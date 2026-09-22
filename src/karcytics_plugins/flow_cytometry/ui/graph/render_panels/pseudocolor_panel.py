@@ -40,7 +40,7 @@ class PseudocolorSettingsPanel(QWidget):
         self._max_sample_events = max_sample_events
         self._build_ui()
 
-    def _build_ui(self):  # noqa: PLR0915
+    def _build_ui(self) -> None:  # noqa: PLR0915
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
@@ -49,6 +49,7 @@ class PseudocolorSettingsPanel(QWidget):
         # ── Presets ───────────────────────────────────────────────────
         layout.addWidget(section_header("Quick Presets"))
         preset_row = QHBoxLayout()
+        self._preset_buttons: list[QPushButton] = []
         for label, func in [
             ("Standard", self._preset_standard),
             ("Publication", self._preset_publication),
@@ -56,15 +57,9 @@ class PseudocolorSettingsPanel(QWidget):
         ]:
             btn = QPushButton(label)
             btn.setFixedHeight(26)
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 4px;"
-                f" font-size: 11px; font-weight: 600; padding: 2px 8px; }}"
-                f"QPushButton:hover {{ background: {Colors.ACCENT_PRIMARY};"
-                f" color: {Colors.BG_DARKEST}; }}"
-            )
             btn.clicked.connect(func)
             preset_row.addWidget(btn)
+            self._preset_buttons.append(btn)
         layout.addLayout(preset_row)
 
         # ── Color scheme ──────────────────────────────────────────────
@@ -81,9 +76,8 @@ class PseudocolorSettingsPanel(QWidget):
                 self._cmap_combo.setCurrentIndex(i)
                 break
         self._cmap_combo.currentIndexChanged.connect(lambda _: self.changed.emit())
-        lbl = QLabel("Colormap:")
-        lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;")
-        form1.addRow(lbl, self._cmap_combo)
+        self._cmap_label = QLabel("Colormap:")
+        form1.addRow(self._cmap_label, self._cmap_combo)
         layout.addLayout(form1)
 
         # ── Event cap ─────────────────────────────────────────────────
@@ -105,6 +99,7 @@ class PseudocolorSettingsPanel(QWidget):
 
         # Quick cap buttons
         cap_row = QHBoxLayout()
+        self._cap_buttons: list[QPushButton] = []
         for label, val in [
             ("10k", 10_000),
             ("50k", 50_000),
@@ -113,15 +108,11 @@ class PseudocolorSettingsPanel(QWidget):
         ]:
             b = QPushButton(label)
             b.setFixedHeight(22)
-            b.setStyleSheet(
-                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_SECONDARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 3px; font-size: 10px; }}"
-                f"QPushButton:hover {{ color: {Colors.ACCENT_PRIMARY}; }}"
-            )
             b.clicked.connect(
                 lambda _, v=val: self._spin_events.setValue(min(v, self._max_sample_events))
             )
             cap_row.addWidget(b)
+            self._cap_buttons.append(b)
         form2.addRow("", QWidget())  # spacer row
         layout.addLayout(form2)
         layout.addLayout(cap_row)
@@ -224,9 +215,40 @@ class PseudocolorSettingsPanel(QWidget):
         layout.addLayout(form3)
         layout.addStretch()
 
+        self._apply_theme_styles()
+
+    # ── Theme ─────────────────────────────────────────────────────────
+
+    def _apply_theme_styles(self) -> None:
+        """Re-apply Colors-derived QSS baked in at construction time.
+
+        The workspace dialog always rebuilds this panel fresh (so it's
+        never stale), but a caller that constructs it once and reuses it
+        (e.g. the Comparisons tab's embedded copy) needs to call this on
+        every theme change to avoid frozen colors.
+        """
+        self.setStyleSheet(PANEL_STYLE)
+        for btn in self._preset_buttons:
+            btn.setStyleSheet(
+                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
+                f" border: 1px solid {Colors.BORDER}; border-radius: 4px;"
+                f" font-size: 11px; font-weight: 600; padding: 2px 8px; }}"
+                f"QPushButton:hover {{ background: {Colors.ACCENT_PRIMARY};"
+                f" color: {Colors.BG_DARKEST}; }}"
+            )
+        for btn in self._cap_buttons:
+            btn.setStyleSheet(
+                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_SECONDARY};"
+                f" border: 1px solid {Colors.BORDER}; border-radius: 3px; font-size: 10px; }}"
+                f"QPushButton:hover {{ color: {Colors.ACCENT_PRIMARY}; }}"
+            )
+        self._cmap_label.setStyleSheet(
+            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
+        )
+
     # ── Presets ───────────────────────────────────────────────────────
 
-    def _preset_standard(self):
+    def _preset_standard(self) -> None:
         self._spin_detail.setValue(1.5)
         self._spin_smooth.setValue(2.2)
         self._spin_bg.setValue(0.05)
@@ -236,7 +258,7 @@ class PseudocolorSettingsPanel(QWidget):
         self._spin_opacity.setValue(0.70)
         self._spin_events.setValue(min(100_000, self._max_sample_events))
 
-    def _preset_publication(self):
+    def _preset_publication(self) -> None:
         self._spin_detail.setValue(3.0)
         self._spin_smooth.setValue(3.2)
         self._spin_bg.setValue(0.08)
@@ -246,7 +268,7 @@ class PseudocolorSettingsPanel(QWidget):
         self._spin_opacity.setValue(0.90)
         self._spin_events.setValue(self._max_sample_events)
 
-    def _preset_fast(self):
+    def _preset_fast(self) -> None:
         self._spin_detail.setValue(1.0)
         self._spin_smooth.setValue(1.5)
         self._spin_bg.setValue(0.04)

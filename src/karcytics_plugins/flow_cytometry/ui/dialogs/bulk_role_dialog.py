@@ -1,5 +1,6 @@
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.dialogs import show_warning
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QAbstractItemView,
@@ -8,7 +9,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QVBoxLayout,
 )
 
@@ -87,7 +87,7 @@ class BulkRoleDialog(QDialog):
     def _on_assign(self):
         selected_items = self.sample_list.selectedItems()
         if not selected_items:
-            QMessageBox.warning(
+            show_warning(
                 self,
                 "No Selection",
                 "Please select at least one sample to assign a role.",

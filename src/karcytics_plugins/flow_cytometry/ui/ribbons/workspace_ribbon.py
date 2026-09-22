@@ -14,12 +14,12 @@ from pathlib import Path
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import BioProgressDialog, PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.dialogs import ask_yes_no, show_error, show_info, show_warning
 from karcytics_sdk.plugin.theme_fallback import Colors
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
-    QMessageBox,
     QWidget,
 )
 
@@ -127,19 +127,16 @@ class WorkspaceRibbon(QWidget):
 
         copy_all = False
         if outside_files:
-            reply = QMessageBox.question(
+            copy_all = ask_yes_no(
                 self,
                 "Copy to Workspace?",
                 "Some files are outside the project folder.\n\n"
                 "Would you like to copy them into the project's 'assets' "
                 "folder for safe keeping and portability?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
             )
-            copy_all = reply == QMessageBox.StandardButton.Yes
 
         if not self._data_loader_service:
-            QMessageBox.critical(self, "Error", "DataLoaderService is not available.")
+            show_error(self, "Error", "DataLoaderService is not available.")
             return
 
         progress_dialog = BioProgressDialog("Loading FCS files...", "Cancel", 0, 100, self)
@@ -162,7 +159,7 @@ class WorkspaceRibbon(QWidget):
                 if isinstance(fcs_data_or_err, dict) and "error" in fcs_data_or_err:
                     err = fcs_data_or_err["error"]
                     logger.error("Failed to load %s: %s", path_str, err)
-                    QMessageBox.warning(
+                    show_warning(
                         self,
                         "Load Error",
                         f"Failed to load:\n{Path(path_str).name}\n\n{err}",
@@ -189,9 +186,7 @@ class WorkspaceRibbon(QWidget):
                     )
                 except Exception as exc:
                     logger.error("Failed to add %s to state: %s", path_str, exc)
-                    QMessageBox.warning(
-                        self, "Add Error", f"Failed to add:\n{final_path.name}\n\n{exc}"
-                    )
+                    show_warning(self, "Add Error", f"Failed to add:\n{final_path.name}\n\n{exc}")
 
             progress_dialog.close()
 
@@ -219,7 +214,7 @@ class WorkspaceRibbon(QWidget):
 
         def _on_error(error_msg: str):
             progress_dialog.close()
-            QMessageBox.critical(self, "Loading Failed", f"A critical error occurred:\n{error_msg}")
+            show_error(self, "Loading Failed", f"A critical error occurred:\n{error_msg}")
 
         self._data_loader_service.load_samples_async(
             paths=files,
@@ -269,7 +264,7 @@ class WorkspaceRibbon(QWidget):
             logger.info("Applied template: %s", template.name)
         except Exception as exc:
             logger.error("Failed to load template %s: %s", path, exc)
-            QMessageBox.warning(
+            show_warning(
                 self,
                 "Template Error",
                 f"Failed to load template:\n{Path(path).name}\n\n{exc}",
@@ -335,10 +330,8 @@ class WorkspaceRibbon(QWidget):
 
         try:
             template.save(Path(path))  # type: ignore
-            QMessageBox.information(
-                self, "Template Saved", f"Workflow template saved:\n{Path(path).name}"
-            )
+            show_info(self, "Template Saved", f"Workflow template saved:\n{Path(path).name}")
             self.template_save_requested.emit()
         except Exception as exc:
             logger.error("Failed to save template: %s", exc)
-            QMessageBox.warning(self, "Save Error", f"Failed to save template:\n{exc}")
+            show_warning(self, "Save Error", f"Failed to save template:\n{exc}")

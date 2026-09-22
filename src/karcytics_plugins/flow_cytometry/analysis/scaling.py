@@ -23,7 +23,7 @@ from .constants import (
     OUTLIER_PERCENTILE_MAX,
     PHYSICAL_SIGNAL_MAX,
 )
-from .transforms import TransformType
+from .transforms import TransformType, apply_transform
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -116,6 +116,43 @@ class AxisScale:
             logicle_a=data.get("logicle_a", 0.0),
             outlier_percentile=data.get("outlier_percentile", 0.1),
         )
+
+
+def get_transform_kwargs(scale: AxisScale) -> dict:
+    """Map an AxisScale's Logicle fields to apply_transform()'s kwargs.
+
+    Shared by the main gating canvas's compute stage (ui/graph/canvas/
+    data_layer.py) and any other caller that needs to run raw channel data
+    through the exact same transform a given AxisScale describes.
+    """
+    if scale.transform_type == TransformType.BIEXPONENTIAL:
+        return {
+            "top": scale.logicle_t,
+            "width": scale.logicle_w,
+            "positive": scale.logicle_m,
+            "negative": scale.logicle_a,
+        }
+    return {}
+
+
+def compute_axis_limits(
+    raw_data: np.ndarray, scale: AxisScale, kwargs: dict
+) -> tuple[float, float] | None:
+    """Display-space (post-transform) axis limits: the scale's manual
+    min/max if set, else an auto-computed range — both run through
+    apply_transform() so the result matches whatever's plotted.
+    """
+    if scale.min_val is not None and scale.max_val is not None:
+        lim = apply_transform(
+            np.array([scale.min_val, scale.max_val]), scale.transform_type, **kwargs
+        )
+        return (lim[0], lim[1])
+    valid_raw = raw_data[np.isfinite(raw_data)]
+    if len(valid_raw) > 0:
+        raw_min, raw_max = calculate_auto_range(valid_raw, scale.transform_type)
+        lim = apply_transform(np.array([raw_min, raw_max]), scale.transform_type, **kwargs)
+        return (lim[0], lim[1])
+    return None
 
 
 def _auto_range_linear(p_min: float, p_max: float) -> tuple[float, float]:

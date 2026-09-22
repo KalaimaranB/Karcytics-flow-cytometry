@@ -23,12 +23,12 @@ class ServiceFactory:
 self._factory = ServiceFactory(self.state, self)
 self._factory.build_all()
 
-self._gate_coordinator     = self._factory.get("gate_coordinator")
-self._gate_controller      = self._gate_coordinator          # same object, two names
-self._gate_propagator      = self._factory.get("gate_propagator")
-self._workflow_service     = self._factory.get("workflow_service")
-self._umap_service         = self._factory.get("umap_service")
-self._fluor_service        = self._factory.get("fluor_service")
+self._gate_coordinator = self._factory.get("gate_coordinator")
+self._gate_controller = self._gate_coordinator  # same object, two names
+self._gate_propagator = self._factory.get("gate_propagator")
+self._workflow_service = self._factory.get("workflow_service")
+self._umap_service = self._factory.get("umap_service")
+self._fluor_service = self._factory.get("fluor_service")
 self._workspace_io_handler = self._factory.get("workspace_io_handler")
 ```
 

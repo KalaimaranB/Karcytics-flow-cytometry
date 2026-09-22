@@ -43,7 +43,7 @@ def main() -> int:
     manifest_file = ROOT / "pyproject.toml"
 
     if not security_file.exists():
-        print("No security.json found yet — nothing to verify. Run 'karcytics-sdk sign .' first.")
+        print("No security.json found yet — nothing to verify. Run 'karcytics-sdk sign .' first.")  # noqa: T201
         return 0
 
     security_data = json.loads(security_file.read_text(encoding="utf-8"))
@@ -67,13 +67,13 @@ def main() -> int:
             errors.append(f"{rel_path} has changed since it was signed.")
 
     if errors:
-        print("Security ledger is out of sync with the working tree:")
+        print("Security ledger is out of sync with the working tree:")  # noqa: T201
         for e in errors:
-            print(f"  - {e}")
-        print("\nRun 'karcytics-sdk sign .' to resync, then commit the result.")
+            print(f"  - {e}")  # noqa: T201
+        print("\nRun 'karcytics-sdk sign .' to resync, then commit the result.")  # noqa: T201
         return 1
 
-    print("Security ledger matches the working tree.")
+    print("Security ledger matches the working tree.")  # noqa: T201
     return 0
 
 

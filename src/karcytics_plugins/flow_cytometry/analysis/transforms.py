@@ -32,6 +32,56 @@ class TransformType(Enum):
     BIEXPONENTIAL = "biexponential"
 
 
+def biological_tick_values(
+    is_biex: bool, show_negative_decade: bool = False
+) -> tuple[np.ndarray, list[str]]:
+    """Standard flow cytometry decade tick positions (10^3..10^5) and labels.
+
+    Returns raw (untransformed) tick values — callers must run them through
+    the same ``apply_transform`` call used for the plotted data to get
+    display-space positions. Shared by every view that displays log/
+    biexponential-transformed data (the main gating canvas's AxisFormatter,
+    the Comparisons Histogram Overlay renderer, ...) so decade labels read
+    identically across the whole app.
+    """
+    pos_decades = [10**3, 10**4, 10**5]
+    pos_labels = ["$10^3$", "$10^4$", "$10^5$"]
+    if is_biex:
+        if show_negative_decade:
+            raw = np.array([-(10**3), 0] + pos_decades, dtype=float)
+            lbl = [r"$-10^3$", "0"] + pos_labels
+        else:
+            raw = np.array([0] + pos_decades, dtype=float)
+            lbl = ["0"] + pos_labels
+    else:
+        raw = np.array(pos_decades, dtype=float)
+        lbl = pos_labels
+    return raw, lbl
+
+
+def compute_bio_tick_positions(
+    transform_type: TransformType, transform_kwargs: dict, show_negative_decade: bool = False
+) -> tuple[np.ndarray, list[str]]:
+    """Bio-decade tick positions already run through apply_transform, i.e. in
+    display space — ready to hand straight to a matplotlib FixedLocator on
+    an axis whose data was transformed with the same type/kwargs.
+
+    Ticks are never dithered (`enable_dithering=False`) even when the
+    underlying event data was, so decade lines land exactly — same
+    convention as CoordinateMapper._biexp_kwargs on the main canvas.
+    Returns an empty result for LINEAR (no decade ticks needed there).
+    """
+    if transform_type == TransformType.LINEAR:
+        return np.array([]), []
+    is_biex = transform_type == TransformType.BIEXPONENTIAL
+    raw_ticks, labels = biological_tick_values(is_biex, show_negative_decade)
+    tick_kwargs = dict(transform_kwargs)
+    if is_biex:
+        tick_kwargs["enable_dithering"] = False
+    disp_ticks = apply_transform(raw_ticks, transform_type, **tick_kwargs)
+    return disp_ticks, labels
+
+
 # ── Cache for FlowKit transform instances ────────────────────────────────────
 
 _thread_local = threading.local()

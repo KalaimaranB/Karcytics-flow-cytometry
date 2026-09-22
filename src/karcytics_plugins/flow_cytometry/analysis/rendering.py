@@ -57,8 +57,17 @@ def stable_subsample_mask(n: int, k: int, seed: int = 42) -> np.ndarray:
     return rng.random(n) < frac
 
 
-def compute_pseudocolor_base_density(
-    x: np.ndarray, y: np.ndarray, max_events: int, *, enabled: bool = True
+def compute_pseudocolor_base_density(  # noqa: PLR0913, PLR0917
+    x: np.ndarray,
+    y: np.ndarray,
+    max_events: int,
+    *,
+    enabled: bool = True,
+    nbins_scaling: float | None = None,
+    sigma_scaling: float | None = None,
+    density_threshold: float | None = None,
+    vibrancy_min: float | None = None,
+    vibrancy_range: float | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
     """Subsample to `max_events` (via `stable_subsample_mask`) and compute
     pseudocolor density for a "base/context" layer, or return None if
@@ -68,7 +77,9 @@ def compute_pseudocolor_base_density(
     just want "the whole array, density-shaded, capped at N points" — e.g.
     the Comparisons Pseudocolor Overlay plot type's base layer — without
     each caller re-deriving the axis range and subsample-then-compute steps
-    themselves.
+    themselves. The optional density-shaping kwargs forward straight through
+    to `compute_pseudocolor_points` (falling back to its own defaults when
+    omitted), letting a caller drive this with a `PseudocolorConfig`.
     """
     if not enabled or len(x) == 0 or len(y) == 0:
         return None
@@ -81,6 +92,11 @@ def compute_pseudocolor_base_density(
         y_sub,
         (float(np.nanmin(x)), float(np.nanmax(x))),
         (float(np.nanmin(y)), float(np.nanmax(y))),
+        nbins_scaling=nbins_scaling,
+        sigma_scaling=sigma_scaling,
+        density_threshold=density_threshold,
+        vibrancy_min=vibrancy_min,
+        vibrancy_range=vibrancy_range,
     )
 
 

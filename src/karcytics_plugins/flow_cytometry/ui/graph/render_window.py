@@ -7,6 +7,7 @@ without the subsampling used in the main workspace.
 from __future__ import annotations
 
 from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.dialogs import show_error, show_info, show_warning
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.theme_fallback import Colors
 from PyQt6.QtCore import QSize, Qt
@@ -15,7 +16,6 @@ from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
     QMainWindow,
-    QMessageBox,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -137,7 +137,7 @@ class RenderWindow(QMainWindow):
                 sb.showMessage("Copied to clipboard", 2000)
         except Exception as e:
             logger.error("Clipboard copy failed: %s", e)
-            QMessageBox.warning(self, "Copy Failed", f"Could not copy to clipboard: {e}")
+            show_warning(self, "Copy Failed", f"Could not copy to clipboard: {e}")
 
     def _on_save(self) -> None:
         """Save the high-quality render to disk."""
@@ -160,7 +160,7 @@ class RenderWindow(QMainWindow):
             # Figure and corrupt matplotlib's shared C-level state.
             with MPL_RASTER_LOCK:
                 self._canvas._fig.savefig(path, dpi=dpi, bbox_inches="tight")
-            QMessageBox.information(self, "Success", f"Plot saved to:\n{path}")
+            show_info(self, "Success", f"Plot saved to:\n{path}")
         except Exception as e:
             logger.error("Save failed: %s", e)
-            QMessageBox.critical(self, "Save Error", f"Failed to save image:\n{e}")
+            show_error(self, "Save Error", f"Failed to save image:\n{e}")

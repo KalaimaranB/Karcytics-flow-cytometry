@@ -62,24 +62,25 @@ Picks up exactly where Course 1 left off (it checks that your saved workflow is 
 
 - Gate **T-cells** and **B-cells** out of your Leukocytes population two different ways — a two-marker scatter rectangle for one, a histogram-plus-live-FMO-overlay range gate for the other — and learn when each technique is the better call.
 - Split T-cells four ways at once with a single **Quadrant** gate (CD4+, CD8+, double-positive, double-negative), then rename all four resulting leaves.
-- Learn to read and reorient the **Pipeline** flowchart view, including the boolean **AND/OR/NOT** logic nodes you'll put to real use in Course 3.
+- Learn to read and reorient the **Pipeline** flowchart view, including the boolean **AND/OR/NOT** logic nodes you'll put to real use in a later course.
 - Explore the **Spectral Viewer**'s real, FPbase-sourced dye curves, work through an interactive **Learning Compensation** masterclass slideshow built from your own panel's real numbers, and learn when overlapping spectra actually matter biologically versus when they don't.
 - Use the **Quick-Stats** grid to read hard numbers across every sample and build a genuine, evidence-based hypothesis for which mystery sample is Thymus, Bone Marrow, and Spleen.
 - Save your workspace again — required to continue into Course 3.
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
-### Course 3 — Population Analysis & Advanced Comparisons
+### Course 3 — Population Analysis (Part 1)
 
-**~45 minutes · requires Course 2 · badge: 🧠 Population Analyst**
+**~30 minutes · requires Course 2 · badge: 🧠 Population Analyst (awarded once Course 3 is complete)**
 
-No new gating here — this course is about proving what you found. You:
+Course 3 is being released in parts — this first part is a self-contained, no-new-gating deep dive into unsupervised **Population Analysis**. It doesn't yet end in a graduation screen; a "Course 3 will be complete soon!" step marks where this part currently stops, and you can safely resume from there once more content ships. You:
 
-- Learn when to reach for % Parent vs. % Total vs. Median/MFI vs. CV, then build Grouped Bar and Heatmap charts on the **Statistics** tab to quantitatively confirm your Course 2 hypothesis.
-- Walk all five **Comparisons** chart types in turn — Violin, Channel Heatmap, Radar, and Histogram Overlay (plus its Ridge variant) — each one built for a different kind of question.
-- Get a real explanation of what UMAP's axes do and don't mean, configure and run a UMAP projection on your Leukocytes population, color it by marker expression, and run **HDBSCAN** to cluster the same cells with zero manual gating.
-- Export an unsupervised cluster as a first-class population, then head to **Pipeline** to build an **AND** logic node wiring your manual B-cells gate against the HDBSCAN-derived cluster — an independent, algorithmic cross-check of your own hands-on work.
-- Answer a final quiz that resolves the last piece of the mystery — Spleen vs. Bone Marrow — using the statistics and charts you just built, then save your finished workflow.
+- Validate that your Course 2 gating tree (Leukocytes, T-cells, B-cells) is actually in place before continuing.
+- Get a real explanation of what UMAP's axes do and don't mean, with a recommended external video for a deeper dive.
+- Select Sample C (the confirmed Spleen) and the Leukocytes gate, and exclude the PI and CD45 channels — each choice explained, not just instructed.
+- Walk every run parameter — Neighbors, Min Distance, Subsample %, Distance Metric, Seed, and HDBSCAN's Minimum Cluster Size — with a real justification for each.
+- Run the analysis and watch the real, data-driven UMAP animation play out live, built from your own Sample C data.
+- Explore the results in the **Plot Gallery** and the **Interactive Map** — hovering over populations to read their marker expression, and switching the map's marker dropdown to watch different lineages light up.
 
 <!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 

@@ -151,7 +151,7 @@ def redraw(self) -> None:
     if getattr(self, "_batch_update", False):
         return
     if self.width() <= 0 or self.height() <= 0:
-        QTimer.singleShot(200, self.redraw)   # 0x0 during layout — retry
+        QTimer.singleShot(200, self.redraw)  # 0x0 during layout — retry
         return
     self._dirty = False
     self._canvas_bitmap_cache = None
@@ -173,9 +173,8 @@ overrides, purely to change the retry callback:
 
 ```python
 def paintEvent(self, event) -> None:
-    self.raster_lock.try_run(
-        lambda: FigureCanvasQTAgg.paintEvent(self, event), self._retry_update
-    )
+    self.raster_lock.try_run(lambda: FigureCanvasQTAgg.paintEvent(self, event), self._retry_update)
+
 
 def _retry_update(self) -> None:
     if sip.isdeleted(self):
@@ -223,11 +222,13 @@ class RenderData:
     """Backend-agnostic bag of arrays/params. Must never hold a live
     Artist/Axes/Figure — only safe to touch under a RasterLock."""
 
+
 class RenderComputeStage(AnalysisBase):
     @abstractmethod
     def compute(self, state: PluginState | None) -> RenderData: ...
     def run(self, state=None) -> dict[str, Any]:
-        return {"render_data": self.compute(state)}   # AnalysisBase.run() bridge
+        return {"render_data": self.compute(state)}  # AnalysisBase.run() bridge
+
 
 class RasterizeStage(ABC):
     @abstractmethod
@@ -350,8 +351,13 @@ type with its `compute()`/`draw()` pair — e.g. `PseudocolorStrategy`:
 ```python
 @dataclass
 class PseudocolorRenderData:
-    x_plot: np.ndarray; y_plot: np.ndarray; c_plot: np.ndarray
-    cmap_name: str; alpha: float; point_size: float
+    x_plot: np.ndarray
+    y_plot: np.ndarray
+    c_plot: np.ndarray
+    cmap_name: str
+    alpha: float
+    point_size: float
+
 
 class PseudocolorStrategy(DisplayStrategy):
     def compute(self, x, y=None, *, xlim=None, ylim=None, **kwargs) -> PseudocolorRenderData | None:
@@ -361,9 +367,20 @@ class PseudocolorStrategy(DisplayStrategy):
         ...
 
     def draw(self, ax, data, **kwargs) -> None:
-        ax.scatter(data.x_plot, data.y_plot, s=data.point_size, c=data.c_plot,
-                   cmap=data.cmap_name, vmin=0.0, vmax=1.0, alpha=data.alpha,
-                   marker="o", rasterized=True, edgecolors="none", zorder=0)
+        ax.scatter(
+            data.x_plot,
+            data.y_plot,
+            s=data.point_size,
+            c=data.c_plot,
+            cmap=data.cmap_name,
+            vmin=0.0,
+            vmax=1.0,
+            alpha=data.alpha,
+            marker="o",
+            rasterized=True,
+            edgecolors="none",
+            zorder=0,
+        )
 ```
 
 `HistogramRenderData` is a good example of the split's actual payoff: it
@@ -394,8 +411,8 @@ class GateLayerRenderer:
             return
         try:
             # remove previous gate artists, clear tracking dicts
-            self._redraw_gate_overlays()   # walk canvas._active_gates,
-                                            # dispatch to GateOverlayRenderer
+            self._redraw_gate_overlays()  # walk canvas._active_gates,
+            # dispatch to GateOverlayRenderer
             canvas.draw_idle()
         finally:
             MPL_RASTER_LOCK.release()
@@ -492,14 +509,15 @@ def _draw_rubber_band(self, x0, y0, x1, y1, mode):
         self._pending_rubber_args = (x0, y0, x1, y1, mode)
         if not getattr(self, "_rubber_timer_active", False):
             self._rubber_timer_active = True
+
             def _retry() -> None:
                 self._rubber_timer_active = False
                 if hasattr(self, "_pending_rubber_args"):
                     self._draw_rubber_band(*self._pending_rubber_args)
+
             QTimer.singleShot(15, _retry)
 
-    def _action() -> None:
-        ... # the actual patch creation + restore_region/draw_artist/blit
+    def _action() -> None: ...  # the actual patch creation + restore_region/draw_artist/blit
 
     self.canvas.raster_lock.try_run(_action, _on_busy)
 ```
@@ -541,16 +559,19 @@ class RasterLock:
     """Reentrant, named lock guarding one rasterization backend's shared state."""
 
     def __init__(self, name: str = "default") -> None:
-        self._lock = threading.RLock()   # reentrant — see below
+        self._lock = threading.RLock()  # reentrant — see below
 
-    def try_run(self, action, on_busy_retry, retry_ms=50, crash_reporter=None, plugin_id=None) -> None:
+    def try_run(
+        self, action, on_busy_retry, retry_ms=50, crash_reporter=None, plugin_id=None
+    ) -> None:
         """Non-blocking acquire. On success: run `action` (exceptions caught
         and logged, optionally reported to crash_reporter). On contention:
         schedule `on_busy_retry` via QTimer.singleShot(retry_ms, ...) and
         return without running `action` — the retry callback must call back
         into try_run() itself."""
 
-MPL_RASTER_LOCK = RasterLock(name="matplotlib-agg")   # process-wide singleton
+
+MPL_RASTER_LOCK = RasterLock(name="matplotlib-agg")  # process-wide singleton
 ```
 
 Why it matters that this is **shared**, not per-plugin:
@@ -629,7 +650,7 @@ def run(self, state=None) -> dict:
         canvas = FigureCanvasAgg(fig)
         ax = fig.add_axes([0, 0, 1, 1])
         ...
-        strategy.draw(ax, render_data, **kwargs)     # only this needs the lock
+        strategy.draw(ax, render_data, **kwargs)  # only this needs the lock
         if c.get("gates"):
             # GateOverlayRenderer, same code path as the main canvas,
             # thinner lines (linewidth=0.6 vs 2.5) for subplot scale
@@ -728,10 +749,13 @@ class DirtyTrackingGraphicsScene(QGraphicsScene):
         ...
         item.update()
 
+
 class DirtyTrackingGraphicsView(QGraphicsView):
     def __init__(self, scene, parent=None, update_mode=None) -> None:
         super().__init__(scene, parent)
-        self.setViewportUpdateMode(update_mode or QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate)
+        self.setViewportUpdateMode(
+            update_mode or QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate
+        )
 ```
 
 Before this commit, `_CanvasGraphicsView` (`ui/widgets/node_canvas/canvas_view.py`)
@@ -787,7 +811,7 @@ def _mark_dirty(self) -> None:
     if scene is not None and hasattr(scene, "mark_dirty"):
         scene.mark_dirty(self)
     else:
-        self.update()   # unattached (e.g. a bare NodeItem constructed in a test)
+        self.update()  # unattached (e.g. a bare NodeItem constructed in a test)
 ```
 
 The fallback exists because `scene()` is `None` until the item is actually

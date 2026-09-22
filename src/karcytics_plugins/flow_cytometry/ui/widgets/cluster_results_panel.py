@@ -340,6 +340,7 @@ class ClusterResultsPanel(QWidget):
 
         toolbar = QHBoxLayout()
         self._interactive_combo = BioComboBox()
+        self._interactive_combo.setObjectName("UmapInteractiveMapCombo")
         self._interactive_combo.addItem("Auto-Cluster ID", "clusters")
         for ch in self._results.get("channels", []):
             self._interactive_combo.addItem(f"Marker: {ch}", ch)
