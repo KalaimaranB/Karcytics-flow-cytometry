@@ -140,6 +140,15 @@ class ClusterResultsPanel(QWidget):
 
         self._tabs = QTabWidget()
         self._tabs.setObjectName("ClusterResultsTabs")
+        # A separate, narrower objectName for just the clickable tab-header
+        # row — spotlighting "ClusterResultsTabs" itself highlights the
+        # WHOLE tab widget (header + the entire content pane below it,
+        # nearly the whole results panel), not the tabs a "click this tab"
+        # tutorial step actually means. Mirrors MainTabBar (workspace_builder.py),
+        # which is a standalone QTabBar for exactly this reason.
+        tab_bar = self._tabs.tabBar()
+        if tab_bar is not None:
+            tab_bar.setObjectName("ClusterResultsTabBar")
         self._tabs.setStyleSheet(f"""
             QTabWidget {{ background: transparent; }}
             QTabWidget::pane {{ border: 1px solid {Colors.BORDER}; border-radius: 4px; background: {Colors.BG_DARK}; }}
@@ -354,6 +363,7 @@ class ClusterResultsPanel(QWidget):
         layout.addLayout(toolbar)
 
         self._interactive_stack = QStackedWidget()
+        self._interactive_stack.setObjectName("UmapInteractiveMapCanvas")
         layout.addWidget(self._interactive_stack, stretch=1)
 
         self._interactive_info = QLabel("")
@@ -791,9 +801,11 @@ class ClusterResultsPanel(QWidget):
             left_layout.addWidget(vis_canvas)
 
         left_scroll.setWidget(left_container)
+        left_scroll.setObjectName("UmapStatsPlotsPanel")
         splitter.addWidget(left_scroll)
 
         right_panel = QWidget()
+        right_panel.setObjectName("UmapExportPopulationsPanel")
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(16, 8, 8, 8)
 

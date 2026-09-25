@@ -69,11 +69,11 @@ Picks up exactly where Course 1 left off (it checks that your saved workflow is 
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
-### Course 3 — Population Analysis (Part 1)
+### Course 3 — Population Analysis
 
-**~30 minutes · requires Course 2 · badge: 🧠 Population Analyst (awarded once Course 3 is complete)**
+**~50 minutes · requires Course 2 · badge: 🧠 Population Analyst (awarded once Course 3 is complete)**
 
-Course 3 is being released in parts — this first part is a self-contained, no-new-gating deep dive into unsupervised **Population Analysis**. It doesn't yet end in a graduation screen; a "Course 3 will be complete soon!" step marks where this part currently stops, and you can safely resume from there once more content ships. You:
+Course 3 is being released in parts — it doesn't yet end in a graduation screen; a "Course 3 will be complete soon!" step marks where the released content currently stops, and you can safely resume from there once more ships. No new manual gating anywhere in it. You:
 
 - Validate that your Course 2 gating tree (Leukocytes, T-cells, B-cells) is actually in place before continuing.
 - Get a real explanation of what UMAP's axes do and don't mean, with a recommended external video for a deeper dive.
@@ -81,6 +81,8 @@ Course 3 is being released in parts — this first part is a self-contained, no-
 - Walk every run parameter — Neighbors, Min Distance, Subsample %, Distance Metric, Seed, and HDBSCAN's Minimum Cluster Size — with a real justification for each.
 - Run the analysis and watch the real, data-driven UMAP animation play out live, built from your own Sample C data.
 - Explore the results in the **Plot Gallery** and the **Interactive Map** — hovering over populations to read their marker expression, and switching the map's marker dropdown to watch different lineages light up.
+- Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
+- Read the real agreement between the two independent methods in the **Statistics** tab (table and all three chart types) and every chart type in **Comparisons**, including the new Pseudocolor Overlay.
 
 <!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 

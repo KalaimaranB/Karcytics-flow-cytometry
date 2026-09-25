@@ -1401,3 +1401,219 @@ class ClusterResultsTabActiveValidator(FlowValidator):
         if self._label not in current:
             return self.log_failure(f"Active results tab is '{current}', expected '{self._label}'.")
         return True
+
+
+class UmapMarkerColoredValidator(FlowValidator):
+    """Verifies the Interactive Map's marker/cluster-ID dropdown is showing a specific marker."""
+
+    def __init__(self, label_substr: str) -> None:
+        self._label = label_substr.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        results_panel = getattr(viewer, "_results_panel", None) if viewer else None
+        combo = getattr(results_panel, "_interactive_combo", None)
+        if not combo:
+            return self.log_failure("Interactive map combo not available yet.")
+        current = combo.currentText().lower()
+        if self._label not in current:
+            return self.log_failure(
+                f"Interactive map is showing '{current}', expected '{self._label}'."
+            )
+        return True
+
+
+class UmapBestBCellClusterValidator(FlowValidator):
+    """Computes which real HDBSCAN cluster is this run's B-cell population —
+    the one with the largest *contrast* between the given marker and every
+    other marker (mean marker expression minus the mean of all other
+    markers' means) — and verifies the user has isolated exactly that row
+    in Export Populations: its checkbox is the only one checked (cluster
+    -1, HDBSCAN's noise bucket, is never a candidate and must be unchecked
+    like everything else), and its name field reads the expected name.
+
+    A pure "highest marker expression, ties broken by lowest everything
+    else" ranking (lexicographic on marker expression first) can pick a
+    cluster that's elevated on *every* marker — e.g. a doublet/artifact
+    population — over a cluster with a clean single-marker-positive
+    profile, since the marker-expression term dominates the comparison
+    before the "everything else" term ever matters. The contrast score
+    instead rewards clusters that are specifically high on the target
+    marker and specifically low elsewhere, which is what actually
+    identifies a real single-lineage-positive population.
+
+    Cluster ID *numbering* isn't stable run-to-run (only the clustering
+    itself is, for fixed params/seed), so this never hardcodes an ID —
+    ``on_progress``, if given, is called with a fresh instruction string
+    naming the real, freshly-computed cluster ID on every poll, the same
+    live-bubble-text idiom ``TutorialFilesProvisionedValidator`` uses in
+    course1.py.
+    """
+
+    def __init__(
+        self,
+        on_progress: Callable[[str], None] | None = None,
+        marker_label_substr: str = "b220",
+        expected_name: str = "UMAP B Cells",
+    ) -> None:
+        self._on_progress = on_progress
+        self._marker_substr = marker_label_substr.lower()
+        self._expected_name = expected_name.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        import numpy as np
+
+        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        results_panel = getattr(viewer, "_results_panel", None) if viewer else None
+        results = getattr(results_panel, "_results", None)
+        cluster_ui = getattr(results_panel, "_cluster_ui_elements", None)
+        if not results or not cluster_ui:
+            return self.log_failure("Results panel not ready yet.")
+
+        clusters = np.asarray(results.get("clusters"))
+        intensities = np.asarray(results.get("intensities"))
+        labels = results.get("channel_labels") or []
+        if clusters.size == 0 or intensities.size == 0 or not labels:
+            return self.log_failure("UMAP results incomplete.")
+
+        marker_idx = next(
+            (i for i, lbl in enumerate(labels) if self._marker_substr in lbl.lower()), None
+        )
+        if marker_idx is None:
+            return self.log_failure(f"No channel label matches '{self._marker_substr}'.")
+
+        real_ids = sorted({int(c) for c in clusters.tolist() if int(c) != -1})
+        if not real_ids:
+            return self.log_failure("No real (non-noise) clusters found.")
+
+        means = {cid: intensities[clusters == cid].mean(axis=0) for cid in real_ids}
+        num_channels = intensities.shape[1]
+
+        def score(cid: int) -> float:
+            m = means[cid]
+            marker_mean = float(m[marker_idx])
+            if num_channels <= 1:
+                return marker_mean
+            others_mean = float((m.sum() - m[marker_idx]) / (num_channels - 1))
+            return marker_mean - others_mean
+
+        best_cid = max(real_ids, key=score)
+
+        if self._on_progress is not None:
+            self._on_progress(
+                "Scanning your run's real numbers 🔬<br><br>"
+                f"**Cluster ID {best_cid}** has the sharpest contrast between the "
+                "marker you colored the map by and every other marker — "
+                "specifically high on that one, specifically low on the rest — "
+                "that's your B-cell population.<br><br>"
+                f"Uncheck every row EXCEPT **ID {best_cid}** — including ID -1, "
+                "that's HDBSCAN's noise bucket, not a real population — then "
+                f"rename ID {best_cid}'s field to **{self._expected_name}**."
+            )
+
+        return self._rows_match_expected(cluster_ui, best_cid)
+
+    def _rows_match_expected(self, cluster_ui: dict, best_cid: int) -> bool:
+        for cid, (checkbox, name_edit) in cluster_ui.items():
+            should_check = int(cid) == best_cid
+            if checkbox.isChecked() != should_check:
+                return self.log_failure(
+                    f"Cluster {cid} checked={checkbox.isChecked()}, expected {should_check}."
+                )
+            if should_check and name_edit.text().strip().lower() != self._expected_name:
+                return self.log_failure(
+                    f"Best cluster name is '{name_edit.text()}', expected '{self._expected_name}'."
+                )
+        return True
+
+
+class LogicNodeStatsReadyValidator(FlowValidator):
+    """Verifies a boolean logic node's live statistics have actually finished
+    recomputing (non-zero count, both parents represented) after wiring —
+    stats recompute asynchronously off an event, so a step reading them
+    immediately after the wiring VerificationStep succeeds can otherwise
+    show stale/zero numbers for a moment.
+    """
+
+    def __init__(self, operator: str, parent_names: list[str]) -> None:
+        self._operator = operator.upper()
+        self._parents = [p.lower() for p in parent_names]
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        sample_id = getattr(app_state.view, "current_sample_id", None)
+        if not sample_id:
+            return self.log_failure("No active sample ID in view.")
+        sample = app_state.data.experiment.samples.get(sample_id)
+        if not sample:
+            return self.log_failure(f"Sample ID {sample_id} not found in experiment.")
+
+        node = self._find_logic_node(sample.gate_tree)
+        if node is None:
+            return self.log_failure(f"No {self._operator} node combining {self._parents} found.")
+
+        stats = getattr(node, "statistics", None) or {}
+        if not stats.get("count"):
+            return self.log_failure("Logic node stats haven't recomputed yet (count is 0).")
+        if len(stats.get("per_parent_pcts", {})) < len(self._parents):
+            return self.log_failure("Logic node per-parent stats haven't recomputed yet.")
+        return True
+
+    def _find_logic_node(self, node: Any) -> Any | None:
+        if (
+            getattr(node, "gate", None) is None
+            and getattr(node, "logic_operator", "") == self._operator
+        ):
+            parent_names = {p.name.lower() for p in getattr(node, "parents", [])}
+            if all(any(target in name for name in parent_names) for target in self._parents):
+                return node
+        for child in getattr(node, "children", []):
+            found = self._find_logic_node(child)
+            if found is not None:
+                return found
+        return None
+
+
+class PopulationsCheckedValidator(FlowValidator):
+    """Verifies the Statistics/Comparisons tab's population selector has at
+    least the given labels checked (substring/case-insensitive), among
+    however many others the user also checked.
+    """
+
+    def __init__(self, explorer_attr: str, *required_labels: str) -> None:
+        self._explorer_attr = explorer_attr
+        self._required = [lbl.lower() for lbl in required_labels]
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        explorer = getattr(app_state.view, self._explorer_attr, None)
+        selector = getattr(explorer, "_selector", None)
+        if not selector:
+            return self.log_failure(f"{self._explorer_attr} or its selector missing.")
+        checked = selector.get_checked_populations()
+        checked_labels = [label.lower() for (_sample_id, _node_id, label) in checked]
+        missing = [
+            req for req in self._required if not any(req in label for label in checked_labels)
+        ]
+        if missing:
+            return self.log_failure(f"Missing required checked populations: {missing}")
+        return True
+
+
+class StatsCheckedValidator(FlowValidator):
+    """Verifies the Statistics tab has at least the given StatType values checked."""
+
+    def __init__(self, *required: Any) -> None:
+        self._required = required
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        explorer = getattr(app_state.view, "_statistics_explorer", None)
+        checkboxes = getattr(explorer, "_stat_checkboxes", None)
+        if not checkboxes:
+            return self.log_failure("Statistics explorer or stat checkboxes missing.")
+        missing = [
+            stat
+            for stat in self._required
+            if not checkboxes.get(stat, None) or not checkboxes[stat].isChecked()
+        ]
+        if missing:
+            return self.log_failure(f"Missing required checked stats: {missing}")
+        return True

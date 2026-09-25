@@ -7,7 +7,7 @@ from karcytics_sdk.plugin.rendering.graphics_scene import (
     DirtyTrackingGraphicsView,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
+from PyQt6.QtCore import QPointF, QRect, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPen, QPolygonF, QWheelEvent
 from PyQt6.QtWidgets import (
     QGraphicsView,
@@ -296,6 +296,52 @@ class NodeCanvas(QWidget):
             margin = 50.0
             rect.adjust(-margin, -margin, margin, margin)
             self._view.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
+
+    def get_tutorial_target_rects(self, step: Any) -> list[QRect]:
+        """Academy duck-typing hook (see AcademyStepDriver._collect_canvas_target_rects
+        in the SDK): lets a tutorial step spotlight specific named pipeline
+        nodes by real gate-tree node name, via
+        step.metadata["pipeline_highlight_node_names"] — individual nodes
+        are QGraphicsItems, not QWidgets, so they're otherwise invisible to
+        the driver's normal findChildren(QWidget, ...) spotlight lookup.
+        """
+        names = (getattr(step, "metadata", None) or {}).get("pipeline_highlight_node_names")
+        if not names:
+            return []
+        wanted = {n.lower() for n in names}
+        matching_items = [
+            item for item in self._manager._node_items.values() if item.name.lower() in wanted
+        ]
+        if not matching_items:
+            return []
+
+        viewport = self._view.viewport()
+        if viewport is None:
+            return []
+
+        union_rect = matching_items[0].sceneBoundingRect()
+        for item in matching_items[1:]:
+            union_rect = union_rect.united(item.sceneBoundingRect())
+
+        # Bring the requested nodes into view first if they aren't already —
+        # e.g. right after adding a new AND node widens the layout enough
+        # that earlier nodes can fall outside the current viewport. Reuses
+        # center_on_nodes()'s own padding/fit logic, just scoped to only the
+        # nodes this step actually cares about.
+        visible_scene_rect = self._view.mapToScene(viewport.rect()).boundingRect()
+        if not visible_scene_rect.contains(union_rect):
+            margin = 50.0
+            self._view.fitInView(
+                union_rect.adjusted(-margin, -margin, margin, margin),
+                Qt.AspectRatioMode.KeepAspectRatio,
+            )
+
+        rects = []
+        for item in matching_items:
+            view_rect = self._view.mapFromScene(item.sceneBoundingRect()).boundingRect()
+            top_left_global = viewport.mapToGlobal(view_rect.topLeft())
+            rects.append(QRect(top_left_global, view_rect.size()))
+        return rects
 
     def _confirm_and_delete_node(self, node_id: str) -> None:
         """Prompt confirmation if the node has child populations, then delete."""

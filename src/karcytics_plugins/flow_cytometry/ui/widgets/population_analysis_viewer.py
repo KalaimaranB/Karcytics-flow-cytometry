@@ -207,7 +207,6 @@ class PopulationAnalysisViewer(QWidget):
         n_neigh_lbl_layout.addWidget(n_neigh_help)
         n_neigh_lbl_layout.addStretch()
         n_neigh_lbl_layout.addWidget(self._n_neigh_val_lbl)
-        scroll_layout.addLayout(n_neigh_lbl_layout)
 
         self._n_neigh_slider = QSlider(Qt.Orientation.Horizontal)
         self._n_neigh_slider.setObjectName("UmapNeighborsSlider")
@@ -219,7 +218,19 @@ class PopulationAnalysisViewer(QWidget):
         self._n_neigh_slider.valueChanged.connect(
             lambda val: self._n_neigh_val_lbl.setText(str(val))
         )
-        scroll_layout.addWidget(self._n_neigh_slider)
+
+        # Groups the title/value row + slider under one objectName so a
+        # tutorial step can spotlight the whole parameter — label, live
+        # value, and control together — as a single region, rather than
+        # just the bare slider (which gave no visual link to its own label
+        # and could scroll out of view independently of it).
+        n_neigh_group = QWidget()
+        n_neigh_group.setObjectName("UmapNeighborsGroup")
+        n_neigh_group_layout = QVBoxLayout(n_neigh_group)
+        n_neigh_group_layout.setContentsMargins(0, 0, 0, 0)
+        n_neigh_group_layout.addLayout(n_neigh_lbl_layout)
+        n_neigh_group_layout.addWidget(self._n_neigh_slider)
+        scroll_layout.addWidget(n_neigh_group)
 
         # min_dist
         min_dist_lbl_layout = QHBoxLayout()
@@ -243,7 +254,6 @@ class PopulationAnalysisViewer(QWidget):
         min_dist_lbl_layout.addWidget(min_dist_help)
         min_dist_lbl_layout.addStretch()
         min_dist_lbl_layout.addWidget(self._min_dist_val_lbl)
-        scroll_layout.addLayout(min_dist_lbl_layout)
 
         self._min_dist_slider = QSlider(Qt.Orientation.Horizontal)
         self._min_dist_slider.setObjectName("UmapMinDistSlider")
@@ -253,7 +263,15 @@ class PopulationAnalysisViewer(QWidget):
         self._min_dist_slider.valueChanged.connect(
             lambda val: self._min_dist_val_lbl.setText(f"{val / 100:.2f}")
         )
-        scroll_layout.addWidget(self._min_dist_slider)
+
+        # See the Neighbors group above for why label + slider are grouped.
+        min_dist_group = QWidget()
+        min_dist_group.setObjectName("UmapMinDistGroup")
+        min_dist_group_layout = QVBoxLayout(min_dist_group)
+        min_dist_group_layout.setContentsMargins(0, 0, 0, 0)
+        min_dist_group_layout.addLayout(min_dist_lbl_layout)
+        min_dist_group_layout.addWidget(self._min_dist_slider)
+        scroll_layout.addWidget(min_dist_group)
 
         # n_events
         n_events_lbl_layout = QHBoxLayout()
@@ -272,7 +290,6 @@ class PopulationAnalysisViewer(QWidget):
         n_events_lbl_layout.addWidget(self._n_events_title_lbl)
         n_events_lbl_layout.addWidget(n_events_help)
         n_events_lbl_layout.addStretch()
-        scroll_layout.addLayout(n_events_lbl_layout)
 
         self._n_events_slider = QSlider(Qt.Orientation.Horizontal)
         self._n_events_slider.setObjectName("UmapSubsampleSlider")
@@ -280,7 +297,15 @@ class PopulationAnalysisViewer(QWidget):
         self._n_events_slider.setValue(10)
         self._n_events_slider.setToolTip("Percentage of events to subsample. Max is all events.")
         self._n_events_slider.valueChanged.connect(self._on_subsample_changed)
-        scroll_layout.addWidget(self._n_events_slider)
+
+        # See the Neighbors group above for why label + slider are grouped.
+        n_events_group = QWidget()
+        n_events_group.setObjectName("UmapSubsampleGroup")
+        n_events_group_layout = QVBoxLayout(n_events_group)
+        n_events_group_layout.setContentsMargins(0, 0, 0, 0)
+        n_events_group_layout.addLayout(n_events_lbl_layout)
+        n_events_group_layout.addWidget(self._n_events_slider)
+        scroll_layout.addWidget(n_events_group)
 
         # Metric
         metric_lbl_layout = QHBoxLayout()
@@ -296,12 +321,19 @@ class PopulationAnalysisViewer(QWidget):
         metric_lbl_layout.addWidget(metric_lbl)
         metric_lbl_layout.addWidget(metric_help)
         metric_lbl_layout.addStretch()
-        scroll_layout.addLayout(metric_lbl_layout)
 
         self._metric_combo = BioComboBox()
         self._metric_combo.setObjectName("UmapMetricCombo")
         self._metric_combo.addItems(["euclidean", "cosine", "manhattan"])
-        scroll_layout.addWidget(self._metric_combo)
+
+        # See the Neighbors group above for why label + control are grouped.
+        metric_group = QWidget()
+        metric_group.setObjectName("UmapMetricGroup")
+        metric_group_layout = QVBoxLayout(metric_group)
+        metric_group_layout.setContentsMargins(0, 0, 0, 0)
+        metric_group_layout.addLayout(metric_lbl_layout)
+        metric_group_layout.addWidget(self._metric_combo)
+        scroll_layout.addWidget(metric_group)
 
         # Random Seed
         seed_lbl_layout = QHBoxLayout()
@@ -317,12 +349,19 @@ class PopulationAnalysisViewer(QWidget):
         seed_lbl_layout.addWidget(seed_lbl)
         seed_lbl_layout.addWidget(seed_help)
         seed_lbl_layout.addStretch()
-        scroll_layout.addLayout(seed_lbl_layout)
 
         self._seed_input = BioLineEdit("42")
         self._seed_input.setObjectName("UmapSeedInput")
         self._seed_input.setValidator(QIntValidator(0, 999999))
-        scroll_layout.addWidget(self._seed_input)
+
+        # See the Neighbors group above for why label + control are grouped.
+        seed_group = QWidget()
+        seed_group.setObjectName("UmapSeedGroup")
+        seed_group_layout = QVBoxLayout(seed_group)
+        seed_group_layout.setContentsMargins(0, 0, 0, 0)
+        seed_group_layout.addLayout(seed_lbl_layout)
+        seed_group_layout.addWidget(self._seed_input)
+        scroll_layout.addWidget(seed_group)
 
         scroll_layout.addSpacing(10)
 
@@ -344,7 +383,16 @@ class PopulationAnalysisViewer(QWidget):
         clustering_lbl_layout.addWidget(self._run_hdbscan_cb)
         clustering_lbl_layout.addWidget(cluster_help)
         clustering_lbl_layout.addStretch()
-        scroll_layout.addLayout(clustering_lbl_layout)
+
+        # See the Neighbors group above for why the checkbox + help are
+        # wrapped — lets a tutorial step spotlight this whole row as one
+        # region instead of just the bare checkbox.
+        hdbscan_group = QWidget()
+        hdbscan_group.setObjectName("UmapHdbscanGroup")
+        hdbscan_group_layout = QVBoxLayout(hdbscan_group)
+        hdbscan_group_layout.setContentsMargins(0, 0, 0, 0)
+        hdbscan_group_layout.addLayout(clustering_lbl_layout)
+        scroll_layout.addWidget(hdbscan_group)
 
         min_cluster_layout = QHBoxLayout()
         min_cluster_layout.setContentsMargins(0, 0, 0, 0)
@@ -365,6 +413,10 @@ class PopulationAnalysisViewer(QWidget):
         min_cluster_layout.addStretch()
 
         self._min_cluster_container = QWidget()
+        # Also serves as this parameter's spotlight target — the spin box's
+        # own prefix ("Min Cluster Size: 100") already merges label + value
+        # into one control, so this container just adds the help icon.
+        self._min_cluster_container.setObjectName("UmapMinClusterGroup")
         self._min_cluster_container.setLayout(min_cluster_layout)
         self._min_cluster_container.setVisible(False)
         scroll_layout.addWidget(self._min_cluster_container)
