@@ -26,8 +26,18 @@ def sync():
     # Copy markdown
     install_dest.parent.mkdir(parents=True, exist_ok=True)
     if install_src.exists():
-        shutil.copy2(install_src, install_dest)
-        print(f"Copied {install_src} to {install_dest}")  # noqa: T201
+        with open(install_src, "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # Rewrite links for the flow module documentation structure
+        content = content.replace("02_Getting_Started.md", "01_GETTING_STARTED.md")
+        content = content.replace("05_FAQ_Troubleshooting.md", "13_TROUBLESHOOTING.md")
+        content = content.replace("07_Plugin_Store_and_Security.md", "https://kalaimaranb.github.io/Karcytics/user/07_Plugin_Store_and_Security/")
+        
+        with open(install_dest, "w", encoding="utf-8") as f:
+            f.write(content)
+            
+        print(f"Copied and processed {install_src} to {install_dest}")  # noqa: T201
 
     # Copy images
     if img_src.exists():

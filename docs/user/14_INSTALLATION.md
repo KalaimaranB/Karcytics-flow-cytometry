@@ -35,7 +35,7 @@ flowchart TD
 
 ---
 
-<details>
+<details markdown="1">
 <summary><strong>Windows installation</strong></summary>
 
 1. Download `Karcytics-Windows.zip` from the latest GitHub release.
@@ -61,7 +61,7 @@ This folder stores:
 
 ---
 
-<details>
+<details markdown="1">
 <summary><strong>macOS installation</strong></summary>
 
 1. Download `Karcytics-macOS.tar.gz` from the latest GitHub release.
@@ -154,6 +154,6 @@ If a plugin won't install:
 
 ## What’s next?
 
-* [Getting Started](02_Getting_Started.md) — create a project and learn the Hub
-* [Plugin Store & Security](07_Plugin_Store_and_Security.md) — understand trust and module safety
-* [FAQ & Troubleshooting](05_FAQ_Troubleshooting.md) — solve common problems quickly
+* [Getting Started](01_GETTING_STARTED.md) — create a project and learn the Hub
+* [Plugin Store & Security](https://kalaimaranb.github.io/Karcytics/user/07_Plugin_Store_and_Security/) — understand trust and module safety
+* [FAQ & Troubleshooting](13_TROUBLESHOOTING.md) — solve common problems quickly

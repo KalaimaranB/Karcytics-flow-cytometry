@@ -55,7 +55,7 @@
         "docs/user/image/06_Installation/releases_view.png": "4834c3ccbbb6550c0339022d65f4de95f69257f83fd2566e865132b9630ca3fb",
         "docs/user/image/06_Installation/system_settings.png": "1d3994ea2119a892c0550242ff06a14d1b8f46119fc9b69e899bfe960ea4a395",
         "mkdocs.yml": "a74038b6135b1c0c545dde91376bc2c1f42e42015aeb7db7507463a746eb07de",
-        "scripts/sync_core_docs.py": "64e85e75c071f3c5a15567af21dc566f62144431a2a6bbb0ab5f1d92573b6d8b",
+        "scripts/sync_core_docs.py": "e20da883a0b4bf4c740e1ed90bacd6bd41ce68f3b0571549966c0ee7fd185876",
         "scripts/verify_security_ledger.py": "a5f90f7bc7120d6a79ae9e65b2c4f3e13fb9b6d40925463de88cc25406910ca2",
         "site/assets/images/favicon.png": "023854c43fc4b25b795ee4951c8019e3de0593ffeb6f918b5d1f2a9b47a57cfe",
         "site/images/00_overview/academy.png": "b888c921b9ca698f4c709a21943c971fbe38f79e19b0fbcdbc9b8bcac4ba7c5a",
