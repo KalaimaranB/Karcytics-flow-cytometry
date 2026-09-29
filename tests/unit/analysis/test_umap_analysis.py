@@ -117,6 +117,9 @@ def test_umap_run_success(test_state):
     assert "error" not in results
     assert results["sample_id"] == "s1"
     assert results["n_events"] == 50
+    # 100 events in the fixture sample, only 50 subsampled — needed downstream
+    # to compute the scale_factor correction (parent_total_events / n_events).
+    assert results["parent_total_events"] == 100
 
     # Embedding must be shape (50, 2)
     embedding = results["embedding"]

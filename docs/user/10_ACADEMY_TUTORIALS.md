@@ -13,7 +13,7 @@ Best of all, it provisions its own demo data: **you don't need any FCS files of 
 
 Click **🎓 Cyto Academy**, next to the Save Workspace button in the tab bar. This opens the **Academy course catalog** — a set of course cards showing your progress and any badges you've already earned.
 
-<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing three course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis & Advanced Comparisons) with progress indicators -->
+<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing four course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis: Run & Validate, Statistics & Comparisons) with progress indicators -->
 
 Pick a course and it starts immediately: a floating tutor overlay appears on top of your workspace, with a speech-bubble guide (nicknamed **Cyto**) and a soft spotlight highlighting whichever button, panel, or plot region you need to interact with next.
 
@@ -31,13 +31,13 @@ This is what makes the Academy different from a static walkthrough: it's checkin
 
 ## Your demo data
 
-Course 1 provisions ten realistic tutorial FCS files (a Blank, a PI viability single stain, five FMO controls, and three "mystery" experimental samples) the first time you need them. If they're already present in your project or a known folder, this is instant; otherwise Karcytics downloads them once (roughly 100&nbsp;MB) from the project's own reference dataset, showing live progress as it goes. You'll never need to hunt for or prepare your own files to complete any of the three courses.
+Course 1 provisions ten realistic tutorial FCS files (a Blank, a PI viability single stain, five FMO controls, and three "mystery" experimental samples) the first time you need them. If they're already present in your project or a known folder, this is instant; otherwise Karcytics downloads them once (roughly 100&nbsp;MB) from the project's own reference dataset, showing live progress as it goes. You'll never need to hunt for or prepare your own files to complete any of the four courses.
 
 <!-- SCREENSHOT: docs/images/user/academy/file-provisioning.png — the provisioning step showing live download progress ("6/10 files done") -->
 
-## The three courses
+## The four courses
 
-The courses build on each other in order — Course 2 requires Course 1's saved workflow, and Course 3 requires Course 2's.
+The courses build on each other in order — Course 2 requires Course 1's saved workflow, Course 3 requires Course 2's, and Course 4 requires Course 3's.
 
 ### Course 1 — Flow Cytometry Fundamentals
 
@@ -69,11 +69,11 @@ Picks up exactly where Course 1 left off (it checks that your saved workflow is 
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
-### Course 3 — Population Analysis
+### Course 3 — Population Analysis: Run & Validate
 
-**~50 minutes · requires Course 2 · badge: 🧠 Population Analyst (awarded once Course 3 is complete)**
+**~55 minutes · requires Course 2 · badge: 🧠 Population Analyst**
 
-Course 3 is being released in parts — it doesn't yet end in a graduation screen; a "Course 3 will be complete soon!" step marks where the released content currently stops, and you can safely resume from there once more ships. No new manual gating anywhere in it. You:
+No new manual gating anywhere in it — instead, you hand your existing gated data to an algorithm that has never seen your gates, then prove its result out against your own hand-gating. You:
 
 - Validate that your Course 2 gating tree (Leukocytes, T-cells, B-cells) is actually in place before continuing.
 - Get a real explanation of what UMAP's axes do and don't mean, with a recommended external video for a deeper dive.
@@ -82,9 +82,21 @@ Course 3 is being released in parts — it doesn't yet end in a graduation scree
 - Run the analysis and watch the real, data-driven UMAP animation play out live, built from your own Sample C data.
 - Explore the results in the **Plot Gallery** and the **Interactive Map** — hovering over populations to read their marker expression, and switching the map's marker dropdown to watch different lineages light up.
 - Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
-- Read the real agreement between the two independent methods in the **Statistics** tab (table and all three chart types) and every chart type in **Comparisons**, including the new Pseudocolor Overlay.
+- Save your workspace again — required to continue into Course 4.
 
 <!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
+
+### Course 4 — Statistics & Comparisons
+
+**~30 minutes (growing) · requires Course 3 · badge: 📊 Insight Reporter (awarded once Course 4 is complete)**
+
+Course 4 is being released in parts — it doesn't yet end in a graduation screen; a "Course 4 will be complete soon!" step marks where the released content currently stops, and you can safely resume from there once more ships. It picks up exactly where Course 3 left off, using your hand-gated **B-cells** and unsupervised **UMAP B Cells** as real, running evidence. You:
+
+- Confirm your Course 3 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
+- Read the real agreement between the two independent methods in the **Statistics** tab — the full table, then all three chart types (Grouped Bar, Horizontal Bar, Heatmap).
+- Walk every chart type in **Comparisons**, including the new Pseudocolor Overlay, actually generating each plot rather than just reading about it.
+
+<!-- SCREENSHOT: docs/images/user/academy/course4-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
 
 ## After you finish
 
@@ -96,4 +108,4 @@ Each course awards a badge on completion, tracked on the course catalog card so 
 
 - **[Getting Started](./01_GETTING_STARTED.md)** — the same core workflow as Course 1, written out for readers who'd rather read than click through a tutorial.
 - **[Overview](./00_OVERVIEW.md)** — the full map of all eight tabs.
-- Once you've completed all three courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Comparisons](./09_COMPARISONS.md)**) are the best reference for details a guided course necessarily moves past quickly.
+- Once you've completed all four courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Comparisons](./09_COMPARISONS.md)**) are the best reference for details a guided course necessarily moves past quickly.

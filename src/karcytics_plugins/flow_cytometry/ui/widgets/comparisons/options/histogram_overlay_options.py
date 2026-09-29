@@ -48,6 +48,7 @@ class HistogramOverlayOptionsPanel(IOptionsPanel):
         layout.addLayout(layout_row)
 
         self._layout_combo = BioComboBox()
+        self._layout_combo.setObjectName("HistogramLayoutCombo")
         self._layout_combo.addItem("Ridge (waterfall)", "ridge")
         self._layout_combo.addItem("Overlay (all on one axis)", "overlay")
         self._layout_combo.currentIndexChanged.connect(self._on_layout_changed)

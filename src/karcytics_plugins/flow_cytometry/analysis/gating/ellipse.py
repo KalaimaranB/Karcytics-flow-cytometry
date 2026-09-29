@@ -5,13 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .._utils import (
-    BiexponentialParameters,
-    ScaleFactory,
-    ScaleSerializer,
-    TransformTypeResolver,
-)
-from ..transforms import TransformType, apply_transform
+from .._utils import ScaleFactory, ScaleSerializer, project_to_display
 from .base import Gate
 
 
@@ -79,29 +73,15 @@ class EllipseGate(Gate):
         cx_raw = self.center[0]
         cy_raw = self.center[1]
 
-        x_type = TransformTypeResolver.resolve(getattr(self.x_scale, "transform_type", "linear"))
-        y_type = TransformTypeResolver.resolve(getattr(self.y_scale, "transform_type", "linear"))
-
-        x_kwargs = (
-            BiexponentialParameters(self.x_scale).to_dict()
-            if x_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-        y_kwargs = (
-            BiexponentialParameters(self.y_scale).to_dict()
-            if y_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-
         # Project events and center to display space
-        x_disp = apply_transform(x_raw, x_type, **x_kwargs)
-        y_disp = apply_transform(y_raw, y_type, **y_kwargs)
-        cx_disp = apply_transform(np.array([cx_raw]), x_type, **x_kwargs)[0]
-        cy_disp = apply_transform(np.array([cy_raw]), y_type, **y_kwargs)[0]
+        x_disp = project_to_display(x_raw, self.x_scale)
+        y_disp = project_to_display(y_raw, self.y_scale)
+        cx_disp = project_to_display(np.array([cx_raw]), self.x_scale)[0]
+        cy_disp = project_to_display(np.array([cy_raw]), self.y_scale)[0]
 
         # Project axis endpoints to get semi-axes lengths in display space
-        x_plus_w_disp = apply_transform(np.array([cx_raw + self.width]), x_type, **x_kwargs)[0]
-        y_plus_h_disp = apply_transform(np.array([cy_raw + self.height]), y_type, **y_kwargs)[0]
+        x_plus_w_disp = project_to_display(np.array([cx_raw + self.width]), self.x_scale)[0]
+        y_plus_h_disp = project_to_display(np.array([cy_raw + self.height]), self.y_scale)[0]
         width_disp = abs(x_plus_w_disp - cx_disp)
         height_disp = abs(y_plus_h_disp - cy_disp)
 

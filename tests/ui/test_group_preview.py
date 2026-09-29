@@ -2,73 +2,14 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
-import pytest
 
-from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets.group_preview import (
-    GroupPreviewPanel,
-    PreviewThumbnail,
-)
 
-
-@pytest.fixture
-def flow_state_groups():
-    state = FlowState()
-
-    # Sample 1
-    sample1 = Sample(sample_id="s1", display_name="Sample 1")
-    sample1.fcs_data = MagicMock()
-    sample1.fcs_data.events = pd.DataFrame(
-        {
-            "FSC-A": np.random.normal(50000, 10000, 100),
-            "SSC-A": np.random.normal(50000, 10000, 100),
-        }
-    )
-    state.data.experiment.samples["s1"] = sample1
-
-    # Sample 2
-    sample2 = Sample(sample_id="s2", display_name="Sample 2")
-    sample2.fcs_data = MagicMock()
-    sample2.fcs_data.events = pd.DataFrame(
-        {
-            "FSC-A": np.random.normal(50000, 10000, 100),
-            "SSC-A": np.random.normal(50000, 10000, 100),
-        }
-    )
-    state.data.experiment.samples["s2"] = sample2
-
-    # Assign groups
-    sample1.group_ids = {"g1"}
-    sample2.group_ids = {"g1"}
-
-    return state
-
-
-@pytest.mark.ui
-def test_group_preview_panel_init(qtbot, flow_state_groups):
-    panel = GroupPreviewPanel(
-        flow_state_groups,
-        "s1",
-        axis_manager=MagicMock(),
-        population_service=MagicMock(),
-    )
-    qtbot.addWidget(panel)
-    assert panel._state == flow_state_groups
-    assert panel._current_sample_id == "s1"
-
-
-@pytest.mark.ui
-def test_preview_thumbnail_init(qtbot, flow_state_groups):
-    thumb = PreviewThumbnail(
-        "s1",
-        flow_state_groups,
-        axis_manager=MagicMock(),
-        population_service=MagicMock(),
-    )
-    qtbot.addWidget(thumb)
-    assert thumb._sample_id == "s1"
-    assert thumb._state == flow_state_groups
+# Real construction + rebuild behavior for GroupPreviewPanel/PreviewThumbnail
+# is exercised by tests/ui/test_main_panel_smoke.py::test_group_preview_panel_initialization
+# (asserts `len(panel._thumbnails) > 0` after a real rebuild) — pure
+# construction/attribute-existence checks were removed as no-unique-signal
+# per SDK_Abstraction_Performance_Plan.md Priority 4.
 
 
 def test_render_task_for_preview():

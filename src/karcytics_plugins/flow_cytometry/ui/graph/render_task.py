@@ -302,12 +302,25 @@ class RenderTask(AnalysisBase):
                     weight="bold",
                 )
 
-            canvas.draw()
-            rgba_buffer = canvas.buffer_rgba()
-            image_data = bytes(rgba_buffer)
-
-            # Free memory
-            fig.clf()
+            try:
+                canvas.draw()
+                rgba_buffer = canvas.buffer_rgba()
+                image_data = bytes(rgba_buffer)
+            except RuntimeError as exc:
+                # FT_Render_Glyph raster overflow — happens when matplotlib's
+                # FreeType rasterizer gets coordinates that overflow its
+                # internal buffer (extreme axis limits, very high DPI, etc.).
+                # Gate label coordinates are pre-guarded in _create_label, but
+                # canvas.draw() also rasterizes tick labels and other text that
+                # can hit the same path.  Log and return an error result so the
+                # tile silently stays blank rather than crashing the worker.
+                logger.warning(
+                    "RenderTask: canvas.draw() failed (FT_Render_Glyph or similar): %s", exc
+                )
+                return {"error": str(exc)}
+            finally:
+                # Free memory whether draw succeeded or not.
+                fig.clf()
 
         actual_width = int(c["width"] * (target_dpi / base_dpi))
         actual_height = int(c["height"] * (target_dpi / base_dpi))

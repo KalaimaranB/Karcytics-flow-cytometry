@@ -84,85 +84,25 @@ def _synchronous_scheduler():
 
 
 class TestFlowCanvasInitialization:
-    """Test FlowCanvas initialization and attribute setup."""
+    """Test FlowCanvas initialization and default state."""
 
     @pytest.mark.ui
-    def test_canvas_initializes_without_error(self):
-        """Canvas should initialize without errors."""
-        # Mock PyQt parent
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-        assert canvas is not None
+    def test_constructs_with_expected_defaults(self):
+        """Canvas should construct without error and start in a clean, empty state.
 
-    @pytest.mark.ui
-    def test_all_required_attributes_initialized(self):
-        """All required attributes should be initialized in __init__."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Data state
-        assert hasattr(canvas, "_current_data")
-        assert hasattr(canvas, "_x_param")
-        assert hasattr(canvas, "_y_param")
-        assert hasattr(canvas, "_x_scale")
-        assert hasattr(canvas, "_y_scale")
-        assert hasattr(canvas, "_display_mode")
-
-        # Service instances
-        assert hasattr(canvas, "_coordinate_mapper")
-        assert hasattr(canvas, "_gate_factory")
-        assert hasattr(canvas, "_gate_overlay_renderer")
-
-        # Rendering caches
-        assert hasattr(canvas, "_canvas_bitmap_cache")
-        assert hasattr(canvas, "_gate_overlay_artists")
-        assert hasattr(canvas, "_gate_artists")  # This was missing!
-
-        # Gate drawing state
-        assert hasattr(canvas, "_drawing_mode")
-        assert hasattr(canvas, "_fsm")
-
-        # Gate state
-        assert hasattr(canvas, "_gate_patches")
-        assert hasattr(canvas, "_active_gates")
-        assert hasattr(canvas, "_gate_nodes")
-        assert hasattr(canvas, "_selected_gate_id")
-
-        # Editing state — drag-handle editing lives in GateEditor + the FSM's
-        # EDITING state, not standalone canvas fields (see TestFlowCanvasEditState).
-        assert hasattr(canvas, "_gate_editor")
-
-    @pytest.mark.ui
-    def test_gate_artists_is_list(self):
-        """_gate_artists should be a list, not None."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-        assert isinstance(canvas._gate_artists, list)
-        assert len(canvas._gate_artists) == 0
-
-    @pytest.mark.ui
-    def test_gate_overlay_artists_is_dict(self):
-        """_gate_overlay_artists should be a dict."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-        assert isinstance(canvas._gate_overlay_artists, dict)
-        assert len(canvas._gate_overlay_artists) == 0
-
-    @pytest.mark.ui
-    def test_initial_drawing_mode_is_none(self):
-        """Initial drawing mode should be NONE."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-        assert canvas._drawing_mode == GateDrawingMode.NONE
+        Collapses what used to be 6 separate hasattr/isinstance-only checks
+        (no unique signal — see SDK_Abstraction_Performance_Plan.md Priority 4)
+        into one test of the defaults that actually matter: empty artist
+        containers and the initial drawing/display mode.
+        """
         from karcytics_plugins.flow_cytometry.ui.graph.gate_drawing_fsm import DrawingState
 
-        assert canvas._fsm.state == DrawingState.IDLE
+        canvas = FlowCanvas(parent=None)
 
-    @pytest.mark.ui
-    def test_initial_display_mode_is_pseudocolor(self):
-        """Initial display mode should be PSEUDOCOLOR."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
+        assert canvas._gate_artists == []
+        assert canvas._gate_overlay_artists == {}
+        assert canvas._drawing_mode == GateDrawingMode.NONE
+        assert canvas._fsm.state == DrawingState.IDLE
         assert canvas._display_mode == DisplayMode.PSEUDOCOLOR
 
 

@@ -28,8 +28,10 @@ class CanvasManager(QObject):
 
     node_double_clicked = pyqtSignal(str)
     node_delete_requested = pyqtSignal(str)
+    node_rename_requested = pyqtSignal(str)
     connection_requested = pyqtSignal(str, str)  # source_node_id, target_node_id
     connection_removed = pyqtSignal(str, str)  # source_node_id, target_node_id
+    link_delete_requested = pyqtSignal(str, str)  # source_node_id, target_node_id
 
     def __init__(
         self, state: FlowState, scene: DirtyTrackingGraphicsScene, parent: QObject | None = None
@@ -98,6 +100,37 @@ class CanvasManager(QObject):
         except (TypeError, RuntimeError):
             pass
 
+    @staticmethod
+    def _apply_stats_to_item(item: NodeItem, statistics: dict) -> None:
+        """Push a node's stats onto its canvas item, preferring the
+        scale-corrected count/tooltip when one is available and valid.
+
+        `item.event_count` shows `estimated_count` (not the raw `count`)
+        whenever `is_scale_valid` — a scientist glancing at the canvas
+        shouldn't have to mentally multiply. `pct_parent` is left alone
+        everywhere: see DagEvaluator's own docstring for why that ratio is
+        already unbiased and never needs scaling.
+        """
+        is_estimated = statistics.get("is_estimated", False)
+        is_scale_valid = statistics.get("is_scale_valid", True)
+        item.is_estimated = is_estimated
+        item.is_scale_valid = is_scale_valid
+        if is_estimated and is_scale_valid:
+            item.event_count = statistics.get("estimated_count", statistics.get("count", 0))
+            item.setToolTip(
+                f"Estimated: scaled ×{statistics.get('scale_factor', 1.0):.2f} from a "
+                "UMAP subsample. Statistically valid, not an exact count."
+            )
+        elif is_estimated:
+            item.event_count = statistics.get("count", 0)
+            item.setToolTip(
+                "Combines a UMAP-subsampled population via OR/NOT — this count "
+                "can't be safely corrected and may undercount the true population."
+            )
+        else:
+            item.event_count = statistics.get("count", 0)
+            item.setToolTip("")
+
     def _on_connection_pending(self, payload: dict) -> None:
         """Lightweight update for a logic-node connection edit that hasn't
         satisfied (or has just fallen below) the node's wiring requirements.
@@ -121,13 +154,15 @@ class CanvasManager(QObject):
             item.parent_names = (
                 [p.name for p in node.parents if not p.is_root] if item.is_logic_node else []
             )
-            item.event_count = node.statistics.get("count", 0) if node.statistics else 0
+            if node.statistics:
+                CanvasManager._apply_stats_to_item(item, node.statistics)
             item.parent_percentage = (
                 node.statistics.get("pct_parent", 0.0) if node.statistics else 0.0
             )
             item.per_parent_pcts = (
                 node.statistics.get("per_parent_pcts", {}) if node.statistics else {}
             )
+            item.parent_name = node.parents[0].name if node.parents else ""
             if getattr(node, "is_incomplete", False):
                 # Dropped back below the wiring threshold — clear any stale
                 # thumbnail so the card goes back to blank, and evict the
@@ -164,9 +199,10 @@ class CanvasManager(QObject):
         item = self._node_items.get(node.node_id)
         if item:
             if node.statistics:
-                item.event_count = node.statistics.get("count", 0)
+                CanvasManager._apply_stats_to_item(item, node.statistics)
                 item.parent_percentage = node.statistics.get("pct_parent", 0.0)
                 item.per_parent_pcts = node.statistics.get("per_parent_pcts", {})
+            item.parent_name = node.parents[0].name if node.parents else ""
             # Refresh which parents are wired into this logic node
             if item.is_logic_node:
                 item.parent_names = [p.name for p in node.parents if not p.is_root]
@@ -250,9 +286,10 @@ class CanvasManager(QObject):
             )
 
             if node.statistics:
-                item.event_count = node.statistics.get("count", 0)
+                CanvasManager._apply_stats_to_item(item, node.statistics)
                 item.parent_percentage = node.statistics.get("pct_parent", 0.0)
                 item.per_parent_pcts = node.statistics.get("per_parent_pcts", {})
+            item.parent_name = node.parents[0].name if node.parents else ""
 
             # Store per-parent names for logic node display
             if item.is_logic_node and node.parents:
@@ -272,6 +309,9 @@ class CanvasManager(QObject):
             item.yChanged.connect(self._update_edges)
             item.node_double_clicked.connect(self.node_double_clicked.emit)
             item.delete_requested.connect(self.node_delete_requested.emit)
+            item.rename_requested.connect(self.node_rename_requested.emit)
+            item.link_delete_requested.connect(self.link_delete_requested.emit)
+            item.get_logic_links = self._get_logic_links_for_node
             item.edge_drag_started.connect(self._on_edge_drag_started)
             item.edge_dragged.connect(self._on_edge_dragged)
             item.edge_drag_released.connect(self._on_edge_drag_released)
@@ -280,6 +320,31 @@ class CanvasManager(QObject):
 
             for child in node.children:
                 queue.append(child)
+
+    def _get_logic_links_for_node(
+        self, node_id: str
+    ) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+        """Return (incoming, outgoing) logic-node links for `node_id` as (node_id, name) pairs.
+
+        Scoped to logic-node (AND/OR/NOT) connections only — structural
+        parent/child gate edges define what a population is and aren't
+        independently deletable, so they're excluded here.
+        """
+        if not self._current_sample_id:
+            return [], []
+        sample = self.state.data.experiment.samples.get(self._current_sample_id)
+        if not sample or not sample.gate_tree:
+            return [], []
+        node = sample.gate_tree.find_node_by_id(node_id)
+        if not node:
+            return [], []
+        incoming = (
+            [(p.node_id, p.name) for p in node.parents if not p.is_root]
+            if node.is_logic_node
+            else []
+        )
+        outgoing = [(c.node_id, c.name) for c in node.children if c.is_logic_node]
+        return incoming, outgoing
 
     def _build_edges_recursive(self, node: GateNode, visited: set) -> None:
         if node.node_id in visited:

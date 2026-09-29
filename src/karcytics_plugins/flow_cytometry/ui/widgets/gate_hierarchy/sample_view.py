@@ -8,7 +8,7 @@ Delegates all tooltip display to HoverCard.
 from __future__ import annotations
 
 from karcytics_sdk.plugin.components import BioMenu
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from PyQt6.QtCore import QPoint, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
@@ -59,6 +59,7 @@ class SampleViewWidget(QWidget):
         self.customContextMenuRequested.connect(self._show_context_menu)
         self._state = state
         self._rects: list[TreeNodeRect] = []
+        self._node_map: dict[str, TreeNodeRect] = {}
         self._selected_id: str | None = None
         self._hovered_id: str | None = None
         self._hover_card = HoverCard(self)
@@ -71,7 +72,6 @@ class SampleViewWidget(QWidget):
         self.setMouseTracking(True)
         self.setMinimumHeight(200)
         self.setMinimumWidth(200)
-        theme_manager.theme_changed.connect(self.update)
 
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh colors when theme changes."""
@@ -82,6 +82,7 @@ class SampleViewWidget(QWidget):
     def set_rects(self, rects: list[TreeNodeRect]) -> None:
         """Replace the rect list and repaint."""
         self._rects = rects
+        self._node_map = {r.node_id: r for r in rects}
         self._selected_id = None
         self._hover_card.hide()
 
@@ -118,6 +119,7 @@ class SampleViewWidget(QWidget):
 
     def clear(self) -> None:
         self._rects = []
+        self._node_map = {}
         self._selected_id = None
         self._hover_card.hide()
         self.update()
@@ -144,12 +146,10 @@ class SampleViewWidget(QWidget):
         pen_line = QPen(QColor(Colors.BORDER), 2)
         painter.setPen(pen_line)
 
-        node_map = {r.node_id: r for r in self._rects}
-
         for r in self._rects:
             for parent_id in r.parent_ids:
-                if parent_id in node_map:
-                    p = node_map[parent_id]
+                if parent_id in self._node_map:
+                    p = self._node_map[parent_id]
                     start_x = p.x + x_offset
                     start_y = p.y + p.height / 2
                     end_x = r.x + x_offset
@@ -449,9 +449,16 @@ class SampleViewWidget(QWidget):
                 action_propagate.setEnabled(False)
 
         action = menu.exec(self.mapToGlobal(pos))
+
+        # Defer signal emissions so the context menu is fully torn down by Qt
+        # before any follow-up dialog (e.g. QInputDialog for rename) is shown.
+        # Without this the menu briefly re-appears after the dialog closes.
+        from PyQt6.QtCore import QTimer
+
+        node_id = hit.node_id  # capture before any closure captures `hit`
         if action == action_rename:
-            self.rename_requested.emit(hit.node_id)
+            QTimer.singleShot(0, lambda: self.rename_requested.emit(node_id))
         elif action == action_delete:
-            self.delete_requested.emit(hit.node_id)
+            QTimer.singleShot(0, lambda: self.delete_requested.emit(node_id))
         elif action_propagate and action == action_propagate:
-            self.propagate_requested.emit(hit.node_id)
+            QTimer.singleShot(0, lambda: self.propagate_requested.emit(node_id))

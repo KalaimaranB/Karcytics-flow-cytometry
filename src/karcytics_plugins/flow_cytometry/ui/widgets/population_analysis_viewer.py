@@ -14,6 +14,7 @@ from karcytics_sdk.plugin.components import (
     BioSpinBox,
     PrimaryButton,
     SecondaryButton,
+    repopulate_combo,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors
 from PyQt6.QtCore import Qt
@@ -43,7 +44,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .checkbox_style import checkbox_qss
 from .cluster_results_panel import ClusterResultsPanel
-from .umap_animator_widget import UmapAnimatorWidget
+from .umap_animator_widget import UmapAnimatorWidget, build_umap_animation_frames
 
 logger = logging.getLogger(__name__)
 
@@ -442,6 +443,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addWidget(self._section_label("History"))
 
         self._history_combo = BioComboBox()
+        self._history_combo.setObjectName("UmapHistoryCombo")
         self._history_combo.addItem("[ New Run ]", None)
         self._history_combo.currentIndexChanged.connect(self._on_history_changed)
         scroll_layout.addWidget(self._history_combo)
@@ -724,19 +726,12 @@ class PopulationAnalysisViewer(QWidget):
         """Populate the sample combobox with active experiment samples."""
         prev_sample = self._sample_combo.currentData()
 
-        self._sample_combo.blockSignals(True)
-        self._sample_combo.clear()
-
-        for sample_id, sample in self._state.data.experiment.samples.items():
-            self._sample_combo.addItem(sample.display_name, sample_id)
-
+        items = [
+            (sample.display_name, sample_id)
+            for sample_id, sample in self._state.data.experiment.samples.items()
+        ]
         target_sample = prev_sample or self._state.view.current_sample_id
-        if target_sample:
-            idx = self._sample_combo.findData(target_sample)
-            if idx >= 0:
-                self._sample_combo.setCurrentIndex(idx)
-
-        self._sample_combo.blockSignals(False)
+        repopulate_combo(self._sample_combo, items, restore_data=target_sample)
 
         self._refresh_gates()
         self.refresh_history()
@@ -753,42 +748,29 @@ class PopulationAnalysisViewer(QWidget):
     def _refresh_gates(self) -> None:
         """Populate the gate combo with all named nodes in the selected sample's gate tree."""
         prev_gate = self._gate_combo.currentData()
-
-        self._gate_combo.blockSignals(True)
-        self._gate_combo.clear()
-        self._gate_combo.addItem("⬡  All Events (no gate)", None)
+        items: list[tuple[str, str | None]] = [("⬡  All Events (no gate)", None)]
 
         sample_id = self._sample_combo.currentData()
-        if not sample_id:
-            self._gate_combo.blockSignals(False)
-            return
+        sample = self._state.data.experiment.samples.get(sample_id) if sample_id else None
 
-        sample = self._state.data.experiment.samples.get(sample_id)
-        if not sample or sample.gate_tree is None:
-            self._gate_combo.blockSignals(False)
-            return
+        if sample and sample.gate_tree is not None:
 
-        def _add_nodes(node, depth: int = 0) -> None:
-            if not node.is_root:
-                indent = "  " * depth
-                icon = "⊘ " if node.negated else "◆ "
-                label = f"{indent}{icon}{node.name}"
-                self._gate_combo.addItem(label, node.node_id)
-            for child in node.children:
-                # Unwired/under-wired logic nodes have no valid population yet —
-                # not selectable, same as the gating hierarchy view.
-                if getattr(child, "is_incomplete", False):
-                    continue
-                _add_nodes(child, depth + (0 if node.is_root else 1))
+            def _add_nodes(node, depth: int = 0) -> None:
+                if not node.is_root:
+                    indent = "  " * depth
+                    icon = "⊘ " if node.negated else "◆ "
+                    label = f"{indent}{icon}{node.name}"
+                    items.append((label, node.node_id))
+                for child in node.children:
+                    # Unwired/under-wired logic nodes have no valid population yet —
+                    # not selectable, same as the gating hierarchy view.
+                    if getattr(child, "is_incomplete", False):
+                        continue
+                    _add_nodes(child, depth + (0 if node.is_root else 1))
 
-        _add_nodes(sample.gate_tree)
+            _add_nodes(sample.gate_tree)
 
-        if prev_gate is not None:
-            idx = self._gate_combo.findData(prev_gate)
-            if idx >= 0:
-                self._gate_combo.setCurrentIndex(idx)
-
-        self._gate_combo.blockSignals(False)
+        repopulate_combo(self._gate_combo, items, restore_data=prev_gate)
 
     def _purify_state(self) -> None:
         """Recursively cleans up umap_results structure while keeping numpy arrays intact.
@@ -819,35 +801,24 @@ class PopulationAnalysisViewer(QWidget):
         self._purify_state()
 
         prev_run_idx = self._history_combo.currentData()
-
-        self._history_combo.blockSignals(True)
-        self._history_combo.clear()
-        self._history_combo.addItem("[ New Run ]", None)
+        items: list[tuple[str, int | None]] = [("[ New Run ]", None)]
 
         sample_id = self._sample_combo.currentData()
-        if not sample_id:
-            self._history_combo.blockSignals(False)
-            return
+        if sample_id:
+            node_id = self._gate_combo.currentData()
+            key = f"{sample_id}::{node_id or 'root'}"
+            runs = self._state.data.umap_results.get(key, [])
+            for i, run in enumerate(runs, 1):
+                name = run.get("name")
+                if name:
+                    label = f"{i}. {name}"
+                else:
+                    n = run.get("n_neighbors", 15)
+                    md = run.get("min_dist", 0.1)
+                    label = f"Run {i} (n={n}, md={md})"
+                items.append((label, i - 1))
 
-        node_id = self._gate_combo.currentData()
-        key = f"{sample_id}::{node_id or 'root'}"
-        runs = self._state.data.umap_results.get(key, [])
-
-        idx_to_select = 0
-        for i, run in enumerate(runs, 1):
-            name = run.get("name")
-            if name:
-                label = f"{i}. {name}"
-            else:
-                n = run.get("n_neighbors", 15)
-                md = run.get("min_dist", 0.1)
-                label = f"Run {i} (n={n}, md={md})"
-            self._history_combo.addItem(label, i - 1)
-            if prev_run_idx is not None and prev_run_idx == (i - 1):
-                idx_to_select = i
-
-        self._history_combo.setCurrentIndex(idx_to_select)
-        self._history_combo.blockSignals(False)
+        repopulate_combo(self._history_combo, items, restore_data=prev_run_idx)
         self._update_delete_button_state()
 
     def _update_delete_button_state(self) -> None:
@@ -1158,8 +1129,17 @@ class PopulationAnalysisViewer(QWidget):
                 )
                 logger.info(f"[ANIM-PREP] prepare() returned success={success}")
                 if not success:
-                    return {"success": False, "prep": None}
-                return {"success": True, "prep": p}
+                    return {"success": False, "prep": None, "frames": None, "colors": None}
+
+                # Also build the ~750 per-frame animation entries here, on this
+                # same background thread, instead of back on the GUI thread —
+                # this pure numpy/Python loop (no widget access) was the real
+                # source of the freeze/spinning-beachball reported right
+                # after this "quick UMAP run", not the UMAP fit itself (which
+                # was already backgrounded).
+                frames, colors = build_umap_animation_frames(p, fps=self._animator.fps)
+                logger.info(f"[ANIM-PREP] Built {len(frames)} animation frames in background")
+                return {"success": True, "prep": p, "frames": frames, "colors": colors}
 
             def _on_prep_done(results: dict):
                 try:
@@ -1176,10 +1156,17 @@ class PopulationAnalysisViewer(QWidget):
                 success = results.get("success", False)
                 if success:
                     self._last_prep_data = results.get("prep")
-                    logger.info("[ANIM-PREP] Calling prepare_animation() on main thread...")
-                    self._animator.prepare_animation(self._last_prep_data)  # type: ignore
+                    frames = results.get("frames")
+                    logger.info("[ANIM-PREP] Applying precomputed frames on main thread...")
+                    if frames:
+                        self._animator.apply_precomputed_frames(frames, results.get("colors"))
+                    else:
+                        # Defensive fallback: frames weren't built in the
+                        # background (e.g. prep_data lacked the arrays
+                        # needed), so fall back to the synchronous path.
+                        self._animator.prepare_animation(self._last_prep_data)  # type: ignore
                     logger.info(
-                        f"[ANIM-PREP] prepare_animation() done. {len(self._animator._frames)} frames built."
+                        f"[ANIM-PREP] Frames applied. {len(self._animator._frames)} frames built."
                     )
                     self._is_animation_playing = True
                     self._display_stack.setCurrentIndex(2)

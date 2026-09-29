@@ -15,12 +15,11 @@ from pathlib import Path
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_error, show_info, show_warning
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
-    QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
@@ -36,7 +35,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 logger = get_logger(__name__, "flow_cytometry")
 
 
-class CompensationRibbon(QWidget):
+class CompensationRibbon(ThemedToolbarContainer):
     """Toolbar ribbon for compensation actions.
 
     Signals:
@@ -104,15 +103,6 @@ class CompensationRibbon(QWidget):
         layout.addWidget(btn_toggle)
 
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors when theme changes."""
-        self.setObjectName(self.__class__.__name__)
-        self.setStyleSheet(
-            f"QWidget#{self.objectName()} {{ background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER}; }}"
-        )
 
     # ── Actions ───────────────────────────────────────────────────────
 

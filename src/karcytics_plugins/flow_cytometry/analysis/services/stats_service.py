@@ -22,9 +22,21 @@ class StatsService:
 
     @staticmethod
     def recompute_all_stats(
-        state: FlowState, sample_id: str, callback: Callable | None = None
+        state: FlowState,
+        sample_id: str,
+        callback: Callable | None = None,
+        node_ids: list[str] | None = None,
     ) -> str | None:
-        """Submit a background task to recompute all gate statistics for a sample."""
+        """Submit a background task to recompute gate statistics for a sample.
+
+        Args:
+            state: The FlowState.
+            sample_id: Target sample ID.
+            callback: Called with the task's result dict when it finishes.
+            node_ids: When given, scopes recompute to just these nodes and
+                their descendants (see `DagEvaluator.evaluate_scoped`)
+                instead of the whole tree.
+        """
         sample = state.data.experiment.samples.get(sample_id)
         if sample is None:
             logger.warning(f"StatsService: sample {sample_id} not found")
@@ -35,6 +47,7 @@ class StatsService:
 
         analyzer = StatisticsAnalysis()
         analyzer.target_sample_id = sample_id
+        analyzer.target_node_ids = node_ids
 
         worker = task_scheduler.submit(analyzer, state)
         task_id = getattr(worker, "task_id", "")

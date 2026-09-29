@@ -11,6 +11,11 @@ from unittest.mock import MagicMock  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import pytest  # noqa: E402
+
+# Grab the real (pure-Qt, no SDK-theme dependency) implementation before
+# karcytics_sdk.plugin.components gets mocked out below, so plugin code
+# under test exercises the actual shared logic rather than a second copy.
+from karcytics_sdk.plugin.components import repopulate_combo  # noqa: E402
 from PyQt6.QtWidgets import QLabel, QPushButton, QSplitter, QWidget  # noqa: E402
 
 # Mock karcytics_sdk before it gets imported
@@ -167,6 +172,7 @@ mock_components.AcademyButton = DummyButton
 mock_components.BioMenu = DummyMenu
 mock_components.WorkspaceSaveButton = DummyWorkspaceSaveButton
 mock_components.theme_manager = MagicMock()
+mock_components.repopulate_combo = repopulate_combo
 mock_karcytics_sdk_plugin.components = mock_components
 
 sys.modules["karcytics_sdk"] = MagicMock()
@@ -207,6 +213,22 @@ mock_theme.Fonts = DummyFonts
 mock_theme.theme_manager = MagicMock()
 sys.modules["karcytics.ui.theme"] = mock_theme
 sys.modules["karcytics_sdk.plugin.theme_fallback"] = mock_theme
+
+# `karcytics_sdk.plugin.daemon` (imported for real above) transitively imports
+# the real `karcytics_sdk.plugin.ribbon` via the SDK's `plugin/__init__.py`
+# (`from .ribbon import BioRibbon`) — before theme_fallback is mocked. That
+# caches a `ribbon` module whose module-level `theme_manager` name is still
+# bound to the real singleton, so `ThemedToolbarContainer.__init__` calls
+# never reach the mock above. Re-execute it now that theme_fallback is mocked
+# so it re-binds `theme_manager` to the mock, matching what tests assert
+# against. `importlib.reload` won't do here — it re-derives the loader via
+# the parent package's `__path__`, and `karcytics_sdk.plugin` is now a
+# MagicMock with no real `__path__`. Re-running via the module's own
+# already-resolved `__spec__.loader` sidesteps that parent lookup entirely.
+_ribbon_mod = sys.modules.get("karcytics_sdk.plugin.ribbon")
+if _ribbon_mod is not None:
+    _ribbon_mod.__spec__.loader.exec_module(_ribbon_mod)
+
 sys.modules["karcytics_sdk.plugin.runtime_services"] = MagicMock()
 sys.modules["karcytics.core"] = MagicMock()
 sys.modules["karcytics.core.task_scheduler"] = MagicMock()

@@ -96,6 +96,20 @@ class MainPanelController:
         )
         panel._node_canvas.connection_requested.connect(panel._gate_coordinator.add_connection)
         panel._node_canvas.connection_removed.connect(panel._gate_coordinator.remove_connection)
+        panel._node_canvas.rename_requested.connect(
+            lambda node_id, new_name, target_ids: (
+                panel._gate_coordinator.rename_population(
+                    panel._node_canvas.current_sample_id, node_id, new_name, target_ids
+                )
+                if panel._node_canvas.current_sample_id
+                else None
+            )
+        )
+        panel._node_canvas.link_delete_requested.connect(
+            lambda src, tgt, target_ids: panel._gate_coordinator.remove_connection_for_samples(
+                src, tgt, target_ids
+            )
+        )
 
         # ── Workspace ribbon: template loaded → refresh everything ────
         panel._workspace_ribbon.template_load_requested.connect(panel._refresh_all)

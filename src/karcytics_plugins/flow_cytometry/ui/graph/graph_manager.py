@@ -314,6 +314,15 @@ class GraphManager(QWidget):
             f"Opened graph for {sample.display_name} (population={node_id}), tab_count={self._tabs.count()}"
         )
 
+    def get_open_graph(self, sample_id: str, node_id: str | None = None) -> GraphWindow | None:
+        """Return the open :class:`GraphWindow` for a sample/gate, if any.
+
+        Domain-level accessor over the same `_graphs` lookup `open_graph_for_sample`
+        uses internally — lets callers (and tests) check what's open without
+        reaching into the underlying `QTabWidget`.
+        """
+        return self._graphs.get(f"{sample_id}:{node_id or 'root'}")
+
     def _update_tab_label(self, index: int) -> None:
         """Regenerate the tab title for a specific index."""
         graph = self._tabs.widget(index)

@@ -8,6 +8,7 @@ All functions operate on pandas DataFrames — no GUI dependencies.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -105,32 +106,67 @@ def _compute_percent_statistic(  # noqa: PLR0911
     return None
 
 
-def _compute_value_statistic(values: np.ndarray, stat_type: StatType) -> float:  # noqa: C901, PLR0911
-    if stat_type == StatType.MEAN:
-        return float(np.mean(values))
-    if stat_type in (StatType.MEDIAN, StatType.MFI):
-        return float(np.median(values))
-    if stat_type == StatType.GEOMETRIC_MEAN:
-        positive = values[values > 0]
-        if len(positive) == 0:
-            return 0.0
-        return float(np.exp(np.mean(np.log(positive))))
-    if stat_type == StatType.MODE:
-        hist, bin_edges = np.histogram(values, bins="auto")
-        max_idx = np.argmax(hist)
-        return float((bin_edges[max_idx] + bin_edges[max_idx + 1]) / 2.0)
-    if stat_type == StatType.SD:
-        return float(np.std(values, ddof=1))
-    if stat_type == StatType.CV:
-        mean = np.mean(values)
-        if mean == 0:
-            return 0.0
-        return float((np.std(values, ddof=1) / abs(mean)) * 100.0)
-    if stat_type == StatType.MIN:
-        return float(np.min(values))
-    if stat_type == StatType.MAX:
-        return float(np.max(values))
-    raise ValueError(f"Unsupported stat type: {stat_type}")
+def _mean(values: np.ndarray) -> float:
+    return float(np.mean(values))
+
+
+def _median(values: np.ndarray) -> float:
+    return float(np.median(values))
+
+
+def _geometric_mean(values: np.ndarray) -> float:
+    positive = values[values > 0]
+    if len(positive) == 0:
+        return 0.0
+    return float(np.exp(np.mean(np.log(positive))))
+
+
+def _mode(values: np.ndarray) -> float:
+    hist, bin_edges = np.histogram(values, bins="auto")
+    max_idx = np.argmax(hist)
+    return float((bin_edges[max_idx] + bin_edges[max_idx + 1]) / 2.0)
+
+
+def _standard_deviation(values: np.ndarray) -> float:
+    return float(np.std(values, ddof=1))
+
+
+def _coefficient_of_variation(values: np.ndarray) -> float:
+    mean = np.mean(values)
+    if mean == 0:
+        return 0.0
+    return float((np.std(values, ddof=1) / abs(mean)) * 100.0)
+
+
+def _minimum(values: np.ndarray) -> float:
+    return float(np.min(values))
+
+
+def _maximum(values: np.ndarray) -> float:
+    return float(np.max(values))
+
+
+# Mirrors `gating/gate_factory.py`'s `_GATE_REGISTRY` dispatch-table pattern —
+# adding a new value-based statistic means adding one entry here, not another
+# elif branch.
+_VALUE_STAT_REGISTRY: dict[StatType, Callable[[np.ndarray], float]] = {
+    StatType.MEAN: _mean,
+    StatType.MEDIAN: _median,
+    StatType.MFI: _median,
+    StatType.GEOMETRIC_MEAN: _geometric_mean,
+    StatType.MODE: _mode,
+    StatType.SD: _standard_deviation,
+    StatType.CV: _coefficient_of_variation,
+    StatType.MIN: _minimum,
+    StatType.MAX: _maximum,
+}
+
+
+def _compute_value_statistic(values: np.ndarray, stat_type: StatType) -> float:
+    fn = _VALUE_STAT_REGISTRY.get(stat_type)
+    if fn is None:
+        raise ValueError(f"Unsupported stat type: {stat_type}")
+    return fn(values)
 
 
 def compute_statistic(

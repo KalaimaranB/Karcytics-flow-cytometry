@@ -119,8 +119,11 @@ def test_plot_type_renders_without_crashing(qtbot, two_sample_state, plot_name):
 
 @pytest.mark.ui
 def test_single_sample_plot_type_cannot_have_two_samples_checked(qtbot, two_sample_state):
-    """The exact bug report: selecting a second sample for a single-sample
-    plot type (e.g. Pseudocolor Overlay) must not be possible through the UI.
+    """The exact bug report: checking populations under a second sample's
+    column for a single-sample plot type (e.g. Pseudocolor Overlay) must
+    not be possible — there's no separate sample checklist to do this
+    through anymore, so this exercises the grid's own enforcement via
+    `PopulationSelectionPopup.set_single_sample_mode()`.
     """
     widget = ComparisonsViewer(two_sample_state)
     qtbot.addWidget(widget)
@@ -129,14 +132,12 @@ def test_single_sample_plot_type_cannot_have_two_samples_checked(qtbot, two_samp
     widget._plot_type_combo.setCurrentIndex(idx)
     assert len(widget._selector.get_checked_sample_ids()) == 1
 
-    # Try to check the second sample directly through the underlying list widget.
-    from PyQt6.QtCore import Qt
-
-    list_widget = widget._selector.sample_list.list_widget
-    for i in range(list_widget.count()):
-        item = list_widget.item(i)
-        if item.checkState() != Qt.CheckState.Checked:
-            item.setCheckState(Qt.CheckState.Checked)
+    # Try to check every population under every sample directly in the grid.
+    picker = widget._selector.population_selector
+    for sid in picker._sample_ids:
+        for row in picker._rows:
+            if row.label_path in picker._groups.node_index.get(sid, {}):
+                picker._toggle_cell(sid, row.label_path)
 
     assert len(widget._selector.get_checked_sample_ids()) == 1
 
@@ -149,7 +150,8 @@ def test_multi_sample_plot_type_allows_multiple_samples(qtbot, two_sample_state)
     idx = widget._plot_type_combo.findText("🗺️  Channel Heatmap")
     widget._plot_type_combo.setCurrentIndex(idx)
 
-    widget._selector.sample_list.set_all_checked(True)
+    # Both samples share "Lymphocytes" and default to checked on first
+    # refresh — no separate sample checklist to additionally check.
     assert set(widget._selector.get_checked_sample_ids()) == {"s1", "s2"}
 
 
@@ -164,7 +166,6 @@ def test_switching_from_single_to_multi_sample_mode_restores_multi_select(qtbot,
 
     violin_idx = widget._plot_type_combo.findText("🎻  Violin Plot")
     widget._plot_type_combo.setCurrentIndex(violin_idx)
-    widget._selector.sample_list.set_all_checked(True)
     assert set(widget._selector.get_checked_sample_ids()) == {"s1", "s2"}
 
 

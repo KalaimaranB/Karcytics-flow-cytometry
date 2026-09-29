@@ -4,14 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout
 
 if TYPE_CHECKING:
     from ...analysis.state import FlowState
 
 
-class SpectralRibbon(QWidget):
+class SpectralRibbon(ThemedToolbarContainer):
     """Toolbar ribbon for spectral intelligence tools."""
 
     open_spectral_viewer_requested = pyqtSignal()
@@ -27,14 +28,3 @@ class SpectralRibbon(QWidget):
         layout.setSpacing(6)
 
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors when theme changes."""
-        from karcytics_sdk.plugin.theme_fallback import Colors
-
-        self.setObjectName(self.__class__.__name__)
-        self.setStyleSheet(
-            f"QWidget#{self.objectName()} {{ background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER}; }}"
-        )

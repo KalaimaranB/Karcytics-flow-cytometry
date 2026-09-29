@@ -253,6 +253,23 @@ class FlowCytometryPanel(PluginBase):
     def _on_tab_changed(self, index: int) -> None:
         """Handle main tab changes to update ribbon and central view."""
         self.state.view.active_main_tab_index = index
+        # Switching tabs flips several sibling widgets' visibility in one
+        # go (center stack page + sidebar + properties panel + ribbon),
+        # each triggering its own native resize/show pass. Dispatching those
+        # as separate native events — with the mouse still sitting over
+        # whatever tab button was just clicked — has crashed the app
+        # outright (EXC_BREAKPOINT inside Qt's macOS cursor-image
+        # synthesis, mid dispatchEnterLeave, while this cascade was still
+        # settling). Suppressing repaints until every change below has been
+        # applied collapses it to one clean layout/paint/cursor pass instead
+        # of several partial ones.
+        self.setUpdatesEnabled(False)
+        try:
+            self._on_tab_changed_locked(index)
+        finally:
+            self.setUpdatesEnabled(True)
+
+    def _on_tab_changed_locked(self, index: int) -> None:
         self._ribbon_stack.setCurrentIndex(index)
 
         # 3=Pipeline, 4=Statistics, 5=Spectral, 6=Population Analysis
@@ -791,21 +808,6 @@ class FlowCytometryPanel(PluginBase):
 
         self.delete_gate_with_dialog(graph.sample_id, node_id, force_silent=force_silent)
 
-    @staticmethod
-    def _resolve_target_samples(
-        scope: str,
-        group_id: str | None,
-        sample_id: str,
-        experiment,
-    ) -> list[str]:
-        """Return the list of sample IDs affected by a gate deletion."""
-        if scope == "sample":
-            return [sample_id]
-        if group_id == "all":
-            return list(experiment.samples.keys())
-        target_group = experiment.groups.get(group_id) if group_id is not None else None
-        return target_group.sample_ids if target_group else [sample_id]
-
     def delete_gate_with_dialog(  # noqa: PLR0915
         self, sample_id: str, node_id: str, force_silent: bool = False
     ) -> None:
@@ -838,20 +840,26 @@ class FlowCytometryPanel(PluginBase):
 
             from PyQt6.QtWidgets import QDialog
 
-            from .widgets.gate_deletion_dialog import GateDeletionDialog
+            from .widgets.scope_selection_dialog import ScopeSelectionDialog
 
-            dialog = GateDeletionDialog(
-                selected_node.name, sample.display_name, group_choices, self
+            dialog = ScopeSelectionDialog(
+                f"Are you sure you want to delete the gate '<b>{selected_node.name}</b>'?",
+                sample.display_name,
+                group_choices,
+                self,
+                title="Confirm Gate Deletion",
             )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
 
-            scope_raw, group_id = dialog.get_deletion_scope()
+            scope_raw, group_id = dialog.get_scope()
             scope = scope_raw or "sample"
 
         physical_gate_id = selected_node.gate.gate_id
 
-        target_samples = self._resolve_target_samples(
+        from .scope_resolution import resolve_target_samples
+
+        target_samples = resolve_target_samples(
             scope, group_id, sample_id, self.state.data.experiment
         )
 

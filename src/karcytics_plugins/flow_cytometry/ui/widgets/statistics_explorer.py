@@ -28,6 +28,7 @@ from karcytics_sdk.plugin.components import (
     BioHelpButton,
     PrimaryButton,
     SecondaryButton,
+    repopulate_combo,
 )
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color, theme_manager
@@ -221,21 +222,9 @@ class StatisticsExplorer(QWidget):
         scroll_layout.setContentsMargins(14, 14, 14, 14)
         scroll_layout.setSpacing(12)
 
-        # ── 1 & 2. Samples + Populations (shared selector) ──────────────────────
-        self._selector = SampleAndPopulationSelector(
-            multi_population=True,
-            sample_help_text=(
-                "Select one or more samples to include in the statistics table. "
-                "Each selected sample will appear as a column group in the results."
-            ),
-            population_help_text=(
-                "Select gated populations to include. 'Shared Populations' are "
-                "present under the same name in every checked sample (the usual "
-                "result of group gate propagation); 'Sample-Specific' lists "
-                "anything that doesn't match across all checked samples. Check "
-                "'All Events' to include ungated data."
-            ),
-        )
+        # ── 1. Populations — the grid's own columns are the sample picker ──────
+        self._selector = SampleAndPopulationSelector(multi_population=True)
+        self._selector.population_edit_button.setObjectName("StatsPopulationPickerButton")
         self._selector.selectionChanged.connect(self._on_selection_changed)
         scroll_layout.addWidget(self._selector)
 
@@ -251,6 +240,12 @@ class StatisticsExplorer(QWidget):
         stats_hdr.addWidget(stats_help)
         stats_hdr.addStretch()
         scroll_layout.addLayout(stats_hdr)
+
+        stats_panel = QWidget()
+        stats_panel.setObjectName("StatsCheckboxPanel")
+        stats_panel_layout = QVBoxLayout(stats_panel)
+        stats_panel_layout.setContentsMargins(0, 0, 0, 0)
+        stats_panel_layout.setSpacing(6)
 
         self._stat_checkboxes: dict[StatType, QCheckBox] = {}
         for stat in StatType:
@@ -276,7 +271,9 @@ class StatisticsExplorer(QWidget):
             )
             row.addWidget(help_btn)
             row.addStretch()
-            scroll_layout.addLayout(row)
+            stats_panel_layout.addLayout(row)
+
+        scroll_layout.addWidget(stats_panel)
 
         scroll_layout.addSpacing(4)
         lbl_star = QLabel("★ requires a channel selection")
@@ -310,16 +307,19 @@ class StatisticsExplorer(QWidget):
         scroll_layout.addWidget(self._progress_bar)
 
         self._compute_btn = PrimaryButton("📊 Compute Statistics")
+        self._compute_btn.setObjectName("StatsComputeButton")
         self._compute_btn.clicked.connect(self._on_compute)
         scroll_layout.addWidget(self._compute_btn)
 
         self._export_btn = SecondaryButton("📤 Export CSV")
+        self._export_btn.setObjectName("StatsExportButton")
         self._export_btn.setEnabled(False)
         self._export_btn.setToolTip("Export the statistics table to a CSV file")
         self._export_btn.clicked.connect(self._on_export)
         scroll_layout.addWidget(self._export_btn)
 
         self._copy_all_btn = SecondaryButton("📋 Copy All")
+        self._copy_all_btn.setObjectName("StatsCopyAllButton")
         self._copy_all_btn.setEnabled(False)
         self._copy_all_btn.setToolTip("Copy all statistics data to clipboard")
         self._copy_all_btn.clicked.connect(self._on_copy_all)
@@ -378,6 +378,7 @@ class StatisticsExplorer(QWidget):
 
         # Chart export button
         self._export_plot_btn = SecondaryButton("📸 Export")
+        self._export_plot_btn.setObjectName("StatsExportPlotButton")
         self._export_plot_btn.setToolTip("Export plot to PNG/SVG")
         self._export_plot_btn.clicked.connect(self._on_export_plot)
         self._export_plot_btn.hide()
@@ -409,6 +410,7 @@ class StatisticsExplorer(QWidget):
 
         # 1 — Table
         self._table = QTableWidget()
+        self._table.setObjectName("StatsResultsTable")
         self._table.setStyleSheet(
             f"""
             QTableWidget {{
@@ -467,7 +469,21 @@ class StatisticsExplorer(QWidget):
         self._table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._table.customContextMenuRequested.connect(self._show_table_context_menu)
-        self._display_stack.addWidget(self._table)
+
+        table_wrapper = QWidget()
+        table_wrapper_layout = QVBoxLayout(table_wrapper)
+        table_wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        table_wrapper_layout.setSpacing(4)
+        table_wrapper_layout.addWidget(self._table)
+        self._estimated_caption = QLabel(
+            "* estimated — scaled up from a UMAP subsample; see cell tooltip."
+        )
+        self._estimated_caption.setStyleSheet(
+            f"color: {Colors.ACCENT_WARNING}; font-size: 11px; padding: 0 8px;"
+        )
+        self._estimated_caption.setVisible(False)
+        table_wrapper_layout.addWidget(self._estimated_caption)
+        self._display_stack.addWidget(table_wrapper)
 
         # 2 — Chart
         chart_wrapper = QWidget()
@@ -476,6 +492,7 @@ class StatisticsExplorer(QWidget):
         chart_wr_layout.setContentsMargins(0, 0, 0, 0)
         self._figure = Figure(facecolor=Colors.BG_DARKEST)
         self._canvas = FigureCanvasQTAgg(self._figure)
+        self._canvas.setObjectName("StatsChartCanvas")
         self._canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self._canvas.setStyleSheet("background-color: transparent; border: none;")
         chart_wr_layout.addWidget(self._canvas)
@@ -503,30 +520,18 @@ class StatisticsExplorer(QWidget):
     def _refresh_channel_combo(self) -> None:
         """Populate channel combo from the first checked sample."""
         prev_ch = self._channel_combo.currentData()
-        self._channel_combo.blockSignals(True)
-        self._channel_combo.clear()
+        items: list[tuple[str, str]] = []
 
         sample_ids = self._selector.get_checked_sample_ids()
-        if not sample_ids:
-            self._channel_combo.blockSignals(False)
-            return
+        if sample_ids:
+            sample = self._state.data.experiment.samples.get(sample_ids[0])
+            if sample and sample.fcs_data is not None:
+                items = [
+                    (get_channel_marker_label(sample.fcs_data, ch), ch)
+                    for ch in sample.fcs_data.channels
+                ]
 
-        sample = self._state.data.experiment.samples.get(sample_ids[0])
-        if not sample or sample.fcs_data is None:
-            self._channel_combo.blockSignals(False)
-            return
-
-        for ch in sample.fcs_data.channels:
-            label = get_channel_marker_label(sample.fcs_data, ch)
-            self._channel_combo.addItem(label, ch)
-
-        # Try to restore previous selection
-        if prev_ch:
-            idx = self._channel_combo.findData(prev_ch)
-            if idx >= 0:
-                self._channel_combo.setCurrentIndex(idx)
-
-        self._channel_combo.blockSignals(False)
+        repopulate_combo(self._channel_combo, items, restore_data=prev_ch)
 
     def _get_selected_stats(self) -> list[StatType]:
         return [st for st, cb in self._stat_checkboxes.items() if cb.isChecked()]
@@ -615,11 +620,10 @@ class StatisticsExplorer(QWidget):
             )
 
             # Populate chart stat combo
-            self._chart_stat_combo.blockSignals(True)
-            self._chart_stat_combo.clear()
-            for st in self._current_stats:
-                self._chart_stat_combo.addItem(st.value.replace("_", " ").title(), userData=st)
-            self._chart_stat_combo.blockSignals(False)
+            repopulate_combo(
+                self._chart_stat_combo,
+                [(st.value.replace("_", " ").title(), st) for st in self._current_stats],
+            )
 
             # If we are currently in chart mode, redraw
             if self._display_stack.currentIndex() == 2:  # noqa: PLR2004
@@ -737,18 +741,32 @@ class StatisticsExplorer(QWidget):
 
                 parent_count, gp_count, total_count = self._get_parent_counts(sample, node_id)
 
+                # Reuse DagEvaluator's already-computed estimation correction
+                # (kept fresh by GateCoordinator.recompute_all_stats on every
+                # mutation) rather than re-deriving it here — one source of
+                # truth shared with the pipeline canvas. See
+                # DagEvaluator._propagate_estimation for is_scale_valid.
+                node = sample.gate_tree.find_node_by_id(node_id) if sample.gate_tree else None
+                node_stats: dict = (node.statistics if node is not None else {}) or {}
+                is_scale_valid = node_stats.get("is_estimated") and node_stats.get("is_scale_valid")
+
                 for st in stats:
                     key = f"{sid}::{st.value}"
                     param = channel if _STAT_NEEDS_CHANNEL[st] else None
                     try:
-                        val = compute_statistic(
-                            events,
-                            param,
-                            st,
-                            parent_count=parent_count,
-                            grandparent_count=gp_count,
-                            total_count=total_count,
-                        )
+                        if is_scale_valid and st == StatType.COUNT:
+                            val = node_stats["estimated_count"]
+                        elif is_scale_valid and st == StatType.PERCENT_TOTAL:
+                            val = node_stats["estimated_pct_total"]
+                        else:
+                            val = compute_statistic(
+                                events,
+                                param,
+                                st,
+                                parent_count=parent_count,
+                                grandparent_count=gp_count,
+                                total_count=total_count,
+                            )
                         # Format
                         if st == StatType.COUNT:
                             row[key] = f"{int(val):,}"
@@ -761,6 +779,8 @@ class StatisticsExplorer(QWidget):
                             row[key] = f"{val:.2f}%"
                         else:
                             row[key] = f"{val:.2f}"
+                        if is_scale_valid and st in (StatType.COUNT, StatType.PERCENT_TOTAL):
+                            row[f"{key}::scale"] = node_stats.get("scale_factor", 1.0)
                     except Exception as exc:
                         row[key] = "Err"
                         logger.warning("Stat %s failed for %s/%s: %s", st, sid, node_id, exc)
@@ -862,7 +882,9 @@ class StatisticsExplorer(QWidget):
                     continue
 
                 value = row_data.get(desc["key"], "")
-                item = QTableWidgetItem(str(value))
+                scale_factor = row_data.get(f"{desc['key']}::scale") if kind == "stat" else None
+                display_text = f"{value}*" if scale_factor else str(value)
+                item = QTableWidgetItem(display_text)
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 if kind == "pop":
                     item.setForeground(QBrush(fg_primary))
@@ -873,6 +895,13 @@ class StatisticsExplorer(QWidget):
                     item.setForeground(QBrush(fg_primary))
                     item.setBackground(QBrush(QColor(_SAMPLE_BG_HEX[s_idx % len(_SAMPLE_BG_HEX)])))
                     item.setFont(normal_font)
+                    if scale_factor:
+                        item.setForeground(QBrush(QColor(Colors.ACCENT_WARNING)))
+                        item.setToolTip(
+                            f"Estimated: UMAP only clustered a {100 / scale_factor:.0f}% "
+                            "subsample of this sample. Scaled up to estimate the full "
+                            "population — treat as an estimate, not an exact count."
+                        )
                 self._table.setItem(row_idx, col_idx, item)
 
         for col_idx, desc in enumerate(col_descs):
@@ -890,6 +919,10 @@ class StatisticsExplorer(QWidget):
         vh = self._table.verticalHeader()
         if vh:
             vh.setDefaultSectionSize(28)
+
+        self._estimated_caption.setVisible(
+            any(any(k.endswith("::scale") for k in row_data) for row_data in self._last_results)
+        )
 
     def _make_bold_font(self) -> QFont:
         f = QFont()
@@ -983,10 +1016,13 @@ class StatisticsExplorer(QWidget):
                     norm_val = 0.0 if vmax <= vmin else (val - vmin) / (vmax - vmin)
                     cell_hex = to_hex(heatmap_cmap(norm_val))
                     text_col = get_contrast_text_color(cell_hex)
+                    is_estimated = (
+                        f"{sample_ids[j]}::{chart_stat.value}::scale" in self._last_results[i]
+                    )
                     ax.text(
                         j,
                         i,
-                        f"{val:.1f}",
+                        f"{val:.1f}{'*' if is_estimated else ''}",
                         ha="center",
                         va="center",
                         color=text_col,
@@ -1034,14 +1070,15 @@ class StatisticsExplorer(QWidget):
                         alpha=0.85,
                     )
                     # Value labels on top of bars
-                    for bar, val in zip(bars, vals, strict=False):
+                    for bar, val, row in zip(bars, vals, self._last_results, strict=False):
+                        is_estimated = f"{key}::scale" in row
                         ax.text(
                             bar.get_x() + bar.get_width() / 2,
                             bar.get_height() * 1.01,
-                            f"{val:.1f}",
+                            f"{val:.1f}{'*' if is_estimated else ''}",
                             ha="center",
                             va="bottom",
-                            color=Colors.FG_SECONDARY,
+                            color=Colors.ACCENT_WARNING if is_estimated else Colors.FG_SECONDARY,
                             fontsize=7,
                         )
                 elif chart_type == "Horizontal Bar":
@@ -1101,9 +1138,12 @@ class StatisticsExplorer(QWidget):
                         facecolor=self._figure.get_facecolor(),
                     )
                 self._status_lbl.setText(f"✓ Plot exported to {path}")
-            except Exception as e:
-                logger.error("Failed to export plot: %s", e)
+            except Exception as e:  # noqa: BLE001 — report as a diagnostic, not a crash.
+                logger.exception("Statistics plot export failed")
                 self._status_lbl.setText(f"❌ Export failed: {e}")
+                from karcytics_sdk.plugin.runtime_services import diagnostics
+
+                diagnostics.report_error("Statistics plot export failed", exception=e, fatal=False)
 
     def _on_copy_all(self) -> None:
         """Copy all table data to clipboard in TSV format."""
@@ -1150,15 +1190,49 @@ class StatisticsExplorer(QWidget):
             return
 
         try:
+            # Row dicts can carry extra f"{key}::scale" bookkeeping entries
+            # for estimated cells (see _populate_table) that aren't present
+            # on every row and were never meant to be their own CSV column
+            # — DictWriter raises if a later row has a key the first row's
+            # fieldnames (derived from row 0 alone) never saw. Fold each
+            # scaled value's own "*" marker (same convention the table
+            # itself shows) into the displayed value instead, and drop the
+            # bookkeeping key before ever building fieldnames. The whole
+            # thing stays inside this try, not just the file write, so an
+            # unanticipated shape here reports as a diagnostic instead of
+            # an unhandled crash (see comment below on why).
+            rows = []
+            for row in self._last_results:
+                clean: dict = {}
+                for key, value in row.items():
+                    if key.endswith("::scale"):
+                        continue
+                    clean[key] = f"{value}*" if f"{key}::scale" in row else value
+                rows.append(clean)
+
+            fieldnames: list[str] = []
+            for row in rows:
+                for key in row:
+                    if key not in fieldnames:
+                        fieldnames.append(key)
+
             with open(path, "w", newline="", encoding="utf-8") as f:
-                if self._last_results:
-                    writer = csv.DictWriter(f, fieldnames=list(self._last_results[0].keys()))
-                    writer.writeheader()
-                    writer.writerows(self._last_results)
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(rows)
             self._status_lbl.setText(f"✓ Exported to {path}")
-        except OSError as exc:
-            logger.error("Export failed: %s", exc)
+        except Exception as exc:  # noqa: BLE001 — see comment below.
+            # Intentionally broad: `_last_results`' row shape isn't a
+            # closed contract (new estimation/annotation keys have already
+            # broken this exact export once — see the ::scale bug this
+            # replaced), and a user hitting Export mid-tutorial should get
+            # a status message + a reportable diagnostic, never a silent
+            # crash out of this handler.
+            logger.exception("Statistics CSV export failed")
             self._status_lbl.setText(f"❌ Export failed: {exc}")
+            from karcytics_sdk.plugin.runtime_services import diagnostics
+
+            diagnostics.report_error("Statistics CSV export failed", exception=exc, fatal=False)
 
     def _show_table_context_menu(self, pos) -> None:
         """Show context menu for the statistics table."""
@@ -1221,9 +1295,12 @@ class StatisticsExplorer(QWidget):
     # ── Theme refresh ─────────────────────────────────────────────────────────
 
     def _on_theme_changed(self) -> None:
-        """Handle dynamic theme switching."""
-        self._apply_theme_styles()
+        """Repaint an already-computed table/chart with the new theme's colors.
 
+        Restyling itself (`_apply_theme_styles`) is handled once by
+        `MainPanel`'s own theme-change cascade, which reaches this widget
+        via `findChildren` — calling it again here would be redundant.
+        """
         # Repaint the table and chart with the new theme colors if data is loaded.
         # Use the Compute-time snapshot, not the live checkbox state, so a
         # selection change since the last Compute doesn't repaint stale rows
@@ -1248,9 +1325,9 @@ class StatisticsExplorer(QWidget):
         if hasattr(self, "_right_panel") and self._right_panel:
             self._right_panel.setStyleSheet(f"background-color: {Colors.BG_DARK};")
 
-        # Note: the sample checklist and population tree (self._selector) theme
-        # themselves independently via their own theme_manager subscription —
-        # see ui/widgets/selection/.
+        # Note: the sample checklist and population tree (self._selector) are
+        # themed by MainPanel's own findChildren cascade reaching them
+        # directly, not by this method — see ui/widgets/selection/.
 
         for combo in (
             getattr(self, "_channel_combo", None),

@@ -7,10 +7,13 @@ from typing import Any
 import matplotlib as mpl
 import matplotlib.colors as mcolors
 import numpy as np
+from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
+from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QColor
+from PyQt6.QtCore import QSize, Qt, pyqtSignal
+from PyQt6.QtGui import QAction, QColor, QImage, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
     QFrame,
@@ -31,6 +34,11 @@ from PyQt6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
+
+from .cluster_plot_render_task import ClusterPlotRenderTask
+from .cluster_scatter_draw import draw_cluster_scatter
+
+logger = get_logger(__name__, "flow_cytometry")
 
 
 class CopyableCanvas(FigureCanvasQTAgg):
@@ -55,6 +63,65 @@ class CopyableCanvas(FigureCanvasQTAgg):
     def wheelEvent(self, event):
         # Ignore wheel events so they propagate to the parent QScrollArea
         # allowing the user to scroll through the gallery while hovered over a plot
+        event.ignore()
+
+
+class CopyablePixmapLabel(QLabel):
+    """A rendered-plot image tile with the same right-click-to-copy behavior as
+    `CopyableCanvas`, for Plot Gallery tiles rendered off-thread by
+    `ClusterPlotRenderTask` (a static image, not a live interactive `Figure`).
+
+    Displayed at one fixed, deterministic logical size
+    (`ClusterResultsPanel._GALLERY_TILE_WIDTH_PX`/`_HEIGHT_PX`) rather than
+    expanding to fill its grid cell like the old live `CopyableCanvas` did.
+    Three different attempts at dynamic expand-and-preserve-aspect-ratio
+    sizing each introduced a *new* visual bug in turn: `setScaledContents`
+    stretched width/height independently and distorted the plot;
+    `Expanding` + resize-driven `KeepAspectRatio` rescaling fixed that but
+    then hit `QGridLayout` distributing row height inconsistently without
+    explicit row stretch factors (rows ended up wildly different heights —
+    e.g. 120px/258px/315px for otherwise-identical tiles). Fixed-size tiles
+    sidestep all of that: no `QGridLayout` stretch heuristics are involved
+    in sizing a tile at all, so it can't drift per-row. The real cost:
+    tiles won't grow to fill extra window width the way the old live canvas
+    did. The source pixmap is rendered at
+    `ClusterResultsPanel._GALLERY_SUPERSAMPLE`x this display size (see
+    `_request_gallery_tile`) and downscaled once here with
+    `Qt.AspectRatioMode.KeepAspectRatio` so it stays sharp rather than
+    visibly softening — the same supersample-then-downscale trick
+    `group_preview.py`'s thumbnails already use.
+    """
+
+    def __init__(self, pixmap: QPixmap, display_size: QSize, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._original_pixmap = pixmap
+        self.setFixedSize(display_size)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setPixmap(
+            pixmap.scaled(
+                display_size,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
+
+    def _show_context_menu(self, pos):
+        menu = QMenu(self)
+        copy_action = QAction("Copy Image to Clipboard", self)
+        copy_action.triggered.connect(self._copy_to_clipboard)
+        menu.addAction(copy_action)
+        menu.exec(self.mapToGlobal(pos))
+
+    def _copy_to_clipboard(self):
+        # Copy the full-resolution source, not whatever downscaled size is
+        # currently displayed, so pasting elsewhere keeps full quality.
+        QApplication.clipboard().setPixmap(self._original_pixmap)
+
+    def wheelEvent(self, event):
+        # Ignore wheel events so they propagate to the parent QScrollArea,
+        # matching CopyableCanvas's rationale.
         event.ignore()
 
 
@@ -132,7 +199,21 @@ class ClusterResultsPanel(QWidget):
         self._gate_coordinator = gate_coordinator
         self._poly_selector: Any | None = None
         self._custom_cluster_masks: list = []  # List of tuples (mask, row_widget_references)
+        # Plot Gallery tiles render off the UI thread via ClusterPlotRenderTask;
+        # maps in-flight task_id -> (grid_row, grid_col) so results can be
+        # matched back to their placeholder once task_scheduler reports done.
+        self._pending_gallery_tiles: dict[str, tuple[int, int]] = {}
+        task_scheduler.task_finished.connect(self._on_global_task_finished)
+        task_scheduler.task_error.connect(self._on_global_task_error)
+        self.destroyed.connect(self._cleanup_task_scheduler_connections)
         self._setup_ui()
+
+    def _cleanup_task_scheduler_connections(self) -> None:
+        try:
+            task_scheduler.task_finished.disconnect(self._on_global_task_finished)
+            task_scheduler.task_error.disconnect(self._on_global_task_error)
+        except (TypeError, RuntimeError):
+            pass
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -204,45 +285,28 @@ class ClusterResultsPanel(QWidget):
         min_c=0,
         max_c=0,
     ) -> CopyableCanvas:
-        fig = Figure(facecolor=Colors.BG_DARK, figsize=(5, 4))
-        ax = fig.add_subplot(111)
-        ax.set_facecolor(Colors.BG_DARK)
-        ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=7)
-        for spine in ("bottom", "left"):
-            ax.spines[spine].set_color(Colors.BORDER)
-        for spine in ("top", "right"):
-            ax.spines[spine].set_visible(False)
-
-        ax.set_title(title, color=Colors.FG_PRIMARY, fontsize=10, fontweight="bold", pad=8)
-        ax.set_aspect("equal", "datalim")
-
-        scatter = ax.scatter(
-            embedding[:, 0],
-            embedding[:, 1],
-            c=color_data,
-            cmap=cmap,
-            norm=norm,
-            s=1.0,
-            alpha=0.75,
-            edgecolors="none",
-        )
-
-        cbar = fig.colorbar(scatter, ax=ax, fraction=0.046, pad=0.04)
-        cbar.ax.yaxis.set_tick_params(colors=Colors.FG_SECONDARY, labelsize=7)
-        cbar.outline.set_color(Colors.BORDER)  # type: ignore
-
-        if is_discrete:
-            cbar.set_ticks(np.arange(min_c, max_c + 1))  # type: ignore
-            cbar.set_label("Cluster ID", color=Colors.FG_SECONDARY, fontsize=8)
-        else:
-            cbar.set_label("Intensity", color=Colors.FG_SECONDARY, fontsize=8)
-
-        fig.tight_layout()
-        canvas = CopyableCanvas(fig)
+        # `draw_cluster_scatter`'s `fig.tight_layout()` call measures text/tick
+        # extents via a temporary Agg renderer — a real call into matplotlib's
+        # (thread-unsafe) Agg C backend, same as `canvas.draw()`. Built on the
+        # UI thread, this can otherwise race a background `ClusterPlotRenderTask`
+        # (Plot Gallery) doing the same thing under this same lock, corrupting
+        # shared Agg state (observed as a silent process crash, no traceback —
+        # matches the SIGBUS this lock exists to prevent, see render_task.py).
+        with MPL_RASTER_LOCK:
+            fig = Figure(facecolor=Colors.BG_DARK, figsize=(5, 4))
+            draw_cluster_scatter(
+                fig, embedding, color_data, title, cmap, norm, is_discrete, min_c, max_c
+            )
+            canvas = CopyableCanvas(fig)
         canvas.setMinimumHeight(350)
         return canvas
 
-    def _create_cluster_plot(self) -> CopyableCanvas | None:
+    def _cluster_plot_params(self) -> dict[str, Any] | None:
+        """Pure parameter prep for the Auto-Cluster ID plot — cheap (no rasterization),
+        so it's safe to call on the UI thread. Shared by the synchronous Interactive Map
+        path (`_create_cluster_plot`) and the async Plot Gallery dispatch
+        (`_request_gallery_tile`), so the cmap/norm math never drifts between the two.
+        """
         if "clusters" not in self._results:
             return None
 
@@ -264,16 +328,22 @@ class ClusterResultsPanel(QWidget):
         bounds = np.arange(min_c, max_c + 2) - 0.5
         norm = mcolors.BoundaryNorm(bounds, cmap.N)
 
-        return self._create_plot(
-            embedding,
-            clusters,
-            "Auto-Cluster ID",
-            cmap,
-            norm,
-            True,
-            min_c,
-            max_c,  # type: ignore
-        )
+        return {
+            "embedding": embedding,
+            "color_data": clusters,
+            "title": "Auto-Cluster ID",
+            "cmap": cmap,
+            "norm": norm,
+            "is_discrete": True,
+            "min_c": min_c,
+            "max_c": max_c,
+        }
+
+    def _create_cluster_plot(self) -> CopyableCanvas | None:
+        params = self._cluster_plot_params()
+        if params is None:
+            return None
+        return self._create_plot(**params)
 
     def _build_plot_gallery(self) -> None:
         scroll = QScrollArea()
@@ -284,6 +354,7 @@ class ClusterResultsPanel(QWidget):
         container.setStyleSheet("background: transparent;")
         grid = QGridLayout(container)
         grid.setSpacing(16)
+        self._gallery_grid = grid
 
         embedding = self._results.get("embedding")
         intensities = self._results.get("intensities")
@@ -303,10 +374,11 @@ class ClusterResultsPanel(QWidget):
         row, col = 0, 0
         max_cols = 2
 
-        # 1. Plot Auto-Cluster ID first (if available)
-        cluster_canvas = self._create_cluster_plot()
-        if cluster_canvas:
-            grid.addWidget(cluster_canvas, row, col)
+        # 1. Plot Auto-Cluster ID first (if available) — each tile renders off
+        # the UI thread via ClusterPlotRenderTask instead of blocking here.
+        cluster_params = self._cluster_plot_params()
+        if cluster_params is not None:
+            self._request_gallery_tile(row, col, cluster_params)
             col += 1
 
         # 2. Plot all markers
@@ -331,13 +403,96 @@ class ClusterResultsPanel(QWidget):
                 except Exception:
                     pass
 
-            norm = mcolors.Normalize(vmin=0, vmax=1)
-            canvas = self._create_plot(embedding, intensities[:, i], title, "viridis", norm=norm)
-            grid.addWidget(canvas, row, col)
+            params = {
+                "embedding": embedding,
+                "color_data": intensities[:, i],
+                "title": title,
+                "cmap": "viridis",
+                "norm": mcolors.Normalize(vmin=0, vmax=1),
+                "is_discrete": False,
+                "min_c": 0,
+                "max_c": 0,
+            }
+            self._request_gallery_tile(row, col, params)
             col += 1
 
         scroll.setWidget(container)
         self._tabs.addTab(scroll, "Plot Gallery")
+
+    # A gallery tile is a static, off-thread-rendered image, not a live
+    # matplotlib canvas that re-renders crisp at whatever size Qt gives it —
+    # that's what makes the off-thread render possible in the first place.
+    # It's displayed at this one fixed, deterministic logical size
+    # (`CopyablePixmapLabel`'s docstring has the full history of why: three
+    # different dynamic expand-and-fill approaches each introduced a new
+    # visual bug in turn). Bigger than the original synchronous canvas's
+    # figsize=(5, 4)-at-100-dpi footprint (500x400) so tiles don't look
+    # artificially denser than the Interactive Map's plot, without relying on
+    # any `QGridLayout` stretch/expand behavior to get there.
+    # `_GALLERY_SUPERSAMPLE` renders that many times bigger so downscaling to
+    # this display size stays sharp instead of visibly softening (the same
+    # trick group_preview.py's thumbnails already use).
+    _GALLERY_TILE_WIDTH_PX = 467
+    _GALLERY_TILE_HEIGHT_PX = 373
+    _GALLERY_SUPERSAMPLE = 2
+
+    def _make_gallery_placeholder(self) -> QLabel:
+        placeholder = QLabel("Rendering…")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        placeholder.setFixedSize(self._GALLERY_TILE_WIDTH_PX, self._GALLERY_TILE_HEIGHT_PX)
+        placeholder.setStyleSheet(
+            f"color: {Colors.FG_SECONDARY}; background: {Colors.BG_DARK}; border-radius: 4px;"
+        )
+        return placeholder
+
+    def _request_gallery_tile(self, row: int, col: int, params: dict[str, Any]) -> None:
+        """Show a placeholder immediately and dispatch its render in the background."""
+        self._gallery_grid.addWidget(self._make_gallery_placeholder(), row, col)
+
+        task = ClusterPlotRenderTask()
+        task.configure(
+            **params,
+            width_px=self._GALLERY_TILE_WIDTH_PX * self._GALLERY_SUPERSAMPLE,
+            height_px=self._GALLERY_TILE_HEIGHT_PX * self._GALLERY_SUPERSAMPLE,
+        )
+        worker = task_scheduler.submit(task, self._state)
+        task_id = getattr(worker, "task_id", "")
+        self._pending_gallery_tiles[task_id] = (row, col)
+
+    def _on_global_task_finished(self, tid: str, results: dict) -> None:
+        pos = self._pending_gallery_tiles.pop(tid, None)
+        if pos is None:
+            return
+        self._on_gallery_tile_rendered(pos, results)
+
+    def _on_global_task_error(self, tid: str, error_msg: str) -> None:
+        pos = self._pending_gallery_tiles.pop(tid, None)
+        if pos is None:
+            return
+        logger.warning(f"ClusterResultsPanel: gallery tile render failed: {error_msg}")
+
+    def _on_gallery_tile_rendered(self, pos: tuple[int, int], results: dict) -> None:
+        if "error" in results:
+            logger.warning(f"ClusterResultsPanel: gallery tile render failed: {results['error']}")
+            return
+
+        buf = results.get("image_data")
+        if not buf:
+            return
+
+        w, h = results["width"], results["height"]
+        qimg = QImage(buf, w, h, QImage.Format.Format_RGBA8888).copy()
+        pixmap = QPixmap.fromImage(qimg)
+
+        row, col = pos
+        item = self._gallery_grid.itemAtPosition(row, col)
+        if item is not None:
+            old_widget = item.widget()
+            self._gallery_grid.removeWidget(old_widget)
+            if old_widget is not None:
+                old_widget.deleteLater()
+        display_size = QSize(self._GALLERY_TILE_WIDTH_PX, self._GALLERY_TILE_HEIGHT_PX)
+        self._gallery_grid.addWidget(CopyablePixmapLabel(pixmap, display_size), row, col)
 
     def _build_interactive_map_tab(self) -> None:
         import scipy.spatial
@@ -528,9 +683,10 @@ class ClusterResultsPanel(QWidget):
     def _build_unified_statistics_tab(self) -> None:  # noqa: PLR0912, PLR0915
         self._custom_cluster_masks = []
         self._cluster_ui_elements: dict = {}
-        from karcytics_sdk.plugin.components import BioLineEdit, PrimaryButton
+        from karcytics_sdk.plugin.components import BioLineEdit, PrimaryButton, SecondaryButton
         from PyQt6.QtWidgets import (
             QCheckBox,
+            QHBoxLayout,
             QLabel,
             QScrollArea,
             QSplitter,
@@ -748,55 +904,62 @@ class ClusterResultsPanel(QWidget):
             )
             left_layout.addWidget(vis_lbl)
 
-            fig = Figure(facecolor=Colors.BG_DARK, figsize=(6, 4))
-            ax = fig.add_subplot(111)
-            ax.set_facecolor(Colors.BG_DARK)
-            ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=8)
-            for spine in ax.spines.values():
-                spine.set_color(Colors.BORDER)
-            n_clusters = len(heatmap_df)
-            x = np.arange(n_clusters)
+            # See _create_plot's comment: Figure construction through
+            # CopyableCanvas() must be lock-protected against a concurrent
+            # background ClusterPlotRenderTask (Plot Gallery) touching the
+            # same thread-unsafe Agg backend.
+            with MPL_RASTER_LOCK:
+                fig = Figure(facecolor=Colors.BG_DARK, figsize=(6, 4))
+                ax = fig.add_subplot(111)
+                ax.set_facecolor(Colors.BG_DARK)
+                ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=8)
+                for spine in ax.spines.values():
+                    spine.set_color(Colors.BORDER)
+                n_clusters = len(heatmap_df)
+                x = np.arange(n_clusters)
 
-            data_values = heatmap_df.values.copy()
-            if data_values.min() < 0:
-                data_values = data_values - data_values.min()
+                data_values = heatmap_df.values.copy()
+                if data_values.min() < 0:
+                    data_values = data_values - data_values.min()
 
-            row_sums = data_values.sum(axis=1, keepdims=True)
-            row_sums[row_sums == 0] = 1e-9
-            normalized_data = (data_values / row_sums) * 100
+                row_sums = data_values.sum(axis=1, keepdims=True)
+                row_sums[row_sums == 0] = 1e-9
+                normalized_data = (data_values / row_sums) * 100
 
-            bottoms = np.zeros(n_clusters)
-            marker_cmap = mpl.colormaps["tab20"]
-            for j, col_name in enumerate(heatmap_df.columns):
-                val = normalized_data[:, j]
-                ax.bar(
-                    x,
-                    val,
-                    width=0.7,
-                    bottom=bottoms,
-                    label=col_name,
-                    color=marker_cmap(j % 20),
+                bottoms = np.zeros(n_clusters)
+                marker_cmap = mpl.colormaps["tab20"]
+                for j, col_name in enumerate(heatmap_df.columns):
+                    val = normalized_data[:, j]
+                    ax.bar(
+                        x,
+                        val,
+                        width=0.7,
+                        bottom=bottoms,
+                        label=col_name,
+                        color=marker_cmap(j % 20),
+                    )
+                    bottoms += val
+
+                ax.set_xticks(x)
+                ax.set_xticklabels(heatmap_df.index)
+                ax.set_xlabel("Cluster ID", color=Colors.FG_PRIMARY, fontsize=9)
+                ax.set_ylabel("Relative Expression (%)", color=Colors.FG_PRIMARY, fontsize=9)
+                ax.set_title(
+                    "100% Stacked Expression Profiles", color=Colors.FG_PRIMARY, fontsize=10
                 )
-                bottoms += val
 
-            ax.set_xticks(x)
-            ax.set_xticklabels(heatmap_df.index)
-            ax.set_xlabel("Cluster ID", color=Colors.FG_PRIMARY, fontsize=9)
-            ax.set_ylabel("Relative Expression (%)", color=Colors.FG_PRIMARY, fontsize=9)
-            ax.set_title("100% Stacked Expression Profiles", color=Colors.FG_PRIMARY, fontsize=10)
+                ax.legend(
+                    bbox_to_anchor=(1.02, 1),
+                    loc="upper left",
+                    fontsize=8,
+                    facecolor=Colors.BG_MEDIUM,
+                    edgecolor=Colors.BORDER,
+                    labelcolor=Colors.FG_PRIMARY,
+                )
+                fig.subplots_adjust(right=0.75, bottom=0.15)
+                fig.tight_layout()
 
-            ax.legend(
-                bbox_to_anchor=(1.02, 1),
-                loc="upper left",
-                fontsize=8,
-                facecolor=Colors.BG_MEDIUM,
-                edgecolor=Colors.BORDER,
-                labelcolor=Colors.FG_PRIMARY,
-            )
-            fig.subplots_adjust(right=0.75, bottom=0.15)
-            fig.tight_layout()
-
-            vis_canvas = CopyableCanvas(fig)
+                vis_canvas = CopyableCanvas(fig)
             vis_canvas.setMinimumHeight(300)
             left_layout.addWidget(vis_canvas)
 
@@ -812,6 +975,20 @@ class ClusterResultsPanel(QWidget):
         title = QLabel("Export Populations")
         title.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-weight: bold; font-size: 14px;")
         right_layout.addWidget(title)
+
+        self._export_checkboxes: list[QCheckBox] = []
+
+        select_row = QHBoxLayout()
+        btn_select_all = SecondaryButton("All")
+        btn_select_all.setObjectName("ExportPopulationsSelectAllButton")
+        btn_select_all.clicked.connect(lambda: self._set_export_checkboxes(True))
+        btn_select_none = SecondaryButton("None")
+        btn_select_none.setObjectName("ExportPopulationsSelectNoneButton")
+        btn_select_none.clicked.connect(lambda: self._set_export_checkboxes(False))
+        select_row.addWidget(btn_select_all)
+        select_row.addWidget(btn_select_none)
+        select_row.addStretch()
+        right_layout.addLayout(select_row)
 
         right_scroll = QScrollArea()
         right_scroll.setWidgetResizable(True)
@@ -873,6 +1050,7 @@ class ClusterResultsPanel(QWidget):
 
                 self._list_layout.addWidget(row_widget)
                 self._cluster_ui_elements[cluster_id] = (checkbox, name_edit)
+                self._export_checkboxes.append(checkbox)
 
         if "custom_clusters" in self._results:
             for custom_idx, custom_data in enumerate(self._results["custom_clusters"], 1):
@@ -926,6 +1104,7 @@ class ClusterResultsPanel(QWidget):
 
                 self._list_layout.addWidget(row_widget)
                 self._custom_cluster_masks.append((mask, (checkbox, name_edit)))
+                self._export_checkboxes.append(checkbox)
 
         right_scroll.setWidget(list_container)
         right_layout.addWidget(right_scroll, stretch=1)
@@ -939,6 +1118,10 @@ class ClusterResultsPanel(QWidget):
         splitter.setSizes([700, 300])
 
         self._tabs.addTab(splitter, "Population Statistics")
+
+    def _set_export_checkboxes(self, checked: bool) -> None:
+        for checkbox in self._export_checkboxes:
+            checkbox.setChecked(checked)
 
     def _create_populations(self) -> None:  # noqa: PLR0912
         if not self._state:
@@ -980,6 +1163,16 @@ class ClusterResultsPanel(QWidget):
         # Flag that this is a UMAP container — pipeline view will skip thumbnail
         umap_parent.is_umap_parent = True
 
+        # UMAP only ever clustered a random subsample of the parent population,
+        # so every exported cluster population's raw count reads proportionally
+        # low — record the correction factor so the Statistics tab and pipeline
+        # canvas can show a scaled, clearly-marked estimate instead (see
+        # DagEvaluator._propagate_estimation for how this flows downstream).
+        parent_total = self._results.get("parent_total_events")
+        n_events = self._results.get("n_events")
+        scale_factor = (parent_total / n_events) if parent_total and n_events else 1.0
+        is_estimated = scale_factor > 1.0
+
         clusters = self._results.get("clusters")
         created_count = 0
 
@@ -992,20 +1185,24 @@ class ClusterResultsPanel(QWidget):
                     mask = clusters == cluster_id
                     cluster_indices = indices_arr[mask]
 
-                    umap_parent.add_child(
+                    cluster_node = umap_parent.add_child(
                         gate=SubsetGate(indices=[int(x) for x in cluster_indices]),
                         name=name,
                     )
+                    cluster_node.scale_factor = scale_factor
+                    cluster_node.is_estimated = is_estimated
                     created_count += 1
 
         for mask, (checkbox, name_edit) in self._custom_cluster_masks:
             if checkbox.isChecked():
                 name = name_edit.text() or "Custom Cluster"
                 cluster_indices = indices_arr[mask]
-                umap_parent.add_child(
+                custom_node = umap_parent.add_child(
                     gate=SubsetGate(indices=[int(x) for x in cluster_indices]),
                     name=name,
                 )
+                custom_node.scale_factor = scale_factor
+                custom_node.is_estimated = is_estimated
                 created_count += 1
 
         # Trigger stats recomputation so event/percentage counts appear correctly

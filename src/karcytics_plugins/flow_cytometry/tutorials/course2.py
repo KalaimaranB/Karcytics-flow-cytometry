@@ -1149,32 +1149,19 @@ course_2_gating = Course(
             failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
+            # The true end of Course 2 — no next_step_id, so
+            # AcademyManager.next_step() treats this as course completion and
+            # awards badge_reward the moment the user clicks Next. What's
+            # next (Course 3) is already shown on the Academy catalog card,
+            # so this doesn't need its own teaser steps the way it used to —
+            # matches Course 1's compact one-step ending.
             id="c2_s56_graduation",
             text=(
-                "Your workspace is updated!<br><br>Course 2 is complete — you're officially an **Immunophenotyper**! 🏆"
+                "Your workspace is updated!<br><br>Course 2 is complete — "
+                "you're officially an **Immunophenotyper**! 🏆<br><br>"
+                "See you in Course 3!"
             ),
             cyto_emotion="cheering",
-            cyto_animation="cheering",
-            next_step_id="c2_s55_course3_teaser",
-        ),
-        InfoStep(
-            id="c2_s55_course3_teaser",
-            text=(
-                "Course 3 goes deeper 🔬<br><br>"
-                "In Course 3 you'll hand this same gated data to **UMAP + "
-                "HDBSCAN** — letting an algorithm that has never seen your "
-                "gates independently cluster the raw data, watch it happen "
-                "live in a real, data-driven animation, and explore the "
-                "result on an Interactive Map — extra rigor on top of what "
-                "you've already nailed."
-            ),
-            cyto_emotion="pointing",
-            next_step_id="c2_s58_outro",
-        ),
-        InfoStep(
-            id="c2_s58_outro",
-            text=("See you in Course 3!"),
-            cyto_emotion="happy",
             cyto_animation="cheering",
         ),
     ],

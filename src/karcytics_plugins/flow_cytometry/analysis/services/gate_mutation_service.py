@@ -61,7 +61,7 @@ class GateMutationService:
         if not isinstance(child_nodes, list):
             child_nodes = [child_nodes]
 
-        self._coordinator.recompute_all_stats(sample_id)
+        self._coordinator.recompute_all_stats(sample_id, node_ids=[n.node_id for n in child_nodes])
 
         source_node = (
             sample.gate_tree.find_node_by_id(parent_node_id) if parent_node_id else sample.gate_tree
@@ -185,7 +185,7 @@ class GateMutationService:
             # The canvas already suppresses the root→logic visual edge separately.
 
         if not target.is_incomplete:
-            self._coordinator.recompute_all_stats(sample_id)
+            self._coordinator.recompute_all_stats(sample_id, node_ids=[target_node_id])
             CentralEventBus.publish(
                 events.GATE_STATS_UPDATED,
                 {"sample_id": sample_id, "node_id": target_node_id},
@@ -228,7 +228,7 @@ class GateMutationService:
                 sample.gate_tree.children.append(target)
 
         if not target.is_incomplete:
-            self._coordinator.recompute_all_stats(sample_id)
+            self._coordinator.recompute_all_stats(sample_id, node_ids=[target_node_id])
             CentralEventBus.publish(
                 events.GATE_STATS_UPDATED,
                 {"sample_id": sample_id, "node_id": target_node_id},
@@ -257,16 +257,15 @@ class GateMutationService:
         if not success:
             return False
 
-        self._coordinator.recompute_all_stats(sample_id)
-
         sample = self._state.data.experiment.samples.get(sample_id)
-        if sample:
-            nodes = sample.gate_tree.find_nodes_by_gate(gate_id)
-            for node in nodes:
-                CentralEventBus.publish(
-                    events.GATE_STATS_UPDATED,
-                    {"sample_id": sample_id, "node_id": node.node_id},
-                )
+        nodes = sample.gate_tree.find_nodes_by_gate(gate_id) if sample else []
+        self._coordinator.recompute_all_stats(sample_id, node_ids=[n.node_id for n in nodes])
+
+        for node in nodes:
+            CentralEventBus.publish(
+                events.GATE_STATS_UPDATED,
+                {"sample_id": sample_id, "node_id": node.node_id},
+            )
 
         GateEventPublisher.publish_gate_modified(sample_id, gate_id)
         self._coordinator.request_propagation(gate_id, sample_id)
@@ -281,7 +280,7 @@ class GateMutationService:
 
         new_node_id, new_name, gate_id = result
 
-        self._coordinator.recompute_all_stats(sample_id)
+        self._coordinator.recompute_all_stats(sample_id, node_ids=[new_node_id])
 
         CentralEventBus.publish(
             events.GATE_STATS_UPDATED, {"sample_id": sample_id, "node_id": new_node_id}
@@ -313,7 +312,13 @@ class GateMutationService:
         logger.info("Population %s removed from sample %s.", node_id, sample_id)
         return True
 
-    def rename_population(self, sample_id: str, node_id: str, new_name: str) -> bool:
+    def rename_population(
+        self,
+        sample_id: str,
+        node_id: str,
+        new_name: str,
+        target_sample_ids: list[str] | None = None,
+    ) -> bool:
         sample = self._state.data.experiment.samples.get(sample_id)
         if sample is None:
             return False
@@ -322,8 +327,11 @@ class GateMutationService:
         if node is None:
             return False
 
-        target_samples = self._coordinator.propagator._find_targets(sample_id, self._state)
-        target_ids = {t.sample_id for t in target_samples}
+        if target_sample_ids is not None:
+            target_ids = set(target_sample_ids)
+        else:
+            target_samples = self._coordinator.propagator._find_targets(sample_id, self._state)
+            target_ids = {t.sample_id for t in target_samples}
         target_ids.add(sample_id)
 
         renamed_any = False

@@ -1,5 +1,6 @@
 """Graphical representation of a Gate population on the canvas."""
 
+from collections.abc import Callable
 from typing import Any
 
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
@@ -20,6 +21,8 @@ class NodeItem(QGraphicsObject):
     # Emitted when double-clicked
     node_double_clicked = pyqtSignal(str)
     delete_requested = pyqtSignal(str)
+    rename_requested = pyqtSignal(str)
+    link_delete_requested = pyqtSignal(str, str)  # source_node_id, target_node_id
 
     # Drag signals
     edge_drag_started = pyqtSignal(str, QPointF)  # node_id, start_pos
@@ -42,9 +45,26 @@ class NodeItem(QGraphicsObject):
         self.parent_percentage = 0.0
         self.is_logic_node = False
         self.is_umap_parent = False
+        # Set by CanvasManager._apply_stats_to_item from node.statistics —
+        # see DagEvaluator._propagate_estimation for what these mean.
+        self.is_estimated = False
+        self.is_scale_valid = True
         self.logic_operator = "AND"
         self.parent_names: list[str] = []  # names of real (non-root) parents for logic nodes
         self.per_parent_pcts: dict = {}  # per-parent overlap stats for logic nodes
+        # The single real (non-root) parent's own name, for a non-logic
+        # node's "% of parent {name}" line — spelled out because the
+        # node's *statistical* parent (whatever its % is actually computed
+        # against) doesn't always match its edge's visual source at a
+        # glance, e.g. a UMAP cluster's edge is drawn from the "UMAP
+        # Reduction" container it's grouped under either way.
+        self.parent_name: str = ""
+
+        # Set externally by CanvasManager; returns (incoming, outgoing) logic-node
+        # links for this node as (node_id, name) pairs, for the context menu.
+        self.get_logic_links: (
+            Callable[[str], tuple[list[tuple[str, str]], list[tuple[str, str]]]] | None
+        ) = None
 
         # State
         self.x_param: str | None = None
@@ -205,30 +225,40 @@ class NodeItem(QGraphicsObject):
         )
 
         # Draw Stats
-        painter.setPen(QColor(Colors.FG_SECONDARY))
+        if self.is_estimated:
+            painter.setPen(
+                QColor(Colors.ACCENT_WARNING if self.is_scale_valid else Colors.ACCENT_DANGER)
+            )
+        else:
+            painter.setPen(QColor(Colors.FG_SECONDARY))
         stats_font = QFont(Fonts.FAMILY_UI, Fonts.SIZE_SMALL - 1)
         painter.setFont(stats_font)
 
+        count_str = f"{self.event_count:,}{'*' if self.is_estimated else ''}"
         stats_rect = QRectF(12, 36, self.WIDTH - 24, 60)
         if self.is_logic_node:
             if self.per_parent_pcts:
                 # Rich display: total count + per-parent overlap %
-                lines = [f"{self.event_count:,} events ({self.logic_operator})"]
+                lines = [f"{count_str} events ({self.logic_operator})"]
                 for info in self.per_parent_pcts.values():
                     pname = info.get("name", "?")
                     pct = info.get("pct_overlap", 0.0)
                     pc = info.get("parent_count", 0)
-                    lines.append(f"  {pct:.1f}% of {pname} ({pc:,})")
+                    mark = "*" if info.get("is_scaled") else ""
+                    lines.append(f"  {pct:.1f}%{mark} of {pname} ({pc:,})")
                 stats_text = "\n".join(lines)
             else:
-                lines = [f"{self.event_count:,} events intersected"]
+                lines = [f"{count_str} events intersected"]
                 if self.parent_names:
                     lines += ["from:"] + [f"  • {n}" for n in self.parent_names]
                 else:
                     lines.append("(no inputs wired yet)")
                 stats_text = "\n".join(lines)
         else:
-            stats_text = f"{self.event_count:,} events\n{self.parent_percentage:.1f}% of parent"
+            parent_label = f" {self.parent_name}" if self.parent_name else ""
+            stats_text = (
+                f"{count_str} events\n{self.parent_percentage:.1f}% of parent{parent_label}"
+            )
         painter.drawText(
             stats_rect,
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop,
@@ -542,15 +572,42 @@ class NodeItem(QGraphicsObject):
             event.accept()
             return
 
-        from PyQt6.QtWidgets import QMenu
+        from karcytics_sdk.plugin.components import BioMenu
 
-        menu = QMenu()
+        menu = BioMenu()
+        rename_action = menu.addAction(
+            "✏️  Rename Node" if self.is_logic_node else "✏️  Rename Population"
+        )
         delete_action = menu.addAction(
             "🗑️  Delete Node" if self.is_logic_node else "🗑️  Delete Population"
         )
+
+        link_action_map: dict = {}
+        if self.get_logic_links is not None:
+            incoming, outgoing = self.get_logic_links(self.node_id)
+            if incoming or outgoing:
+                menu.addSeparator()
+            if incoming:
+                in_menu = BioMenu(title="🔗 Delete Incoming Link")
+                menu.addMenu(in_menu)
+                for parent_id, parent_name in incoming:
+                    act = in_menu.addAction(f"From: {parent_name}")
+                    link_action_map[act] = (parent_id, self.node_id)
+            if outgoing:
+                out_menu = BioMenu(title="🔗 Delete Outgoing Link")
+                menu.addMenu(out_menu)
+                for child_id, child_name in outgoing:
+                    act = out_menu.addAction(f"To: {child_name}")
+                    link_action_map[act] = (self.node_id, child_id)
+
         action = menu.exec(event.screenPos())
-        if action == delete_action:
+        if action == rename_action:
+            self.rename_requested.emit(self.node_id)
+        elif action == delete_action:
             self.delete_requested.emit(self.node_id)
+        elif action in link_action_map:
+            source_id, target_id = link_action_map[action]
+            self.link_delete_requested.emit(source_id, target_id)
         event.accept()
 
     def itemChange(self, change, value):

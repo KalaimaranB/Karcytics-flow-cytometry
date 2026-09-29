@@ -35,6 +35,13 @@ class GateNode:
     is_umap_parent: bool = False  # True for synthetic nodes holding UMAP cluster populations
     is_logic_node: bool = False  # True for AND/OR/NOT nodes, explicit so an unwired
     # logic node (parents=[]) is never confused with the sentinel root below.
+    scale_factor: float = 1.0  # origin correction for a UMAP-exported node built from a
+    # random subsample (parent_total_events / n_events); 1.0 for every other node.
+    is_estimated: bool = False  # True only for the origin UMAP-exported node itself — see
+    # DagEvaluator._propagate_estimation for how this flows downstream through the tree.
+    _mask_cache: tuple[pd.DataFrame, np.ndarray] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     @property
     def is_root(self) -> bool:
@@ -147,23 +154,50 @@ class GateNode:
         return np.ones(total_count, dtype=bool)
 
     def _get_mask(self, events: pd.DataFrame) -> np.ndarray:
+        # `_mask_cache` is `(events, mask)`, keyed on the *identity* of the
+        # DataFrame rather than its contents — a reload or a compensation
+        # change always produces a new DataFrame object (see fcs_io.py /
+        # data_loader_service.py), so a changed dataset is a natural cache
+        # miss with no separate version token needed. Gate edits and
+        # structural rewires don't change the events object at all, so
+        # those invalidate explicitly via `invalidate_mask_cache()` (wired
+        # into GateCoordinator.recompute_all_stats and
+        # PopulationService.remove_population, the only places the tree
+        # can change).
+        if self._mask_cache is not None and self._mask_cache[0] is events:
+            return self._mask_cache[1]
+
         if self.is_incomplete:
             # Unwired/under-wired logic node — has no valid population yet.
             # Without this, an empty parent list falls through to
             # `_combine_parent_masks`' "no parents" branch, which returns an
             # all-True mask (correct for the sentinel root, wrong here).
-            return np.zeros(len(events), dtype=bool)
+            mask = np.zeros(len(events), dtype=bool)
+        else:
+            parent_masks = [p._get_mask(events) for p in self.parents]
+            mask = self._combine_parent_masks(parent_masks, len(events))
 
-        parent_masks = [p._get_mask(events) for p in self.parents]
-        mask = self._combine_parent_masks(parent_masks, len(events))
+            if self.gate is not None:
+                gate_mask = self.gate.contains(events)
+                if self.negated:
+                    gate_mask = ~gate_mask
+                mask &= gate_mask
 
-        if self.gate is not None:
-            gate_mask = self.gate.contains(events)
-            if self.negated:
-                gate_mask = ~gate_mask
-            mask &= gate_mask
-
+        self._mask_cache = (events, mask)
         return mask
+
+    def invalidate_mask_cache(self) -> None:
+        """Clear this node's cached mask and every descendant's.
+
+        A change here (gate edit, rewire) can only affect this node's own
+        mask and everything downstream of it — never an ancestor's — so
+        the subtree rooted at `self` is the correct, and safest, scope.
+        Callers that aren't sure exactly what changed should invalidate
+        from the sample's root node.
+        """
+        self._mask_cache = None
+        for child in self.children:
+            child.invalidate_mask_cache()
 
     def apply_hierarchy(self, events: pd.DataFrame) -> pd.DataFrame:
         """Apply the DAG hierarchy of gates up to this node.
@@ -228,6 +262,8 @@ class GateNode:
                 )
                 node.creation_view = n_data.get("creation_view", {})
                 node.is_umap_parent = is_umap_parent
+                node.scale_factor = n_data.get("scale_factor", 1.0)
+                node.is_estimated = n_data.get("is_estimated", False)
                 nodes_by_id[node.node_id] = node
                 if is_root_flag:
                     root = node
@@ -266,6 +302,8 @@ class GateNode:
                     "creation_view": n.creation_view,
                     "is_umap_parent": getattr(n, "is_umap_parent", False),
                     "is_logic_node": getattr(n, "is_logic_node", False),
+                    "scale_factor": getattr(n, "scale_factor", 1.0),
+                    "is_estimated": getattr(n, "is_estimated", False),
                 }
             )
             for c in n.children:

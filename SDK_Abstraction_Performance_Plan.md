@@ -27,17 +27,8 @@ diluting signal exactly where the owner doesn't want investment right now.
 
 ## Priority 0 — Do these first (mechanical, low-risk, high or immediate payoff)
 
-| # | Fix | File:line | Why first |
-|---|---|---|---|
-| 1 | Drop the redundant `.copy()` after boolean-indexed DataFrame slices | `gating/base.py:71`, `gating/gate_node.py:178`, `statistics_analysis.py:91`, `compute/dag_evaluator.py:80` | Boolean indexing already allocates a new frame; the second copy is pure waste on every gate/render/stats call, over potentially millions of rows |
-| 2 | Drop unconditional `gc.collect()` after every render task | `graph/render_task.py:312-314` | Runs on every pan/zoom/thumbnail redraw; forces a full GC pass and can stall the worker pool that's supposed to keep the UI responsive |
-| 3 | Fix CI to stop gating merges on `tests/ui/` | `.github/workflows/release.yml:231` | `pytest.mark.ui` exists and is applied but CI runs `pytest tests/` with no `-m` filter, so UI-mechanics tests already block PRs today despite the marker existing to prevent that |
-| 4 | Delete the dead test file | `tests/unit/analysis/test_stats.py` | Entire file is one comment, no test — currently reads as coverage that doesn't exist |
-| 5 | Rewrite the assertion-free "test" | `tests/unit/ui/test_layout.py::test_layout_computation` | Calls `NodeTreeEngine().compute(root)` and only `print()`s the result — zero assertions, false confidence on gate-hierarchy layout |
-| 6 | Fix duplicate `@dataclass` decorator | `analysis/config.py:220-221` | Harmless but a lint-blind-spot marker; two-line fix |
-| 7 | Promote `LockedFigureCanvas` into the SDK as a standalone class next to `LayeredMatplotlibCanvas` | SDK: `plugin/rendering/mpl_canvas.py`; plugin: `ui/graph/_mpl_compat.py:9-53` | Already a clean, self-contained ~50-line class; flow independently re-derived a sip-deleted race-condition fix the SDK doesn't have yet. Highest payoff-to-effort ratio in the whole review |
-| 8 | Replace the ~35 raw `QMessageBox.*` calls with `dialogs.show_info/show_warning/show_error/ask_yes_no` | Heaviest: `ui/ribbons/workspace_ribbon.py` (10), `ui/ribbons/compensation_ribbon.py` (12); also `main_panel.py`, `sample_list.py`, `groups_panel.py`, `bulk_role_dialog.py`, `node_canvas/canvas_view.py`, `graph/render_window.py` | Mechanical find/replace; `dialogs.py` already handles parent stay-on-top propagation these call sites reimplement inconsistently |
-| 9 | Delete `ui/dialogs/save_workflow_dialog.py`, import the SDK's `SaveWorkflowDialog` instead | `ui/dialogs/save_workflow_dialog.py` is byte-identical (diff shows only whitespace) to `karcytics_sdk/plugin/dialogs.py:289-337` | Zero-risk deletion of a confirmed exact duplicate |
+> [!NOTE]
+> **Done.** All 9 items (redundant `.copy()`, `gc.collect()` removal, CI `-m "not ui"` split, dead/assertion-free test fixes, duplicate `@dataclass`, `LockedFigureCanvas` promoted to the SDK, raw `QMessageBox` calls replaced, duplicate `save_workflow_dialog.py` deleted) verified complete.
 
 ---
 
@@ -47,69 +38,196 @@ The offload architecture itself is sound (heavy work already goes through `Analy
 `task_scheduler`), so these are about wasted work *inside* the background paths, not missing
 threading.
 
-1. **No memoization of ancestor gate masks.** `GateNode._get_mask`/`apply_hierarchy`
-   (`gating/gate_node.py:149-178`) recompute the full ancestor chain from raw events on every
-   call, with call sites in nearly every UI refresh path (`render_window.py:74`,
-   `graph_window.py:467,519`, `statistics_explorer.py:669,689,696`,
-   `comparisons/data_extractor.py:42,68,137`, `population_analysis_viewer.py:842,1075`,
-   `umap_analysis.py:109`). The codebase already has the right pattern —
-   `compute/dag_evaluator.py`'s `DagEvaluator.evaluate` does topologically-ordered BFS with a
-   memoized `evaluated_masks` dict — it's just not used by these call sites.
-   **Fix:** route these callers through `DagEvaluator`-style memoized evaluation, or cache masks
-   per node keyed on a data-version token.
+1. ~~No memoization of ancestor gate masks~~ — **Done.** `GateNode._get_mask` now caches
+   `(events, mask)` per node, keyed on the *identity* of the `events` DataFrame (a reload or
+   compensation change always produces a new DataFrame object — see `fcs_io.py`/
+   `data_loader_service.py` — so a changed dataset is a natural cache miss with no separate
+   version token needed). Gate edits/rewires don't change that object at all, so those invalidate
+   explicitly via the new `GateNode.invalidate_mask_cache()`, wired into the two places the tree
+   can actually change: `GateCoordinator.recompute_all_stats` (the single choke point every
+   mutation already funnels through) and `PopulationService.remove_population` (the one path that
+   doesn't call `recompute_all_stats`, since it rewrites a surviving logic node's `parents` list
+   directly). Every UI refresh call site (`render_window.py`, `graph_window.py`,
+   `statistics_explorer.py`, `comparisons/data_extractor.py`, `population_analysis_viewer.py`,
+   `umap_analysis.py`) benefits for free since they all call the existing `apply_hierarchy`
+   entry point — no call-site changes needed. Regression-tested in
+   `tests/unit/analysis/gating/test_gate_node_mask_cache.py` (cache reuse, cache-miss on a new
+   DataFrame, invalidation, descendant propagation, and a diamond-DAG shared-ancestor case) and
+   two new tests in `test_gate_coordinator.py` covering the two invalidation call sites end to end.
+   284 analysis/functional tests plus the affected UI suites all still green.
 
-2. **Three independent tree-walk implementations that will drift.** `GateNode._get_mask` (naive,
-   no memo), `DagEvaluator.evaluate` (BFS + memo), and `StatisticsAnalysis._walk_and_compute`
-   (`statistics_analysis.py:69-143`, its own recursive walker) all compute conceptually the same
-   thing at different speeds. **Fix:** make `StatisticsAnalysis` delegate to `DagEvaluator`.
+2. ~~Three independent tree-walk implementations that will drift~~ — **Done.**
+   `StatisticsAnalysis` no longer has its own `_walk_and_compute`; it now calls the same
+   `DagEvaluator.evaluate` that `propagation_worker.py` already used, closing the drift risk
+   between "stats after a direct edit" and "stats after group propagation." Porting it wasn't a
+   clean swap — the old walker did two things `DagEvaluator` didn't: computed logic-node
+   `per_parent_pcts` overlap percentages (ported over, needs only already-computed counts, not
+   masks), and — the one we deliberately chose not to drop — emitted a Qt `analysis_error` signal
+   and **dropped the entire failed subtree** from results when a gate's `.contains()` raised,
+   rather than silently reporting zero counts for it. `DagEvaluator.evaluate` gained an optional
+   `on_gate_error` callback for this: when given, a failing gate's descendants are pruned from the
+   result entirely (matching the old behavior exactly); when omitted (`propagation_worker.py`'s
+   case, unchanged), it keeps its original zero-mask-and-continue behavior. Two independent walkers
+   still remain (`GateNode._get_mask`'s own AND/OR/NOT combination logic, now cached per Priority 1
+   analysis #1, and `DagEvaluator`'s separate reimplementation of the same combination) — reducing
+   that further to one wasn't in scope here and would need `DagEvaluator` to reuse `GateNode`'s
+   cache instead of its own `evaluated_masks` dict. Regression-tested in
+   `tests/unit/analysis/test_dag_evaluator.py` (per-parent overlap math, default vs. callback
+   failure handling, sibling-unaffected-by-pruning) and `test_statistics_analysis.py`. 311
+   analysis/functional/gating tests green, ruff/mypy clean repo-wide.
 
-3. **Every gate edit triggers a full-tree stats recompute.** `services/gate_mutation_service.py`
-   (lines 64, 188, 231, 260, 284, 369) unconditionally calls
-   `self._coordinator.recompute_all_stats(sample_id)`, walking every node even when only one
-   leaf's subtree changed. **Fix:** scope recompute to the mutated node's descendants and any
-   logic nodes referencing it.
+3. ~~Every gate edit triggers a full-tree stats recompute~~ — **Done.**
+   `GateCoordinator.recompute_all_stats`/`StatsService.recompute_all_stats`/`StatisticsAnalysis`
+   all gained an optional `node_ids` parameter; when given, only that subtree gets invalidated and
+   recomputed via the new `DagEvaluator.evaluate_scoped`, which reads unaffected ancestors' masks
+   straight from `GateNode`'s cache (Priority 1 analysis #1) instead of walking the whole tree.
+   `gate_mutation_service.py`'s call sites now pass the actual node(s) that changed —
+   `add_gate`/`split_population`: the new node; `add_connection`/`remove_connection`: the rewired
+   target; `modify_gate`: every node sharing that gate (`find_nodes_by_gate`, already computed for
+   its event-publishing loop, just reordered to run first). `copy_gates_to_group` deliberately keeps
+   the full-tree path — it replaces the whole target tree, so "everything changed" is accurate
+   there. Logic-node `per_parent_pcts` for an out-of-scope parent now falls back to that parent's
+   last-persisted count instead of 0 (only the *pruned-by-gate-failure* case still uses 0, since
+   that data is genuinely untrustworthy). Verified end-to-end in
+   `test_gate_coordinator.py::test_modify_gate_does_not_recompute_an_unrelated_siblings_gate` —
+   monkeypatches a sibling gate's `.contains()` and asserts it's never even called — plus 5 new
+   `evaluate_scoped` unit tests (scope boundary, cache reuse, parity with a full `evaluate()`,
+   persisted-count fallback, failure pruning within a subtree). 317 analysis/functional/gating
+   tests green, ruff/mypy clean repo-wide.
 
-4. **Double in-memory copy of every loaded sample.** `fcs_io.py:281` and `fcs_io.py:751` both
-   unconditionally copy the full event DataFrame to preserve pre-compensation values — every
-   loaded sample permanently holds two full float64 copies. **Fix:** materialize `raw_events`
-   lazily on first compensation, or store as a diff.
+4. ~~Double in-memory copy of every loaded sample~~ — **Done.** Both call sites
+   (`_build_fcs_data_from_daemon_response` and `_load_with_fcsparser`'s tolerant-reader path) only
+   call `events_df.copy()` when the FCS file actually has an embedded spillover matrix
+   (`_has_embedded_spill`, a cheap dict-key check reusing the same key list `_auto_apply_spill`
+   already scans) — that's the only thing that ever mutates `events_df` in place. When there's no
+   embedded spill (confirmed the common case), `raw_events` just shares the same DataFrame object
+   as `events` instead of duplicating it — provably safe since every other consumer
+   (`compensation_ribbon.py`'s reset-to-raw, `compensation.py`'s `apply_compensation`) already
+   makes its own `.copy()` before mutating rather than assuming independence. Regression-tested in
+   `tests/unit/analysis/test_fcs_io.py` (6 new tests: the key-check helper, identity-sharing for
+   both loader paths when there's no spill key, and correct independent-copy + compensated-vs-raw
+   values when there is one). 304 analysis/functional tests green, ruff/mypy clean.
 
-5. **UMAP computed twice for the animation flow** (`animation/animation_prep.py:131-157` runs a
-   second full UMAP fit purely for the educational animation, independent of the real
-   `UmapAnalysis` computation on the same data). It's backgrounded, so not UI-blocking, but is a
-   real duplicated-compute cost worth consolidating if animation and analysis can share one fit.
+5. ~~UMAP computed twice for the animation flow~~ — **Not a bug, intentional.** Re-checked
+   `animation/animation_prep.py:131-157`'s own docstring: it's a much smaller "mini-UMAP" computed
+   synchronously on a reduced subset purely for the animation's visuals, deliberately sequential
+   with (not duplicating) the real background `UmapAnalysis` fit over the full dataset. Removed
+   from the backlog.
 
-6. **O(n) linear tree search on every mutation.** `GateNode.find_node_by_id`/`find_nodes_by_gate`
-   (`gating/gate_node.py:92-123`) are called repeatedly per operation (e.g. `add_connection`
-   calls `find_node_by_id` three times plus a separate cycle-check search). Fine today; an
-   id→node index on `Experiment`/`Sample` makes this O(1) and matters as hierarchies grow.
+6. ~~O(n) linear tree search on every mutation~~ — **Assessed, intentionally skipped.**
+   Investigated adding an id→node index on `Sample`. Real hierarchies are typically dozens of
+   nodes, so the O(n) walk itself is microseconds — the "three times" in `add_connection` turned
+   out to be three *different* lookups (source, target, subtree-scoped cycle-check), not a
+   redundant repeated one, so there's no free win from caching within a single operation either.
+   Building a real index means wiring invalidation into 7+ structural-mutation call sites across
+   `population_service.py`/`gate_mutation_service.py`/`splitter.py`, plus the 3 places
+   `sample.gate_tree` gets *reassigned* outright (gate propagation, experiment load, tree reset),
+   and migrating ~50 call sites — one of which (`add_connection`'s cycle-check) is deliberately
+   subtree-scoped and must stay on the recursive method or cycle detection breaks. A stale index
+   would fail safe (lookup miss, not wrong data) rather than silently corrupt anything, but the
+   invalidation-surface risk isn't justified by a payoff this small. Left as a linear scan.
 
-7. Un-vectorized per-channel loop in compensation setup (`compensation.py:118-136`) — minor,
-   easy vectorization with `np.median(df[cols].values, axis=0)`.
+7. ~~Un-vectorized per-channel loop in compensation setup~~ — **Done.**
 
 ## Priority 1 — Performance (UI layer)
 
-1. **`ClusterResultsPanel` builds matplotlib figures synchronously on the UI thread over the full
-   UMAP embedding** (`widgets/cluster_results_panel.py:269-331`, `_build_plot_gallery`) — one
-   `Figure` + `scatter()` + colorbar per channel, potentially 100k+ points each, none of it
-   through the SDK's `RenderComputeStage`/rasterize-lock split that exists for exactly this.
-   **This is the single clearest UI-thread-blocking risk found in the review.**
-   `CopyableCanvas` in the same file also bypasses `LayeredMatplotlibCanvas` entirely — the same
-   SDK class `flow_canvas.py` correctly builds on, and whose docstring says it was extracted
-   *from* this plugin's own earlier pattern.
+1. ~~`ClusterResultsPanel` builds matplotlib figures synchronously on the UI thread over the full
+   UMAP embedding~~ — **Plot Gallery done; Interactive Map tab deliberately deferred.**
+   `_build_plot_gallery` (one `Figure` + `scatter()` + colorbar per channel, potentially 100k+
+   points each — **the single clearest UI-thread-blocking risk found in the review**) now shows a
+   lightweight placeholder tile immediately and renders each tile off the UI thread via a new
+   `ClusterPlotRenderTask` (self-contained `AnalysisBase`, mirrors `render_task.py::RenderTask`'s
+   shape exactly: builds a headless `Figure` under `MPL_RASTER_LOCK`, returns an RGBA byte buffer)
+   dispatched through `task_scheduler.submit()`. `ClusterResultsPanel` listens to the global
+   `task_scheduler.task_finished`/`task_error` signals the same way `group_preview.py` already
+   does, matches each completed tile back to its grid position, and swaps the placeholder for a
+   `CopyablePixmapLabel` (a `QPixmap`-backed tile with the same right-click-to-copy behavior
+   `CopyableCanvas` had). The actual scatter/colorbar drawing code was extracted verbatim into a
+   shared pure function (`cluster_scatter_draw.draw_cluster_scatter`) so the headless render task
+   and the still-synchronous Interactive Map tab's live `Figure` never drift.
 
-2. **`paintEvent` rebuilds a lookup dict from scratch every call**
-   (`widgets/gate_hierarchy/sample_view.py:147`) — cache `node_map` as an instance attribute,
-   invalidate only when `self._rects` changes.
+   A real thread-safety bug surfaced during this work, independent of the tile-sizing issue below:
+   the Interactive Map/Statistics tabs' synchronous `Figure` construction (`_create_plot`, the
+   Expression Profiles bar chart) wasn't behind any lock, so it could race a background
+   `ClusterPlotRenderTask` touching matplotlib's (thread-unsafe) Agg backend at the same
+   moment — `fig.tight_layout()` calls into the Agg renderer to measure text extents, not just
+   `canvas.draw()`. This is the same class of bug `render_task.py`'s own comment warns about
+   (SIGBUS on macOS ARM from concurrent unlocked Agg calls); it was only caught because a
+   real-thread diagnostic script crashed with no Python traceback. Both call sites now wrap their
+   `Figure`-through-`CopyableCanvas` construction in the same `MPL_RASTER_LOCK` the render task
+   already uses.
 
-3. **Theme changes double-apply.** The root panel already does a recursive `findChildren` +
-   `_apply_theme_styles()` cascade (`main_panel.py:573-622`), but ≥6 leaf widgets *also* connect
-   directly to `theme_manager.theme_changed`, rebuilding their QSS twice per toggle. Pick one
-   propagation mechanism (the cascade already works).
+   Getting the *tile sizing* right (unrelated to the crash above) took three iterations, each
+   introducing a new bug in turn — worth recording so nobody repeats them: (1) `setScaledContents`
+   stretched a tile's fixed-aspect-ratio pixmap independently in X/Y to fill its grid cell, visibly
+   distorting it (squashed/elongated UMAP blobs); (2) replacing that with a `setFixedSize` clamp
+   killed the distortion but also shrank every tile well below what the old *expanding*
+   `CopyableCanvas` used to occupy, making the same marker count look artificially denser than the
+   Interactive Map's equivalent plot; (3) restoring `Expanding` + resize-driven
+   `Qt.AspectRatioMode.KeepAspectRatio` rescaling fixed both of those, but `QGridLayout` doesn't
+   reliably give equal-`Expanding` widgets equal row height without explicit row stretch factors —
+   rows ended up wildly different heights (verified directly: 120px/258px/315px for otherwise
+   identical tiles), which the earlier column-only `setColumnStretch` fix didn't address. The
+   settled design abandons dynamic expand-and-fill entirely: `CopyablePixmapLabel` is one fixed,
+   deterministic display size (`_GALLERY_TILE_WIDTH_PX`/`_HEIGHT_PX` = 467x373 — 2/3 of an initial
+   700x560, tuned down after that read as too large in practice — vs. the original synchronous
+   canvas's 500x400 figsize-at-100dpi footprint, so tiles don't look artificially dense, without
+   any `QGridLayout` stretch/expand behavior involved in sizing them at all), with the source
+   rendered at `_GALLERY_SUPERSAMPLE` (2x) that size and downscaled once with `KeepAspectRatio` for
+   crispness (group_preview.py's supersample-then-downscale trick). Verified directly with a real,
+   shown widget hierarchy (not just unit-level property assertions, which had masked the row-height
+   bug before): every tile measures exactly its configured fixed size, deterministically, regardless
+   of window size. The real cost: tiles no longer grow to fill extra window width the way the old
+   live canvas did — an explicit, accepted tradeoff for a design that can't drift.
 
-4. **Combo repopulation is O(n) full-rebuild on every refresh, ~14 call sites**, even when the
-   item set hasn't changed (e.g. a tab switch re-triggering `refresh_samples()`). Extract one
-   `repopulate_combo(combo, items, restore_key)` helper that no-ops when unchanged.
+   The Interactive Map tab was deliberately left synchronous: its hover tooltip and
+   `PolygonSelector` freehand-draw both need a live Qt-thread `Axes` with real event wiring, which
+   a background-rendered flat image can't provide — `CopyableCanvas`/`LockedFigureCanvas` still
+   bypass `LayeredMatplotlibCanvas` there, left as documented backlog rather than force-fit into
+   this change. Regression-tested in `tests/ui/test_cluster_plot_render_task.py` (3 tests: headless
+   render correctness, discrete cluster-ID colorbar, not-configured error path) and
+   `tests/ui/test_cluster_results_panel_gallery.py` (7 tests: placeholders shown before any render
+   completes, one task dispatched per tile, 2x-supersample render config, a tile becomes a
+   fixed-size `CopyablePixmapLabel` on completion, a standalone construction test locking in
+   fixed-size + non-distorted display, a raising render task leaves its placeholder in place rather
+   than crashing, `_cluster_plot_params()`'s discrete-colorbar math).
+   135 UI tests + 492 non-UI tests green, ruff/mypy clean repo-wide.
+
+2. ~~`paintEvent` rebuilds a lookup dict from scratch every call~~ — **Done.**
+
+3. ~~Theme changes double-apply~~ — **Done.** Removed the redundant direct
+   `theme_manager.theme_changed` subscriptions in the 6 leaf widgets (`sample_view.py`,
+   `gate_hierarchy/widget.py`, `population_tree.py`, `sample_checklist.py`,
+   `comparisons_viewer.py`) — all now theme solely via `MainPanel`'s cascade.
+   `statistics_explorer.py` keeps its subscription (it does real cascade-unreachable work —
+   repainting an already-computed table/chart with new colors) but no longer also calls
+   `_apply_theme_styles()` itself. Regression-tested in `tests/ui/test_theme_single_propagation.py`.
+
+4. ~~Combo repopulation is O(n) full-rebuild on every refresh, ~14 call sites~~ — **Done**
+   (except `axis_control_panel.py`, deliberately deferred — see below).
+   `repopulate_combo(combo, items, restore_data)` was promoted into the SDK itself
+   (`karcytics_sdk.plugin.components`, next to `BioComboBox` which it operates on) rather than kept
+   as a flow-cytometry-local helper — it's pure `QComboBox` logic with no flow-cytometry-specific
+   code in it, so any plugin gets the same "true no-op when both the item set and resolved
+   selection are unchanged" fix, not just this one. Unit-tested in the SDK's own
+   `tests/unit/plugin/test_components.py`; the flow-cytometry test conftest mock now points at the
+   real implementation (not a second copy) so plugin-side tests exercise the actual logic.
+   Migrated: `pipeline_ribbon.py` (also fixed a latent bug where restoring the selection happened
+   *after* `blockSignals(False)`, so `sample_selected` could fire twice per refresh),
+   `pseudocolor_overlay_options.py`'s X/Y channel combos, `compensation_editor_dialog.py`'s X/Y
+   combos (also fixed a latent bug there — no `blockSignals` at all around the old rebuild, so
+   `_update_plots` fired 2-3 times per matrix-size change instead of once),
+   `statistics_explorer.py`'s channel and chart-stat combos, and
+   `population_analysis_viewer.py`'s sample/gate/history combos. Every migration got its own
+   characterization tests written *against the pre-migration code first* to lock in exact
+   restore/default/no-signal-during-rebuild behavior before touching it — new test files:
+   `test_pseudocolor_overlay_options_channels.py`, `test_compensation_editor_dialog_channels.py`,
+   `test_statistics_explorer_combos.py`, `test_population_analysis_viewer_combos.py` (24 tests
+   total). `axis_control_panel.py` remains unmigrated: it builds its combo incrementally across
+   several methods (`clear_combos`/`add_channel`/`set_current_x`/`set_current_y`/etc.) called
+   externally by `graph_window.py`, so migrating it means redesigning that external API first, not
+   a drop-in swap — left as explicit backlog, not silently dropped. 117 UI tests + 478 non-UI tests
+   green, ruff/mypy clean repo-wide.
 
 ---
 
@@ -138,22 +256,19 @@ Concrete extraction targets:
 
 ### Dispatch logic (OCP)
 
-- `statistics.py:83-133` and `transforms.py:288-402` branch on `StatType`/`TransformType` via
-  if/elif chains — duplicated once forward and once for the inverse in `transforms.py`. The
-  codebase already has the right pattern: `gating/gate_factory.py:13-46` uses a
-  `_GATE_REGISTRY` dispatch table. **Fix:** mirror that registry approach for both.
+- ~~`statistics.py`/`transforms.py` branch on `StatType`/`TransformType` via if/elif chains~~ —
+  **Done.** Both now use registry dicts mirroring `gate_factory.py`'s `_GATE_REGISTRY`
+  (`transforms.py`'s registries stay string-`.value`-keyed, preserving the existing IPC-safety
+  comment about enum identity not surviving a process boundary).
 
 ### DRY
 
-- **Scale-resolution boilerplate copy-pasted in every gate's `contains()`** — identical ~8-line
-  block in `rectangle.py`, `range.py`, `quadrant.py`, `ellipse.py`, `polygon.py` (5 copies).
-  Extract one `project_to_display(raw_values, scale)` helper.
-- **Biexponential/Logicle defaults hardcoded in 3 places** (`constants.py:52-55`,
-  `_utils.py:113-119`, `transforms.py:236-239,345-348`) that must be kept in sync by hand — a
-  comment in `_utils.py` already notes a past drift incident ("increased from 0.5"). Consolidate
-  to the named constants in `constants.py` and reference them everywhere.
-- **Fluorescence-channel detection duplicated**: `compensation.py:367-380` vs
-  `fcs_io.py:772-784` — two independent heuristics that can silently diverge.
+- ~~Scale-resolution boilerplate copy-pasted in every gate's `contains()`~~ — **Done**
+  (`project_to_display()` extracted to `_utils.py`).
+- ~~Biexponential/Logicle defaults hardcoded in 3 places~~ — **Done** (consolidated to
+  `constants.py`).
+- ~~Fluorescence-channel detection duplicated~~ — **Done** (`compensation.py` now delegates to
+  `fcs_io.get_fluorescence_channels`).
 - **35 hand-rolled `_apply_theme_styles` methods** across ribbons/widgets/graph components,
   each manually f-string-interpolating `Colors.*`/`Fonts.*` into QSS, where the SDK's `Bio*`
   component family (`BioButton`, `BioComboBox`, `BioLabel`, `BioTableWidget`, `BioSplitter`,
@@ -165,10 +280,11 @@ Concrete extraction targets:
   `cluster_results_panel.py`) import the real `BioComboBox` instead — two parallel components for
   one job. Fold `FlowComboBox`'s one real behavioral delta (no text elision) into `BioComboBox`
   as an option/subclass, standardize call sites.
-- **6 ribbon classes duplicate an identical container stylesheet string verbatim**
-  (`gating_ribbon.py:121`, `compensation_ribbon.py:114`, `pipeline_ribbon.py:118`,
-  `spectral_ribbon.py:39`, `workspace_ribbon.py:89`, `statistics_ribbon.py:34`) instead of using
-  `plugin/ribbon.py`'s `BioRibbon` — but this is partly an SDK gap, see below.
+- ~~6 ribbon classes duplicate an identical container stylesheet string verbatim~~ — **Done.**
+  All 6 (`compensation_ribbon.py`, `gating_ribbon.py`, `pipeline_ribbon.py`, `spectral_ribbon.py`,
+  `statistics_ribbon.py`, `workspace_ribbon.py`) now subclass the SDK's new
+  `ThemedToolbarContainer` (see Priority 3 gap #2) instead of hand-rolling `_apply_theme_styles()`;
+  the method is deleted entirely from each, not shrunk.
 - **Two independent zoom-control overlay widgets**
   (`node_canvas/canvas_view.py:216-236` and `gate_hierarchy/widget.py:136-147`) built over
   different `QGraphicsView` canvases, doing the same three-button zoom-in/zoom-out/fit strip.
@@ -180,14 +296,14 @@ Concrete extraction targets:
 These are cases where flow_cytometry *had* to build something from scratch because no SDK
 equivalent exists at all — genuine SDK-abstraction gaps, not underuse:
 
-1. **A lightweight standalone lock-guarded matplotlib canvas** (Priority 0 #7 above) —
-   `LayeredMatplotlibCanvas` is currently the *only* canvas base offered, and it forces the full
-   async compute/rasterize machinery even for a plugin that just wants "draw this figure safely."
-2. **No themed toolbar/ribbon container shape narrower than `BioRibbon`.** `BioRibbon` is really
-   "an action bar with a Run/Cancel state machine built in," not a general toolbar container —
-   that mismatch is the root cause of the 6x duplicated ribbon stylesheet, not just a missed
-   import. A `ThemedToolbarContainer` base (with `BioRibbon` becoming one specialization) fixes
-   this for flow and gives other plugins a starting point.
+1. ~~A lightweight standalone lock-guarded matplotlib canvas~~ — **Done** (same item as the
+   `LockedFigureCanvas` promotion in Priority 0).
+2. ~~No themed toolbar/ribbon container shape narrower than `BioRibbon`~~ — **Done.** Added
+   `ThemedToolbarContainer` to `karcytics_sdk/plugin/ribbon.py` — a minimal `QWidget` subclass
+   providing only objectName-scoped background/border theming via `theme_manager.apply_style()`,
+   with no layout or Run/Cancel state machine. `BioRibbon` is now a specialization of it
+   (`BioRibbon(ThemedToolbarContainer)`); all 6 flow_cytometry ribbons migrated to inherit it
+   directly (see the DRY item above).
 3. **No generic canvas zoom-controls overlay widget** — natural companion to
    `rendering/graphics_scene.py`'s existing view/scene base classes.
 4. **No generic "confirm destructive action with a details list" dialog** — `dialogs.py`'s
@@ -215,15 +331,18 @@ and is the single highest-leverage change for the stated concern**: split CI int
 lane (`-m "not ui"`) and a full nightly lane that still runs everything.
 
 ### Concrete deletions (pure mechanics, no unique signal, will churn on redesign)
-- `tests/ui/test_flow_canvas.py::TestFlowCanvasInitialization` (all 6 tests — hasattr/isinstance
-  checks only; collapse to one "constructs without raising" smoke test)
-- `tests/ui/test_gate_hierarchy.py::test_gate_hierarchy_init`
-- `tests/ui/test_main_panel_smoke.py::test_main_panel_initialization` (existence/hasattr only)
-- `tests/ui/test_group_preview.py::test_group_preview_panel_init`, `test_preview_thumbnail_init`
-- `tests/unit/ui/test_logic_nodes_and_deletion.py::test_node_item_context_menu_emits_delete`
-  (logic already covered by sibling tests in the same file that test headlessly)
-- `tests/ui/test_comparisons_viewer_selector_wiring.py::test_comparisons_viewer_constructs_and_refreshes`,
-  `tests/ui/test_statistics_explorer_selector_wiring.py::test_statistics_explorer_constructs_and_refreshes`
+**Done** — all of the below collapsed/removed, all suites still green:
+- ~~`tests/ui/test_flow_canvas.py::TestFlowCanvasInitialization`~~ collapsed 6 hasattr/isinstance
+  tests into one `test_constructs_with_expected_defaults`.
+- ~~`tests/ui/test_gate_hierarchy.py`~~ deleted (its one test's construction is already exercised
+  by `test_gate_hierarchy_stale_callbacks.py`).
+- ~~`tests/ui/test_main_panel_smoke.py::test_main_panel_initialization`~~ deleted.
+- ~~`tests/ui/test_group_preview.py::test_group_preview_panel_init`, `test_preview_thumbnail_init`~~
+  deleted (real rebuild behavior already covered by `test_main_panel_smoke.py`).
+- ~~`tests/unit/ui/test_logic_nodes_and_deletion.py::test_node_item_context_menu_emits_delete`~~
+  deleted.
+- ~~selector-wiring `..._constructs_and_refreshes` tests~~ deleted from both
+  `test_comparisons_viewer_selector_wiring.py` and `test_statistics_explorer_selector_wiring.py`.
 
 **Caveat worth keeping in mind:** don't reflexively delete every test that happens to drive a
 widget. `tests/ui/test_comparisons_plot_types.py::test_generate_button_produces_a_visible_canvas`
@@ -233,24 +352,25 @@ under nested parallelism). Rewrite it to hit the underlying `ComparisonsWorker.r
 `_on_render_done()` directly instead of deleting the coverage.
 
 ### Rewrites (same logic, headless entry point instead of driving the widget)
-- `test_comparisons_plot_types.py` (above) — split into a direct `ComparisonsWorker.run()` test
-  and a direct `_on_render_done()` test against a stub layout.
-- `tests/ui/test_selection_widgets.py` — extract the real logic ("shared vs sample-specific
-  population resolution") into a pure function and test that directly; keep one thin wiring smoke
-  test.
-- `tests/ui/test_main_panel_smoke.py::test_graph_manager_initialization` — currently asserts on
-  `QTabWidget` internals (`_tabs.count()`); test a `GraphManager`-level accessor instead if one
-  can be exposed.
+- ~~`test_main_panel_smoke.py::test_graph_manager_initialization`~~ — **Done.** Added
+  `GraphManager.get_open_graph(sample_id, node_id)`; test now asserts through that instead of
+  `_tabs.count()`/`_tabs.widget(0)`.
+- `test_comparisons_plot_types.py` and `tests/ui/test_selection_widgets.py` — **deferred**, not
+  because they're wrong, but `comparisons_viewer.py`/`population_tree.py` are both under active
+  unrelated development in this working tree right now; revisit once that work lands to avoid
+  rewriting tests against code that's still moving.
 
 ### Coverage gaps (higher priority than the deletions above — this is where correctness lives)
-1. **`fcs_io.py` (807 lines, the core FCS parser) has only 3 trivial tests, 37 lines total** — no
-   coverage for malformed/truncated files, FCS 2.0/3.0/3.1 TEXT-segment differences, missing
-   required keywords (`$PAR`, `$TOT`, `$BYTEORD`), or mixed int/float DATA segments. **Given the
-   plugin's core value is scientific correctness on real (often messy) instrument output, this is
-   the single biggest gap in the whole test suite.**
+1. ~~`fcs_io.py` has only 3 trivial tests~~ — **Done.** `tests/unit/analysis/test_fcs_io.py` now
+   covers truncated files, integer/float/mixed-`$PnB` DATA segments, big-endian byte order,
+   `$PAR`/malformed-header edge cases, and the strip-ratio diagnostics path, via synthetic
+   FCS3.1 files built by a `_write_minimal_fcs` test helper (17 tests total).
 2. `biology_services.py` (269 lines, FPBase GraphQL client + cache) — zero tests.
-3. `compute/dag_evaluator.py` boolean-logic gating — only 3 single-level tests; no nested
-   AND-of-OR-of-NOT or empty-parent edge cases.
+3. `compute/dag_evaluator.py` boolean-logic gating — **substantially improved, not fully closed.**
+   The Priority 1 analysis #1-#2 work added `tests/unit/analysis/test_dag_evaluator.py` (11 tests:
+   root/regular/logic-node stats, per-parent overlap math, failure-with-and-without-pruning, scoped
+   recompute) on top of the original 3 single-level AND/OR/NOT tests in `test_dag_gating.py` — but
+   still no explicit *nested* AND-of-OR-of-NOT compound-tree test.
 4. `gating/subset.py` — no dedicated unit test file, only indirect coverage.
 5. Compensation math has no test for near-singular/ill-conditioned spillover matrices or
    underdetermined cases (more channels than stains).
@@ -269,18 +389,24 @@ under nested parallelism). Rewrite it to hit the underlying `ComparisonsWorker.r
 
 ## Suggested execution order
 
-1. **Priority 0 table** — one sprint, mechanical, immediately de-risks CI and kills confirmed
-   duplicates. Start with the CI marker fix (#3) since it's the direct answer to "tests target the
-   UI which isn't ready."
-2. **FCS I/O test coverage** (Priority 4, gap #1) — before any refactor of `fcs_io.py`'s double-copy
-   issue (Priority 1, analysis #4), since that refactor needs a safety net first.
-3. **Gate-mask memoization + DagEvaluator consolidation** (Priority 1, analysis #1-#3) — highest
-   performance payoff, moderate effort, no user-facing behavior change.
-4. **God-class extractions** (Priority 2) — do incrementally, one class per PR, in the order:
+1. ~~Priority 0 table~~ — **Done.**
+2. ~~FCS I/O test coverage~~ (Priority 4, gap #1) — **Done.**
+3. ~~Gate-mask memoization + DagEvaluator consolidation + scoped recompute + fcs_io double-copy~~
+   (Priority 1, analysis #1-#4) — **Done.** Item #6 (id→node index) was assessed and intentionally
+   skipped — negligible payoff at realistic hierarchy sizes vs. a real invalidation-surface risk.
+   Item #5 (UMAP-twice) turned out to be intentional, not a bug — removed from the plan.
+4. ~~Combo repopulation dedup~~ (Priority 1, UI #4) — **Done** (except `axis_control_panel.py`,
+   deliberately deferred pending an external-API redesign).
+5. ~~`ClusterResultsPanel` Plot Gallery off-thread rendering~~ (Priority 1, UI #1) — **Done** for
+   the Plot Gallery (the flagged single clearest risk); the Interactive Map tab's live canvas is
+   deliberately deferred — see the item above for why.
+6. **God-class extractions** (Priority 2) — do incrementally, one class per PR, in the order:
    `flow_canvas.py` → `statistics_explorer.py` → `cluster_results_panel.py`. These are large diffs;
-   land them separately from the performance work above so review stays tractable.
-5. **SDK promotions** (Priority 3) — small, standalone SDK PRs (`LockedFigureCanvas` first, it's
-   nearly free) that unblock the plugin-side DRY cleanups in Priority 2.
-6. **Remaining DRY/theming consolidation** (35 `_apply_theme_styles`, `FlowComboBox`/`BioComboBox`,
-   ribbon stylesheets) — lowest urgency, highest total line-count reduction; good ongoing/backlog
-   work rather than a blocking sprint item.
+   land them separately from the performance work above so review stays tractable. Not started.
+7. **SDK promotions** (Priority 3) — small, standalone SDK PRs. `LockedFigureCanvas`,
+   `repopulate_combo`, and `ThemedToolbarContainer` are all already done this way; the remaining
+   gaps (generic zoom-controls overlay, generic destructive-confirm dialog, relocating
+   `contrib/image_utils.py`) are still open.
+8. **Remaining DRY/theming consolidation** (35 `_apply_theme_styles`, `FlowComboBox`/`BioComboBox`)
+   — lowest urgency, highest total line-count reduction; good ongoing/backlog work rather than a
+   blocking sprint item. Not started. (Ribbon stylesheets are done, see item 7 above.)

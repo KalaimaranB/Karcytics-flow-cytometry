@@ -10,15 +10,15 @@ Achieve code quality that **exceeds Google's Python standards** and enable CodeR
 
 | Metric | Current | Target |
 | --- | --- | --- |
-| Ruff errors | 70 (E402, F404, F821) | 0 |
-| Mypy errors | 2 | 0 |
+| Ruff errors | 0 (done) | 0 |
+| Mypy errors | 0 (done) | 0 |
 | `# type: ignore` suppressions | 107 | < 20 (unavoidable 3rd-party only) |
 | `# noqa` suppressions | 274 | < 40 (architectural exceptions only) |
 | Public functions missing docstrings | 290 | 0 (via CodeRabbit automation) |
 | Classes missing docstrings | 4 | 0 |
 | Test/source line ratio | 0.23x | ≥ 0.5x (via CodeRabbit automation) |
 | Files > 500 lines ("God Classes") | 17 | Decomposed or justified |
-| `print()` statements in src | 7 | 0 |
+| `print()` statements in src | 0 (done) | 0 |
 
 ---
 
@@ -55,23 +55,9 @@ The trick to force CodeRabbit to review **every file** is to create a PR where t
 
 ## Phase 1 — Fix Ruff & Mypy CI Blockers (Automated)
 
-These are the issues that **currently block CI** and will block any PR.
-
-### 1.1 Fix E402 / F404 in `flow_canvas.py` and related files
-
-- `import typing` placed before the module docstring in ~2 files breaks the `from __future__ import annotations` requirement.
-- **Fix**: Script to reorder all files: docstring → `from __future__ import annotations` → stdlib → third-party → local.
-- **Automated**: `ruff --fix` handles isort + format; the `from __future__` placement needs a one-shot script.
-
-### 1.2 Fix F821 in `overlay_manager.py`
-
-- `typing.Any` referenced without `import typing`. Leftover from automated patching.
-- **Fix**: Replace `typing.Any | None` with `Any | None` and add `from typing import Any` to imports.
-
-### 1.3 Fix 2 remaining Mypy errors
-
-- `canvas_manager.py:414`: `current_id: str = getattr(...)` — use explicit cast: `str(getattr(..., ""))`.
-- `overlay_manager.py:34`: resolves with 1.2 above.
+> [!NOTE]
+> **Done.** Verified `ruff check src/` and `mypy src/` both report zero errors across all 181
+> source files, and `print()` statements in `src/` are gone.
 
 ---
 

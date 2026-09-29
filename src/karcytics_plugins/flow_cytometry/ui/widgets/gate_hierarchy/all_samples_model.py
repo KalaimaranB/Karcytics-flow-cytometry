@@ -10,22 +10,10 @@ access, but never stores a live reference beyond the build() call.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
+from karcytics_plugins.flow_cytometry.analysis.population_matching import PopulationRow
 
-
-@dataclass
-class PopulationRow:
-    """One row in the All-Samples matrix."""
-
-    node_id: str
-    name: str
-    depth: int
-    branch_str: str  # e.g. "├─" or "└─" or "│  ├─"
-    color_index: int  # matches IcicleLayoutEngine depth palette
-    cells: dict[str, float | None] = field(default_factory=dict)
-    # cells[sample_id] = pct_parent float, or None if gate not applied
+__all__ = ["AllSamplesModel", "PopulationRow"]
 
 
 class AllSamplesModel:
@@ -64,8 +52,14 @@ class AllSamplesModel:
 
         ref_tree = ref_sample.gate_tree
 
-        # Depth-first walk of the reference tree to establish row order
-        self._walk(ref_tree.children, state, prefix="", is_last_flags=[], depth=1)
+        # Depth-first walk of the reference tree to establish row order.
+        # `visited` guards against a node being emitted twice: the gate tree
+        # is structurally a DAG, not a strict tree — a node with more than
+        # one parent (e.g. an AND/OR/NOT logic node, `GateNode.parents`) is a
+        # genuine child of *every* parent it combines, so a naive walk would
+        # reach it once per parent. Mirrors the same guard in
+        # `GateNode.to_dict()` and `population_matching._walk()`.
+        self._walk(ref_tree.children, state, prefix="", is_last_flags=[], depth=1, visited=set())
 
     # ── Private ──────────────────────────────────────────────────────────
 
@@ -76,9 +70,11 @@ class AllSamplesModel:
         prefix: str,
         is_last_flags: list[bool],
         depth: int,
+        visited: set[str],
     ) -> None:
-        gated = [n for n in nodes if n.gate is not None]
+        gated = [n for n in nodes if n.gate is not None and n.node_id not in visited]
         for i, node in enumerate(gated):
+            visited.add(node.node_id)
             is_last = i == len(gated) - 1
             branch_str = self._make_branch(is_last_flags, is_last)
             color_idx = min(depth - 1, 5)
@@ -113,6 +109,7 @@ class AllSamplesModel:
                 prefix=prefix,
                 is_last_flags=is_last_flags + [is_last],
                 depth=depth + 1,
+                visited=visited,
             )
 
     @staticmethod

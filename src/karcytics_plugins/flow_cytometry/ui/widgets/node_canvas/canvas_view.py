@@ -152,8 +152,10 @@ class NodeCanvas(QWidget):
 
     node_double_clicked = pyqtSignal(str)
     node_removed = pyqtSignal(str)  # node_id
+    rename_requested = pyqtSignal(str, str, object)  # node_id, new_name, target_sample_ids
     connection_requested = pyqtSignal(str, str, str)  # sample_id, source_id, target_id
     connection_removed = pyqtSignal(str, str, str)  # sample_id, source_id, target_id
+    link_delete_requested = pyqtSignal(str, str, object)  # source_id, target_id, target_sample_ids
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -167,6 +169,8 @@ class NodeCanvas(QWidget):
         self._manager = CanvasManager(self.state, self._scene)
         self._manager.node_double_clicked.connect(self.node_double_clicked.emit)
         self._manager.node_delete_requested.connect(self._confirm_and_delete_node)
+        self._manager.node_rename_requested.connect(self._confirm_and_rename_node)
+        self._manager.link_delete_requested.connect(self._confirm_and_delete_link)
         self._manager.connection_requested.connect(
             lambda src, tgt: (
                 self.connection_requested.emit(self.current_sample_id, src, tgt)
@@ -395,6 +399,137 @@ class NodeCanvas(QWidget):
 
         self.node_removed.emit(node_id)
 
+    def _group_choices_for_sample(self, sample) -> list[tuple[str, str]]:
+        """Build the ('all'/group_id, display_name) choices for a scope dialog."""
+        experiment = self.state.data.experiment
+        group_choices: list[tuple[str, str]] = [("all", "All Samples")]
+        for gid in sample.group_ids:
+            grp = experiment.groups.get(gid)
+            if grp:
+                group_choices.append((gid, grp.name))
+        return group_choices
+
+    def _confirm_and_rename_node(self, node_id: str) -> None:
+        """Prompt for a new name, then a scope, then emit rename_requested."""
+        if not self.current_sample_id or not node_id:
+            return
+
+        sample = self.state.data.experiment.samples.get(self.current_sample_id)
+        if not sample or not sample.gate_tree:
+            return
+
+        node = sample.gate_tree.find_node_by_id(node_id)
+        if not node or node.is_root:
+            return
+
+        dialog_title = "Rename Node" if node.is_logic_node else "Rename Population"
+
+        from PyQt6.QtWidgets import QInputDialog, QLineEdit
+
+        new_name, ok = QInputDialog.getText(
+            self, dialog_title, "Enter new name:", QLineEdit.EchoMode.Normal, node.name
+        )
+        if not ok or not new_name or new_name == node.name:
+            return
+
+        from PyQt6.QtWidgets import QDialog
+
+        from ...scope_resolution import resolve_target_samples
+        from ..scope_selection_dialog import ScopeSelectionDialog
+
+        experiment = self.state.data.experiment
+        dialog = ScopeSelectionDialog(
+            f"Rename '<b>{node.name}</b>' to '<b>{new_name}</b>'?",
+            sample.display_name,
+            self._group_choices_for_sample(sample),
+            self,
+            title=dialog_title,
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        scope, group_id = dialog.get_scope()
+        target_ids = resolve_target_samples(scope, group_id, self.current_sample_id, experiment)
+
+        if len(target_ids) > 1:
+            from PyQt6.QtWidgets import QMessageBox
+
+            names = [
+                experiment.samples[s].display_name for s in target_ids if s in experiment.samples
+            ]
+            max_display = 6
+            names_str = "\n".join(f"• {n}" for n in names[:max_display])
+            if len(names) > max_display:
+                names_str += f"\n... and {len(names) - max_display} more"
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+            msg_box.setWindowTitle(dialog_title)
+            msg_box.setText(
+                f"Rename '{node.name}' to '{new_name}' in {len(names)} samples?\n\n{names_str}"
+            )
+            msg_box.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+            if msg_box.exec() != QMessageBox.StandardButton.Yes:
+                return
+
+        self.rename_requested.emit(node_id, new_name, target_ids)
+
+    def _confirm_and_delete_link(self, source_node_id: str, target_node_id: str) -> None:
+        """Prompt for a scope, warn about affected samples, then emit link_delete_requested."""
+        if not self.current_sample_id:
+            return
+
+        sample = self.state.data.experiment.samples.get(self.current_sample_id)
+        if not sample or not sample.gate_tree:
+            return
+
+        source = sample.gate_tree.find_node_by_id(source_node_id)
+        target = sample.gate_tree.find_node_by_id(target_node_id)
+        if not source or not target:
+            return
+
+        from PyQt6.QtWidgets import QDialog
+
+        from ...scope_resolution import resolve_target_samples
+        from ..scope_selection_dialog import ScopeSelectionDialog
+
+        experiment = self.state.data.experiment
+        dialog = ScopeSelectionDialog(
+            f"Delete the connection from '<b>{source.name}</b>' to '<b>{target.name}</b>'?",
+            sample.display_name,
+            self._group_choices_for_sample(sample),
+            self,
+            title="Delete Connection",
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        scope, group_id = dialog.get_scope()
+        target_ids = resolve_target_samples(scope, group_id, self.current_sample_id, experiment)
+
+        from PyQt6.QtWidgets import QMessageBox
+
+        names = [experiment.samples[s].display_name for s in target_ids if s in experiment.samples]
+        max_display = 6
+        names_str = "\n".join(f"• {n}" for n in names[:max_display])
+        if len(names) > max_display:
+            names_str += f"\n... and {len(names) - max_display} more"
+        msg_box = QMessageBox(self)
+        msg_box.setIcon(QMessageBox.Icon.Warning)
+        msg_box.setWindowTitle("Delete Connection")
+        msg_box.setText(
+            f"Remove the connection '{source.name}' → '{target.name}' "
+            f"in {len(names)} sample{'s' if len(names) != 1 else ''}?\n\n{names_str}"
+        )
+        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
+        if msg_box.exec() != QMessageBox.StandardButton.Yes:
+            return
+
+        self.link_delete_requested.emit(source_node_id, target_node_id, target_ids)
+
     def keyPressEvent(self, event: QKeyEvent | None) -> None:
         if event is None:
             return
@@ -407,6 +542,8 @@ class NodeCanvas(QWidget):
 
             for item in self._scene.selectedItems():
                 if isinstance(item, EdgeItem):
+                    if not getattr(item, "is_logic_edge", False):
+                        continue
                     self._manager.connection_removed.emit(
                         item.source_node.node_id, item.target_node.node_id
                     )

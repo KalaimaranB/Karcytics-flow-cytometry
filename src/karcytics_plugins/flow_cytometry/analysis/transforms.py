@@ -15,11 +15,19 @@ Reference:
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
 import numpy as np
 from karcytics_sdk.plugin import get_logger
+
+from .constants import (
+    LOGICLE_A_DEFAULT,
+    LOGICLE_M_DEFAULT,
+    LOGICLE_T_DEFAULT,
+    LOGICLE_W_DEFAULT,
+)
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -233,10 +241,10 @@ def biexponential_transform(  # noqa: PLR0913
     data: np.ndarray,
     *,
     enable_dithering: bool = True,
-    top: float = 262144.0,
-    width: float = 1.0,
-    positive: float = 4.5,
-    negative: float = 0.0,
+    top: float = LOGICLE_T_DEFAULT,
+    width: float = LOGICLE_W_DEFAULT,
+    positive: float = LOGICLE_M_DEFAULT,
+    negative: float = LOGICLE_A_DEFAULT,
 ) -> np.ndarray:
     """Biexponential (logicle) transform for compensated data.
 
@@ -285,6 +293,18 @@ def biexponential_transform(  # noqa: PLR0913
         raise
 
 
+# String-keyed (not enum-member-keyed): transform_type can arrive as a
+# TransformType re-hydrated across an IPC boundary, where it's a distinct
+# object from this process's own TransformType class — only `.value`
+# equality survives that round-trip, so the registries mirror the same
+# `.value`-based comparison the old if/elif chains used.
+_TRANSFORM_REGISTRY: dict[str, Callable[..., np.ndarray]] = {
+    TransformType.LINEAR.value: linear_transform,
+    TransformType.LOG.value: log_transform,
+    TransformType.BIEXPONENTIAL.value: biexponential_transform,
+}
+
+
 def apply_transform(
     data: np.ndarray,
     transform_type: TransformType,
@@ -300,16 +320,11 @@ def apply_transform(
     Returns:
         Transformed values.
     """
-    # Use .value to avoid module-aliasing identity bugs with Enums sent across IPC
     val = transform_type.value if isinstance(transform_type, Enum) else str(transform_type)
-
-    if val == TransformType.LINEAR.value:
-        return linear_transform(data, **_kwargs)
-    if val == TransformType.LOG.value:
-        return log_transform(data, **_kwargs)
-    if val == TransformType.BIEXPONENTIAL.value:
-        return biexponential_transform(data, **_kwargs)
-    raise ValueError(f"Unknown transform: {transform_type}")
+    fn = _TRANSFORM_REGISTRY.get(val)
+    if fn is None:
+        raise ValueError(f"Unknown transform: {transform_type}")
+    return fn(data, **_kwargs)
 
 
 def invert_linear_transform(
@@ -342,10 +357,10 @@ def invert_log_transform(
 def invert_biexponential_transform(
     data: np.ndarray,
     *,
-    top: float = 262144.0,
-    width: float = 1.0,
-    positive: float = 4.5,
-    negative: float = 0.0,
+    top: float = LOGICLE_T_DEFAULT,
+    width: float = LOGICLE_W_DEFAULT,
+    positive: float = LOGICLE_M_DEFAULT,
+    negative: float = LOGICLE_A_DEFAULT,
     **_kwargs,
 ) -> np.ndarray:
     """Inverse of biexponential (logicle) transform.
@@ -375,6 +390,13 @@ def invert_biexponential_transform(
         raise
 
 
+_INVERSE_TRANSFORM_REGISTRY: dict[str, Callable[..., np.ndarray]] = {
+    TransformType.LINEAR.value: invert_linear_transform,
+    TransformType.LOG.value: invert_log_transform,
+    TransformType.BIEXPONENTIAL.value: invert_biexponential_transform,
+}
+
+
 def invert_transform(
     data: np.ndarray,
     transform_type: TransformType,
@@ -390,13 +412,8 @@ def invert_transform(
     Returns:
         Raw data values.
     """
-    # Use .value to avoid module-aliasing identity bugs with Enums sent across IPC
     val = transform_type.value if isinstance(transform_type, Enum) else str(transform_type)
-
-    if val == TransformType.LINEAR.value:
-        return invert_linear_transform(data, **_kwargs)
-    if val == TransformType.LOG.value:
-        return invert_log_transform(data, **_kwargs)
-    if val == TransformType.BIEXPONENTIAL.value:
-        return invert_biexponential_transform(data, **_kwargs)
-    raise ValueError(f"Unknown transform: {transform_type}")
+    fn = _INVERSE_TRANSFORM_REGISTRY.get(val)
+    if fn is None:
+        raise ValueError(f"Unknown transform: {transform_type}")
+    return fn(data, **_kwargs)

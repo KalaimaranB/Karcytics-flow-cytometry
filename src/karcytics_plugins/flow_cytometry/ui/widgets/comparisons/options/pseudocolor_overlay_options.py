@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton
+from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton, repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Colors
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSlider, QVBoxLayout
@@ -173,23 +173,14 @@ class PseudocolorOverlayOptionsPanel(IOptionsPanel):
     ) -> None:
         self._channels = channels
         self._active_sample_id = sample_id
-        prev_x = self._x_combo.currentData()
-        prev_y = self._y_combo.currentData()
-        self._x_combo.blockSignals(True)
-        self._y_combo.blockSignals(True)
-        self._x_combo.clear()
-        self._y_combo.clear()
-        for label, key in channels:
-            self._x_combo.addItem(label, key)
-            self._y_combo.addItem(label, key)
-        for combo, prev, default_idx in [
-            (self._x_combo, prev_x, 0),
-            (self._y_combo, prev_y, 1),
-        ]:
-            idx = combo.findData(prev) if prev else -1
-            combo.setCurrentIndex(idx if idx >= 0 else min(default_idx, combo.count() - 1))
-        self._x_combo.blockSignals(False)
-        self._y_combo.blockSignals(False)
+        keys = [key for _, key in channels]
+
+        for combo, default_idx in [(self._x_combo, 0), (self._y_combo, 1)]:
+            prev = combo.currentData()
+            restore = (
+                prev if prev in keys else (keys[default_idx] if default_idx < len(keys) else None)
+            )
+            repopulate_combo(combo, channels, restore_data=restore)
 
     def bind_state(self, state: FlowState) -> None:
         """Seed the embedded Pseudocolor Settings panel from the workspace

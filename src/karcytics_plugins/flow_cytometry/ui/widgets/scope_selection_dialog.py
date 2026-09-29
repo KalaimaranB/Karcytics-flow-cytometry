@@ -12,18 +12,19 @@ from PyQt6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 
-class GateDeletionDialog(QDialog):
-    """Dialog to confirm gate deletion and select scope (single sample vs group)."""
+class ScopeSelectionDialog(QDialog):
+    """Dialog to confirm a scoped action and select its target (single sample vs group)."""
 
     def __init__(
         self,
-        gate_name: str,
+        message: str,
         sample_name: str,
         groups: list[tuple[str, str]],
         parent: QWidget | None = None,
+        title: str = "Confirm Action",
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Confirm Gate Deletion")
+        self.setWindowTitle(title)
         self.setModal(True)
         self.resize(400, 150)
 
@@ -31,19 +32,19 @@ class GateDeletionDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        lbl_msg = QLabel(f"Are you sure you want to delete the gate '<b>{gate_name}</b>'?")
+        lbl_msg = QLabel(message)
         lbl_msg.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(lbl_msg)
 
         layout.addSpacing(10)
 
-        self.radio_sample = QRadioButton(f"Delete for this sample only ({sample_name})")
+        self.radio_sample = QRadioButton(f"Apply to this sample only ({sample_name})")
         self.radio_sample.setChecked(True)
         layout.addWidget(self.radio_sample)
 
         # Group scope
         h_layout = QHBoxLayout()
-        self.radio_group = QRadioButton("Delete across group:")
+        self.radio_group = QRadioButton("Apply across group:")
         h_layout.addWidget(self.radio_group)
 
         self.combo_group = FlowComboBox()
@@ -70,7 +71,7 @@ class GateDeletionDialog(QDialog):
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
 
-    def get_deletion_scope(self) -> tuple[str, str | None]:
+    def get_scope(self) -> tuple[str, str | None]:
         """Returns ('sample', None) or ('group', selected_group_id)."""
         if self.radio_group.isChecked() and self.groups:
             return "group", self.combo_group.currentData()

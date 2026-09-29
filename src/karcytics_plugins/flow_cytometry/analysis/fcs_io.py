@@ -278,7 +278,11 @@ def _build_fcs_data_from_daemon_response(path: Path, res: dict[str, Any]) -> FCS
     events_arr = _decode_array(res["events_b64"])
     events_df = pd.DataFrame(events_arr, columns=channels)
 
-    raw_events_df = events_df.copy()
+    # Copy only when there's actually an embedded spillover matrix to
+    # preserve pre-compensation values from — the common case (no embedded
+    # spill) leaves `events_df` untouched, so sharing the reference is
+    # exactly equivalent and skips a full float64 duplicate per sample.
+    raw_events_df = events_df.copy() if _has_embedded_spill(metadata) else events_df
     is_comp = _auto_apply_spill(path.name, events_df, metadata)
 
     return FCSData(
@@ -438,6 +442,20 @@ def load_fcs_batch(
     return out
 
 
+_SPILL_KEYS = ("$SPILLOVER", "$SPILL", "SPILLOVER", "SPILL", "spill", "spillover")
+
+
+def _has_embedded_spill(metadata: dict) -> bool:
+    """Cheaply predict whether `_auto_apply_spill` will find a spill string to parse.
+
+    Lets callers skip the `raw_events` copy entirely when there's nothing to
+    preserve it from — most loaded samples have no embedded spillover matrix
+    at all, so `events_df.copy()` was previously made unconditionally only to
+    sit there byte-identical to `events_df` forever.
+    """
+    return any(key in metadata for key in _SPILL_KEYS)
+
+
 def _auto_apply_spill(filename: str, events_df: pd.DataFrame, metadata: dict) -> bool:
     """Apply an embedded spillover matrix to events_df in-place.
 
@@ -452,7 +470,7 @@ def _auto_apply_spill(filename: str, events_df: pd.DataFrame, metadata: dict) ->
     """
     # All known key variants, checked in priority order
     spill_str: str | None = None
-    for key in ("$SPILLOVER", "$SPILL", "SPILLOVER", "SPILL", "spill", "spillover"):
+    for key in _SPILL_KEYS:
         if key in metadata:
             spill_str = str(metadata[key])
             break
@@ -748,7 +766,9 @@ def _load_with_fcsparser(path: Path) -> FCSData:  # noqa: C901, PLR0915, PLR0912
         )
 
     # ── Auto-apply embedded spillover matrix (same as FlowKit path) ────
-    raw_events_df = events_df.copy()
+    # Copy only when there's actually something to preserve — see the
+    # matching comment in `_build_fcs_data_from_daemon_response`.
+    raw_events_df = events_df.copy() if _has_embedded_spill(meta) else events_df
     is_comp = _auto_apply_spill(path.name, events_df, meta)
 
     logger.info(

@@ -10,14 +10,8 @@ import pandas as pd
 if TYPE_CHECKING:
     from .gate_node import GateNode
 
-from .._utils import (
-    BiexponentialParameters,
-    ScaleFactory,
-    ScaleSerializer,
-    TransformTypeResolver,
-)
+from .._utils import ScaleFactory, ScaleSerializer, project_to_display
 from ..scaling import AxisScale
-from ..transforms import TransformType, apply_transform
 from .base import Gate
 
 
@@ -74,24 +68,10 @@ class QuadrantGate(Gate):
         mid_x_raw = np.array([self.x_mid])
         mid_y_raw = np.array([self.y_mid])
 
-        x_type = TransformTypeResolver.resolve(getattr(self.x_scale, "transform_type", "linear"))
-        y_type = TransformTypeResolver.resolve(getattr(self.y_scale, "transform_type", "linear"))
-
-        x_kwargs = (
-            BiexponentialParameters(self.x_scale).to_dict()
-            if x_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-        y_kwargs = (
-            BiexponentialParameters(self.y_scale).to_dict()
-            if y_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-
-        x_disp = apply_transform(x_raw, x_type, **x_kwargs)
-        y_disp = apply_transform(y_raw, y_type, **y_kwargs)
-        mid_x_disp = apply_transform(mid_x_raw, x_type, **x_kwargs)[0]
-        mid_y_disp = apply_transform(mid_y_raw, y_type, **y_kwargs)[0]
+        x_disp = project_to_display(x_raw, self.x_scale)
+        y_disp = project_to_display(y_raw, self.y_scale)
+        mid_x_disp = project_to_display(mid_x_raw, self.x_scale)[0]
+        mid_y_disp = project_to_display(mid_y_raw, self.y_scale)[0]
 
         if q == "Q1":  # Upper Left
             return (x_disp < mid_x_disp) & (y_disp >= mid_y_disp)

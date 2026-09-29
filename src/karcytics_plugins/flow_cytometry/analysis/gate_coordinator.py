@@ -88,8 +88,26 @@ class GateCoordinator:
     def remove_connection(self, sample_id: str, source_node_id: str, target_node_id: str) -> bool:
         return self._mutation_service.remove_connection(sample_id, source_node_id, target_node_id)
 
-    def rename_population(self, sample_id: str, node_id: str, new_name: str) -> bool:
-        return self._mutation_service.rename_population(sample_id, node_id, new_name)
+    def remove_connection_for_samples(
+        self, source_node_id: str, target_node_id: str, sample_ids: list[str]
+    ) -> int:
+        """Remove a logic-node connection in each given sample; returns count removed."""
+        removed = 0
+        for sample_id in sample_ids:
+            if self._mutation_service.remove_connection(sample_id, source_node_id, target_node_id):
+                removed += 1
+        return removed
+
+    def rename_population(
+        self,
+        sample_id: str,
+        node_id: str,
+        new_name: str,
+        target_sample_ids: list[str] | None = None,
+    ) -> bool:
+        return self._mutation_service.rename_population(
+            sample_id, node_id, new_name, target_sample_ids
+        )
 
     def modify_gate(self, gate_id: str, sample_id: str, **kwargs) -> bool:
         return self._mutation_service.modify_gate(gate_id, sample_id, **kwargs)
@@ -107,18 +125,51 @@ class GateCoordinator:
 
     # ── Stats Orchestration ────────────────────────────────────────────────
 
-    def recompute_all_stats(self, sample_id: str, sync: bool = False):
+    def recompute_all_stats(
+        self, sample_id: str, sync: bool = False, node_ids: list[str] | None = None
+    ):
+        """Recompute gate statistics for a sample.
+
+        Args:
+            sample_id: Target sample ID.
+            sync: Run inline instead of on the background task scheduler.
+            node_ids: When given, scopes recompute to just these nodes and
+                their descendants (Priority 1 analysis #3) instead of the
+                whole tree — e.g. a single gate edit or rewire only ever
+                affects its own subtree, never its ancestors' masks.
+                Structural changes that replace the whole tree (e.g.
+                `copy_gates_to_group`) should omit this and recompute
+                everything, since "what changed" there really is everything.
+        """
         from .services.stats_service import StatsService
         from .statistics_analysis import StatisticsAnalysis
+
+        sample = self._state.data.experiment.samples.get(sample_id)
+        if sample and sample.gate_tree:
+            # Every mutation path funnels through here before stats are
+            # considered valid again — the same choke point doubles as the
+            # invalidation hook for GateNode's mask cache (Priority 1
+            # analysis #1), so cached masks go stale at exactly the rate
+            # `.statistics` already does today, no new correctness surface.
+            if node_ids:
+                for nid in node_ids:
+                    node = sample.gate_tree.find_node_by_id(nid)
+                    if node:
+                        node.invalidate_mask_cache()
+            else:
+                sample.gate_tree.invalidate_mask_cache()
 
         if sync or getattr(self, "sync_stats", False):
             analyzer = StatisticsAnalysis()
             analyzer.target_sample_id = sample_id
+            analyzer.target_node_ids = node_ids
             results = analyzer.run(self._state)
             self._on_stats_finished(results)
             return
 
-        task_id = StatsService.recompute_all_stats(self._state, sample_id, self._on_stats_finished)
+        task_id = StatsService.recompute_all_stats(
+            self._state, sample_id, self._on_stats_finished, node_ids=node_ids
+        )
         if task_id:
             logger.info(
                 "Submitted StatisticsAnalysis for sample %s (task_id: %s)",

@@ -12,6 +12,44 @@ def test_gate_node_serialization_excludes_runtime_statistics():
     assert node_data["name"] == "Lymphocytes"
 
 
+def test_gate_node_estimation_fields_round_trip():
+    """A UMAP-exported node's scale_factor/is_estimated survive save/load,
+    same as is_umap_parent — see GateNode.to_dict/from_dict.
+    """
+    from karcytics_plugins.flow_cytometry.analysis.gating import GateNode
+
+    node = GateNode(name="UMAP B Cells")
+    node.scale_factor = 4.0
+    node.is_estimated = True
+
+    data = node.to_dict()
+    node_data = data["nodes"][0]
+    assert node_data["scale_factor"] == 4.0
+    assert node_data["is_estimated"] is True
+
+    restored = GateNode.from_dict(data)
+    assert restored is not None
+    assert restored.scale_factor == 4.0
+    assert restored.is_estimated is True
+
+
+def test_gate_node_estimation_fields_default_when_absent():
+    """A legacy save (predating this feature) has neither key — from_dict
+    must fall back to the non-estimated defaults, not KeyError.
+    """
+    from karcytics_plugins.flow_cytometry.analysis.gating import GateNode
+
+    node = GateNode(name="B-cells")
+    data = node.to_dict()
+    del data["nodes"][0]["scale_factor"]
+    del data["nodes"][0]["is_estimated"]
+
+    restored = GateNode.from_dict(data)
+    assert restored is not None
+    assert restored.scale_factor == 1.0
+    assert restored.is_estimated is False
+
+
 def test_state_serialization_avoids_recursive_objects(flow_state):
     """Verify that to_dict() handles non-serializable fields like EventBus."""
     data = flow_state.to_dict()

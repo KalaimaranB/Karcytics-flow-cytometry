@@ -5,14 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .._utils import (
-    BiexponentialParameters,
-    ScaleFactory,
-    ScaleSerializer,
-    TransformTypeResolver,
-)
+from .._utils import ScaleFactory, ScaleSerializer, project_to_display
 from ..scaling import AxisScale
-from ..transforms import TransformType, apply_transform
 from .base import Gate
 
 
@@ -60,16 +54,9 @@ class RectangleGate(Gate):
         x_raw = events[self.x_param].values
         bounds_x_raw = np.array([self.x_min, self.x_max])
 
-        x_type = TransformTypeResolver.resolve(getattr(self.x_scale, "transform_type", "linear"))
-        x_kwargs = (
-            BiexponentialParameters(self.x_scale).to_dict()
-            if x_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-
         # Project X to display space
-        x_disp = apply_transform(x_raw, x_type, **x_kwargs)
-        bounds_x_disp = apply_transform(bounds_x_raw, x_type, **x_kwargs)
+        x_disp = project_to_display(x_raw, self.x_scale)
+        bounds_x_disp = project_to_display(bounds_x_raw, self.x_scale)
         x_min_disp, x_max_disp = bounds_x_disp[0], bounds_x_disp[1]
 
         mask = (x_disp >= x_min_disp) & (x_disp <= x_max_disp)
@@ -81,17 +68,8 @@ class RectangleGate(Gate):
             y_raw = events[self.y_param].values
             bounds_y_raw = np.array([self.y_min, self.y_max])
 
-            y_type = TransformTypeResolver.resolve(
-                getattr(self.y_scale, "transform_type", "linear")
-            )
-            y_kwargs = (
-                BiexponentialParameters(self.y_scale).to_dict()
-                if y_type == TransformType.BIEXPONENTIAL
-                else {}
-            )
-
-            y_disp = apply_transform(y_raw, y_type, **y_kwargs)
-            bounds_y_disp = apply_transform(bounds_y_raw, y_type, **y_kwargs)
+            y_disp = project_to_display(y_raw, self.y_scale)
+            bounds_y_disp = project_to_display(bounds_y_raw, self.y_scale)
             y_min_disp, y_max_disp = bounds_y_disp[0], bounds_y_disp[1]
 
             mask &= (y_disp >= y_min_disp) & (y_disp <= y_max_disp)

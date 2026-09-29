@@ -59,6 +59,25 @@ class TestLabelPathIndex:
         assert "CD8- / CD4+" in idx
         assert idx["CD3+ / CD4+"] != idx["CD8- / CD4+"]
 
+    def test_multi_parent_logic_node_counted_once(self):
+        """A logic node (AND/OR/NOT) is a genuine child of every parent it
+        combines — the gate tree is a DAG there, not a strict tree. Without
+        a visited-node-id guard, a naive walk reaches the same node once per
+        parent, under two different label-paths, both resolving to the same
+        node_id — the live "AND Logic shows up twice" bug.
+        """
+        root = GateNode()
+        b_cells = root.add_child(None, name="B-cells")
+        umap_b_cells = root.add_child(None, name="UMAP B Cells")
+        and_node = GateNode(name="AND Logic", is_logic_node=True, parents=[b_cells, umap_b_cells])
+        b_cells.children.append(and_node)
+        umap_b_cells.children.append(and_node)
+        sample = Sample(sample_id="s1", display_name="s1", gate_tree=root)
+
+        idx = label_path_index(sample)
+        node_ids = list(idx.values())
+        assert node_ids.count(and_node.node_id) == 1
+
 
 @pytest.mark.unit
 class TestComputePopulationGroups:

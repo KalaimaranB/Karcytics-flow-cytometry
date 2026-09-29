@@ -13,6 +13,7 @@ class EdgeItem(QGraphicsPathItem):
         super().__init__(parent)
         self.source_node = source_node
         self.target_node = target_node
+        self.is_logic_edge = getattr(target_node, "is_logic_node", False)
         self._orientation = "vertical"
 
         self.setZValue(-1)  # Draw lines under the nodes

@@ -6,6 +6,7 @@ Each class implements IValidator with a single validate(app_state) method
 app_state is expected to be a FlowState instance from analysis.state.
 """
 
+import time
 from abc import abstractmethod
 from collections.abc import Callable
 from typing import Any
@@ -797,6 +798,22 @@ class WorkflowSavedValidator(FlowValidator):
 
     def __init__(self):
         self._saved_payload = None
+        self._saved_at: float | None = None
+        # Every course that ends on a "please save" step creates its own
+        # instance of this validator, but ALL of them subscribe to the same
+        # process-wide "flow.workflow.saved" event as soon as the course
+        # module is imported (i.e. at plugin load, well before the user has
+        # even started Course 1). Without arming, Course 3's instance would
+        # already be sitting on a truthy `_saved_payload` the moment its step
+        # becomes current, left over from Course 1 or Course 2's own
+        # required save — reported live as "I didn't click save but it
+        # detected I did." Recording a timestamp the first time this
+        # instance is actually polled (i.e. once its step is genuinely the
+        # active one) and only accepting saves that happened at or after
+        # that point fixes it without changing the prerequisite-unlocking
+        # behavior below, which deliberately does want to count any past
+        # save.
+        self._armed_at: float | None = None
 
         # Subscribe to save event across the plugin process
         try:
@@ -808,9 +825,13 @@ class WorkflowSavedValidator(FlowValidator):
 
     def _on_workflow_saved(self, payload: dict) -> None:
         self._saved_payload = payload
+        self._saved_at = time.monotonic()
 
     def validate_flow(self, _app_state: FlowState) -> bool:
-        if self._saved_payload:
+        if self._armed_at is None:
+            self._armed_at = time.monotonic()
+
+        if self._saved_payload and self._saved_at is not None and self._saved_at >= self._armed_at:
             from karcytics_sdk.plugin.runtime_services import (
                 tutorial_manager as global_tutorial_manager,
             )
@@ -1136,6 +1157,28 @@ class ComparisonPlotTypeValidator(FlowValidator):
         return True
 
 
+class HistogramOverlayLayoutValidator(FlowValidator):
+    """Verifies Histogram Overlay's Layout setting (its own options panel,
+    not the plot-type combo) is set to a specific mode — the default is
+    Ridge ("waterfall"); this lets a step require the user to actually
+    switch it to Overlay rather than just reading about the difference.
+    """
+
+    def __init__(self, expected_layout: str) -> None:
+        self._expected = expected_layout.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+        panel = getattr(viewer, "_options_panels", {}).get("📊  Histogram Overlay")
+        combo = getattr(panel, "_layout_combo", None)
+        if combo is None:
+            return self.log_failure("Histogram Overlay options panel or layout combo missing.")
+        current = (combo.currentData() or "").lower()
+        if current != self._expected:
+            return self.log_failure(f"Layout is '{current}', expected '{self._expected}'.")
+        return True
+
+
 class QuadrantGateExistsValidator(FlowValidator):
     """Verifies a QuadrantGate has actually been placed on the active sample.
 
@@ -1257,6 +1300,45 @@ class Course2GatingCompleteValidator(FlowValidator):
         if not self._tcells.validate(app_state):
             return False
         return self._bcells.validate(app_state)
+
+
+class Course3AnalysisCompleteValidator(FlowValidator):
+    """Verifies Course 3's population-analysis output — the exported
+    "UMAP B Cells" gate and the AND node cross-checking it against the
+    manual B-cells gate — actually exists, before Course 4's Statistics/
+    Comparisons walkthrough starts leaning on both.
+
+    Checks every FULL_PANEL sample directly, the same "any sample, not
+    just whichever one happens to be open" reach `GateExistsValidator`
+    uses — Course 4 can launch with a different sample selected than
+    whichever one the UMAP run was on, and this shouldn't false-fail
+    just because of that.
+    """
+
+    def __init__(self) -> None:
+        self._umap_bcells = GateExistsValidator("UMAP B Cells")
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        if not self._umap_bcells.validate_flow(app_state):
+            return False
+
+        from ..analysis.experiment import SampleRole
+
+        samples = list(app_state.data.experiment.samples.values())
+        full_panel = [s for s in samples if s.role == SampleRole.FULL_PANEL] or samples
+        if not any(self._and_node_found(s.gate_tree) for s in full_panel):
+            return self.log_failure(
+                "No AND node combining B-cells and UMAP B Cells found on any sample."
+            )
+        return True
+
+    def _and_node_found(self, node: Any) -> bool:
+        if getattr(node, "gate", None) is None and getattr(node, "logic_operator", "") == "AND":
+            parent_names = {p.name.lower() for p in getattr(node, "parents", [])}
+            targets = ["b-cells", "umap b cells"]
+            if all(any(target in name for name in parent_names) for target in targets):
+                return True
+        return any(self._and_node_found(child) for child in getattr(node, "children", []))
 
 
 class UmapSampleSelectedValidator(FlowValidator):
@@ -1458,6 +1540,11 @@ class UmapBestBCellClusterValidator(FlowValidator):
     ) -> None:
         self._on_progress = on_progress
         self._marker_substr = marker_label_substr.lower()
+        # Comparison is case-insensitive (`_expected_name`), but the bubble
+        # instruction text should still show the properly-capitalized name
+        # the user is asked to type — `_expected_name_display` keeps that
+        # original casing instead of interpolating the lowercased form.
+        self._expected_name_display = expected_name
         self._expected_name = expected_name.lower()
 
     def validate_flow(self, app_state: FlowState) -> bool:
@@ -1508,7 +1595,7 @@ class UmapBestBCellClusterValidator(FlowValidator):
                 "that's your B-cell population.<br><br>"
                 f"Uncheck every row EXCEPT **ID {best_cid}** — including ID -1, "
                 "that's HDBSCAN's noise bucket, not a real population — then "
-                f"rename ID {best_cid}'s field to **{self._expected_name}**."
+                f"rename ID {best_cid}'s field to **{self._expected_name_display}**."
             )
 
         return self._rows_match_expected(cluster_ui, best_cid)
@@ -1575,13 +1662,28 @@ class LogicNodeStatsReadyValidator(FlowValidator):
 
 class PopulationsCheckedValidator(FlowValidator):
     """Verifies the Statistics/Comparisons tab's population selector has at
-    least the given labels checked (substring/case-insensitive), among
-    however many others the user also checked.
+    least the given labels checked (substring/case-insensitive).
+
+    The population picker defaults every population to checked the first
+    time it's seen (see `PopulationSelectionPopup.refresh()`), so left
+    unconstrained a user landing on this step already has EVERY gate + the
+    UMAP exports checked at once — cramped, unreadable tables and charts.
+    `max_checked`, when given, also fails until the user has pruned down to
+    that many (or fewer) checked populations, on top of the required ones
+    being present.
     """
 
-    def __init__(self, explorer_attr: str, *required_labels: str) -> None:
+    def __init__(
+        self,
+        explorer_attr: str,
+        *required_labels: str,
+        max_checked: int | None = None,
+        require_popup_closed: bool = False,
+    ) -> None:
         self._explorer_attr = explorer_attr
         self._required = [lbl.lower() for lbl in required_labels]
+        self._max_checked = max_checked
+        self._require_popup_closed = require_popup_closed
 
     def validate_flow(self, app_state: FlowState) -> bool:
         explorer = getattr(app_state.view, self._explorer_attr, None)
@@ -1595,14 +1697,26 @@ class PopulationsCheckedValidator(FlowValidator):
         ]
         if missing:
             return self.log_failure(f"Missing required checked populations: {missing}")
+        if self._max_checked is not None and len(checked) > self._max_checked:
+            return self.log_failure(
+                f"{len(checked)} populations checked, expected at most {self._max_checked} "
+                "— uncheck the extras."
+            )
+        if self._require_popup_closed and selector.population_selector.isVisible():
+            return self.log_failure("Population picker popup is still open.")
         return True
 
 
 class StatsCheckedValidator(FlowValidator):
-    """Verifies the Statistics tab has at least the given StatType values checked."""
+    """Verifies the Statistics tab has at least the given StatType values
+    checked, and — if `max_checked` is given — no more than that many
+    overall (3 stats default to pre-checked, so simply adding more on top
+    without unchecking any leaves the table/chart cramped).
+    """
 
-    def __init__(self, *required: Any) -> None:
+    def __init__(self, *required: Any, max_checked: int | None = None) -> None:
         self._required = required
+        self._max_checked = max_checked
 
     def validate_flow(self, app_state: FlowState) -> bool:
         explorer = getattr(app_state.view, "_statistics_explorer", None)
@@ -1616,4 +1730,47 @@ class StatsCheckedValidator(FlowValidator):
         ]
         if missing:
             return self.log_failure(f"Missing required checked stats: {missing}")
+        if self._max_checked is not None:
+            total_checked = sum(1 for cb in checkboxes.values() if cb.isChecked())
+            if total_checked > self._max_checked:
+                return self.log_failure(
+                    f"{total_checked} stats checked, expected at most {self._max_checked} "
+                    "— uncheck the extras."
+                )
+        return True
+
+
+class StatsResultsReadyValidator(FlowValidator):
+    """Verifies the Statistics tab's Compute Statistics run has actually
+    finished — the table/chart stay on their placeholder (no numbers at
+    all) until the user clicks Compute, which kicks off an async worker
+    rather than updating live off the checkboxes.
+    """
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        explorer = getattr(app_state.view, "_statistics_explorer", None)
+        if not getattr(explorer, "_last_results", None):
+            return self.log_failure("Statistics haven't been computed yet.")
+        return True
+
+
+class ComparisonsPlotGeneratedValidator(FlowValidator):
+    """Verifies the Comparisons tab has actually rendered a plot of the
+    given type — selecting a plot type in the dropdown alone does nothing
+    visible until Generate Plot is clicked, and `_last_generated_plot_type`
+    (set at generate-time, see `ComparisonsViewer._on_generate`) only
+    reflects what was actually rendered, not the dropdown's current value,
+    so changing the dropdown without regenerating correctly keeps failing.
+    """
+
+    def __init__(self, expected_type: str) -> None:
+        self._expected = expected_type.lower()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+        generated = (getattr(viewer, "_last_generated_plot_type", None) or "").lower()
+        if self._expected not in generated:
+            return self.log_failure(
+                f"Last generated plot was '{generated}', expected '{self._expected}'."
+            )
         return True

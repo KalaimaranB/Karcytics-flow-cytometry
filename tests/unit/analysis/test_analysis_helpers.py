@@ -29,6 +29,7 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
     apply_transform,
     biexponential_transform,
     invert_log_transform,
+    invert_transform,
     linear_transform,
     log_transform,
 )
@@ -56,6 +57,14 @@ def test_apply_transform_dispatches_to_correct_function():
     assert np.allclose(apply_transform(values, TransformType.LOG), log_transform(values))
     with pytest.raises(ValueError):
         apply_transform(values, "unsupported")  # type: ignore[arg-type]
+
+
+def test_invert_transform_dispatches_to_correct_function():
+    values = np.array([0.2, 0.5])
+    assert np.allclose(invert_transform(values, TransformType.LINEAR), values)
+    assert np.allclose(invert_transform(values, TransformType.LOG), invert_log_transform(values))
+    with pytest.raises(ValueError):
+        invert_transform(values, "unsupported")  # type: ignore[arg-type]
 
 
 def test_rectangle_gate_contains_raises_key_error_for_missing_y_parameter():
@@ -777,3 +786,37 @@ def test_compute_population_stats_logs_errors_without_failing():
     assert results[0].value == pytest.approx(1.0)
     assert results[1].value == 0.0
     assert results[1].formatted.startswith("Error:")
+
+
+@pytest.mark.parametrize(
+    ("stat_type", "expected"),
+    [
+        (StatType.MEAN, 20.0),
+        (StatType.MEDIAN, 20.0),
+        (StatType.SD, np.std([10.0, 20.0, 30.0], ddof=1)),
+        (StatType.MIN, 10.0),
+        (StatType.MAX, 30.0),
+    ],
+)
+def test_compute_statistic_value_stats_dispatch_correctly(stat_type, expected):
+    events = pd.DataFrame({"FITC-A": [10.0, 20.0, 30.0]})
+    assert compute_statistic(events, "FITC-A", stat_type) == pytest.approx(expected)
+
+
+def test_compute_statistic_geometric_mean():
+    events = pd.DataFrame({"FITC-A": [1.0, 10.0, 100.0]})
+    assert compute_statistic(events, "FITC-A", StatType.GEOMETRIC_MEAN) == pytest.approx(10.0)
+
+
+def test_compute_statistic_geometric_mean_all_non_positive_returns_zero():
+    events = pd.DataFrame({"FITC-A": [-1.0, 0.0, -5.0]})
+    assert compute_statistic(events, "FITC-A", StatType.GEOMETRIC_MEAN) == 0.0
+
+
+def test_compute_statistic_mode_returns_bin_center_of_densest_bin():
+    events = pd.DataFrame({"FITC-A": [1.0] * 20 + [100.0]})
+    mode = compute_statistic(events, "FITC-A", StatType.MODE)
+    # The densest bin sits near the 20-point cluster at 1.0, far from the
+    # single outlier at 100.0 — exact bin edges depend on numpy's "auto"
+    # histogram binning, so just assert it lands on the populated side.
+    assert mode < 50.0

@@ -129,4 +129,11 @@ class PopulationService:
                 _clean_references(ch)
 
         _clean_references(sample.gate_tree)
+
+        # The only structural mutation that doesn't also go through
+        # GateCoordinator.recompute_all_stats (see there for why this
+        # invalidates GateNode's mask cache too) — a surviving logic node
+        # that had `node` as one of its parents just had its `parents`
+        # list rewritten above, so its cached mask (if any) is now stale.
+        sample.gate_tree.invalidate_mask_cache()
         return True

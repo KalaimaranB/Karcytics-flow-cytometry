@@ -13,8 +13,16 @@ Key utilities:
 
 from typing import Any
 
+import numpy as np
+
+from .constants import (
+    LOGICLE_A_DEFAULT,
+    LOGICLE_M_DEFAULT,
+    LOGICLE_T_DEFAULT,
+    LOGICLE_W_DEFAULT,
+)
 from .scaling import AxisScale
-from .transforms import TransformType
+from .transforms import TransformType, apply_transform
 
 
 class ScaleFactory:
@@ -109,12 +117,15 @@ class BiexponentialParameters:
         negative_decades: Negative decade range (default 0.0).
     """
 
-    # Defaults match Logicle spec and BiExponentialTransform expectations
+    # Defaults match Logicle spec and BiExponentialTransform expectations.
+    # Kept in sync with `constants.py` and `transforms.py`'s function
+    # defaults by referencing the same named constants (see LOGICLE_W_DEFAULT
+    # comment history for a past drift incident between these three spots).
     _DEFAULTS = {
-        "top": 262144,  # Typical for 18-bit data
-        "width": 1.0,  # Standard linear region (increased from 0.5)
-        "positive": 4.5,  # Positive decades
-        "negative": 0.0,  # Negative decades (typically off)
+        "top": LOGICLE_T_DEFAULT,
+        "width": LOGICLE_W_DEFAULT,
+        "positive": LOGICLE_M_DEFAULT,
+        "negative": LOGICLE_A_DEFAULT,
         "enable_dithering": True,  # Prevent barcode artifacts
     }
 
@@ -150,6 +161,28 @@ class BiexponentialParameters:
             "negative": self.negative,
             "enable_dithering": self.enable_dithering,
         }
+
+
+def project_to_display(raw_values: np.ndarray, scale: AxisScale) -> np.ndarray:
+    """Project raw-space values into display space for a given axis scale.
+
+    Centralizes the resolve-transform-type + biexponential-kwargs + apply
+    sequence duplicated across every gate's ``contains()`` implementation.
+
+    Args:
+        raw_values: Values in raw data space.
+        scale: AxisScale describing the transform to apply.
+
+    Returns:
+        Values projected into display space.
+    """
+    transform_type = TransformTypeResolver.resolve(getattr(scale, "transform_type", "linear"))
+    kwargs = (
+        BiexponentialParameters(scale).to_dict()
+        if transform_type == TransformType.BIEXPONENTIAL
+        else {}
+    )
+    return apply_transform(np.asarray(raw_values), transform_type, **kwargs)
 
 
 class ScaleSerializer:

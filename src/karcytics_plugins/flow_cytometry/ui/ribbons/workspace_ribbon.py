@@ -15,12 +15,11 @@ from pathlib import Path
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import BioProgressDialog, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_error, show_info, show_warning
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
-    QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
@@ -34,7 +33,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 logger = get_logger(__name__, "flow_cytometry")
 
 
-class WorkspaceRibbon(QWidget):
+class WorkspaceRibbon(ThemedToolbarContainer):
     """Toolbar ribbon for workspace-level actions.
 
     Signals:
@@ -79,15 +78,6 @@ class WorkspaceRibbon(QWidget):
         layout.addWidget(btn_bulk_role)
 
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors when theme changes."""
-        self.setObjectName(self.__class__.__name__)
-        self.setStyleSheet(
-            f"QWidget#{self.objectName()} {{ background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER}; }}"
-        )
 
     # ── Helpers: Project Manager integration ──────────────────────────
 

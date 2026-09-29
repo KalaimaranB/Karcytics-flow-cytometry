@@ -24,7 +24,7 @@ import pandas as pd
 from karcytics_sdk.plugin import get_logger
 
 from .constants import MIN_SINGLE_STAINS, SPILLOVER_SIGNIFICANCE_THRESHOLD
-from .fcs_io import FCSData
+from .fcs_io import FCSData, get_fluorescence_channels
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -109,7 +109,7 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
         raise ValueError("At least 2 single-stain samples are required.")
 
     if fluorescence_channels is None:
-        fluorescence_channels = _detect_fluorescence_channels(single_stains[0])
+        fluorescence_channels = get_fluorescence_channels(single_stains[0])
 
     n = len(fluorescence_channels)
     spillover = np.eye(n, dtype=np.float64)
@@ -117,9 +117,10 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
     # Background subtraction: median of unstained control per channel
     bg = np.zeros(n, dtype=np.float64)
     if unstained is not None and unstained.events is not None:
-        for i, ch in enumerate(fluorescence_channels):
-            if ch in unstained.events.columns:
-                bg[i] = np.median(unstained.events[ch].values)
+        idxs = [i for i, ch in enumerate(fluorescence_channels) if ch in unstained.events.columns]
+        if idxs:
+            cols = [fluorescence_channels[i] for i in idxs]
+            bg[idxs] = np.median(unstained.events[cols].values, axis=0)
 
     # Process each single-stain sample
     channels_assigned: set[int] = set()
@@ -131,9 +132,10 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
 
         # Compute median for each fluorescence channel
         medians = np.zeros(n, dtype=np.float64)
-        for i, ch in enumerate(fluorescence_channels):
-            if ch in ss.events.columns:
-                medians[i] = np.median(ss.events[ch].values) - bg[i]
+        idxs = [i for i, ch in enumerate(fluorescence_channels) if ch in ss.events.columns]
+        if idxs:
+            cols = [fluorescence_channels[i] for i in idxs]
+            medians[idxs] = np.median(ss.events[cols].values, axis=0) - bg[idxs]
 
         # The primary channel = the one with the highest median
         primary_idx = int(np.argmax(medians))
@@ -362,22 +364,6 @@ def apply_compensation(data: FCSData, comp: CompensationMatrix | None) -> pd.Dat
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-
-
-def _detect_fluorescence_channels(data: FCSData) -> list[str]:
-    """Auto-detect fluorescence channels by excluding scatter and time.
-
-    Simple heuristic: any channel whose name does NOT start with ``FSC``,
-    ``SSC``, or ``Time`` is considered a fluorescence channel.
-
-    Args:
-        data: An :class:`FCSData` sample.
-
-    Returns:
-        List of fluorescence channel names.
-    """
-    exclude_prefixes = ("FSC", "SSC", "Time", "time")
-    return [ch for ch in data.channels if not ch.startswith(exclude_prefixes)]
 
 
 def _has_row_labels(path: Path, sep: str) -> bool:

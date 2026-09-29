@@ -11,7 +11,7 @@ New public additions:
 from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -230,7 +230,6 @@ class GateHierarchy(QWidget):
         CentralEventBus.subscribe(events.GATE_SELECTED, self._on_gate_selected)
         CentralEventBus.subscribe(events.SAMPLE_SELECTED, self._on_gate_selected)
         self.destroyed.connect(self._cleanup)
-        theme_manager.theme_changed.connect(self._apply_theme_styles)
 
     def _cleanup(self) -> None:
         """Unsubscribe from CentralEventBus when the widget is destroyed.

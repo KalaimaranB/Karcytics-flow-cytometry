@@ -27,7 +27,7 @@ from karcytics_sdk.plugin.components import (
     SecondaryButton,
 )
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
-from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
+from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.figure import Figure
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -143,28 +143,29 @@ class ComparisonsViewer(QWidget):
         # switched from single- to multi-channel mode, my one checked channel
         # isn't enough for this plot type anymore — reset to a full default."
         self._last_channel_mode: ChannelMode | None = None
+        # The plot type actually rendered by the last successful Generate
+        # Plot click (see _on_generate) — distinct from _plot_type_combo's
+        # current value, which the user can change without regenerating.
+        # ComparisonsPlotGeneratedValidator reads this, not the combo, so a
+        # tutorial step correctly keeps failing until Generate is clicked
+        # again for whatever the dropdown is now showing.
+        self._last_generated_plot_type: str | None = None
+        self._pending_plot_type: str | None = None
 
         self._setup_ui()
         self.refresh_samples()
 
-        theme_manager.theme_changed.connect(self._apply_theme_styles)
         self.destroyed.connect(self._cleanup)
 
     def _cleanup(self) -> None:
-        """Disconnect from theme_manager so a destroyed Qt widget isn't
-        invoked by a later theme change (RuntimeError: wrapped C/C++ object
-        has been deleted), and block on any in-flight render so its worker
-        thread can't be torn down mid-run (Qt aborts if a QThread is
-        destroyed while still running). This widget is tab-embedded, not a
-        window, so `closeEvent` never fires here -- `destroyed` (connected
-        above) is the one teardown hook Qt guarantees for it.
+        """Block on any in-flight render so its worker thread can't be torn
+        down mid-run (Qt aborts if a QThread is destroyed while still
+        running). This widget is tab-embedded, not a window, so
+        `closeEvent` never fires here -- `destroyed` (connected above) is
+        the one teardown hook Qt guarantees for it.
         """
         if self._worker is not None:
             self._worker.stop_and_wait()
-        try:
-            theme_manager.theme_changed.disconnect(self._apply_theme_styles)
-        except (TypeError, RuntimeError):
-            pass
 
     # ── UI Construction ──────────────────────────────────────────────────────
 
@@ -212,27 +213,23 @@ class ComparisonsViewer(QWidget):
         # called at the end of _setup_ui(), applies the real PlotTypeSpec.
         self._selector = SampleAndPopulationSelector(
             multi_population=self._current_spec().population_mode == PopulationMode.MULTI,
-            sample_help_text=(
-                "Check which samples to include in the comparison plot. "
-                "Each checked sample appears as a separate group or data series."
-            ),
             population_help_text=(
-                "Select which gated populations to compare. 'Shared Populations' are "
-                "present under the same name in every checked sample (the usual result "
-                "of group gate propagation); 'Sample-Specific' lists anything that "
-                "doesn't match across all checked samples.\n\n"
+                "Select which gated populations to compare. Click 'Edit Population "
+                "Selection' to open the picker.\n\n"
                 "• For Violin and FMO: one population per sample is used.\n"
                 "• For Radar, Heatmap, and Histogram Overlay: each checked population "
                 "becomes a separate row/trace."
             ),
         )
         self._selector.selectionChanged.connect(self._on_selection_changed)
+        self._selector.population_edit_button.setObjectName("ComparisonsPopulationPickerButton")
         cl.addWidget(self._selector)
 
         _mini = "QPushButton { padding: 3px 10px; min-height: 26px; }"
 
         # 4. Channels (hidden for plot types that manage their own channel selection)
         self._channel_section = QWidget()
+        self._channel_section.setObjectName("ComparisonsChannelSection")
         csl = QVBoxLayout(self._channel_section)
         csl.setContentsMargins(0, 0, 0, 0)
         csl.setSpacing(6)
@@ -271,6 +268,7 @@ class ComparisonsViewer(QWidget):
         cl.addLayout(opts_hdr)
 
         self._options_stack = DynamicStackedWidget()
+        self._options_stack.setObjectName("ComparisonsOptionsPanel")
         for name, spec in PLOT_REGISTRY.items():
             panel = spec.options_panel_cls()
             panel.bind_state(self._state)
@@ -280,6 +278,7 @@ class ComparisonsViewer(QWidget):
 
         # 6. Generate button
         self._generate_btn = PrimaryButton("🔬 Generate Plot")
+        self._generate_btn.setObjectName("ComparisonsGenerateButton")
         self._generate_btn.clicked.connect(self._on_generate)
         cl.addWidget(self._generate_btn)
 
@@ -303,6 +302,7 @@ class ComparisonsViewer(QWidget):
         toolbar.addStretch()
 
         self._export_btn = SecondaryButton("📸 Export")
+        self._export_btn.setObjectName("ComparisonsExportButton")
         self._export_btn.setToolTip("Save the current plot as PNG, PDF, or SVG")
         self._export_btn.setEnabled(False)
         self._export_btn.clicked.connect(self._on_export)
@@ -320,6 +320,7 @@ class ComparisonsViewer(QWidget):
 
         # Display stack: 0=placeholder, 1=canvas
         self._display_stack = QStackedWidget()
+        self._display_stack.setObjectName("ComparisonsPlotDisplay")
         self._display_stack.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
@@ -483,6 +484,7 @@ class ComparisonsViewer(QWidget):
             render_kwargs.setdefault(key, value)
 
         renderer = spec.renderer_cls()
+        self._pending_plot_type = plot_name
         self._worker = ComparisonsWorker(renderer, render_kwargs, self)
         self._worker.finished_ok.connect(self._on_render_done)
         self._worker.finished_err.connect(self._on_render_error)
@@ -536,6 +538,7 @@ class ComparisonsViewer(QWidget):
 
         self._display_stack.setCurrentIndex(1)
         self._export_btn.setEnabled(True)
+        self._last_generated_plot_type = self._pending_plot_type
         self._worker = None
 
         # matplotlib's Qt backend only performs a canvas's first real draw
@@ -584,13 +587,23 @@ class ComparisonsViewer(QWidget):
             "PNG Image (*.png);;PDF Document (*.pdf);;SVG Vector (*.svg)",
         )
         if path:
-            # savefig() triggers a full Agg rasterization pass — must hold
-            # MPL_RASTER_LOCK or this can race a ComparisonsWorker/RenderTask
-            # drawing a different Figure on a background thread and corrupt
-            # matplotlib's shared C-level state.
-            with MPL_RASTER_LOCK:
-                self._current_figure.savefig(path, dpi=300, bbox_inches="tight")
-            self._status_lbl.setText(f"✓ Exported to {path}")
+            try:
+                # savefig() triggers a full Agg rasterization pass — must
+                # hold MPL_RASTER_LOCK or this can race a
+                # ComparisonsWorker/RenderTask drawing a different Figure
+                # on a background thread and corrupt matplotlib's shared
+                # C-level state.
+                with MPL_RASTER_LOCK:
+                    self._current_figure.savefig(path, dpi=300, bbox_inches="tight")
+                self._status_lbl.setText(f"✓ Exported to {path}")
+            except Exception as exc:  # noqa: BLE001 — report as a diagnostic, not a crash.
+                logger.exception("Comparisons plot export failed")
+                self._status_lbl.setText(f"❌ Export failed: {exc}")
+                from karcytics_sdk.plugin.runtime_services import diagnostics
+
+                diagnostics.report_error(
+                    "Comparisons plot export failed", exception=exc, fatal=False
+                )
 
     # ── Data helpers ─────────────────────────────────────────────────────────
 
@@ -757,9 +770,9 @@ class ComparisonsViewer(QWidget):
 
         fg_color = QColor(Colors.FG_PRIMARY)
 
-        # Note: the sample checklist and population tree (self._selector) theme
-        # themselves independently via their own theme_manager subscription —
-        # see ui/widgets/selection/.
+        # Note: the sample checklist and population tree (self._selector) are
+        # themed by MainPanel's own findChildren cascade reaching them
+        # directly, not by this method — see ui/widgets/selection/.
         if self._channel_list:
             self._channel_list.setStyleSheet(
                 f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"

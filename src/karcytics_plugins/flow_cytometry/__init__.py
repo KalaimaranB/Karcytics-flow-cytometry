@@ -71,6 +71,7 @@ def register_courses(manager: Any) -> None:
         course_1_fundamentals,
         course_2_gating,
         course_3_analysis,
+        course_4_reporting,
     )
 
     # Prevent duplicate registration
@@ -80,6 +81,7 @@ def register_courses(manager: Any) -> None:
         manager.register_storyboard(__plugin_id__, course_1_fundamentals)
         manager.register_storyboard(__plugin_id__, course_2_gating)
         manager.register_storyboard(__plugin_id__, course_3_analysis)
+        manager.register_storyboard(__plugin_id__, course_4_reporting)
 
 
 def get_panel_class() -> type:

@@ -1,14 +1,15 @@
 """Pipeline ribbon — tools for the visual node-based gating canvas."""
 
-from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton, repopulate_combo
+from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 
-class PipelineRibbon(QWidget):
+class PipelineRibbon(ThemedToolbarContainer):
     """Ribbon tab containing tools for the Pipeline canvas."""
 
     # Emitted when the user selects a new sample to view in the pipeline
@@ -31,24 +32,30 @@ class PipelineRibbon(QWidget):
         layout.setSpacing(16)
 
         # ── Sample Selector ──
-        lbl = QLabel("View Sample:")
-        lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;")
+        self._lbl1 = QLabel("View Sample:")
+        theme_manager.apply_style(
+            self._lbl1,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px; background: transparent;",
+        )
 
         self._sample_combo = BioComboBox()
         self._sample_combo.setMinimumWidth(200)
         self._sample_combo.currentIndexChanged.connect(self._on_combo_changed)
 
-        layout.addWidget(lbl)
+        layout.addWidget(self._lbl1)
         layout.addWidget(self._sample_combo)
 
         # ── Layout Orientation ──
         # Add a separator
-        sep0 = QLabel("|")
-        sep0.setStyleSheet(f"color: {Colors.BORDER}; margin: 0 10px;")
-        layout.addWidget(sep0)
+        self._sep0 = QLabel("|")
+        theme_manager.apply_style(self._sep0, "color: {BORDER}; margin: 0 10px;")
+        layout.addWidget(self._sep0)
 
-        lbl_orient = QLabel("Layout:")
-        lbl_orient.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;")
+        self._lbl_orient = QLabel("Layout:")
+        theme_manager.apply_style(
+            self._lbl_orient,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px; background: transparent;",
+        )
         self._orientation_combo = BioComboBox()
         self._orientation_combo.setObjectName("PipelineOrientationCombo")
         self._orientation_combo.setFixedWidth(120)
@@ -56,7 +63,7 @@ class PipelineRibbon(QWidget):
         self._orientation_combo.setCurrentText("Vertical")
         self._orientation_combo.currentTextChanged.connect(self._on_orientation_changed)
 
-        layout.addWidget(lbl_orient)
+        layout.addWidget(self._lbl_orient)
         layout.addWidget(self._orientation_combo)
 
         # ── Pipeline Help ──
@@ -72,9 +79,9 @@ class PipelineRibbon(QWidget):
 
         # ── Logic Nodes ──
         # Add a separator
-        sep = QLabel("|")
-        sep.setStyleSheet(f"color: {Colors.BORDER}; margin: 0 10px;")
-        layout.addWidget(sep)
+        self._sep = QLabel("|")
+        theme_manager.apply_style(self._sep, "color: {BORDER}; margin: 0 10px;")
+        layout.addWidget(self._sep)
 
         logic_help = BioHelpButton()
         logic_help.setHelpText(
@@ -99,47 +106,23 @@ class PipelineRibbon(QWidget):
             btn.setToolTip(logic_tooltips[op])
             # capture op in lambda
             btn.clicked.connect(lambda checked, o=op: self._request_logic_node(o))
+            theme_manager.apply_style(
+                btn,
+                "QPushButton {"
+                "    background-color: {BG_LIGHT};"
+                "    color: {FG_PRIMARY};"
+                "    border: 1px solid {BORDER};"
+                "    border-radius: 4px;"
+                "    padding: 4px 12px;"
+                "}"
+                "QPushButton:hover {"
+                "    background-color: {ACCENT_PRIMARY};"
+                "}",
+            )
             layout.addWidget(btn)
             self._logic_buttons.append(btn)
 
-        self._lbl1 = lbl
-        self._lbl_orient = lbl_orient
-        self._sep0 = sep0
-        self._sep = sep
-
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors when theme changes."""
-        self.setObjectName(self.__class__.__name__)
-        self.setStyleSheet(
-            f"QWidget#{self.objectName()} {{ background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER}; }}"
-        )
-        for lbl in (getattr(self, "_lbl1", None), getattr(self, "_lbl_orient", None)):
-            if lbl:
-                lbl.setStyleSheet(
-                    f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                    f" background: transparent;"
-                )
-        for sep in (getattr(self, "_sep0", None), getattr(self, "_sep", None)):
-            if sep:
-                sep.setStyleSheet(f"color: {Colors.BORDER}; margin: 0 10px;")
-
-        for btn in getattr(self, "_logic_buttons", []):
-            btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {Colors.BG_LIGHT};
-                    color: {Colors.FG_PRIMARY};
-                    border: 1px solid {Colors.BORDER};
-                    border-radius: 4px;
-                    padding: 4px 12px;
-                }}
-                QPushButton:hover {{
-                    background-color: {Colors.ACCENT_PRIMARY};
-                }}
-            """)
 
     def _request_logic_node(self, operator: str) -> None:
         idx = self._sample_combo.currentIndex()
@@ -148,19 +131,11 @@ class PipelineRibbon(QWidget):
             self.logic_node_requested.emit(sample_id, operator)
 
     def refresh_samples(self) -> None:
-        self._sample_combo.blockSignals(True)
-        self._sample_combo.clear()
-
-        for sample_id, sample in self.state.data.experiment.samples.items():
-            self._sample_combo.addItem(sample.display_name, sample_id)
-
-        self._sample_combo.blockSignals(False)
-
-        # Select current sample if possible
-        if self.state.view.current_sample_id:
-            idx = self._sample_combo.findData(self.state.view.current_sample_id)
-            if idx >= 0:
-                self._sample_combo.setCurrentIndex(idx)
+        items = [
+            (sample.display_name, sample_id)
+            for sample_id, sample in self.state.data.experiment.samples.items()
+        ]
+        repopulate_combo(self._sample_combo, items, restore_data=self.state.view.current_sample_id)
 
         # Explicitly emit for the currently selected sample to ensure it renders
         self._on_combo_changed(self._sample_combo.currentIndex())

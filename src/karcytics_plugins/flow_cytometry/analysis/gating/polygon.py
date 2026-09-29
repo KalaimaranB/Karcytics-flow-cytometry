@@ -8,14 +8,8 @@ import numpy as np
 import pandas as pd
 from matplotlib.path import Path
 
-from .._utils import (
-    BiexponentialParameters,
-    ScaleFactory,
-    ScaleSerializer,
-    TransformTypeResolver,
-)
+from .._utils import ScaleFactory, ScaleSerializer, project_to_display
 from ..scaling import AxisScale
-from ..transforms import TransformType, apply_transform
 from .base import Gate
 
 
@@ -77,27 +71,13 @@ class PolygonGate(Gate):
         vx_raw = np.array([v[0] for v in self.vertices])
         vy_raw = np.array([v[1] for v in self.vertices])
 
-        x_type = TransformTypeResolver.resolve(getattr(self.x_scale, "transform_type", "linear"))
-        y_type = TransformTypeResolver.resolve(getattr(self.y_scale, "transform_type", "linear"))
-
-        x_kwargs = (
-            BiexponentialParameters(self.x_scale).to_dict()
-            if x_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-        y_kwargs = (
-            BiexponentialParameters(self.y_scale).to_dict()
-            if y_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-
         # Project events into display space
-        x_disp = apply_transform(x_raw, x_type, **x_kwargs)
-        y_disp = apply_transform(y_raw, y_type, **y_kwargs)
+        x_disp = project_to_display(x_raw, self.x_scale)
+        y_disp = project_to_display(y_raw, self.y_scale)
 
         # Project raw-space vertices into the same display space
-        vx_disp = apply_transform(vx_raw, x_type, **x_kwargs)
-        vy_disp = apply_transform(vy_raw, y_type, **y_kwargs)
+        vx_disp = project_to_display(vx_raw, self.x_scale)
+        vy_disp = project_to_display(vy_raw, self.y_scale)
 
         points = np.column_stack((x_disp, y_disp))
         poly_path = Path(np.column_stack((vx_disp, vy_disp)))

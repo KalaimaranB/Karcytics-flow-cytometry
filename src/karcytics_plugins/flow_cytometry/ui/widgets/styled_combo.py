@@ -3,9 +3,9 @@ from PyQt6.QtWidgets import QComboBox, QListView
 
 
 def _get_theme_tokens():
-    from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
+    from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 
-    return Colors, Fonts, theme_manager
+    return Colors, Fonts
 
 
 def _get_contrast_text_color():
@@ -32,17 +32,11 @@ class FlowComboBox(QComboBox):
         view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setView(view)
 
-        try:
-            _, _, tm = _get_theme_tokens()
-            tm.theme_changed.connect(self._apply_theme_styles)
-        except Exception:
-            pass
-
         self._apply_theme_styles()
 
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh colors based on current theme."""
-        Colors, Fonts, _ = _get_theme_tokens()
+        Colors, Fonts = _get_theme_tokens()
         selection_text_color = _get_contrast_text_color()(Colors.ACCENT_PRIMARY)
         self.setStyleSheet(
             f"QComboBox {{ background: {Colors.BG_MEDIUM};"

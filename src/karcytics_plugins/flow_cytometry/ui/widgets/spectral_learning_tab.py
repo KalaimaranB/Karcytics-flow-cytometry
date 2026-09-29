@@ -621,7 +621,12 @@ class SpectralLearningTab(QWidget):
         elif 2 not in self._completed_steps:  # noqa: PLR2004
             html += "<p style='color: #3fb950; font-weight: bold;'>Good measurement! Now type the spillover percentage your ruler implies (Rise ÷ Run × 100).</p>"
         else:
-            html += f"<p style='color: #3fb950; font-weight: bold;'>Correct — the real spillover here is {pct:.1f}%.</p>"
+            html += (
+                "<p style='color: #3fb950; font-weight: bold;'>Correct — that's what your "
+                f"ruler measurement implies. This panel's real spillover is {pct:.1f}%; a "
+                "two-point ruler reading off individual cells won't always land on that "
+                "exact number, and that's expected.</p>"
+            )
 
         self._explanation.setHtml(html)
         self._ax.set_title(
@@ -744,8 +749,29 @@ class SpectralLearningTab(QWidget):
         return False
 
     def _check_slide3_pct(self):
-        if self._check_pct_answer(self._slide3_true_pct):
+        # Grade against what the user's OWN ruler measurement implies, not
+        # the population's fixed ground-truth pct — the prompt literally
+        # asks them to "type the spillover percentage your ruler implies
+        # (Rise ÷ Run × 100)", i.e. read the readout label and do that
+        # arithmetic. The two ruler points are individual noisy cells
+        # (leaked_single_stain adds real per-point noise), so their implied
+        # slope routinely lands several points away from the true
+        # population pct even for a textbook-correct dim→bright drag —
+        # grading against ground truth made a correctly-transcribed
+        # readout (like the screenshot's "≈76.8%") fail no matter what was
+        # typed, since the true pct could genuinely be outside tolerance of
+        # the ruler's own honest reading.
+        if self._check_pct_answer(self._slide3_ruler_implied_pct()):
             self._defer(self._finish_slide3_pct)
+
+    def _slide3_ruler_implied_pct(self) -> float:
+        (x0, y0), (x1, y1) = (
+            self._ruler_points
+            if len(self._ruler_points) == 2  # noqa: PLR2004
+            else (self._ruler_points[0], self._ruler_points[0])
+        )
+        _rise, _run, slope = rise_run_slope(x0, y0, x1, y1)
+        return slope * 100
 
     def _finish_slide3_pct(self):
         self._complete_step()

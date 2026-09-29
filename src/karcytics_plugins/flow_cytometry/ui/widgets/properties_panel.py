@@ -13,6 +13,7 @@ or ``GatePropagator``.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
@@ -32,6 +33,7 @@ from PyQt6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
+from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .group_preview import GroupPreviewPanel
@@ -405,12 +407,60 @@ class PropertiesPanel(QWidget):
         self._content_layout.addWidget(form_widget)
         self._content_layout.addStretch()
 
+    @staticmethod
+    def _parent_pct_label(node: GateNode, gate: object | None) -> str:
+        """Named, not a bare "% Parent": a node's *statistical* parent
+        (whatever this percentage is actually computed against) isn't
+        always obvious from the canvas alone — e.g. a UMAP cluster's edge
+        is drawn from the "UMAP Reduction" container either way. Only for
+        an ordinary gated node (exactly one real parent) — a logic node's
+        combined "% Parent" isn't a single meaningful ratio the way its
+        per-parent breakdown is, so it keeps the generic label.
+        """
+        if node.parents and gate is not None:
+            return f"% of {node.parents[0].name}:"
+        return "% Parent:"
+
+    @staticmethod
+    def _add_estimation_rows(
+        add_row: Callable[..., None], statistics: dict, count: float, pct_total: float
+    ) -> None:
+        """Surface a node's UMAP-subsample correction, if any — never
+        replacing the raw Event Count/% Total rows above, only adding to
+        them, so a scientist sees both side by side. See
+        `DagEvaluator._propagate_estimation` for what `is_scale_valid`
+        means and why an OR/NOT-combined node can't get a corrected number.
+        """
+        if not statistics.get("is_estimated"):
+            return
+        if statistics.get("is_scale_valid"):
+            scale = statistics.get("scale_factor", 1.0)
+            est_count = statistics.get("estimated_count", count)
+            est_pct_total = statistics.get("estimated_pct_total", pct_total)
+            add_row("Estimated Count:", f"{int(est_count):,} (×{scale:.2f})", highlight=True)
+            add_row("Estimated % Total:", f"{est_pct_total:.2f}%", highlight=True)
+            add_row(
+                "⚠ Estimate:",
+                "Scaled up from a UMAP subsample — statistically valid, not an exact count.",
+            )
+        else:
+            add_row(
+                "⚠ Estimate:",
+                "Combines a UMAP-subsampled population via OR/NOT — count can't be "
+                "safely corrected and may undercount the true population.",
+            )
+
     def _show_gate_properties(self, sample: Sample, node_id: str) -> None:
         """Display gate-specific properties with detailed statistics."""
         self._clear_content()
 
         node = sample.gate_tree.find_node_by_id(node_id)
-        if node is None or node.gate is None:
+        # A logic node (AND/OR/NOT) has no `gate` of its own but still has
+        # real statistics worth showing here — most importantly whether it's
+        # a scaled UMAP estimate, since that's exactly where "safely
+        # correctable" vs. "not" (see DagEvaluator._propagate_estimation)
+        # matters most to a scientist reading this panel.
+        if node is None or (node.gate is None and not node.is_logic_node):
             self._show_empty()
             return
 
@@ -453,13 +503,14 @@ class PropertiesPanel(QWidget):
         form.addRow(name_lbl, name_edit)
 
         # Gate identity
-        _add_row("Type:", type(gate).__name__)
-        _add_row("X Param:", gate.x_param)
-        if gate.y_param:
-            _add_row("Y Param:", gate.y_param)
-        _add_row("Adaptive:", "🧠 Yes" if gate.adaptive else "No")
-
-        _add_row("Adaptive:", "🧠 Yes" if gate.adaptive else "No")
+        if gate is not None:
+            _add_row("Type:", type(gate).__name__)
+            _add_row("X Param:", gate.x_param)
+            if gate.y_param:
+                _add_row("Y Param:", gate.y_param)
+            _add_row("Adaptive:", "🧠 Yes" if gate.adaptive else "No")
+        else:
+            _add_row("Type:", f"{node.logic_operator} Logic")
 
         # Population statistics — highlighted
         if node.statistics:
@@ -468,8 +519,10 @@ class PropertiesPanel(QWidget):
             pct_total = node.statistics.get("pct_total", 0.0)
 
             _add_row("Event Count:", f"{int(count):,}", highlight=True)
-            _add_row("% Parent:", f"{pct_parent:.2f}%", highlight=True)
+            _add_row(self._parent_pct_label(node, gate), f"{pct_parent:.2f}%", highlight=True)
             _add_row("% Total:", f"{pct_total:.2f}%", highlight=True)
+
+            self._add_estimation_rows(_add_row, node.statistics, count, pct_total)
 
         # Child gate count
         child_count = len(node.children)

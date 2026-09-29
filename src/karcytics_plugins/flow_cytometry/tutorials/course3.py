@@ -19,17 +19,16 @@ see course2.py's header for the full table):
   CD45 = APC-A          | pan-leukocyte gating channel
   PI   = PerCP-Cy5-5-A   | viability dye
 
-Course 3 does no new gating. Part 1 validates the gating tree Course 2
-built, then hands the user to unsupervised Population Analysis
-(UMAP + HDBSCAN) on Sample C (the confirmed Spleen), walking every run
-parameter with real justification, the live animation, the Plot Gallery,
-and the Interactive Map. Part 2 continues straight on: export the real
-B-cell HDBSCAN cluster as a gate-tree population, cross-check it against
-the manual "B-cells" gate via a Pipeline AND node, then tour Statistics
-and Comparisons using those populations as real evidence. This is still
-not the true end of Course 3 — it ends on a soft "more soon" note rather
-than a full graduation, so no completion/badge fires. See the closing
-step's docstring-style comment for how that's guaranteed.
+Course 3 does no new gating. It validates the gating tree Course 2 built,
+then hands the user to unsupervised Population Analysis (UMAP + HDBSCAN)
+on Sample C (the confirmed Spleen), walking every run parameter with real
+justification, the live animation, the Plot Gallery, and the Interactive
+Map — then proves that result out: export the real B-cell HDBSCAN cluster
+as a gate-tree population and cross-check it against the manual "B-cells"
+gate via a Pipeline AND node. That's a complete arc (run an unsupervised
+analysis AND validate it), so Course 3 ends for real here — save workspace,
+badge, the works — handing off to Course 4 for the Statistics/Comparisons
+reporting half of what used to be one oversized course.
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
@@ -39,19 +38,14 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
-from ..analysis.statistics import StatType
 from .validators import (
     ClusterResultsTabActiveValidator,
-    ComparisonPlotTypeValidator,
     Course2GatingCompleteValidator,
     ExactSampleOpenValidator,
     GateExistsValidator,
     LogicGateExistsValidator,
     LogicNodeStatsReadyValidator,
     PipelineOrientationValidator,
-    PopulationsCheckedValidator,
-    StatsChartTypeValidator,
-    StatsCheckedValidator,
     TabActiveValidator,
     UmapBestBCellClusterValidator,
     UmapChannelExcludedValidator,
@@ -62,14 +56,15 @@ from .validators import (
     UmapRunNameProvidedValidator,
     UmapSampleSelectedValidator,
     UmapSubsampleValueValidator,
+    WorkflowSavedValidator,
 )
 
 # ==============================================================================
-# Course 3 — Population Analysis
-# No new gating. Part 1: validates Course 2's tree, walks unsupervised
-# UMAP + HDBSCAN clustering on Sample C end to end. Part 2: export the real
-# B-cell cluster, cross-check it against the manual gate via a Pipeline AND
-# node, then tour Statistics and Comparisons using both as real evidence.
+# Course 3 — Run & Validate
+# No new gating. Validates Course 2's tree, walks unsupervised UMAP + HDBSCAN
+# clustering on Sample C end to end, then exports the real B-cell cluster and
+# cross-checks it against the manual gate via a Pipeline AND node. Ends for
+# real — save workspace, badge, handoff to Course 4.
 # ==============================================================================
 
 # Held as a module-level variable for the same reason course1.py's
@@ -95,13 +90,14 @@ _best_bcell_step: VerificationStep = VerificationStep(
 
 course_3_analysis = Course(
     id="flow_course_3_analysis",
-    title="Population Analysis",
+    title="Population Analysis: Run & Validate",
     description=(
-        "Validate your Course 2 gating, then let UMAP and HDBSCAN independently "
-        "cluster Sample C with zero manual gates — parameter by parameter, with "
-        "the real animation and Interactive Map."
+        "Let UMAP and HDBSCAN independently cluster Sample C with zero "
+        "manual gates, then prove the result out — export the real B-cell "
+        "cluster and cross-check it against your own hand-gating with a "
+        "Pipeline AND node."
     ),
-    estimated_minutes=30,
+    estimated_minutes=55,
     badge_reward="Population Analyst",
     badge_icon="🧠",
     prerequisite_course_ids=["flow_course_2_gating"],
@@ -130,6 +126,12 @@ course_3_analysis = Course(
             on_fail_step_id="c3_s01b_incomplete_gating",
         ),
         InfoStep(
+            # Exits the tutorial (no badge, no completion) rather than
+            # looping the user against a dead end — this step's
+            # allow_interaction is unset (defaults False), so there's no way
+            # to actually leave and go finish Course 2 without abandoning
+            # first. See Course 4's identical c4_s01b_incomplete_analysis
+            # and AcademyManager.abandon_course() for the full explanation.
             id="c3_s01b_incomplete_gating",
             text=(
                 "Missing a gate 🔍<br><br>"
@@ -139,6 +141,7 @@ course_3_analysis = Course(
                 "relaunch Course 3."
             ),
             cyto_emotion="thinking",
+            next_step_id="__abandon__",
         ),
         # ── Switch to Population Analysis tab ───────────────────────────────────
         InteractionStep(
@@ -195,6 +198,25 @@ course_3_analysis = Course(
                 "population, discovered with no gates drawn by you at all."
             ),
             cyto_emotion="talking",
+            next_step_id="c3_s05b_umap_caveats",
+        ),
+        InfoStep(
+            id="c3_s05b_umap_caveats",
+            text=(
+                "When to trust it (and when not) ⚠️<br><br>"
+                "UMAP is genuinely good at preserving *local* neighborhoods — "
+                "which cells resemble which. Don't over-read the rest of the "
+                "picture, though: the distance *between* islands, their "
+                "relative size, and even the overall layout can shift with "
+                "different parameters or a different random seed, even "
+                "though the same real populations keep showing up. Treat "
+                "'these cells cluster together' as trustworthy; treat "
+                "'island A is twice as far from island B as island C' as "
+                "decoration. That's exactly why this course has you "
+                "cross-check the result against your own hand-gating later, "
+                "instead of taking UMAP's word for it alone."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c3_s06_video_rec",
         ),
         InfoStep(
@@ -203,7 +225,7 @@ course_3_analysis = Course(
                 "Want the deeper dive? 🎥<br><br>"
                 "StatQuest's walkthrough is the clearest explanation of how "
                 "UMAP actually works under the hood, if you want more than "
-                "the summary above:<br><br>"
+                "the summary I gave:<br><br>"
                 "[Watch: UMAP, Main Ideas!!! (StatQuest)](https://www.youtube.com/watch?v=m3s0Tgh8ofg)"
             ),
             cyto_emotion="happy",
@@ -490,7 +512,23 @@ course_3_analysis = Course(
             hide_next_button=True,
             allow_interaction=True,
             validator=UmapResultsReadyValidator(),
-            on_success_step_id="c3_s26_plot_gallery",
+            on_success_step_id="c3_s25b_history",
+        ),
+        InfoStep(
+            id="c3_s25b_history",
+            text=(
+                "One thing before we dig into results 📜<br><br>"
+                "That run just got saved to **History** (left sidebar). Every "
+                "run you complete lands here, so if you tweak a parameter and "
+                "run again later, your earlier runs aren't lost — pick any of "
+                "them from this dropdown to instantly revisit its results, no "
+                "recomputing needed. Picking **[ New Run ]** brings back the "
+                "parameter panel so you can configure a fresh run."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            target_widget_names=["UmapHistoryCombo"],
+            next_step_id="c3_s26_plot_gallery",
         ),
         # ── Plot Gallery walkthrough ─────────────────────────────────────────────
         InfoStep(
@@ -514,6 +552,26 @@ course_3_analysis = Course(
                 "If HDBSCAN found clusters, there's also an **Auto-Cluster "
                 "ID** tile — every cell colored by which unsupervised cluster "
                 "it landed in, with zero manual gates involved."
+            ),
+            cyto_emotion="happy",
+            allow_interaction=True,
+            target_widget_names=["ClusterResultsTabs"],
+            next_step_id="c3_s27b_bio_why",
+        ),
+        InfoStep(
+            id="c3_s27b_bio_why",
+            text=(
+                "Why those two islands are different, biologically 🧬<br><br>"
+                "CD3 and B220 didn't just happen to land in separate islands. "
+                "**CD3** marks the T-cell receptor complex; **B220** is a "
+                "B-cell-restricted isoform of CD45. T-cells and B-cells "
+                "diverge early in development into consistently different "
+                "signatures across the other channels too — so UMAP, which "
+                "only ever looks at overall 6-channel similarity and knows "
+                "nothing about what any channel *means*, separates them "
+                "anyway. That's the same T-cell/B-cell distinction you gated "
+                "by hand in Course 2, arrived at here without drawing a "
+                "single gate."
             ),
             cyto_emotion="happy",
             allow_interaction=True,
@@ -580,8 +638,19 @@ course_3_analysis = Course(
             cyto_emotion="thinking",
             next_step_id="c3_s32_marker_dropdown",
         ),
+        # ══════════════════════════════════════════════════════════════════════
+        # Course 3 — Part 2 — Export the B-cell cluster, cross-check it via a
+        # Pipeline AND node, then tour Statistics and Comparisons with both
+        # populations as real evidence.
+        # ══════════════════════════════════════════════════════════════════════
         # ── Marker dropdown ──────────────────────────────────────────────────────
-        InfoStep(
+        # A single polling VerificationStep, not an InfoStep+Next followed by
+        # a separate check — picking an option from a dropdown is a discrete,
+        # complete action every time (unlike the run-name field, where a
+        # VerificationStep auto-advanced on the very first keystroke), so
+        # there's no premature-partial-state risk here to guard against with
+        # a manual Next click in between.
+        VerificationStep(
             id="c3_s32_marker_dropdown",
             text=(
                 "Try a different lens 🔬<br><br>"
@@ -592,19 +661,8 @@ course_3_analysis = Course(
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
-            target_widget_names=["UmapInteractiveMapCombo"],
-            next_step_id="c3_s34_verify_marker",
-        ),
-        # ══════════════════════════════════════════════════════════════════════
-        # Course 3 — Part 2 — Export the B-cell cluster, cross-check it via a
-        # Pipeline AND node, then tour Statistics and Comparisons with both
-        # populations as real evidence.
-        # ══════════════════════════════════════════════════════════════════════
-        VerificationStep(
-            id="c3_s34_verify_marker",
-            text="Checking the marker dropdown...",
-            cyto_emotion="scanning",
             hide_next_button=True,
+            target_widget_names=["UmapInteractiveMapCombo"],
             validator=UmapMarkerColoredValidator("FITC"),
             on_success_step_id="c3_s35_marker_why",
         ),
@@ -612,12 +670,17 @@ course_3_analysis = Course(
             id="c3_s35_marker_why",
             text=(
                 "That's not decoration 🔬<br><br>"
-                "That large lit-up island is real B220 signal — the same "
-                "channel you excluded from the UMAP run itself, so this is "
-                "an independent confirmation, not something UMAP was ever "
-                "told to look for."
+                "That large lit-up island is real B220 signal — and B220 "
+                "**was** one of the channels UMAP saw (only PI and CD45 were "
+                "excluded). So this isn't an unseen-channel confirmation; "
+                "it's proof the 2D layout UMAP built from *all* your marker "
+                "channels together lines up with what gating on B220 alone "
+                "would tell you — the unsupervised structure matches real "
+                "biology, not an artifact of the projection."
             ),
             cyto_emotion="happy",
+            allow_interaction=True,
+            target_widget_names=["UmapInteractiveMapCanvas"],
             next_step_id="c3_s36_switch_pop_stats",
         ),
         # ── Switch to Population Statistics sub-tab ──────────────────────────────
@@ -826,6 +889,42 @@ course_3_analysis = Course(
             metadata={
                 "pipeline_highlight_node_names": ["Leukocytes", "UMAP Reduction", "UMAP B Cells"]
             },
+            next_step_id="c3_s51b_and_node_plan",
+        ),
+        InfoStep(
+            id="c3_s51b_and_node_plan",
+            text=(
+                "Cross-checking the two methods 🔀<br><br>"
+                "You now have two independent ways of finding B-cells: your "
+                "hand-gated **B-cells** population from Course 2, and this "
+                "run's unsupervised **UMAP B Cells**. Next, you'll add a "
+                "Pipeline **AND** logic node and wire both of them into it — "
+                "its output is only the events BOTH methods agree are "
+                "B-cells, which is exactly how you sanity-check an "
+                "unsupervised result against ground truth you already trust."
+            ),
+            cyto_emotion="talking",
+            next_step_id="c3_s51c_logic_nodes_theory",
+        ),
+        InfoStep(
+            id="c3_s51c_logic_nodes_theory",
+            text=(
+                "Three logic gates, one family 🔢<br><br>"
+                "The Pipeline has three logic nodes, all combining "
+                "populations you've already gated: **AND** keeps only events "
+                "present in every connected parent — what you're about to "
+                "use, for agreement between two methods. **OR** keeps events "
+                "present in any connected parent — useful for merging two "
+                "alternate definitions of the same population into one. "
+                "**NOT** keeps events from the first parent while excluding "
+                "a second — useful for an exclusion population, like "
+                "'everything that isn't a T-cell.' This course only needs "
+                "AND, but OR and NOT are there whenever a real analysis "
+                "calls for them."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["AddAndGateButton", "AddOrGateButton", "AddNotGateButton"],
             next_step_id="c3_s52_add_and_node",
         ),
         # ── Add the AND node ──────────────────────────────────────────────────────
@@ -876,336 +975,67 @@ course_3_analysis = Course(
         InfoStep(
             id="c3_s56_explain_and_stats",
             text=(
-                "Read the AND node's real numbers 🔢<br><br>"
-                "Its event count should sit close to your **entire UMAP B "
-                "Cells** count — nearly all of them really do fall inside "
-                "the hand-gated B-cells boundary too. But as a % of your "
-                "**total** B-cells, it'll only cover a modest slice.<br><br>"
-                "That gap isn't disagreement between the two methods — it's "
-                "simply that UMAP only ever saw a **25% subsample** of the "
-                "data to begin with. Two independent methods, real numbers, "
-                "a real, explainable gap."
+                "Read the AND node's two overlap rows 🔢<br><br>"
+                "**% of UMAP B Cells** sits close to 100% — nearly every "
+                "UMAP-clustered B-cell really is inside your hand-gated "
+                "boundary too. No correction needed there: both sides only "
+                "ever looked at the same 25% subsample, so the ratio "
+                "between them is already honest as-is.<br><br>"
+                "**% of B-cells** is the one to watch, and it's the one "
+                "marked as an estimate. The AND's overlap only exists "
+                "inside that same 25% subsample, so dividing it straight "
+                "into your **full** B-cells count would make two methods "
+                "that mostly agree look like they barely overlap. The app "
+                "scales that overlap back up to the full population first, "
+                "so the marked number is close to your true agreement rate "
+                "— an honest estimate, not a silent undercount. Hover it "
+                "for the exact scale factor.<br><br>"
+                "Same trick everywhere a UMAP population feeds a "
+                "calculation: the number marked as an estimate is the one "
+                "worth trusting over its plain, unscaled neighbor."
             ),
             cyto_emotion="happy",
-            next_step_id="c3_s57_switch_statistics",
+            allow_interaction=True,
+            metadata={"pipeline_highlight_node_names": ["AND Logic"]},
+            next_step_id="c3_s57_save_workspace",
         ),
-        # ── Statistics tab ────────────────────────────────────────────────────────
-        InteractionStep(
-            id="c3_s57_switch_statistics",
-            text="Click the 'Statistics' tab at the top.",
-            cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s58_verify_stats_tab",
-        ),
+        # ── Save workspace (Course 4 needs this exported population + AND node) ──
         VerificationStep(
-            id="c3_s58_verify_stats_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=TabActiveValidator(4),
-            on_success_step_id="c3_s59_stats_theory",
-            on_fail_step_id="c3_s58b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s58b_wrong_tab",
-            text="Oops! Click the 'Statistics' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s58_verify_stats_tab",
-        ),
-        InfoStep(
-            id="c3_s59_stats_theory",
+            id="c3_s57_save_workspace",
             text=(
-                "Choosing the right statistic 📊<br><br>"
-                "• % Parent — fraction of the immediate parent gate.<br>"
-                "• % Total — fraction of ALL events in the tube. The number "
-                "to use when comparing a population's true abundance.<br>"
-                "• Median / MFI — the standard, outlier-robust measure of "
-                "fluorescence intensity. Avoid the arithmetic Mean on "
-                "log-scaled fluorescence data.<br>"
-                "• CV (Coefficient of Variation) — how tight or spread-out "
-                "a peak is. High CV = broad, messy population."
-            ),
-            cyto_emotion="talking",
-            next_step_id="c3_s60_select_pops",
-        ),
-        VerificationStep(
-            id="c3_s60_select_pops",
-            text=(
-                "In the sidebar, check at least your manual **B-cells** "
-                "population and your new **UMAP B Cells** population — feel "
-                "free to add others too (like the AND node's population)."
+                "Course 4 needs what you just built — the **UMAP B Cells** "
+                "population and the AND node cross-checking it. We need to "
+                "save our progress.<br><br>"
+                "Click the **⚠️ Save Workspace** button (highlighted) at the "
+                "top right."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            validator=PopulationsCheckedValidator(
-                "_statistics_explorer", "b-cells", "umap b cells"
-            ),
-            on_success_step_id="c3_s61_select_stats",
-        ),
-        VerificationStep(
-            id="c3_s61_select_stats",
-            text="Check at least **% Total** and **CV** in the stat picker.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            validator=StatsCheckedValidator(StatType.PERCENT_TOTAL, StatType.CV),
-            on_success_step_id="c3_s62_read_table",
+            target_widget_names=["WorkspaceSaveButton"],
+            validator=WorkflowSavedValidator(),
+            on_success_step_id="c3_s58_graduation",
+            failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
-            id="c3_s62_read_table",
+            # The true end of Course 3 — no next_step_id, so
+            # AcademyManager.next_step() treats this as course completion
+            # and awards badge_reward ("Population Analyst") the moment the
+            # user clicks Next. Unlike the old Part 1/Part 2 soft-stops,
+            # this one is real: everything Course 4 depends on (the
+            # exported population, the AND node, the saved workspace) is
+            # genuinely in place by this point. What's next (Course 4) is
+            # already shown on the Academy catalog card, so this doesn't
+            # need its own teaser steps — matches Course 1's compact
+            # one-step ending.
+            id="c3_s58_graduation",
             text=(
-                "Read the table 🔍<br><br>"
-                "% Total tells you how the two B-cell populations' real "
-                "abundance compares; CV tells you which one is the tighter, "
-                "cleaner peak. Two independent methods, both showing up as "
-                "real numbers side by side."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s63_chart_toggle",
-        ),
-        InteractionStep(
-            id="c3_s63_chart_toggle",
-            text="Click '📈 Chart' (highlighted) to switch from table to chart view.",
-            target_widget_name="StatsChartMode",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            next_step_id="c3_s64_grouped_bar",
-        ),
-        VerificationStep(
-            id="c3_s64_grouped_bar",
-            text="From the chart-type dropdown, select 'Grouped Bar'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["StatsChartTypeCombo"],
-            validator=StatsChartTypeValidator("grouped bar"),
-            on_success_step_id="c3_s65_grouped_bar_read",
-        ),
-        InfoStep(
-            id="c3_s65_grouped_bar_read",
-            text=(
-                "Good for a handful of populations side by side — "
-                "bars are easy to compare at a glance, up until the labels "
-                "start getting crowded."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s66_horizontal_bar",
-        ),
-        VerificationStep(
-            id="c3_s66_horizontal_bar",
-            text="Now switch to 'Horizontal Bar'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["StatsChartTypeCombo"],
-            validator=StatsChartTypeValidator("horizontal bar"),
-            on_success_step_id="c3_s67_horizontal_bar_read",
-        ),
-        InfoStep(
-            id="c3_s67_horizontal_bar_read",
-            text=(
-                "Same chart, rotated 🔄<br><br>"
-                "Long population names (like 'UMAP B Cells') read much more "
-                "easily here than rotated along a vertical axis — reach for "
-                "this whenever your labels are the crowded part."
-            ),
-            cyto_emotion="talking",
-            next_step_id="c3_s68_heatmap",
-        ),
-        VerificationStep(
-            id="c3_s68_heatmap",
-            text="Now switch to 'Heatmap'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["StatsChartTypeCombo"],
-            validator=StatsChartTypeValidator("heatmap"),
-            on_success_step_id="c3_s69_heatmap_read",
-        ),
-        InfoStep(
-            id="c3_s69_heatmap_read",
-            text=(
-                "One-glance comparison 🗺️<br><br>"
-                "Every population × every stat you picked, all at once — "
-                "the fastest way to scan for anything unexpected across a "
-                "wide comparison."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s70_switch_comparisons",
-        ),
-        # ── Comparisons tab ───────────────────────────────────────────────────────
-        InteractionStep(
-            id="c3_s70_switch_comparisons",
-            text="Click the 'Comparisons' tab at the top.",
-            cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s71_verify_comparisons_tab",
-        ),
-        VerificationStep(
-            id="c3_s71_verify_comparisons_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=TabActiveValidator(7),
-            on_success_step_id="c3_s72_comparisons_intro",
-            on_fail_step_id="c3_s71b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s71b_wrong_tab",
-            text="Oops! Click the 'Comparisons' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s71_verify_comparisons_tab",
-        ),
-        InfoStep(
-            id="c3_s72_comparisons_intro",
-            text=(
-                "5 ways to compare 🎨<br><br>"
-                "This tab has 5 dedicated chart types — let's walk all of "
-                "them, using your manual **B-cells** and new **UMAP B "
-                "Cells** populations as the running example."
-            ),
-            cyto_emotion="talking",
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            next_step_id="c3_s73_violin",
-        ),
-        VerificationStep(
-            id="c3_s73_violin",
-            text="Select '🎻 Violin Plot'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("violin"),
-            on_success_step_id="c3_s74_violin_info",
-        ),
-        InfoStep(
-            id="c3_s74_violin_info",
-            text=(
-                "Wide violin = many cells at that intensity. Your two "
-                "B-cell populations should look like close, largely "
-                "overlapping shapes."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s75_channel_heatmap",
-        ),
-        VerificationStep(
-            id="c3_s75_channel_heatmap",
-            text="Select '🗺️ Channel Heatmap'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("channel heatmap"),
-            on_success_step_id="c3_s76_channel_heatmap_info",
-        ),
-        InfoStep(
-            id="c3_s76_channel_heatmap_info",
-            text=(
-                "Both B-cell rows should light up for B220 the same way — "
-                "one glance, same conclusion as the AND node's numbers."
-            ),
-            cyto_emotion="talking",
-            next_step_id="c3_s77_radar",
-        ),
-        VerificationStep(
-            id="c3_s77_radar",
-            text="Select '🕷️ Radar Chart'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("radar"),
-            on_success_step_id="c3_s78_radar_info",
-        ),
-        InfoStep(
-            id="c3_s78_radar_info",
-            text=(
-                "Two nearly-identical polygons here is exactly the visual "
-                "version of 'these two methods agree.'"
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s79_histogram",
-        ),
-        VerificationStep(
-            id="c3_s79_histogram",
-            text="Select '📊 Histogram Overlay'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("histogram overlay"),
-            on_success_step_id="c3_s80_histogram_info",
-        ),
-        InfoStep(
-            id="c3_s80_histogram_info",
-            text=(
-                "Two closely-stacked peaks on B220 — the same story again, from yet another angle."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s81_pseudocolor",
-        ),
-        VerificationStep(
-            id="c3_s81_pseudocolor",
-            text="Select '🌈 Pseudocolor Overlay' — new since you last saw this tab.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("pseudocolor overlay"),
-            on_success_step_id="c3_s82_pseudocolor_info",
-        ),
-        InfoStep(
-            id="c3_s82_pseudocolor_info",
-            text=(
-                "A different kind of comparison 🌈<br><br>"
-                "This one skips channel expression entirely — it overlays "
-                "population *shapes* on one sample, side by side. Good for "
-                "sanity-checking that your manual and UMAP-derived B-cells "
-                "actually occupy the same region on a real 2D plot, not "
-                "just matching numbers."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s83_part2_close",
-        ),
-        # ── Close (soft-stop, Part 2) ─────────────────────────────────────────────
-        InfoStep(
-            # Still not the true end of Course 3 — same self-loop idiom as
-            # Part 1's own soft-stop (see AcademyManager.next_step(): a
-            # next_step_id of None/"__complete__" is what triggers
-            # complete_course() and awards badge_reward, so a plain
-            # terminal InfoStep's visible "Next →" button would otherwise
-            # complete the course and prematurely award "Population
-            # Analyst" the instant it's clicked). Deliberately does NOT set
-            # manual_dismiss_bubble — that hides Cyto AND the bubble with no
-            # way to bring them back for a step type with no other
-            # advance mechanism, which is exactly the dead end Part 1's own
-            # testing caught. When the next part is written, repoint this
-            # next_step_id at the first new step and move badge_reward to
-            # the true final step.
-            id="c3_s83_part2_close",
-            text=(
-                "Nicely done! 🎉<br><br>"
-                "You've exported a real population from unsupervised "
-                "clustering, cross-checked it against your own hand-gating "
-                "with a Pipeline AND node, and read the agreement out in "
-                "both the Statistics and Comparisons tabs."
-                "<br><br>Course 3 will be complete soon!"
+                "Your workspace is updated!<br><br>Course 3 is complete — "
+                "you're officially a **Population Analyst**! 🏆<br><br>"
+                "See you in Course 4!"
             ),
             cyto_emotion="cheering",
             cyto_animation="cheering",
-            allow_interaction=True,
-            next_step_id="c3_s83_part2_close",
         ),
     ],
 )

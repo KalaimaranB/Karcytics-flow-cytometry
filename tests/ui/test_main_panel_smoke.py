@@ -13,32 +13,6 @@ def qapp():
     return app
 
 
-def test_main_panel_initialization(qapp, qtbot):
-    """Smoke test: Verify FlowCytometryPanel can be instantiated without crashing.
-
-    This catches AttributeErrors in signal wiring and initialization logic.
-    """
-    # We don't need a real Karcytics environment for this smoke test,
-    # just the widget itself.
-    try:
-        from PyQt6.QtWidgets import QWidget
-
-        class DummyPluginBase(QWidget):
-            def __init__(self, *args, **kwargs):
-                super().__init__()
-                self.plugin_id = kwargs.get("plugin_id", args[0] if args else "")
-
-        from karcytics_plugins.flow_cytometry.ui.main_panel import FlowCytometryPanel
-
-        panel = FlowCytometryPanel(plugin_id="flow_smoke_test")
-        qtbot.addWidget(panel)
-        assert panel is not None
-        assert panel.state is not None
-        assert hasattr(panel, "_gate_controller")
-    except Exception as e:
-        pytest.fail(f"FlowCytometryPanel failed to initialize: {e}")
-
-
 def test_gate_modified_pushes_undo_and_dirty_flag(qapp, qtbot):
     """A gate edit (GATE_MODIFIED) must coalesce to exactly one undo
     snapshot + dirty-flag set, same as GATE_CREATED/GATE_DELETED/GATE_RENAMED
@@ -73,28 +47,30 @@ def test_gate_modified_pushes_undo_and_dirty_flag(qapp, qtbot):
     panel.set_dirty.assert_called_once_with(True)
 
 
-def test_graph_manager_initialization(qapp, qtbot, flow_state):
-    """Smoke test: Verify GraphManager and GraphWindow initialization."""
+def test_graph_manager_opens_a_graph_for_a_sample(qapp, qtbot, flow_state):
+    """`open_graph_for_sample` should make a graph available via `get_open_graph`.
+
+    Asserts through `GraphManager`'s own domain accessor rather than reaching
+    into the underlying `QTabWidget` — the tab count/index are an
+    implementation detail of how open graphs happen to be displayed, not
+    what this behavior is about.
+    """
+    from unittest.mock import MagicMock
+
     from karcytics_plugins.flow_cytometry.ui.graph.graph_manager import GraphManager
+    from karcytics_plugins.flow_cytometry.ui.graph.graph_window import GraphWindow
 
-    try:
-        from unittest.mock import MagicMock
+    mock_controller = MagicMock()
+    mock_controller.get_gates_for_display.return_value = ([], [])
+    manager = GraphManager(flow_state, None, MagicMock(), mock_controller)
+    qtbot.addWidget(manager)
 
-        mock_controller = MagicMock()
-        mock_controller.get_gates_for_display.return_value = ([], [])
-        manager = GraphManager(flow_state, None, MagicMock(), mock_controller)
-        qtbot.addWidget(manager)
+    sample_id = "test_sample_1"
+    manager.open_graph_for_sample(sample_id)
 
-        # Test opening a graph
-        sample_id = "test_sample_1"
-        manager.open_graph_for_sample(sample_id)
-
-        assert manager._tabs.count() == 1
-        graph = manager._tabs.widget(0)
-        assert graph is not None
-        assert graph.sample_id == sample_id
-    except Exception as e:
-        pytest.fail(f"GraphManager failed to open graph: {e}")
+    graph = manager.get_open_graph(sample_id)
+    assert isinstance(graph, GraphWindow)
+    assert graph.sample_id == sample_id
 
 
 def test_group_preview_panel_initialization(qapp, qtbot, flow_state):

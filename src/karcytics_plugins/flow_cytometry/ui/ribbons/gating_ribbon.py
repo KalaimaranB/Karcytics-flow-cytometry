@@ -8,14 +8,15 @@ Adaptive Gate toggle.
 from __future__ import annotations
 
 from karcytics_sdk.plugin.components import SecondaryButton
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 
-class GatingRibbon(QWidget):
+class GatingRibbon(ThemedToolbarContainer):
     """Toolbar ribbon for gating tools and actions.
 
     Signals:
@@ -34,7 +35,6 @@ class GatingRibbon(QWidget):
 
     def __init__(self, state: FlowState, parent=None) -> None:
         super().__init__(parent)
-        self.setObjectName("GatingRibbon")
         self._state = state
         self._active_tool = "select"
         self._setup_ui()
@@ -50,9 +50,10 @@ class GatingRibbon(QWidget):
 
         # Drawing tools section
         tools_label = QLabel("Tools:")
-        tools_label.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-            f" font-weight: 600; background: transparent;"
+        theme_manager.apply_style(
+            tools_label,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            f" font-weight: 600; background: transparent;",
         )
         layout.addWidget(tools_label)
 
@@ -89,6 +90,7 @@ class GatingRibbon(QWidget):
         self._sep1 = QWidget()
         self._sep1.setFixedWidth(1)
         self._sep1.setFixedHeight(32)
+        theme_manager.apply_style(self._sep1, "background: {BORDER};")
         layout.addWidget(self._sep1)
 
         # Delete gate
@@ -101,6 +103,7 @@ class GatingRibbon(QWidget):
         self._sep2 = QWidget()
         self._sep2.setFixedWidth(1)
         self._sep2.setFixedHeight(32)
+        theme_manager.apply_style(self._sep2, "background: {BORDER};")
         layout.addWidget(self._sep2)
 
         # Smart features
@@ -111,24 +114,6 @@ class GatingRibbon(QWidget):
         layout.addWidget(btn_copy)
 
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors when theme changes."""
-        self.setObjectName(self.__class__.__name__)
-        self.setStyleSheet(
-            f"QWidget#{self.objectName()} {{ background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER}; }}"
-        )
-        if hasattr(self, "_tools_label"):
-            self._tools_label.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" font-weight: 600; background: transparent;"
-            )
-        if hasattr(self, "_sep1"):
-            self._sep1.setStyleSheet(f"background: {Colors.BORDER};")
-        if hasattr(self, "_sep2"):
-            self._sep2.setStyleSheet(f"background: {Colors.BORDER};")
 
     def _on_tool(self, tool_id: str) -> None:
         """Handle tool button selection — ensure mutual exclusion."""

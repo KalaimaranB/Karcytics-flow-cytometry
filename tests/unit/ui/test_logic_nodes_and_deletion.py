@@ -14,7 +14,6 @@ from karcytics_plugins.flow_cytometry.analysis.services.gate_mutation_service im
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.canvas_view import NodeCanvas
-from karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.items.node_item import NodeItem
 
 
 @pytest.fixture
@@ -107,27 +106,6 @@ def test_remove_population_with_child_populations(mock_flow_state):
     assert sample.gate_tree.find_node_by_id(parent.node_id) is None
     assert sample.gate_tree.find_node_by_id(child.node_id) is None
     assert sample.gate_tree.find_node_by_id(grandchild.node_id) is None
-
-
-def test_node_item_context_menu_emits_delete(qtbot):
-    """Verify NodeItem context menu triggers delete_requested signal."""
-    item = NodeItem("node-123", "Lymphocytes")
-    received = []
-    item.delete_requested.connect(lambda nid: received.append(nid))
-
-    mock_event = MagicMock()
-    mock_event.screenPos.return_value = MagicMock()
-
-    with (
-        patch("PyQt6.QtWidgets.QMenu.exec") as mock_exec,
-        patch("PyQt6.QtWidgets.QMenu.addAction") as mock_add_action,
-    ):
-        action_mock = MagicMock()
-        mock_add_action.return_value = action_mock
-        mock_exec.return_value = action_mock
-
-        item.contextMenuEvent(mock_event)
-        assert received == ["node-123"]
 
 
 def test_node_canvas_confirm_delete_with_children(qtbot, mock_flow_state):

@@ -5,13 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from .._utils import (
-    BiexponentialParameters,
-    ScaleFactory,
-    ScaleSerializer,
-    TransformTypeResolver,
-)
-from ..transforms import TransformType, apply_transform
+from .._utils import ScaleFactory, ScaleSerializer, project_to_display
 from .base import Gate
 
 
@@ -51,16 +45,9 @@ class RangeGate(Gate):
         x_raw = events[self.x_param].values
         bounds_raw = np.array([self.low, self.high])
 
-        x_type = TransformTypeResolver.resolve(getattr(self.x_scale, "transform_type", "linear"))
-        x_kwargs = (
-            BiexponentialParameters(self.x_scale).to_dict()
-            if x_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
-
         # Project to display space
-        x_disp = apply_transform(x_raw, x_type, **x_kwargs)
-        bounds_disp = apply_transform(bounds_raw, x_type, **x_kwargs)
+        x_disp = project_to_display(x_raw, self.x_scale)
+        bounds_disp = project_to_display(bounds_raw, self.x_scale)
         low_disp, high_disp = bounds_disp[0], bounds_disp[1]
 
         return (x_disp >= low_disp) & (x_disp <= high_disp)

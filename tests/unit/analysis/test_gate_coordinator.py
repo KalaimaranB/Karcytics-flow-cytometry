@@ -169,3 +169,112 @@ def test_split_population(gate_coordinator, flow_state, gate_rectangle_singlet):
     assert sibling is not None
     assert sibling.negated is True
     assert sibling.name == "Singlets (Outside)"
+
+
+def test_modify_gate_invalidates_the_node_mask_cache(
+    gate_coordinator, flow_state, gate_rectangle_singlet
+):
+    """`GateNode._get_mask` caches per-events masks (Priority 1 analysis #1).
+    `StatisticsAnalysis._walk_and_compute` doesn't exercise it for regular
+    gate nodes (it calls `gate.contains()` directly), so this checks the
+    cache itself via `apply_hierarchy` — the entry point every UI refresh
+    path (render_window, graph_window, comparisons, population/UMAP views)
+    actually calls.
+    """
+    sample_id = "test_sample_1"
+    node_id = gate_coordinator.add_gate(gate_rectangle_singlet, sample_id, name="Singlets")
+    wait_for_propagation(gate_coordinator)
+
+    sample = flow_state.data.experiment.samples[sample_id]
+    node = sample.gate_tree.find_node_by_id(node_id)
+    events = sample.fcs_data.events
+
+    orig_count = len(node.apply_hierarchy(events))
+
+    success = gate_coordinator.modify_gate(
+        gate_rectangle_singlet.gate_id,
+        sample_id,
+        x_min=100_000,
+        x_max=110_000,
+        y_min=80_000,
+        y_max=90_000,
+    )
+    assert success is True
+    wait_for_propagation(gate_coordinator)
+
+    new_count = len(node.apply_hierarchy(events))
+    assert new_count < orig_count
+
+
+def test_modify_gate_does_not_recompute_an_unrelated_siblings_gate(
+    gate_coordinator, flow_state, gate_rectangle_singlet, gate_rectangle_lymph, monkeypatch
+):
+    """End-to-end proof of Priority 1 analysis #3 (scoped recompute) through
+    the real `GateCoordinator` → `gate_mutation_service` → `StatisticsAnalysis`
+    → `DagEvaluator.evaluate_scoped` pipeline, not just the DagEvaluator unit
+    tests: an edit to one gate must never even *call* an unrelated sibling's
+    `.contains()`, let alone get a different answer from it.
+    """
+    sample_id = "test_sample_1"
+    gate_coordinator.add_gate(gate_rectangle_singlet, sample_id, name="A")
+    gate_coordinator.add_gate(gate_rectangle_lymph, sample_id, name="B")
+    wait_for_propagation(gate_coordinator)
+
+    calls = []
+    original_contains = gate_rectangle_lymph.contains
+
+    def spy_contains(events):
+        calls.append(1)
+        return original_contains(events)
+
+    monkeypatch.setattr(gate_rectangle_lymph, "contains", spy_contains)
+
+    gate_coordinator.modify_gate(
+        gate_rectangle_singlet.gate_id,
+        sample_id,
+        x_min=100_000,
+        x_max=110_000,
+        y_min=80_000,
+        y_max=90_000,
+    )
+    wait_for_propagation(gate_coordinator)
+
+    assert calls == []
+
+
+def test_remove_population_invalidates_a_sibling_logic_nodes_mask_cache(
+    gate_coordinator, flow_state, gate_rectangle_singlet, gate_rectangle_lymph
+):
+    """`remove_population` rewires a logic node's `parents` list directly
+    (`PopulationService._clean_references`) without going through
+    `GateCoordinator.recompute_all_stats` — the one mutation path that
+    doesn't, so its own cache invalidation is verified separately here.
+
+    An OR node needs >=2 real parents (`LOGIC_GATE_MIN_PARENTS`); dropping
+    to 1 makes it `is_incomplete`, which must yield an all-empty mask.
+    That's a sharper signal than re-deriving "A alone" would be: a stale
+    cache returns the old non-empty A-or-B mask outright instead.
+    """
+    sample_id = "test_sample_1"
+    node_a_id = gate_coordinator.add_gate(gate_rectangle_singlet, sample_id, name="A")
+    node_b_id = gate_coordinator.add_gate(gate_rectangle_lymph, sample_id, name="B")
+    wait_for_propagation(gate_coordinator)
+
+    sample = flow_state.data.experiment.samples[sample_id]
+
+    or_id = gate_coordinator._mutation_service.add_logic_node(sample_id, "OR")
+    or_node = sample.gate_tree.find_node_by_id(or_id)
+    gate_coordinator.add_connection(sample_id, node_a_id, or_id)
+    gate_coordinator.add_connection(sample_id, node_b_id, or_id)
+    wait_for_propagation(gate_coordinator)
+
+    events = sample.fcs_data.events
+    orig_count = len(or_node.apply_hierarchy(events))  # populates the cache
+    assert orig_count > 0
+
+    success = gate_coordinator.remove_population(sample_id, node_b_id)
+    assert success is True
+    assert or_node.is_incomplete
+
+    new_count = len(or_node.apply_hierarchy(events))
+    assert new_count == 0

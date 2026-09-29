@@ -150,6 +150,10 @@ jobs:
             --ignore-vuln CVE-2025-69872
         shell: bash
 
+      - name: License compliance check
+        run: uv run python scripts/check_license_compliance.py
+        shell: bash
+
   test:
     name: Tests (${{ matrix.os }})
     needs: [check_version, lint-and-audit]

@@ -470,9 +470,26 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Draw under a non-blocking RasterLock acquire. See paintEvent() for why this
         overrides LayeredMatplotlibCanvas.draw() rather than just inheriting it.
         """
+        self.raster_lock.try_run(self._draw_agg, self._retry_draw)
+
+    def _draw_agg(self) -> None:
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 
-        self.raster_lock.try_run(lambda: FigureCanvasQTAgg.draw(self), self._retry_draw)
+        try:
+            FigureCanvasQTAgg.draw(self)
+        except RuntimeError as exc:
+            # FT_Render_Glyph raster overflow — the same known matplotlib/
+            # FreeType failure mode already guarded against for gate labels
+            # (see flow_services.py's _LABEL_COORD_OVERFLOW_LIMIT) and for
+            # the thumbnail renderer (render_task.py): extreme axis limits
+            # or DPI push a glyph's rasterized size past FreeType's internal
+            # buffer. Without this, RasterLock.try_run's own generic
+            # exception handler still catches it (this frame's paint isn't
+            # lost forever — the widget just keeps its last-drawn frame
+            # until axis limits recover), but logs it as a full ERROR
+            # traceback that reads like a crash. Log a plain warning instead
+            # and leave the previous frame on screen.
+            logger.warning("FlowCanvas.draw() failed (FT_Render_Glyph or similar): %s", exc)
 
     def _retry_draw(self) -> None:
         if sip.isdeleted(self):

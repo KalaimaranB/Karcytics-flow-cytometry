@@ -243,6 +243,7 @@ class UmapAnalysis(AnalysisBase):
             "sample_id": sample_id,
             "node_id": self.target_node_id,
             "n_events": n_events,
+            "parent_total_events": num_total_events,
             "indices": np.array(subsample_df.index),
         }
         if clusters is not None:

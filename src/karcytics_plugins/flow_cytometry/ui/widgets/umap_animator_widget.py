@@ -39,6 +39,77 @@ class _FrameData:
     caption: str
 
 
+def build_umap_animation_frames(
+    prep_data: UmapAnimationDataPrep, fps: int
+) -> tuple[list[_FrameData], np.ndarray]:
+    """Compute every animation frame from prep_data — pure numpy/Python, no
+    widget access, so it's safe to call from a background thread.
+
+    This is the ~750-frame (25s @ 30fps) per-frame math that used to run
+    synchronously on the GUI thread inside `UmapAnimatorWidget.prepare_animation()`,
+    right after the (already-backgrounded) UMAP prep finished — reported live
+    as a UI freeze/spinning-beachball immediately following the "quick UMAP
+    run on a small subset" that builds this preview. Callers should run this
+    on the same background thread as the UMAP prep itself and hand the result
+    to `UmapAnimatorWidget.apply_precomputed_frames()`, which only does the
+    cheap, main-thread-only artist priming.
+    """
+    if prep_data.high_dim_3d is None or prep_data.final_2d is None:
+        return [], np.zeros(0)
+
+    # Normalise colours → [0, 1]
+    assert prep_data.color_data is not None
+    c = prep_data.color_data.astype(float)
+    lo, hi = np.percentile(c, [2, 98])
+    if hi > lo:
+        c = np.clip((c - lo) / (hi - lo), 0.0, 1.0)
+    else:
+        c[:] = 0.5
+
+    # Build phases — 25 s total @ 30 fps = 750 frames
+    p3 = Phase3Initialization(1, prep_data.high_dim_3d, prep_data.knn_edges)
+    p3_end = p3.end_2d
+    p4 = Phase4ForceDirected(1, p3_end, prep_data.final_2d, prep_data.knn_edges)
+    p4_end = p4.end
+
+    phases: list[AnimationPhase] = [
+        Phase1HighDim(fps * 4, prep_data.high_dim_3d),
+        Phase2TopologicalGraph(fps * 5, prep_data.high_dim_3d, prep_data.knn_edges),
+        Phase3Initialization(fps * 4, prep_data.high_dim_3d, prep_data.knn_edges),
+        Phase4ForceDirected(fps * 9, p3_end, prep_data.final_2d, prep_data.knn_edges),
+        Phase5Final(fps * 3, p4_end),
+    ]
+
+    # Build a throw-away DrawCapture that collects each frame's data
+    capture = _DrawCapture()
+    frames: list[_FrameData] = []
+
+    for phase in phases:
+        for f in range(phase.duration_frames):
+            capture.reset()
+            phase.render(f, capture)
+
+            # Convert edges to 3-D segments once per frame
+            data = capture.pts
+            segs: list = []
+            if capture.edge_pairs and capture.edge_alpha > 0.0 and data is not None:
+                for i, j in capture.edge_pairs:
+                    segs.append([data[i].tolist(), data[j].tolist()])
+
+            frames.append(
+                _FrameData(
+                    pts=data.copy() if data is not None else np.zeros((1, 3)),
+                    segs=segs,
+                    edge_alpha=capture.edge_alpha,
+                    elev=capture.elev,
+                    azim=capture.azim,
+                    caption=capture.caption,
+                )
+            )
+
+    return frames, c
+
+
 class UmapAnimatorWidget(QWidget):
     """Renders the 25-second educational UMAP animation.
 
@@ -175,67 +246,34 @@ class UmapAnimatorWidget(QWidget):
     def prepare_animation(self, prep_data: UmapAnimationDataPrep) -> None:
         """Pre-compute every frame (points, edges, camera, caption) so the live
         update callback does zero math — just array assignment.
+
+        Synchronous convenience wrapper that does the frame math on whatever
+        thread it's called from. Prefer computing frames on the same
+        background thread as the UMAP prep via `build_umap_animation_frames()`
+        and handing the result to `apply_precomputed_frames()` instead — this
+        method's own frame-building loop is exactly what used to block the
+        GUI thread for the animation's ~750 frames.
+        """
+        frames, colors = build_umap_animation_frames(prep_data, self.fps)
+        self.apply_precomputed_frames(frames, colors)
+
+    def apply_precomputed_frames(self, frames: list[_FrameData], colors: np.ndarray | None) -> None:
+        """Adopt already-computed frames and prime the scatter artist.
+
+        Only touches widget/artist state — safe and cheap to call on the
+        main thread even though the frames themselves were built elsewhere.
         """
         self.stop()
-        self._frames.clear()
+        self._frames = list(frames)
         self._rendered_frame = -1
 
-        if prep_data.high_dim_3d is None or prep_data.final_2d is None:
+        if not self._frames:
             return
-
-        # Normalise colours → [0, 1]
-        assert prep_data.color_data is not None
-        c = prep_data.color_data.astype(float)
-        lo, hi = np.percentile(c, [2, 98])
-        if hi > lo:
-            c = np.clip((c - lo) / (hi - lo), 0.0, 1.0)
-        else:
-            c[:] = 0.5
-
-        # Build phases — 25 s total @ 30 fps = 750 frames
-        p3 = Phase3Initialization(1, prep_data.high_dim_3d, prep_data.knn_edges)
-        p3_end = p3.end_2d
-        p4 = Phase4ForceDirected(1, p3_end, prep_data.final_2d, prep_data.knn_edges)
-        p4_end = p4.end
-
-        phases: list[AnimationPhase] = [
-            Phase1HighDim(self.fps * 4, prep_data.high_dim_3d),
-            Phase2TopologicalGraph(self.fps * 5, prep_data.high_dim_3d, prep_data.knn_edges),
-            Phase3Initialization(self.fps * 4, prep_data.high_dim_3d, prep_data.knn_edges),
-            Phase4ForceDirected(self.fps * 9, p3_end, prep_data.final_2d, prep_data.knn_edges),
-            Phase5Final(self.fps * 3, p4_end),
-        ]
-
-        # Build a throw-away DrawCapture that collects each frame's data
-        capture = _DrawCapture()
-
-        for phase in phases:
-            for f in range(phase.duration_frames):
-                capture.reset()
-                phase.render(f, capture)
-
-                # Convert edges to 3-D segments once per frame
-                data = capture.pts
-                segs: list = []
-                if capture.edge_pairs and capture.edge_alpha > 0.0 and data is not None:
-                    for i, j in capture.edge_pairs:
-                        segs.append([data[i].tolist(), data[j].tolist()])
-
-                self._frames.append(
-                    _FrameData(
-                        pts=data.copy() if data is not None else np.zeros((1, 3)),
-                        segs=segs,
-                        edge_alpha=capture.edge_alpha,
-                        elev=capture.elev,
-                        azim=capture.azim,
-                        caption=capture.caption,
-                    )
-                )
 
         # Prime the scatter with the correct number of points & colours
         d0 = self._frames[0].pts
         self._scatter._offsets3d = (d0[:, 0], d0[:, 1], d0[:, 2])
-        self._scatter.set_array(c)
+        self._scatter.set_array(colors)
         self._scatter.set_sizes(np.full(len(d0), 55.0))
 
     def start(self) -> None:

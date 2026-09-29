@@ -24,6 +24,7 @@ from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
 if typing.TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
+from karcytics_sdk.plugin.components import repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Colors
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
@@ -137,13 +138,14 @@ class CompensationEditorDialog(QDialog):
         self._table.setHorizontalHeaderLabels(channels)
         self._table.setVerticalHeaderLabels(channels)
 
-        self._x_combo.clear()
-        self._y_combo.clear()
-        self._x_combo.addItems(channels)
-        self._y_combo.addItems(channels)
-
-        if n >= 2:  # noqa: PLR2004
-            self._y_combo.setCurrentIndex(1)
+        items = [(ch, ch) for ch in channels]
+        first = channels[0] if channels else None
+        repopulate_combo(self._x_combo, items, restore_data=first)
+        repopulate_combo(
+            self._y_combo,
+            items,
+            restore_data=channels[1] if n >= 2 else first,  # noqa: PLR2004
+        )
 
         for i in range(n):
             for j in range(n):
