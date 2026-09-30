@@ -201,7 +201,8 @@ threading.
    `comparisons_viewer.py`) — all now theme solely via `MainPanel`'s cascade.
    `statistics_explorer.py` keeps its subscription (it does real cascade-unreachable work —
    repainting an already-computed table/chart with new colors) but no longer also calls
-   `_apply_theme_styles()` itself. Regression-tested in `tests/ui/test_theme_single_propagation.py`.
+   `_apply_theme_styles()` itself. (Its regression tests asserted only against conftest's mocked
+   `theme_manager` and were removed; see `docs/developer/03_TESTING_AND_QA.md`.)
 
 4. ~~Combo repopulation is O(n) full-rebuild on every refresh, ~14 call sites~~ — **Done**
    (except `axis_control_panel.py`, deliberately deferred — see below).
@@ -278,8 +279,8 @@ Concrete extraction targets:
   (`karcytics_sdk.plugin.theme_fallback`) — call it once per widget at construction time instead of
   re-invoking a manual method on every theme change; `PropertiesPanel`/`SpectralLearningTab` keep a
   shrunk `_apply_theme_styles` for one genuine non-styling side effect each (re-rendering
-  Colors-derived content), the other 9 delete the method entirely. Tests:
-  `tests/ui/test_theme_static_migration.py`.
+  Colors-derived content), the other 9 delete the method entirely. (Mock-only migration tests were
+  later removed; see `docs/developer/03_TESTING_AND_QA.md`.)
   **Remaining ~18** (`main_panel.py`, `population_analysis_viewer.py`, `comparisons_viewer.py`,
   `statistics_explorer.py`, `spectral_viewer.py`, `cluster_results_panel.py`,
   `propagation_toggle.py`, `flow_canvas.py`, `umap_animator_widget.py`, `group_preview.py` (×2),
