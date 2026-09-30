@@ -35,6 +35,9 @@ from PyQt6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.controllers.derived_editor_controller import (
+    DerivedEditorController,
+)
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -175,6 +178,12 @@ class FlowCytometryPanel(PluginBase):
         self._fluor_service = self._factory.get("fluor_service")
         self._workspace_io_handler = self._factory.get("workspace_io_handler")
         self._derived_service = self._factory.get("derived_parameter_service")
+        self._derived_editor = DerivedEditorController(
+            self.state,
+            self._derived_service,
+            remove_population=self._gate_coordinator.remove_population,
+            parent=self,
+        )
 
         self._is_dirty = False
 

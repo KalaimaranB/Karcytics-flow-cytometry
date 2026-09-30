@@ -10,6 +10,10 @@ from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBo
 
 from ..flow_canvas import DisplayMode
 
+# Item data of the trailing "＋ New derived parameter…" entry in X/Y combos.
+NEW_DERIVED_SENTINEL = "__new_derived__"
+NEW_DERIVED_LABEL = "＋ New derived parameter…"
+
 
 class AxisControlPanel(QWidget):
     """Axis selection and display mode for GraphWindow."""
@@ -19,9 +23,11 @@ class AxisControlPanel(QWidget):
     fmo_overlay_changed = pyqtSignal(str)  # FMO sample ID or empty string
     transforms_requested = pyqtSignal()
     settings_requested = pyqtSignal()
+    new_derived_requested = pyqtSignal(str)  # "x" or "y"
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self._last_index = {"x": 0, "y": 0}
         self._setup_ui()
 
     def _setup_ui(self) -> None:  # noqa: PLR0915
@@ -34,7 +40,7 @@ class AxisControlPanel(QWidget):
         self._x_combo = FlowComboBox()
         self._x_combo.setObjectName("AxisSelectorX")
         self._x_combo.setMinimumWidth(140)
-        self._x_combo.currentTextChanged.connect(lambda _: self.axis_changed.emit())
+        self._x_combo.currentIndexChanged.connect(lambda _: self._on_axis_combo_changed("x"))
         layout.addWidget(self._x_combo)
 
         layout.addSpacing(16)
@@ -49,7 +55,7 @@ class AxisControlPanel(QWidget):
         self._y_combo = FlowComboBox()
         self._y_combo.setObjectName("AxisSelectorY")
         self._y_combo.setMinimumWidth(140)
-        self._y_combo.currentTextChanged.connect(lambda _: self.axis_changed.emit())
+        self._y_combo.currentIndexChanged.connect(lambda _: self._on_axis_combo_changed("y"))
         self._y_stack.addWidget(self._y_combo)
 
         self._y_count_label = self._make_label("Count")
@@ -207,17 +213,36 @@ class AxisControlPanel(QWidget):
         self._x_combo.addItem(label, ch)
         self._y_combo.addItem(label, ch)
 
+    def add_new_derived_entry(self) -> None:
+        """Append the "＋ New derived parameter…" action after the channels."""
+        for combo in (self._x_combo, self._y_combo):
+            combo.insertSeparator(combo.count())
+            combo.addItem(NEW_DERIVED_LABEL, NEW_DERIVED_SENTINEL)
+
     def set_current_x(self, ch: str) -> None:
-        for i in range(self._x_combo.count()):
-            if self._x_combo.itemData(i) == ch:
-                self._x_combo.setCurrentIndex(i)
-                break
+        self._set_current(self._x_combo, "x", ch)
 
     def set_current_y(self, ch: str) -> None:
-        for i in range(self._y_combo.count()):
-            if self._y_combo.itemData(i) == ch:
-                self._y_combo.setCurrentIndex(i)
+        self._set_current(self._y_combo, "y", ch)
+
+    def _set_current(self, combo, axis: str, ch: str) -> None:
+        for i in range(combo.count()):
+            if combo.itemData(i) == ch:
+                combo.setCurrentIndex(i)
+                self._last_index[axis] = i
                 break
+
+    def _on_axis_combo_changed(self, axis: str) -> None:
+        combo = self._x_combo if axis == "x" else self._y_combo
+        if combo.currentData() == NEW_DERIVED_SENTINEL:
+            # An action, not an axis: snap back without re-rendering.
+            combo.blockSignals(True)
+            combo.setCurrentIndex(self._last_index[axis])
+            combo.blockSignals(False)
+            self.new_derived_requested.emit(axis)
+            return
+        self._last_index[axis] = combo.currentIndex()
+        self.axis_changed.emit()
 
     def add_fmo_option(self, label: str, sample_id: str) -> None:
         self._fmo_combo.addItem(label, sample_id)

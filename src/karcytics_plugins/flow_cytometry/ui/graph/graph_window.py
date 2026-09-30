@@ -81,6 +81,7 @@ class GraphWindow(QWidget):
     tool_change_requested = pyqtSignal(
         str
     )  # "select", "rectangle", "polygon", "ellipse", "quadrant", "range"
+    derived_editor_requested = pyqtSignal(object, str)  # this GraphWindow, "x" | "y"
 
     def __init__(  # noqa: PLR0913
         self,
@@ -216,6 +217,7 @@ class GraphWindow(QWidget):
         self._axis_panel.clear_combos()
         for ch in fcs.channels:
             self._axis_panel.add_channel(get_channel_marker_label(fcs, ch), ch)
+        self._axis_panel.add_new_derived_entry()
         self._axis_panel.set_current_x(new_x)
         self._axis_panel.set_current_y(new_y)
         self._axis_panel.block_combos(False)
@@ -223,6 +225,21 @@ class GraphWindow(QWidget):
         # Re-render if an axis was removed or its values/scale changed.
         if (new_x, new_y) != (x_ch, y_ch) or changed_param in (x_ch, y_ch):
             self._on_axis_changed()
+
+    def select_axis_param(self, axis: str, param: str) -> None:
+        """Put ``param`` on ``axis`` ("x" or "y") and re-render.
+
+        Refreshes the channel list first, so a derived parameter created a
+        moment ago is selectable even before DERIVED_PARAMS_CHANGED arrives.
+        """
+        self._refresh_axis_channels(None)
+        self._axis_panel.block_combos(True)
+        if axis == "y":
+            self._axis_panel.set_current_y(param)
+        else:
+            self._axis_panel.set_current_x(param)
+        self._axis_panel.block_combos(False)
+        self._on_axis_changed()
 
     @property
     def sample_id(self) -> str:
@@ -259,6 +276,9 @@ class GraphWindow(QWidget):
         self._axis_panel.fmo_overlay_changed.connect(self._on_fmo_changed)
         self._axis_panel.transforms_requested.connect(self._open_transform_dialog)
         self._axis_panel.settings_requested.connect(self._open_render_settings_dialog)
+        self._axis_panel.new_derived_requested.connect(
+            lambda axis: self.derived_editor_requested.emit(self, axis)
+        )
 
         layout.addWidget(self._axis_panel)
 
@@ -362,6 +382,7 @@ class GraphWindow(QWidget):
             for ch in fcs.channels:
                 label = get_channel_marker_label(fcs, ch)
                 self._axis_panel.add_channel(label, ch)
+            self._axis_panel.add_new_derived_entry()
 
             self._populate_fmo_combo()
 

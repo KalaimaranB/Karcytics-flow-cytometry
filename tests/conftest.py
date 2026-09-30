@@ -155,6 +155,7 @@ class MockComponents:
 mock_components = MockComponents()
 mock_components.PrimaryButton = DummyButton
 mock_components.SecondaryButton = DummyButton
+mock_components.DangerButton = DummyButton
 mock_components.BioSplitter = DummySplitter
 mock_components.BioFooter = DummyFooter
 mock_components.BioCaptionLabel = DummyLabel

@@ -147,7 +147,7 @@ class DerivedParameterService:
             DerivedParameterError: Bad name, scale, or too many parameters.
             FormulaError: Bad formula (with character position).
         """
-        self._validate_name(draft.name, exclude_id)
+        self.validate_name(draft.name, exclude_id)
         _check_transform(draft.preferred_transform)
         if exclude_id is None and len(self.definitions) >= MAX_DERIVED_PARAMETERS:
             raise DerivedParameterError(
@@ -155,7 +155,8 @@ class DerivedParameterService:
             )
         return self.canonicalize(draft.formula)
 
-    def _validate_name(self, name: str, exclude_id: str | None) -> None:
+    def validate_name(self, name: str, exclude_id: str | None = None) -> None:
+        """Raise DerivedParameterError if ``name`` is unusable."""
         clean = name.strip()
         if not clean:
             raise DerivedParameterError("Name is required")

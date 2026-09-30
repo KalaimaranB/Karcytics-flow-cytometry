@@ -70,6 +70,7 @@ class ServiceFactory:
         marker_service = MarkerService(cache_manager)
         logger.warning("[phase1] ServiceFactory.build_all: CacheManager/bio services done")
 
+        logger.warning("[phase1] ServiceFactory.build_all: constructing DerivedParameterService")
         derived_parameter_service = DerivedParameterService(self.state)
 
         # Gate Coordination

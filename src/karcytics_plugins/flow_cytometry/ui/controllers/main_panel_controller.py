@@ -127,6 +127,8 @@ class MainPanelController:
         panel._gating_ribbon.tool_selected.connect(panel._graph_manager.set_drawing_mode)
         panel._gating_ribbon.delete_gate_requested.connect(panel._on_delete_selected_gate)
         panel._gating_ribbon.copy_gates_requested.connect(panel._on_copy_gates_from_active)
+        panel._gating_ribbon.derived_params_requested.connect(lambda: panel._derived_editor.open())
+        panel._graph_manager.derived_editor_requested.connect(panel._derived_editor.open_for_axis)
 
         # ── Graph manager → gate controller ───────────────────────────
         panel._graph_manager.gate_drawn.connect(panel._on_gate_drawn)
