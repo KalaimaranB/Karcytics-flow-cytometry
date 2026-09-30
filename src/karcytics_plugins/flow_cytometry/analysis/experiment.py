@@ -18,6 +18,7 @@ from enum import Enum
 
 from karcytics_sdk.plugin import get_logger
 
+from .derived.models import DerivedParameter
 from .fcs_io import FCSData
 from .gating import GateNode
 from .scaling import AxisScale
@@ -180,6 +181,8 @@ class WorkflowTemplate:
         groups:          Group definitions with tube layouts.
         gate_template:   Optional saved gating tree (serialized).
         protocol_notes:  Free-text protocol instructions.
+        derived_parameters: Serialized derived-parameter definitions the
+                         gate template may reference.
     """
 
     name: str
@@ -189,6 +192,7 @@ class WorkflowTemplate:
     groups: list[GroupTemplate] = field(default_factory=list)
     gate_template: dict | None = None
     protocol_notes: str = ""
+    derived_parameters: list[dict] = field(default_factory=list)
 
 
 # ── Experiment ───────────────────────────────────────────────────────────────
@@ -207,6 +211,8 @@ class Experiment:
         groups:           All defined groups, keyed by group_id.
         marker_mappings:  The panel's marker-to-channel mappings.
         active_template:  The workflow template currently in use.
+        derived_parameters: Experiment-wide per-event formulas, appended to
+                          every sample's channels (see analysis/derived/).
     """
 
     name: str = "Untitled Experiment"
@@ -214,6 +220,7 @@ class Experiment:
     groups: dict[str, Group] = field(default_factory=dict)
     marker_mappings: list[MarkerMapping] = field(default_factory=list)
     active_template: WorkflowTemplate | None = None
+    derived_parameters: list[DerivedParameter] = field(default_factory=list)
 
     def add_sample(self, sample: Sample) -> None:
         """Add a sample to the experiment.

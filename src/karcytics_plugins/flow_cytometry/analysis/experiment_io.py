@@ -6,6 +6,7 @@ from typing import Any
 
 from karcytics_sdk.plugin import get_logger
 
+from .derived.models import DerivedParameter
 from .experiment import (
     Experiment,
     Group,
@@ -79,6 +80,7 @@ class ExperimentSerializer:
             "groups": [cls.serialize_group_template(g) for g in wt.groups],
             "gate_template": wt.gate_template,
             "protocol_notes": wt.protocol_notes,
+            "derived_parameters": wt.derived_parameters,
         }
 
     @classmethod
@@ -93,6 +95,7 @@ class ExperimentSerializer:
             groups=[cls.deserialize_group_template(g) for g in data.get("groups", [])],
             gate_template=data.get("gate_template"),
             protocol_notes=data.get("protocol_notes", ""),
+            derived_parameters=data.get("derived_parameters", []),
         )
 
     @classmethod
@@ -186,6 +189,7 @@ class ExperimentSerializer:
                 if exp.active_template
                 else None
             ),
+            "derived_parameters": [d.to_dict() for d in exp.derived_parameters],
         }
 
     @classmethod
@@ -219,5 +223,9 @@ class ExperimentSerializer:
         tmpl_data = data.get("active_template")
         if tmpl_data:
             exp.active_template = cls.deserialize_workflow_template(tmpl_data)
+
+        exp.derived_parameters = [
+            DerivedParameter.from_dict(d) for d in data.get("derived_parameters", [])
+        ]
 
         return exp

@@ -20,6 +20,7 @@ import platform
 import subprocess
 import sys
 import time
+import weakref
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -45,7 +46,11 @@ import pandas as pd  # noqa: E402
 
 logger.warning("[phase1] fcs_io: numpy/pandas imported")
 
-from .constants import FCS_LOCK_WARN_SECONDS, FCS_STRIP_RATIO_WARN  # noqa: E402
+from .constants import (  # noqa: E402
+    DERIVED_PREFIX,
+    FCS_LOCK_WARN_SECONDS,
+    FCS_STRIP_RATIO_WARN,
+)
 
 
 def _log_import_diagnostics() -> None:
@@ -180,6 +185,10 @@ class FCSData:
         _fk_sample: The underlying ``flowkit.Sample`` object, if loaded
                     via FlowKit.  Retained for downstream transform
                     and compensation operations.
+        derived_labels: ``derived:<id>`` key -> display label for derived
+                    parameters appended to ``channels``/``events`` (see
+                    ``analysis/derived/sync.py``, the only writer of the
+                    three ``derived_*`` fields).
     """
 
     file_path: Path
@@ -190,6 +199,9 @@ class FCSData:
     metadata: dict[str, str] = field(default_factory=dict)
     is_compensated: bool = False
     _fk_sample: object = field(default=None, repr=False)
+    derived_labels: dict[str, str] = field(default_factory=dict, repr=False)
+    derived_signatures: dict[str, str] = field(default_factory=dict, repr=False)
+    derived_frame_ref: weakref.ref | None = field(default=None, repr=False, compare=False)
 
     @property
     def num_events(self) -> int:
@@ -800,7 +812,7 @@ def get_fluorescence_channels(data: FCSData) -> list[str]:
     Returns:
         List of fluorescence channel names.
     """
-    exclude = ("FSC", "SSC", "Time", "time")
+    exclude = ("FSC", "SSC", "Time", "time", DERIVED_PREFIX)
     return [ch for ch in data.channels if not ch.startswith(exclude)]
 
 
@@ -817,6 +829,9 @@ def get_channel_marker_label(data: FCSData, channel: str) -> str:
     Returns:
         A human-readable label.
     """
+    derived_label = data.derived_labels.get(channel)
+    if derived_label is not None:
+        return derived_label
     try:
         idx = data.channels.index(channel)
         marker = data.markers[idx] if idx < len(data.markers) else ""

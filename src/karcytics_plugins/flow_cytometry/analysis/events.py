@@ -54,3 +54,7 @@ SAMPLE_UPDATED = "flow.gate.sample_updated"
 
 # Experiment-level change (e.g. compensation applied across all samples)
 EXPERIMENT_DATA_CHANGED = "flow.experiment.data_changed"
+
+# Derived-parameter definitions created/edited/deleted. Payload:
+# {"param_id": str, "action": "created" | "updated" | "deleted" | "synced"}
+DERIVED_PARAMS_CHANGED = "flow.derived.changed"

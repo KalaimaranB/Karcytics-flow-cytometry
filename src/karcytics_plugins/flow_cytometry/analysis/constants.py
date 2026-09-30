@@ -122,3 +122,9 @@ LOGIC_GATE_MIN_PARENTS = 2
 # ── Modifier ─────────────────────────────────────────────────────────
 # A polygon gate must have at least 3 vertices.
 POLYGON_MIN_VERTICES = 3
+
+# ── Derived Parameters ───────────────────────────────────────────────
+# Column-key prefix for user-defined per-event formulas (see analysis/derived/).
+# Any channel key with this prefix is computed, never read from the FCS file.
+DERIVED_PREFIX = "derived:"
+MAX_DERIVED_PARAMETERS = 20
