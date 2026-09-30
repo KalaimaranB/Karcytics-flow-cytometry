@@ -7,7 +7,7 @@ Auto-dismisses on mouse leave (handled by SampleViewWidget which calls hide()).
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtWidgets import (
     QFrame,
@@ -110,13 +110,16 @@ class HoverCard(QFrame):
     # ── UI ────────────────────────────────────────────────────────────
 
     def _setup_ui(self) -> None:  # noqa: PLR0915
-        self.setStyleSheet(f"""
-            HoverCard {{
-                background: {Colors.BG_MEDIUM};
-                border: 1px solid {Colors.BORDER};
+        theme_manager.apply_style(
+            self,
+            """
+            HoverCard {
+                background: {BG_MEDIUM};
+                border: 1px solid {BORDER};
                 border-radius: 8px;
-            }}
-        """)
+            }
+        """,
+        )
 
         from PyQt6.QtWidgets import QVBoxLayout
 
@@ -209,13 +212,3 @@ class HoverCard(QFrame):
             f"color: {Colors.FG_SECONDARY}; font-size: 10px; background: transparent;"
         )
         outer.addWidget(self._samples_label)
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on current theme."""
-        self.setStyleSheet(f"""
-            HoverCard {{
-                background: {Colors.BG_MEDIUM};
-                border: 1px solid {Colors.BORDER};
-                border-radius: 8px;
-            }}
-        """)

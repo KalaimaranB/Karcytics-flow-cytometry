@@ -270,10 +270,27 @@ Concrete extraction targets:
 - ~~Fluorescence-channel detection duplicated~~ — **Done** (`compensation.py` now delegates to
   `fcs_io.get_fluorescence_channels`).
 - **35 hand-rolled `_apply_theme_styles` methods** across ribbons/widgets/graph components,
-  each manually f-string-interpolating `Colors.*`/`Fonts.*` into QSS, where the SDK's `Bio*`
-  component family (`BioButton`, `BioComboBox`, `BioLabel`, `BioTableWidget`, `BioSplitter`,
-  `BioScrollArea`) already self-themes. Migrating widgets built on raw `QWidget`/`QComboBox`/
-  `QLabel` to the `Bio*` equivalents removes most of these at the source.
+  each manually f-string-interpolating `Colors.*`/`Fonts.*` into QSS. **17 done, ~18 remaining.**
+  The 6 ribbons (Done, see below) and 11 more "static QSS, no conditionals" classes
+  (`GraphWindow`, `GraphToolbar`, `AxisControlPanel`, `AxisTransformPanel`,
+  `PseudocolorSettingsPanel`, `GroupsPanel`, `SampleList`, `PropertiesPanel`, `HoverCard`,
+  `SpectralLearningTab`, `GateHierarchy`) are migrated to `theme_manager.apply_style()`
+  (`karcytics_sdk.plugin.theme_fallback`) — call it once per widget at construction time instead of
+  re-invoking a manual method on every theme change; `PropertiesPanel`/`SpectralLearningTab` keep a
+  shrunk `_apply_theme_styles` for one genuine non-styling side effect each (re-rendering
+  Colors-derived content), the other 9 delete the method entirely. Tests:
+  `tests/ui/test_theme_static_migration.py`.
+  **Remaining ~18** (`main_panel.py`, `population_analysis_viewer.py`, `comparisons_viewer.py`,
+  `statistics_explorer.py`, `spectral_viewer.py`, `cluster_results_panel.py`,
+  `propagation_toggle.py`, `flow_canvas.py`, `umap_animator_widget.py`, `group_preview.py` (×2),
+  `canvas_view.py` (×2), `graph_manager.py`, `styled_combo.py`'s `FlowComboBox`,
+  `all_samples_popup.py`, `population_selection_popup.py`, `floating_grid_popup.py`) branch on
+  runtime state, drive matplotlib (non-QSS) styling, loop over dynamically-changing children, or
+  (the last 3) are entangled with a `FloatingGridPopup` base class under active concurrent
+  development elsewhere — these need case-by-case redesign, not a mechanical pass, and are
+  intentionally deferred. `marker_panel.py`'s `_apply_theme_styles` was found to be on a class
+  never instantiated anywhere in `src/` or `tests/` (dead code) — flagged for a separate
+  is-this-still-needed cleanup, not migrated.
 - **`FlowComboBox` (`ui/widgets/styled_combo.py:17-67`) duplicates `BioComboBox`
   (`components.py:575-616`) at ~90% code overlap**, used in 10 files, while sibling files doing
   the same job (`statistics_explorer.py`, `population_analysis_viewer.py`, `comparisons_viewer.py`,

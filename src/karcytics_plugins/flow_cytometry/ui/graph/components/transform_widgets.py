@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QDoubleValidator
 from PyQt6.QtWidgets import (
@@ -56,10 +56,6 @@ class AxisTransformPanel(QWidget):
         self._change_timer.setInterval(150)
         self._change_timer.timeout.connect(self.scale_changed)
 
-        self._themed_buttons: list[QPushButton] = []
-        self._section_labels: list[QLabel] = []
-        self._separators: list[QWidget] = []
-
         self._setup_ui()
         self._load_from_scale()
 
@@ -78,8 +74,7 @@ class AxisTransformPanel(QWidget):
         type_layout.setContentsMargins(0, 0, 0, 0)
 
         lbl_type = QLabel("Scale Type")
-        lbl_type.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
-        self._section_labels.append(lbl_type)
+        self._style_section_label(lbl_type)
         type_layout.addWidget(lbl_type)
 
         self._type_group = QButtonGroup(self)
@@ -110,8 +105,7 @@ class AxisTransformPanel(QWidget):
 
         hbox_range_header = QHBoxLayout()
         lbl_range = QLabel("Display Range")
-        lbl_range.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
-        self._section_labels.append(lbl_range)
+        self._style_section_label(lbl_range)
         hbox_range_header.addWidget(lbl_range)
 
         self._btn_auto = QPushButton("Auto-Range")
@@ -176,8 +170,7 @@ class AxisTransformPanel(QWidget):
         logicle_layout.setContentsMargins(0, 0, 0, 0)
 
         lbl_logicle = QLabel("Biexponential (Logicle) Parameters")
-        lbl_logicle.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
-        self._section_labels.append(lbl_logicle)
+        self._style_section_label(lbl_logicle)
         logicle_layout.addWidget(lbl_logicle)
 
         # Short explainer
@@ -282,43 +275,27 @@ class AxisTransformPanel(QWidget):
     def _add_separator(self, layout: QVBoxLayout) -> None:
         sep = QWidget()
         sep.setFixedHeight(1)
-        sep.setStyleSheet(f"background: {Colors.BORDER};")
-        self._separators.append(sep)
+        theme_manager.apply_style(sep, "background: {BORDER};")
         layout.addWidget(sep)
 
     def _style_button(self, btn: QPushButton) -> None:
-        btn.setStyleSheet(
-            f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-            f" border: 1px solid {Colors.BORDER}; border-radius: 4px;"
-            f" padding: 4px 8px; }}"
-            f"QPushButton:hover {{ background: {Colors.ACCENT_PRIMARY}; color: {Colors.BG_DARKEST}; }}"
+        theme_manager.apply_style(
+            btn,
+            "QPushButton { background: {BG_MEDIUM}; color: {FG_PRIMARY};"
+            " border: 1px solid {BORDER}; border-radius: 4px;"
+            " padding: 4px 8px; }"
+            "QPushButton:hover { background: {ACCENT_PRIMARY}; color: {BG_DARKEST}; }",
         )
-        if btn not in self._themed_buttons:
-            self._themed_buttons.append(btn)
+
+    def _style_section_label(self, lbl: QLabel) -> None:
+        theme_manager.apply_style(lbl, "color: {FG_SECONDARY}; font-weight: bold;")
 
     def _style_hint_label(self, lbl: QLabel) -> None:
-        lbl.setStyleSheet(
-            f"color: {Colors.FG_DISABLED}; font-size: 10px; "
-            f"background: {Colors.BG_DARKEST}; padding: 4px; border-radius: 4px;"
+        theme_manager.apply_style(
+            lbl,
+            "color: {FG_DISABLED}; font-size: 10px; "
+            "background: {BG_DARKEST}; padding: 4px; border-radius: 4px;",
         )
-
-    # ── Theme ─────────────────────────────────────────────────────────
-
-    def _apply_theme_styles(self) -> None:
-        """Re-apply Colors-derived QSS baked in at construction time.
-
-        The workspace's TransformDialog always rebuilds this panel fresh
-        (so it's never stale), but a caller that constructs it once and
-        reuses it (e.g. the Comparisons tab's embedded copy) needs to call
-        this on every theme change to avoid frozen colors.
-        """
-        for btn in self._themed_buttons:
-            self._style_button(btn)
-        for lbl in self._section_labels:
-            lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-weight: bold;")
-        self._style_hint_label(self._lbl_hint)
-        for sep in self._separators:
-            sep.setStyleSheet(f"background: {Colors.BORDER};")
 
     # ── State Sync ────────────────────────────────────────────────────
 

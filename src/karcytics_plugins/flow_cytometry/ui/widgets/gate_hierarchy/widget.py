@@ -11,7 +11,7 @@ New public additions:
 from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -84,12 +84,20 @@ class GateHierarchy(QWidget):
         # ── Header strip ──────────────────────────────────────────────
         self._header_widget = QWidget()
         self._header_widget.setFixedHeight(72)
+        theme_manager.apply_style(
+            self._header_widget, "background: {BG_DARK}; border-bottom: 1px solid {BORDER};"
+        )
         header_layout = QVBoxLayout(self._header_widget)
         header_layout.setContentsMargins(8, 6, 8, 6)
         header_layout.setSpacing(4)
 
         # Section label
         self._section_label = QLabel("GATING HIERARCHY")
+        theme_manager.apply_style(
+            self._section_label,
+            "color: {FG_DISABLED}; font-size: 9px; font-weight: 700;"
+            " letter-spacing: 1px; background: transparent;",
+        )
         header_layout.addWidget(self._section_label)
 
         # Toggle + All Samples button row
@@ -106,6 +114,23 @@ class GateHierarchy(QWidget):
         self._btn_all_samples.setFixedSize(28, 22)
         self._btn_all_samples.setCursor(Qt.CursorShape.PointingHandCursor)
         self._btn_all_samples.clicked.connect(self._on_all_samples_clicked)
+        theme_manager.apply_style(
+            self._btn_all_samples,
+            """
+                QPushButton {
+                    background: {BG_MEDIUM};
+                    color: {ACCENT_PRIMARY};
+                    border: 1px solid {BORDER};
+                    border-radius: 4px;
+                    font-size: 13px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background: {BORDER};
+                    color: {FG_PRIMARY};
+                }
+            """,
+        )
         controls_row.addWidget(self._btn_all_samples)
 
         header_layout.addLayout(controls_row)
@@ -115,6 +140,12 @@ class GateHierarchy(QWidget):
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        theme_manager.apply_style(
+            self._scroll,
+            "QScrollArea { background: {BG_DARKEST}; border: none; }"
+            "QScrollBar:vertical { background: {BG_DARK}; width: 4px; }"
+            "QScrollBar::handle:vertical { background: {BORDER}; border-radius: 2px; }",
+        )
 
         self._sample_view = SampleViewWidget(self._state)
         self._sample_view.setObjectName("GatingHierarchySampleView")
@@ -136,12 +167,15 @@ class GateHierarchy(QWidget):
 
         self.btn_zoom_in = QPushButton("Zoom In (+)")
         self.btn_zoom_in.clicked.connect(self._sample_view.zoom_in)
+        self._style_zoom_btn(self.btn_zoom_in)
 
         self.btn_zoom_out = QPushButton("Zoom Out (-)")
         self.btn_zoom_out.clicked.connect(self._sample_view.zoom_out)
+        self._style_zoom_btn(self.btn_zoom_out)
 
         self.btn_fit = QPushButton("Fit View (F)")
         self.btn_fit.clicked.connect(self._sample_view.fit_view)
+        self._style_zoom_btn(self.btn_fit)
 
         overlay_layout.addWidget(self.btn_zoom_out)
         overlay_layout.addWidget(self.btn_zoom_in)
@@ -156,72 +190,29 @@ class GateHierarchy(QWidget):
         )
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_label.setWordWrap(True)
+        theme_manager.apply_style(
+            self._empty_label,
+            f"color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " padding: 24px; background: {BG_DARKEST};",
+        )
         layout.addWidget(self._empty_label, stretch=1)
         self._empty_label.hide()
 
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on the current theme."""
-        if hasattr(self, "_header_widget"):
-            self._header_widget.setStyleSheet(
-                f"background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER};"
-            )
-        if hasattr(self, "_section_label"):
-            self._section_label.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: 9px; font-weight: 700;"
-                " letter-spacing: 1px; background: transparent;"
-            )
-        if hasattr(self, "_btn_all_samples"):
-            self._btn_all_samples.setStyleSheet(f"""
-                QPushButton {{
-                    background: {Colors.BG_MEDIUM};
-                    color: {Colors.ACCENT_PRIMARY};
-                    border: 1px solid {Colors.BORDER};
-                    border-radius: 4px;
-                    font-size: 13px;
-                    font-weight: bold;
-                }}
-                QPushButton:hover {{
-                    background: {Colors.BORDER};
-                    color: {Colors.FG_PRIMARY};
-                }}
-            """)
-        if hasattr(self, "_scroll"):
-            self._scroll.setStyleSheet(
-                f"QScrollArea {{ background: {Colors.BG_DARKEST}; border: none; }}"
-                f"QScrollBar:vertical {{ background: {Colors.BG_DARK}; width: 4px; }}"
-                f"QScrollBar::handle:vertical {{ background: {Colors.BORDER}; border-radius: 2px; }}"
-            )
-        btn_style = (
-            f"QPushButton {{"
-            f"  background: {Colors.BG_MEDIUM};"
-            f"  color: {Colors.FG_PRIMARY};"
-            f"  border: 1px solid {Colors.BORDER};"
-            f"  border-radius: 4px;"
-            f"  padding: 6px 12px;"
-            f"}}"
-            f"QPushButton:hover {{"
-            f"  background: {Colors.BORDER};"
-            f"  border: 1px solid {Colors.ACCENT_PRIMARY};"
-            f"}}"
+    def _style_zoom_btn(self, btn: QPushButton) -> None:
+        theme_manager.apply_style(
+            btn,
+            "QPushButton {"
+            "  background: {BG_MEDIUM};"
+            "  color: {FG_PRIMARY};"
+            "  border: 1px solid {BORDER};"
+            "  border-radius: 4px;"
+            "  padding: 6px 12px;"
+            "}"
+            "QPushButton:hover {"
+            "  background: {BORDER};"
+            "  border: 1px solid {ACCENT_PRIMARY};"
+            "}",
         )
-        for btn in (
-            getattr(self, "btn_zoom_in", None),
-            getattr(self, "btn_zoom_out", None),
-            getattr(self, "btn_fit", None),
-        ):
-            if btn:
-                btn.setStyleSheet(btn_style)
-        if hasattr(self, "_empty_label"):
-            self._empty_label.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" padding: 24px; background: {Colors.BG_DARKEST};"
-            )
-        if hasattr(self, "_toggle") and hasattr(self._toggle, "_apply_theme_styles"):
-            self._toggle._apply_theme_styles()
-        if hasattr(self, "_sample_view") and hasattr(self._sample_view, "_apply_theme_styles"):
-            self._sample_view._apply_theme_styles()
 
     def _setup_events(self) -> None:
         CentralEventBus.subscribe(events.GATE_CREATED, self._on_gate_change)

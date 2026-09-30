@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -104,6 +104,22 @@ class SampleList(QWidget):
         self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._tree.customContextMenuRequested.connect(self._on_context_menu)
         self._tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
+        theme_manager.apply_style(
+            self._tree,
+            "QTreeWidget { background: {BG_DARKEST};"
+            " border: none; outline: none;"
+            " color: {FG_PRIMARY};"
+            f" font-size: {Fonts.SIZE_SMALL}px; }}"
+            "QTreeWidget::item { padding: 6px 4px;"
+            " border-bottom: 1px solid {BG_DARK}; }"
+            "QTreeWidget::item:selected { background: {BG_MEDIUM};"
+            " color: {ACCENT_PRIMARY}; border-left: 3px solid {ACCENT_PRIMARY}; }"
+            "QTreeWidget::item:hover { background: {BG_DARK}; }"
+            "QHeaderView::section { background: {BG_DARK};"
+            " color: {FG_SECONDARY}; border: none;"
+            " border-bottom: 1px solid {BORDER};"
+            " padding: 4px 6px; font-size: 10px; font-weight: 600; }",
+        )
         layout.addWidget(self._tree, stretch=1)
 
         # Empty state placeholder
@@ -112,34 +128,13 @@ class SampleList(QWidget):
         )
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_label.setWordWrap(True)
+        theme_manager.apply_style(
+            self._empty_label,
+            f"color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " padding: 24px; background: {BG_DARKEST};",
+        )
         layout.addWidget(self._empty_label, stretch=1)
         self._empty_label.hide()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh all UI colors based on the current theme."""
-        if hasattr(self, "_tree"):
-            self._tree.setStyleSheet(
-                f"QTreeWidget {{ background: {Colors.BG_DARKEST};"
-                f" border: none; outline: none;"
-                f" color: {Colors.FG_PRIMARY};"
-                f" font-size: {Fonts.SIZE_SMALL}px; }}"
-                f"QTreeWidget::item {{ padding: 6px 4px;"
-                f" border-bottom: 1px solid {Colors.BG_DARK}; }}"
-                f"QTreeWidget::item:selected {{ background: {Colors.BG_MEDIUM};"
-                f" color: {Colors.ACCENT_PRIMARY}; border-left: 3px solid {Colors.ACCENT_PRIMARY}; }}"
-                f"QTreeWidget::item:hover {{ background: {Colors.BG_DARK}; }}"
-                f"QHeaderView::section {{ background: {Colors.BG_DARK};"
-                f" color: {Colors.FG_SECONDARY}; border: none;"
-                f" border-bottom: 1px solid {Colors.BORDER};"
-                f" padding: 4px 6px; font-size: 10px; font-weight: 600; }}"
-            )
-        if hasattr(self, "_empty_label"):
-            self._empty_label.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" padding: 24px; background: {Colors.BG_DARKEST};"
-            )
 
         self._update_empty_state()
 

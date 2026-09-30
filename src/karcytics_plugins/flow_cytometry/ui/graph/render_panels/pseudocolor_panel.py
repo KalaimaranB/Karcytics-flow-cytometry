@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QFormLayout,
@@ -49,7 +49,6 @@ class PseudocolorSettingsPanel(QWidget):
         # ── Presets ───────────────────────────────────────────────────
         layout.addWidget(section_header("Quick Presets"))
         preset_row = QHBoxLayout()
-        self._preset_buttons: list[QPushButton] = []
         for label, func in [
             ("Standard", self._preset_standard),
             ("Publication", self._preset_publication),
@@ -58,8 +57,15 @@ class PseudocolorSettingsPanel(QWidget):
             btn = QPushButton(label)
             btn.setFixedHeight(26)
             btn.clicked.connect(func)
+            theme_manager.apply_style(
+                btn,
+                "QPushButton { background: {BG_MEDIUM}; color: {FG_PRIMARY};"
+                " border: 1px solid {BORDER}; border-radius: 4px;"
+                " font-size: 11px; font-weight: 600; padding: 2px 8px; }"
+                "QPushButton:hover { background: {ACCENT_PRIMARY};"
+                " color: {BG_DARKEST}; }",
+            )
             preset_row.addWidget(btn)
-            self._preset_buttons.append(btn)
         layout.addLayout(preset_row)
 
         # ── Color scheme ──────────────────────────────────────────────
@@ -77,6 +83,9 @@ class PseudocolorSettingsPanel(QWidget):
                 break
         self._cmap_combo.currentIndexChanged.connect(lambda _: self.changed.emit())
         self._cmap_label = QLabel("Colormap:")
+        theme_manager.apply_style(
+            self._cmap_label, f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+        )
         form1.addRow(self._cmap_label, self._cmap_combo)
         layout.addLayout(form1)
 
@@ -99,7 +108,6 @@ class PseudocolorSettingsPanel(QWidget):
 
         # Quick cap buttons
         cap_row = QHBoxLayout()
-        self._cap_buttons: list[QPushButton] = []
         for label, val in [
             ("10k", 10_000),
             ("50k", 50_000),
@@ -111,8 +119,13 @@ class PseudocolorSettingsPanel(QWidget):
             b.clicked.connect(
                 lambda _, v=val: self._spin_events.setValue(min(v, self._max_sample_events))
             )
+            theme_manager.apply_style(
+                b,
+                "QPushButton { background: {BG_MEDIUM}; color: {FG_SECONDARY};"
+                " border: 1px solid {BORDER}; border-radius: 3px; font-size: 10px; }"
+                "QPushButton:hover { color: {ACCENT_PRIMARY}; }",
+            )
             cap_row.addWidget(b)
-            self._cap_buttons.append(b)
         form2.addRow("", QWidget())  # spacer row
         layout.addLayout(form2)
         layout.addLayout(cap_row)
@@ -214,37 +227,6 @@ class PseudocolorSettingsPanel(QWidget):
 
         layout.addLayout(form3)
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    # ── Theme ─────────────────────────────────────────────────────────
-
-    def _apply_theme_styles(self) -> None:
-        """Re-apply Colors-derived QSS baked in at construction time.
-
-        The workspace dialog always rebuilds this panel fresh (so it's
-        never stale), but a caller that constructs it once and reuses it
-        (e.g. the Comparisons tab's embedded copy) needs to call this on
-        every theme change to avoid frozen colors.
-        """
-        self.setStyleSheet(PANEL_STYLE)
-        for btn in self._preset_buttons:
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 4px;"
-                f" font-size: 11px; font-weight: 600; padding: 2px 8px; }}"
-                f"QPushButton:hover {{ background: {Colors.ACCENT_PRIMARY};"
-                f" color: {Colors.BG_DARKEST}; }}"
-            )
-        for btn in self._cap_buttons:
-            btn.setStyleSheet(
-                f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_SECONDARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 3px; font-size: 10px; }}"
-                f"QPushButton:hover {{ color: {Colors.ACCENT_PRIMARY}; }}"
-            )
-        self._cmap_label.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-        )
 
     # ── Presets ───────────────────────────────────────────────────────
 

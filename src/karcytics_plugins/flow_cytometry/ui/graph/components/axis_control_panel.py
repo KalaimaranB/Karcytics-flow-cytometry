@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
@@ -53,6 +53,10 @@ class AxisControlPanel(QWidget):
         self._y_stack.addWidget(self._y_combo)
 
         self._y_count_label = self._make_label("Count")
+        theme_manager.apply_style(
+            self._y_count_label,
+            "color: {FG_PRIMARY}; font-size: 12px; font-weight: 500; padding: 2px 8px;",
+        )
         self._y_stack.addWidget(self._y_count_label)
 
         # Default to Y combo
@@ -92,11 +96,17 @@ class AxisControlPanel(QWidget):
         self._transform_btn.setFixedHeight(24)
         self._transform_btn.setToolTip("Open Axis Scaling & Transforms dialog")
         self._transform_btn.clicked.connect(self.transforms_requested.emit)
+        self._style_btn(self._transform_btn)
         layout.addWidget(self._transform_btn)
 
         # ── Render spinner ────────────────────────────────────────────
         self._render_spinner = QLabel("⟳ Rendering…")
         self._render_spinner.setVisible(False)
+        theme_manager.apply_style(
+            self._render_spinner,
+            "color: {ACCENT_PRIMARY}; font-size: 11px; font-weight: 600;"
+            " background: transparent; padding: 0 6px;",
+        )
         layout.addWidget(self._render_spinner)
 
         # ── Render Settings Button ──
@@ -106,66 +116,31 @@ class AxisControlPanel(QWidget):
         self._btn_settings.setFixedHeight(24)
         self._btn_settings.setToolTip("Customize rendering parameters")
         self._btn_settings.clicked.connect(self.settings_requested.emit)
+        self._style_btn(self._btn_settings)
         layout.addWidget(self._btn_settings)
 
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on current theme."""
-        for lbl in (
-            getattr(self, "_x_label", None),
-            getattr(self, "_y_label", None),
-            getattr(self, "_fmo_label", None),
-        ):
-            if lbl:
-                lbl.setStyleSheet(
-                    f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                    f" font-weight: 600; background: transparent;"
-                )
-        if hasattr(self, "_y_count_label"):
-            self._y_count_label.setStyleSheet(
-                f"color: {Colors.FG_PRIMARY}; font-size: 12px; font-weight: 500; padding: 2px 8px;"
-            )
-        if hasattr(self, "_render_spinner"):
-            self._render_spinner.setStyleSheet(
-                f"color: {Colors.ACCENT_PRIMARY}; font-size: 11px; font-weight: 600;"
-                " background: transparent; padding: 0 6px;"
-            )
-        for btn in (
-            getattr(self, "_transform_btn", None),
-            getattr(self, "_btn_settings", None),
-        ):
-            if btn:
-                self._style_btn(btn)
-        for combo in (
-            getattr(self, "_x_combo", None),
-            getattr(self, "_y_combo", None),
-            getattr(self, "_display_combo", None),
-            getattr(self, "_fmo_combo", None),
-        ):
-            if combo and hasattr(combo, "_apply_theme_styles"):
-                combo._apply_theme_styles()
 
     def set_spinner_visible(self, visible: bool) -> None:
         self._render_spinner.setVisible(visible)
 
     def _make_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-            f" font-weight: 600; background: transparent;"
+        theme_manager.apply_style(
+            lbl,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " font-weight: 600; background: transparent;",
         )
         return lbl
 
     def _style_btn(self, btn: QPushButton) -> None:
-        btn.setStyleSheet(
-            f"QPushButton {{ background: {Colors.BG_MEDIUM};"
-            f" color: {Colors.FG_PRIMARY}; border: 1px solid {Colors.BORDER};"
-            f" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; }}"
-            f"QPushButton:hover {{ background: {Colors.BG_DARK};"
-            f" color: {Colors.ACCENT_PRIMARY}; }}"
+        theme_manager.apply_style(
+            btn,
+            "QPushButton { background: {BG_MEDIUM};"
+            " color: {FG_PRIMARY}; border: 1px solid {BORDER};"
+            " border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; }"
+            "QPushButton:hover { background: {BG_DARK};"
+            " color: {ACCENT_PRIMARY}; }",
         )
 
     # Proxy methods for combos

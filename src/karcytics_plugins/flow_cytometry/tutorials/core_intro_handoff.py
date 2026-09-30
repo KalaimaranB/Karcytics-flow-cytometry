@@ -25,6 +25,7 @@ at its graduation phase (see `karcytics/core/plugins/loader.py`).
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -37,9 +38,23 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
-from .validators import WorkflowSavedValidator
+from .validators import PopupClosedValidator, PreferencesPageValidator, WorkflowSavedValidator
 
 CORE_INTRO_HANDOFF_COURSE_ID = "core_intro_module_v1"
+
+# SDKPreferencesDialog's object name (karcytics_sdk.plugin.ui_preferences.
+# PREFERENCES_DIALOG_OBJECT_NAME) — spelled out rather than imported so this
+# module still loads against an SDK older than that constant.
+_PREFERENCES_DIALOG = "PreferencesDialog"
+
+# The SDK menu bar gives Preferences… QAction.MenuRole.PreferencesRole, which
+# macOS moves out of Edit into the app-name menu ("Flow Cytometry" — the
+# isolated window's app name, see ui_daemon.py's window_title).
+_PREFERENCES_MENU_PATH = (
+    "the **Flow Cytometry** menu at the top of your screen → **Preferences…**"
+    if sys.platform == "darwin"
+    else "the **Edit** menu → **Preferences…**"
+)
 
 
 def _copy_demo_file(_panel: Any) -> None:
@@ -161,12 +176,47 @@ core_intro_module = Course(
             allow_interaction=True,
             target_widget_names=["WorkspaceSaveButton"],
             validator=WorkflowSavedValidator(),
+            on_success_step_id="handoff_prefs_open",
+        ),
+        VerificationStep(
+            id="handoff_prefs_open",
+            text=(
+                "Saved! 🎉 Every module also has its own preferences. "
+                f"Open them from {_PREFERENCES_MENU_PATH}"
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            validator=PreferencesPageValidator(),
+            on_success_step_id="handoff_prefs_workspace",
+        ),
+        VerificationStep(
+            id="handoff_prefs_workspace",
+            text="These are Flow Cytometry's own preferences. Click **Workspace** in the list on the left.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            target_widget_names=["PreferencesNavList"],
+            validator=PreferencesPageValidator("Workspace"),
+            failure_hint=f"Closed Preferences? Reopen it from {_PREFERENCES_MENU_PATH}, then click **Workspace**.",
+            on_success_step_id="handoff_prefs_autosave",
+        ),
+        VerificationStep(
+            id="handoff_prefs_autosave",
+            text=(
+                "Tick **Autosave workflows every 15 minutes** and Karcytics will quietly re-save your workflow for you. "  # noqa: E501
+                "It only kicks in once a workflow has been saved manually — which you just did. "
+                "Leave it off and you'll get a gentle reminder every 15 minutes instead.\n\n"
+                "Close **Preferences** whenever you're ready to continue."
+            ),
+            cyto_emotion="happy",
+            allow_interaction=True,
+            target_widget_names=["AutosaveWorkflowsCheckbox"],
+            validator=PopupClosedValidator(_PREFERENCES_DIALOG),
             on_success_step_id="handoff_return_home",
         ),
         InfoStep(
             id="handoff_return_home",
             text=(
-                "Saved! Close this window (File → Close, or the OS close button) to head back to Karcytics — Cyto's waiting for you there."  # noqa: E501
+                "All set! Close this window (File → Close, or the OS close button) to head back to Karcytics — Cyto's waiting for you there."  # noqa: E501
             ),
             cyto_emotion="happy",
         ),

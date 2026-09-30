@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from karcytics_sdk.plugin.components import BioCaptionLabel, PrimaryButton, SecondaryButton
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib import patches
 from matplotlib.figure import Figure
 from PyQt6.QtCore import QTimer
@@ -183,6 +183,9 @@ class SpectralLearningTab(QWidget):
 
         header = QHBoxLayout()
         self._step_label = BioCaptionLabel("Step 1")
+        theme_manager.apply_style(
+            self._step_label, "color: {FG_PRIMARY}; font-size: 16px; font-weight: bold;"
+        )
         header.addWidget(self._step_label)
         header.addStretch()
 
@@ -204,10 +207,18 @@ class SpectralLearningTab(QWidget):
         self._explanation.setMaximumWidth(450)
         self._explanation.setOpenLinks(False)
         self._explanation.anchorClicked.connect(self._on_html_link_clicked)
+        theme_manager.apply_style(
+            self._explanation,
+            "background: {BG_DARK}; color: {FG_PRIMARY}; border: 1px solid {BORDER};"
+            " border-radius: 6px; padding: 12px; font-size: 14px;",
+        )
         left_panel.addWidget(self._explanation, stretch=1)
 
         self._readout_label = QLabel()
         self._readout_label.setWordWrap(True)
+        theme_manager.apply_style(
+            self._readout_label, "color: {FG_PRIMARY}; font-family: monospace; font-size: 13px;"
+        )
         left_panel.addWidget(self._readout_label)
 
         self._interactive_container = QWidget()
@@ -226,6 +237,9 @@ class SpectralLearningTab(QWidget):
         canvas_layout = QVBoxLayout(self._canvas_wrapper)
         canvas_layout.setContentsMargins(0, 0, 0, 0)
         canvas_layout.addWidget(self._canvas)
+        theme_manager.apply_style(
+            self._canvas_wrapper, "border: 1px solid {BORDER}; border-radius: 6px;"
+        )
 
         self._canvas.mpl_connect("button_press_event", self._on_canvas_click)
         self._canvas.mpl_connect("motion_notify_event", self._on_canvas_mouse_move)
@@ -244,19 +258,10 @@ class SpectralLearningTab(QWidget):
             self._ax.spines[spine].set_visible(False)
 
     def _apply_theme_styles(self):
-        self._step_label.setStyleSheet(
-            f"color: {Colors.FG_PRIMARY}; font-size: 16px; font-weight: bold;"
-        )
-        self._explanation.setStyleSheet(
-            f"background: {Colors.BG_DARK}; color: {Colors.FG_PRIMARY}; border: 1px solid {Colors.BORDER}; border-radius: 6px; padding: 12px; font-size: 14px;"
-        )
-        self._readout_label.setStyleSheet(
-            f"color: {Colors.FG_PRIMARY}; font-family: monospace; font-size: 13px;"
-        )
-        if hasattr(self, "_canvas_wrapper"):
-            self._canvas_wrapper.setStyleSheet(
-                f"border: 1px solid {Colors.BORDER}; border-radius: 6px;"
-            )
+        """Rebuild the current tutorial step's interactive matplotlib content
+        (Colors-derived) on theme change. This tab's own static widgets
+        self-theme via `theme_manager` and don't need re-invocation here.
+        """
         self.update_view()
 
     def _clear_interactive_widgets(self):
