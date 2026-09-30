@@ -4,6 +4,7 @@ from .expression import ChannelRef, DerivedExpression, FormulaError, parse_formu
 from .models import (
     ALLOWED_TRANSFORMS,
     DerivedParameter,
+    DerivedParameterDraft,
     is_derived_key,
     new_param_id,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "ChannelRef",
     "DerivedExpression",
     "DerivedParameter",
+    "DerivedParameterDraft",
     "FormulaError",
     "SyncResult",
     "is_derived_key",

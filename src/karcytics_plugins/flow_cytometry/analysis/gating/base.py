@@ -99,9 +99,8 @@ class Gate(ABC):
             "y_param": self.y_param,
             "adaptive": self.adaptive,
         }
-        formulas = getattr(self, "derived_formulas", None)
-        if formulas:
-            d["derived_formulas"] = dict(formulas)
+        if self.derived_formulas:
+            d["derived_formulas"] = dict(self.derived_formulas)
         return d
 
     @classmethod

@@ -63,7 +63,7 @@ def strip_derived_columns(events: pd.DataFrame) -> pd.DataFrame:
 
 
 def _frame_is_ours(fcs_data: FCSData) -> bool:
-    ref = fcs_data.derived_frame_ref
+    ref = fcs_data.derived.frame_ref
     return ref is not None and ref() is fcs_data.events
 
 
@@ -76,7 +76,7 @@ def sync_fcs_data(fcs_data: FCSData, definitions: Sequence[DerivedParameter]) ->
 
     wanted = {d.param_id: d for d in definitions}
     ours = _frame_is_ours(fcs_data)
-    signatures = fcs_data.derived_signatures if ours else {}
+    signatures = fcs_data.derived.signatures if ours else {}
 
     existing = [c for c in events.columns if is_derived_key(c)]
     keep = [
@@ -170,11 +170,11 @@ def _sync_channel_list(fcs_data: FCSData, definitions: Sequence[DerivedParameter
     # channels<->markers pairing for real detectors is never disturbed.
     real = [c for c in fcs_data.channels if not is_derived_key(c)]
     fcs_data.channels = real + [d.param_id for d in definitions]
-    fcs_data.derived_labels = {d.param_id: d.label for d in definitions}
+    fcs_data.derived.labels = {d.param_id: d.label for d in definitions}
 
 
 def _record(
     fcs_data: FCSData, frame: pd.DataFrame, definitions: Sequence[DerivedParameter]
 ) -> None:
-    fcs_data.derived_signatures = {d.param_id: d.signature for d in definitions}
-    fcs_data.derived_frame_ref = weakref.ref(frame)
+    fcs_data.derived.signatures = {d.param_id: d.signature for d in definitions}
+    fcs_data.derived.frame_ref = weakref.ref(frame)

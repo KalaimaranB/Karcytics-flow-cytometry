@@ -12,8 +12,7 @@ import numpy as np
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 
 from . import events
-from .channel_inference import ChannelInferenceStrategy, DefaultChannelInference
-from .derived.models import is_derived_key
+from .channel_inference import ChannelInferenceStrategy, DerivedAwareChannelInference
 from .scaling import AxisScale, calculate_auto_range
 from .transforms import TransformType
 
@@ -39,7 +38,9 @@ class AxisManager:
         inference_strategy: ChannelInferenceStrategy | None = None,
     ):
         self._state = state
-        self._inference_strategy = inference_strategy or DefaultChannelInference()
+        self._inference_strategy = inference_strategy or DerivedAwareChannelInference(
+            lambda: self._state.data.experiment.derived_parameters
+        )
         if not hasattr(self._state.view, "fallback_scales"):
             self._state.view.fallback_scales = {}
 
@@ -54,7 +55,7 @@ class AxisManager:
             return AxisScale(transform_type=default_transform or TransformType.LINEAR)
 
         if not default_transform:
-            default_transform = self._default_transform(channel)
+            default_transform = self._inference_strategy.infer_transform(channel)
 
         if sample_id:
             sample = self._state.data.experiment.samples.get(sample_id)
@@ -68,16 +69,6 @@ class AxisManager:
         if channel not in self._state.view.fallback_scales:
             self._state.view.fallback_scales[channel] = AxisScale(transform_type=default_transform)
         return self._state.view.fallback_scales[channel]
-
-    def _default_transform(self, channel: str) -> TransformType:
-        # Derived parameters carry their own preferred scale; the name-based
-        # heuristic would call every derived key "fluorescence" -> biex.
-        if is_derived_key(channel):
-            for defn in self._state.data.experiment.derived_parameters:
-                if defn.param_id == channel:
-                    return TransformType(defn.preferred_transform)
-            return TransformType.LINEAR
-        return self._inference_strategy.infer_transform(channel)
 
     def set_scale(
         self,

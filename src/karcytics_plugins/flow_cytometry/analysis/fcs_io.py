@@ -20,7 +20,6 @@ import platform
 import subprocess
 import sys
 import time
-import weakref
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -51,6 +50,7 @@ from .constants import (  # noqa: E402
     FCS_LOCK_WARN_SECONDS,
     FCS_STRIP_RATIO_WARN,
 )
+from .derived.state import DerivedColumnsState  # noqa: E402
 
 
 def _log_import_diagnostics() -> None:
@@ -185,10 +185,10 @@ class FCSData:
         _fk_sample: The underlying ``flowkit.Sample`` object, if loaded
                     via FlowKit.  Retained for downstream transform
                     and compensation operations.
-        derived_labels: ``derived:<id>`` key -> display label for derived
-                    parameters appended to ``channels``/``events`` (see
-                    ``analysis/derived/sync.py``, the only writer of the
-                    three ``derived_*`` fields).
+        derived:    Bookkeeping for derived-parameter columns appended to
+                    ``channels``/``events``; written only by
+                    ``analysis/derived/sync.py``. Read labels through
+                    :func:`derived_labels_of`.
     """
 
     file_path: Path
@@ -199,9 +199,9 @@ class FCSData:
     metadata: dict[str, str] = field(default_factory=dict)
     is_compensated: bool = False
     _fk_sample: object = field(default=None, repr=False)
-    derived_labels: dict[str, str] = field(default_factory=dict, repr=False)
-    derived_signatures: dict[str, str] = field(default_factory=dict, repr=False)
-    derived_frame_ref: weakref.ref | None = field(default=None, repr=False, compare=False)
+    derived: DerivedColumnsState = field(
+        default_factory=DerivedColumnsState, repr=False, compare=False
+    )
 
     @property
     def num_events(self) -> int:
@@ -817,12 +817,12 @@ def get_fluorescence_channels(data: FCSData) -> list[str]:
 
 
 def derived_labels_of(data: object) -> dict[str, str]:
-    """``data.derived_labels`` if it's a real mapping, else ``{}``.
+    """Derived-parameter display labels of ``data`` (``{}`` if none).
 
     Tolerates FCSData stand-ins (tests, older pickles) that predate the field.
     """
-    labels = getattr(data, "derived_labels", None)
-    return labels if isinstance(labels, dict) else {}
+    state = getattr(data, "derived", None)
+    return state.labels if isinstance(state, DerivedColumnsState) else {}
 
 
 def get_channel_marker_label(data: FCSData, channel: str) -> str:

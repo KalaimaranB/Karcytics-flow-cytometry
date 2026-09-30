@@ -16,21 +16,18 @@ from .. import events
 from ..constants import MAX_DERIVED_PARAMETERS
 from ..derived import (
     ALLOWED_TRANSFORMS,
-    DerivedExpression,
     DerivedParameter,
+    DerivedParameterDraft,
     FormulaError,
-    SyncResult,
     is_derived_key,
     new_param_id,
     parse_formula,
     sync_experiment,
-    sync_sample,
 )
 from ..fcs_io import get_channel_marker_label
 
 if TYPE_CHECKING:
-    from ..experiment import Experiment, Sample
-    from ..gating import GateNode
+    from ..experiment import Experiment
     from ..state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -101,7 +98,7 @@ class DerivedParameterService:
         """Every gate, in any sample, drawn on ``param_id``."""
         found: list[GateDependent] = []
         for sid, sample in self._experiment.samples.items():
-            for node in _iter_nodes(sample.gate_tree):
+            for node in sample.gate_tree.iter_dag():
                 gate = node.gate
                 if gate is None:
                     continue
@@ -143,22 +140,20 @@ class DerivedParameterService:
                 raise FormulaError(f"Unknown channel [{ref.name}]", ref.start)
         return expr.with_renamed_channels(mapping) if mapping else formula
 
-    def validate(
-        self, name: str, formula: str, *, exclude_id: str | None = None
-    ) -> tuple[str, DerivedExpression]:
-        """Check a proposed definition; return (canonical formula, expression).
+    def validate(self, draft: DerivedParameterDraft, *, exclude_id: str | None = None) -> str:
+        """Check a proposed definition; return its canonical formula.
 
         Raises:
-            DerivedParameterError: Bad name or too many parameters.
+            DerivedParameterError: Bad name, scale, or too many parameters.
             FormulaError: Bad formula (with character position).
         """
-        self._validate_name(name, exclude_id)
+        self._validate_name(draft.name, exclude_id)
+        _check_transform(draft.preferred_transform)
         if exclude_id is None and len(self.definitions) >= MAX_DERIVED_PARAMETERS:
             raise DerivedParameterError(
                 f"Limit of {MAX_DERIVED_PARAMETERS} derived parameters reached"
             )
-        canonical = self.canonicalize(formula)
-        return canonical, parse_formula(canonical)
+        return self.canonicalize(draft.formula)
 
     def _validate_name(self, name: str, exclude_id: str | None) -> None:
         clean = name.strip()
@@ -176,49 +171,34 @@ class DerivedParameterService:
 
     # ── Mutations ─────────────────────────────────────────────────────────
 
-    def create(
-        self,
-        name: str,
-        formula: str,
-        *,
-        preferred_transform: str = "log",
-        positive_denominators: bool = True,
-    ) -> DerivedParameter:
-        canonical, _ = self.validate(name, formula)
+    def create(self, draft: DerivedParameterDraft) -> DerivedParameter:
+        canonical = self.validate(draft)
         defn = DerivedParameter(
             param_id=new_param_id(),
-            name=name.strip(),
+            name=draft.name.strip(),
             formula=canonical,
-            preferred_transform=_check_transform(preferred_transform),
-            positive_denominators=positive_denominators,
+            preferred_transform=draft.preferred_transform,
+            positive_denominators=draft.positive_denominators,
         )
         self.definitions.append(defn)
         self._after_change(defn.param_id, "created")
         return defn
 
-    def update(  # noqa: PLR0913
-        self,
-        param_id: str,
-        *,
-        name: str,
-        formula: str,
-        preferred_transform: str,
-        positive_denominators: bool,
-    ) -> DerivedParameter:
+    def update(self, param_id: str, draft: DerivedParameterDraft) -> DerivedParameter:
         defn = self._require(param_id)
-        canonical, _ = self.validate(name, formula, exclude_id=param_id)
-        transform = _check_transform(preferred_transform)
-        values_changed = (
-            canonical != defn.formula or positive_denominators != defn.positive_denominators
+        canonical = self.validate(draft, exclude_id=param_id)
+        affects_display = (
+            canonical != defn.formula
+            or draft.positive_denominators != defn.positive_denominators
+            or draft.preferred_transform != defn.preferred_transform
         )
-        transform_changed = transform != defn.preferred_transform
 
-        defn.name = name.strip()
+        defn.name = draft.name.strip()
         defn.formula = canonical
-        defn.positive_denominators = positive_denominators
-        defn.preferred_transform = transform
+        defn.positive_denominators = draft.positive_denominators
+        defn.preferred_transform = draft.preferred_transform
 
-        if values_changed or transform_changed:
+        if affects_display:
             # Stored ranges/transforms were fitted to the old values.
             self._forget_scales(param_id)
         self._after_change(param_id, "updated")
@@ -236,15 +216,6 @@ class DerivedParameterService:
         self._forget_scales(param_id)
         self._after_change(param_id, "deleted")
 
-    # ── Sync ──────────────────────────────────────────────────────────────
-
-    def ensure_sample(self, sample: Sample) -> SyncResult:
-        """Sync one sample's derived columns (idempotent, cheap if current)."""
-        return sync_sample(self._experiment, sample)
-
-    def sync_all(self) -> dict[str, SyncResult]:
-        return sync_experiment(self._experiment)
-
     # ── Internals ─────────────────────────────────────────────────────────
 
     def _require(self, param_id: str) -> DerivedParameter:
@@ -261,16 +232,15 @@ class DerivedParameterService:
             fallback.pop(param_id, None)
 
     def _after_change(self, param_id: str, action: str) -> None:
-        self.sync_all()
+        sync_experiment(self._experiment)
         CentralEventBus.publish(
             events.DERIVED_PARAMS_CHANGED, {"param_id": param_id, "action": action}
         )
 
 
-def _check_transform(value: str) -> str:
+def _check_transform(value: str) -> None:
     if value not in ALLOWED_TRANSFORMS:
         raise DerivedParameterError(f"Unsupported scale '{value}' (use linear or log)")
-    return value
 
 
 def _marker_index(channels: dict[str, str]) -> dict[str, list[str]]:
@@ -283,16 +253,3 @@ def _marker_index(channels: dict[str, str]) -> dict[str, list[str]]:
             if marker:
                 index.setdefault(marker, []).append(ch)
     return index
-
-
-def _iter_nodes(root: GateNode):
-    """Yield each node of a gate DAG once."""
-    seen: set[str] = set()
-    stack = [root]
-    while stack:
-        node = stack.pop()
-        if node.node_id in seen:
-            continue
-        seen.add(node.node_id)
-        yield node
-        stack.extend(node.children)

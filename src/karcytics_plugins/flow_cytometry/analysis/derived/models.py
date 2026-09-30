@@ -28,6 +28,20 @@ def new_param_id() -> str:
     return f"{DERIVED_PREFIX}{uuid.uuid4().hex[:8]}"
 
 
+@dataclass(frozen=True)
+class DerivedParameterDraft:
+    """The user-editable fields of a derived parameter.
+
+    What the editor produces and what the service validates, creates and
+    updates from; the stable ``param_id`` is assigned by the service.
+    """
+
+    name: str
+    formula: str
+    preferred_transform: str = TransformType.LOG.value
+    positive_denominators: bool = True
+
+
 @dataclass
 class DerivedParameter:
     """A per-event formula exposed as an extra channel.

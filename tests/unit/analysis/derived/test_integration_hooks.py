@@ -6,11 +6,9 @@ safety nets, transforms, gate formula records, templates and axis defaults.
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
@@ -22,6 +20,9 @@ from karcytics_plugins.flow_cytometry.analysis.derived import (
     DerivedParameter,
     sync_experiment,
 )
+from karcytics_plugins.flow_cytometry.analysis.derived import (
+    DerivedParameterDraft as Draft,
+)
 from karcytics_plugins.flow_cytometry.analysis.experiment import (
     Experiment,
     Group,
@@ -29,7 +30,6 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import (
     WorkflowTemplate,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment_io import ExperimentSerializer
-from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_factory import gate_from_dict
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate
@@ -49,27 +49,16 @@ from karcytics_plugins.flow_cytometry.ui.services.workflow_service import Workfl
 RATIO_FORMULA = "[FITC-A] / [APC-A]"
 
 
-def _fcs(fitc=(10.0, 4.0), apc=(2.0, 4.0), with_raw: bool = True) -> FCSData:
-    df = pd.DataFrame({"FSC-A": [1.0, 2.0], "FITC-A": list(fitc), "APC-A": list(apc)})
-    return FCSData(
-        Path("s.fcs"),
-        ["FSC-A", "FITC-A", "APC-A"],
-        ["", "B220", "CD45"],
-        df,
-        df.copy() if with_raw else None,
-    )
-
-
 @pytest.fixture
-def state() -> FlowState:
+def state(make_fcs) -> FlowState:
     st = FlowState()
-    st.data.experiment.samples["a"] = Sample(sample_id="a", display_name="A", fcs_data=_fcs())
+    st.data.experiment.samples["a"] = Sample(sample_id="a", display_name="A", fcs_data=make_fcs())
     return st
 
 
 @pytest.fixture
 def ratio(state) -> DerivedParameter:
-    return DerivedParameterService(state).create("B220/CD45", RATIO_FORMULA)
+    return DerivedParameterService(state).create(Draft("B220/CD45", RATIO_FORMULA))
 
 
 def _ratio_gate(state, param_id: str) -> GateNode:
@@ -101,9 +90,9 @@ def test_compensation_then_sync_updates_ratio_and_gate(state, ratio):
     assert node.gate.contains(sample.fcs_data.events).tolist() == [False, False]
 
 
-def test_compensation_without_raw_backup_drops_stale_derived_columns(state, ratio):
+def test_compensation_without_raw_backup_drops_stale_derived_columns(make_fcs, state, ratio):
     sample = state.data.experiment.samples["a"]
-    sample.fcs_data = _fcs(with_raw=False)
+    sample.fcs_data = make_fcs(with_raw=False)
     sync_experiment(state.data.experiment)
     assert ratio.param_id in sample.fcs_data.events.columns
 
@@ -131,27 +120,27 @@ def test_population_service_resyncs_if_a_path_forgot(state, ratio):
     assert len(gated) == 1
 
 
-def test_population_service_untouched_without_derived_parameters():
+def test_population_service_untouched_without_derived_parameters(make_fcs):
     st = FlowState()
-    fcs = _fcs()
+    fcs = make_fcs()
     st.data.experiment.samples["a"] = Sample(sample_id="a", display_name="A", fcs_data=fcs)
     before = fcs.events
     assert PopulationService(st).get_gated_events("a") is before
 
 
-def test_add_sample_gets_existing_definitions(state, ratio):
-    new = Sample(sample_id="b", display_name="B", fcs_data=_fcs())
+def test_add_sample_gets_existing_definitions(make_fcs, state, ratio):
+    new = Sample(sample_id="b", display_name="B", fcs_data=make_fcs())
     state.data.experiment.add_sample(new)
     assert ratio.param_id in new.fcs_data.events.columns
     assert ratio.param_id in new.fcs_data.channels
 
 
-def test_workflow_reload_resyncs_before_on_complete(state, ratio):
+def test_workflow_reload_resyncs_before_on_complete(make_fcs, state, ratio):
     sample = state.data.experiment.samples["a"]
 
     def _fake_reload(samples_with_paths, _comp):
         for s, _path in samples_with_paths:
-            s.fcs_data = _fcs()  # freshly loaded, no derived columns
+            s.fcs_data = make_fcs()  # freshly loaded, no derived columns
         return {"loaded": ["A"], "failed": []}
 
     loader = MagicMock()
@@ -167,12 +156,12 @@ def test_workflow_reload_resyncs_before_on_complete(state, ratio):
     assert ratio.param_id in seen["cols"]
 
 
-def test_saved_workspace_round_trip_rebuilds_gate_on_derived(state, ratio):
+def test_saved_workspace_round_trip_rebuilds_gate_on_derived(make_fcs, state, ratio):
     _ratio_gate(state, ratio.param_id)
     data = state.to_dict()
     restored = FlowState.from_dict(data)
     sample = restored.data.experiment.samples["a"]
-    sample.fcs_data = _fcs()  # what reload attaches
+    sample.fcs_data = make_fcs()  # what reload attaches
     sync_experiment(restored.data.experiment)
     node = next(c for c in sample.gate_tree.children if c.name == "Ratio hi")
     assert node.gate.contains(sample.fcs_data.events).tolist() == [True, False]

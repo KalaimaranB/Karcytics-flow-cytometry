@@ -25,19 +25,13 @@ RATIO = DerivedParameter(
 SUM = DerivedParameter(param_id="derived:sum00002", name="Sum", formula="[FITC-A] + [APC-A]")
 
 
-def _fcs(fitc=(10.0, 4.0, 6.0), apc=(2.0, 4.0, 0.0)) -> FCSData:
-    events = pd.DataFrame({"FSC-A": [1.0, 2.0, 3.0], "FITC-A": list(fitc), "APC-A": list(apc)})
-    return FCSData(
-        file_path=Path("s.fcs"),
-        channels=["FSC-A", "FITC-A", "APC-A"],
-        markers=["", "B220", "CD45"],
-        events=events,
-        raw_events=events.copy(),
-    )
+@pytest.fixture
+def fcs(make_fcs) -> FCSData:
+    """Three events; ratios 5, 1 and invalid (zero denominator)."""
+    return make_fcs(fitc=(10.0, 4.0, 6.0), apc=(2.0, 4.0, 0.0))
 
 
-def test_no_definitions_is_a_true_noop():
-    fcs = _fcs()
+def test_no_definitions_is_a_true_noop(fcs):
     before = fcs.events
     result = sync_fcs_data(fcs, [])
     assert not result.changed
@@ -45,8 +39,7 @@ def test_no_definitions_is_a_true_noop():
     assert fcs.channels == ["FSC-A", "FITC-A", "APC-A"]
 
 
-def test_adds_column_channel_and_label():
-    fcs = _fcs()
+def test_adds_column_channel_and_label(fcs):
     result = sync_fcs_data(fcs, [RATIO])
     assert result.changed
     np.testing.assert_array_equal(fcs.events[RATIO.param_id], [5.0, 1.0, np.nan])
@@ -56,31 +49,27 @@ def test_adds_column_channel_and_label():
     assert get_channel_marker_label(fcs, "FITC-A") == "B220 (FITC-A)"
 
 
-def test_raw_events_never_touched():
-    fcs = _fcs()
+def test_raw_events_never_touched(fcs):
     sync_fcs_data(fcs, [RATIO])
     assert RATIO.param_id not in fcs.raw_events.columns
 
 
-def test_second_sync_is_noop_and_keeps_frame_identity():
-    fcs = _fcs()
+def test_second_sync_is_noop_and_keeps_frame_identity(fcs):
     sync_fcs_data(fcs, [RATIO])
     frame = fcs.events
     assert not sync_fcs_data(fcs, [RATIO]).changed
     assert fcs.events is frame
 
 
-def test_new_frame_swapped_not_mutated():
-    fcs = _fcs()
+def test_new_frame_swapped_not_mutated(fcs):
     original = fcs.events
     sync_fcs_data(fcs, [RATIO])
     assert fcs.events is not original
     assert RATIO.param_id not in original.columns
 
 
-def test_replaced_events_are_recomputed_even_if_they_carry_stale_copies():
+def test_replaced_events_are_recomputed_even_if_they_carry_stale_copies(fcs):
     """Compensation paths that copy `events` would drag old derived values along."""
-    fcs = _fcs()
     sync_fcs_data(fcs, [RATIO])
     stale = fcs.events.copy()
     stale["FITC-A"] = stale["FITC-A"] * 10  # e.g. compensation changed the inputs
@@ -89,16 +78,14 @@ def test_replaced_events_are_recomputed_even_if_they_carry_stale_copies():
     np.testing.assert_array_equal(fcs.events[RATIO.param_id], [50.0, 10.0, np.nan])
 
 
-def test_rebuilt_from_raw_events_gets_column_back():
-    fcs = _fcs()
+def test_rebuilt_from_raw_events_gets_column_back(fcs):
     sync_fcs_data(fcs, [RATIO])
     fcs.events = fcs.raw_events.copy()
     sync_fcs_data(fcs, [RATIO])
     assert RATIO.param_id in fcs.events.columns
 
 
-def test_formula_change_recomputes_only_that_column():
-    fcs = _fcs()
+def test_formula_change_recomputes_only_that_column(fcs):
     ratio = DerivedParameter(RATIO.param_id, RATIO.name, RATIO.formula)
     sync_fcs_data(fcs, [ratio, SUM])
     ratio.formula = "[APC-A] / [FITC-A]"
@@ -107,8 +94,8 @@ def test_formula_change_recomputes_only_that_column():
     np.testing.assert_array_equal(fcs.events[SUM.param_id], [12.0, 8.0, 6.0])
 
 
-def test_policy_change_recomputes():
-    fcs = _fcs(fitc=(1.0, 1.0, 1.0), apc=(1.0, -1.0, 1.0))
+def test_policy_change_recomputes(make_fcs):
+    fcs = make_fcs(fitc=(1.0, 1.0, 1.0), apc=(1.0, -1.0, 1.0))
     ratio = DerivedParameter(RATIO.param_id, RATIO.name, RATIO.formula)
     sync_fcs_data(fcs, [ratio])
     assert np.isnan(fcs.events[ratio.param_id].iloc[1])
@@ -117,32 +104,28 @@ def test_policy_change_recomputes():
     assert fcs.events[ratio.param_id].iloc[1] == -1.0
 
 
-def test_removed_definition_drops_column_and_channel():
-    fcs = _fcs()
+def test_removed_definition_drops_column_and_channel(fcs):
     sync_fcs_data(fcs, [RATIO, SUM])
     sync_fcs_data(fcs, [SUM])
     assert RATIO.param_id not in fcs.events.columns
     assert RATIO.param_id not in fcs.channels
-    assert RATIO.param_id not in fcs.derived_labels
+    assert RATIO.param_id not in fcs.derived.labels
 
 
-def test_order_follows_definitions_after_real_channels():
-    fcs = _fcs()
+def test_order_follows_definitions_after_real_channels(fcs):
     sync_fcs_data(fcs, [SUM, RATIO])
     assert list(fcs.events.columns) == ["FSC-A", "FITC-A", "APC-A", SUM.param_id, RATIO.param_id]
     assert fcs.channels == ["FSC-A", "FITC-A", "APC-A", SUM.param_id, RATIO.param_id]
 
 
-def test_missing_input_channel_yields_nan_column_not_keyerror():
-    fcs = _fcs()
+def test_missing_input_channel_yields_nan_column_not_keyerror(fcs):
     missing = DerivedParameter("derived:missing1", "PE ratio", "[PE-A] / [APC-A]")
     result = sync_fcs_data(fcs, [missing])
     assert result.missing == {"derived:missing1": ["PE-A"]}
     assert fcs.events["derived:missing1"].isna().all()
 
 
-def test_invalid_formula_does_not_break_sync():
-    fcs = _fcs()
+def test_invalid_formula_does_not_break_sync(fcs):
     broken = DerivedParameter("derived:broken01", "Broken", "[FITC-A] +")
     result = sync_fcs_data(fcs, [broken, RATIO])
     assert "derived:broken01" in result.errors
@@ -155,14 +138,12 @@ def test_none_events_is_safe():
     assert not sync_fcs_data(fcs, [RATIO]).changed
 
 
-def test_derived_excluded_from_fluorescence_channels():
-    fcs = _fcs()
+def test_derived_excluded_from_fluorescence_channels(fcs):
     sync_fcs_data(fcs, [RATIO])
     assert get_fluorescence_channels(fcs) == ["FITC-A", "APC-A"]
 
 
-def test_strip_derived_columns():
-    fcs = _fcs()
+def test_strip_derived_columns(fcs):
     sync_fcs_data(fcs, [RATIO])
     assert list(strip_derived_columns(fcs.events).columns) == ["FSC-A", "FITC-A", "APC-A"]
     plain = pd.DataFrame({"A": [1]})

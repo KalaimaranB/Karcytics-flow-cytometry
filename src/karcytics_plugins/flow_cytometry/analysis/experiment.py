@@ -19,7 +19,7 @@ from enum import Enum
 from karcytics_sdk.plugin import get_logger
 
 from .derived.models import DerivedParameter
-from .derived.sync import sync_fcs_data
+from .derived.sync import sync_sample
 from .fcs_io import FCSData
 from .gating import GateNode
 from .scaling import AxisScale
@@ -229,8 +229,7 @@ class Experiment:
         Args:
             sample: The sample to add.
         """
-        if sample.fcs_data is not None and self.derived_parameters:
-            sync_fcs_data(sample.fcs_data, self.derived_parameters)
+        sync_sample(self, sample)
         self.samples[sample.sample_id] = sample
 
     def remove_sample(self, sample_id: str) -> None:

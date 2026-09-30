@@ -49,16 +49,7 @@ class DagEvaluator:
 
     @staticmethod
     def _collect_nodes(root: GateNode) -> list[GateNode]:
-        all_nodes = []
-        visited = set()
-        stack = [root]
-        while stack:
-            n = stack.pop()
-            if n.node_id not in visited:
-                visited.add(n.node_id)
-                all_nodes.append(n)
-                stack.extend(n.children)
-        return all_nodes
+        return list(root.iter_dag())
 
     @staticmethod
     def _combine_parent_masks(
