@@ -58,44 +58,18 @@ def fcs_test_data_dir():
 
 @pytest.fixture
 def sample_a_events(synthetic_events_medium):
-    """Return synthetic events instead of loading corrupted Specimen_001_Sample A.fcs."""
-    return synthetic_events_medium
-
-
-@pytest.fixture
-def sample_b_events(synthetic_events_medium):
-    """Return synthetic events instead of loading corrupted Specimen_001_Sample B.fcs."""
+    """Synthetic events (see `synthetic_events_medium`) — the real Specimen_001
+    FCS files are exercised end-to-end in `functional/test_gating_pipeline.py`.
+    """
     return synthetic_events_medium
 
 
 @pytest.fixture
 def sample_c_events(synthetic_events_medium):
-    """Return synthetic events instead of loading corrupted Specimen_001_Sample C.fcs."""
+    """Synthetic events (see `synthetic_events_medium`) — the real Specimen_001
+    FCS files are exercised end-to-end in `functional/test_gating_pipeline.py`.
+    """
     return synthetic_events_medium
-
-
-@pytest.fixture
-def fmo_pe_events(fcs_test_data_dir):
-    """Load FMO PE control events."""
-    fcs_file = fcs_test_data_dir / "Specimen_001_FMO PE.fcs"
-    fcs_data = load_fcs(str(fcs_file))
-    return fcs_data.events
-
-
-@pytest.fixture
-def fmo_fitc_events(fcs_test_data_dir):
-    """Load FMO FITC control events."""
-    fcs_file = fcs_test_data_dir / "Specimen_001_FMO FITC.fcs"
-    fcs_data = load_fcs(str(fcs_file))
-    return fcs_data.events
-
-
-@pytest.fixture
-def blank_events(fcs_test_data_dir):
-    """Load blank control events."""
-    fcs_file = fcs_test_data_dir / "Specimen_001_Blank.fcs"
-    fcs_data = load_fcs(str(fcs_file))
-    return fcs_data.events
 
 
 # ── Axis Scale Fixtures ───────────────────────────────────────────────────
@@ -115,24 +89,6 @@ def scale_biexp_standard():
     scale.logicle_w = 1.0
     scale.logicle_t = 262144.0
     scale.logicle_a = 0.0
-    return scale
-
-
-@pytest.fixture
-def scale_biexp_relaxed():
-    """Relaxed BiExponential scale (M=4, W=0.5, T=10000, A=-100)."""
-    scale = AxisScale(TransformType.BIEXPONENTIAL)
-    scale.logicle_m = 4.0
-    scale.logicle_w = 0.5
-    scale.logicle_t = 10000.0
-    scale.logicle_a = -100.0
-    return scale
-
-
-@pytest.fixture
-def scale_logicle():
-    """Logicle axis scale."""
-    scale = AxisScale(TransformType.LOGICLE)
     return scale
 
 
@@ -362,36 +318,3 @@ def gate_factory_biexp(scale_biexp_standard):
 
     mapper = CoordinateMapper(scale_biexp_standard, scale_biexp_standard)
     return GateFactory("CD4", "CD8", scale_biexp_standard, scale_biexp_standard, mapper)
-
-
-# ── Assertion Helpers ───────────────────────────────────────────────────────
-
-
-def assert_events_subset(subset: pd.DataFrame, superset: pd.DataFrame) -> None:
-    """Assert that subset contains only events from superset."""
-    # Check that all rows in subset are in superset
-    # (comparing as strings for floating point tolerance)
-    subset_str = subset.round(6).astype(str).values
-    superset_str = superset.round(6).astype(str).values
-
-    for row in subset_str:
-        assert any((superset_str == row).all(axis=1)), f"Row {row} not found in superset"
-
-
-def assert_gate_contains_point(gate: object, x: float, y: float) -> None:
-    """Assert that gate contains a specific point."""
-    from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
-
-    if isinstance(gate, RectangleGate):
-        assert gate.x_min <= x <= gate.x_max, f"x={x} outside gate x range"
-        assert gate.y_min <= y <= gate.y_max, f"y={y} outside gate y range"
-    else:
-        pytest.skip(f"Point containment test not implemented for {type(gate)}")
-
-
-def assert_monotonic_decrease(counts: list[int]) -> None:
-    """Assert that gate population counts decrease monotonically."""
-    for i in range(len(counts) - 1):
-        assert counts[i] >= counts[i + 1], (
-            f"Population count did not decrease: {counts[i]} -> {counts[i + 1]}"
-        )
