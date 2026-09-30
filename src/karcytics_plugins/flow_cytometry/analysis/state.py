@@ -80,6 +80,7 @@ class ViewState:
     _statistics_explorer: Any | None = field(default=None, repr=False, compare=False)
     _comparisons_viewer: Any | None = field(default=None, repr=False, compare=False)
     _population_analysis_viewer: Any | None = field(default=None, repr=False, compare=False)
+    _derived_editor: Any | None = field(default=None, repr=False, compare=False)
 
     @property
     def render_config(self) -> RenderConfig:

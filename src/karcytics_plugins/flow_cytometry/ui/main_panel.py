@@ -184,6 +184,7 @@ class FlowCytometryPanel(PluginBase):
             remove_population=self._gate_coordinator.remove_population,
             parent=self,
         )
+        self.state.view._derived_editor = self._derived_editor
 
         self._is_dirty = False
 

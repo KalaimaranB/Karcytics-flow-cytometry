@@ -294,6 +294,7 @@ class StatisticsExplorer(QWidget):
         scroll_layout.addLayout(ch_hdr)
 
         self._channel_combo = BioComboBox()
+        self._channel_combo.setObjectName("StatsChannelCombo")
         scroll_layout.addWidget(self._channel_combo)
 
         scroll_layout.addSpacing(16)

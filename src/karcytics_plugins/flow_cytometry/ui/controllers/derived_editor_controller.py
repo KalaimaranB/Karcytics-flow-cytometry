@@ -54,6 +54,10 @@ class DerivedEditorController:
             self._dialog.parameter_saved.connect(self._on_saved)
         return self._dialog
 
+    @property
+    def is_open(self) -> bool:
+        return self._dialog is not None and self._dialog.isVisible()
+
     def open(self, param_id: str | None = None) -> None:
         """Ribbon button / general entry: show the manager."""
         self._axis_target = None

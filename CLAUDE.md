@@ -45,6 +45,7 @@ This mirrors the SDK's `PluginBase`/`AnalysisBase` split ([Karcytics-SDK](../Kar
 - `00_ARCHITECTURE_OVERVIEW.md`, `04_SERVICES_AND_DEPENDENCY_INJECTION.md` — the `ServiceFactory` composition root (`ui/composition_root.py`) that wires domain/infrastructure services; construct new services there, not ad hoc in panel code.
 - `02_UI_ENGINE.md`, `07_RENDERING_AND_VISUALIZATION.md`, `08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md` — before working in `ui/`.
 - `05_GATING_AND_COMPENSATION_DEEP_DIVE.md`, `06_TRANSFORMS_AND_SCALING.md` — before working in `analysis/`.
+- `09_DERIVED_PARAMETERS.md` — before adding any code path that loads, reloads or replaces a sample's `fcs_data`/`events` (it must re-sync derived columns — see "The sync contract").
 - `03_TESTING_AND_QA.md` — testing conventions beyond the marker list above.
 
 `docs/user/` covers user-facing workflows (gating, compensation, spectral unmixing) if you need the scientist-facing behavior spec rather than the implementation.

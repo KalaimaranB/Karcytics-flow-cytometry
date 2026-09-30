@@ -1803,3 +1803,95 @@ class ComparisonsPlotGeneratedValidator(FlowValidator):
                 f"Last generated plot was '{generated}', expected '{self._expected}'."
             )
         return True
+
+
+# ── Derived parameters (Course 4) ─────────────────────────────────────────────
+
+
+def _is_ratio_formula(formula: str, numerator: str, denominator: str) -> bool:
+    """True for exactly ``[numerator] / [denominator]`` (whitespace ignored)."""
+    return "".join(formula.split()) == f"[{numerator}]/[{denominator}]"
+
+
+def _ratio_param_ids(app_state: FlowState, numerator: str, denominator: str) -> set[str]:
+    return {
+        d.param_id
+        for d in app_state.data.experiment.derived_parameters
+        if _is_ratio_formula(d.formula, numerator, denominator)
+    }
+
+
+class DerivedRatioExistsValidator(FlowValidator):
+    """A derived parameter computing ``numerator ÷ denominator`` exists.
+
+    Matches on the saved (canonical, channel-name) formula, so it doesn't
+    care what the learner named it or whether they typed marker names.
+    """
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        if not _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"No derived parameter [{self._num}] / [{self._den}] yet.")
+        return True
+
+    def describe_failure(self, app_state: Any) -> ValidationFailure | None:
+        if not isinstance(app_state, FlowState):
+            return None
+        if _ratio_param_ids(app_state, self._den, self._num):
+            return ValidationFailure(
+                reason=(
+                    "That one is upside down — it divides the reference by the "
+                    "marker. Edit it and swap A and B, or build a new one with "
+                    f"A = {self._num} and B = {self._den}."
+                )
+            )
+        return None
+
+
+class DerivedEditorClosedValidator(FlowValidator):
+    """The Derived Parameters dialog is not currently open."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        editor = getattr(app_state.view, "_derived_editor", None)
+        if editor is not None and editor.is_open:
+            return self.log_failure("Derived Parameters dialog is still open.")
+        return True
+
+
+class ActiveGraphDerivedAxisValidator(FlowValidator):
+    """The active graph's X axis shows the ``numerator ÷ denominator`` parameter."""
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        graph_manager = getattr(app_state.view, "_graph_manager", None)
+        graph = graph_manager.get_active_graph() if graph_manager else None
+        if graph is None:
+            return self.log_failure("No active graph.")
+        x_param = graph._axis_panel.get_current_x()
+        if x_param not in _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"Active X axis is '{x_param}', not the derived ratio.")
+        return True
+
+
+class StatsDerivedChannelValidator(FlowValidator):
+    """The Statistics ★ channel picker is set to the ``numerator ÷ denominator`` ratio."""
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        explorer = getattr(app_state.view, "_statistics_explorer", None)
+        combo = getattr(explorer, "_channel_combo", None)
+        if combo is None:
+            return self.log_failure("Statistics channel picker missing.")
+        channel = combo.currentData()
+        if channel not in _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"Statistics channel is '{channel}', not the ratio.")
+        return True
