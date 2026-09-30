@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QWidget
 
@@ -77,34 +77,23 @@ class GraphToolbar(QWidget):
         layout.addWidget(self._btn_parent)
 
         self._breadcrumb = ElidedLabel()
+        theme_manager.apply_style(
+            self._breadcrumb,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " background: {BG_DARK}; padding: 4px 8px;"
+            " border-radius: 4px;",
+        )
         layout.addWidget(self._breadcrumb)
         layout.addStretch()
 
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on current theme."""
-        for btn in (
-            getattr(self, "_btn_prev", None),
-            getattr(self, "_btn_next", None),
-            getattr(self, "_btn_parent", None),
-        ):
-            if btn:
-                self._style_btn(btn)
-        if hasattr(self, "_breadcrumb"):
-            self._breadcrumb.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" background: {Colors.BG_DARK}; padding: 4px 8px;"
-                f" border-radius: 4px;"
-            )
-
     def _style_btn(self, btn: QPushButton) -> None:
-        btn.setStyleSheet(
-            f"QPushButton {{ background: {Colors.BG_MEDIUM};"
-            f" color: {Colors.FG_PRIMARY}; border: 1px solid {Colors.BORDER};"
-            f" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; }}"
-            f"QPushButton:hover {{ background: {Colors.BG_DARK};"
-            f" color: {Colors.ACCENT_PRIMARY}; }}"
+        theme_manager.apply_style(
+            btn,
+            "QPushButton { background: {BG_MEDIUM};"
+            " color: {FG_PRIMARY}; border: 1px solid {BORDER};"
+            " border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; }"
+            "QPushButton:hover { background: {BG_DARK};"
+            " color: {ACCENT_PRIMARY}; }",
         )
 
     def set_parent_button_visible(self, visible: bool) -> None:

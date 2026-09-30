@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QLabel,
@@ -247,28 +247,17 @@ class GraphWindow(QWidget):
         # ── Gate info bar ─────────────────────────────────────────────
         self._gate_info = QLabel()
         self._gate_info.setVisible(False)
+        theme_manager.apply_style(
+            self._gate_info,
+            "color: {FG_SECONDARY}; font-size: 10px;"
+            " background: {BG_DARK}; padding: 3px 8px;"
+            " border-radius: 3px;",
+        )
         layout.addWidget(self._gate_info)
 
         # Populate axis combos and trigger initial scale sync and render
         self._populate_axis_combos()
         self._on_axis_changed()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on current theme."""
-        if hasattr(self, "_toolbar") and hasattr(self._toolbar, "_apply_theme_styles"):
-            self._toolbar._apply_theme_styles()
-        if hasattr(self, "_axis_panel") and hasattr(self._axis_panel, "_apply_theme_styles"):
-            self._axis_panel._apply_theme_styles()
-        if hasattr(self, "_canvas") and hasattr(self._canvas, "_apply_theme_styles"):
-            self._canvas._apply_theme_styles()
-        if hasattr(self, "_gate_info"):
-            self._gate_info.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: 10px;"
-                f" background: {Colors.BG_DARK}; padding: 3px 8px;"
-                f" border-radius: 3px;"
-            )
 
     def set_drawing_mode(self, tool_name: str) -> None:
         """Set the canvas drawing mode from a tool name.

@@ -99,8 +99,12 @@ def test_gate_hierarchy_relies_on_cascade_not_direct_subscription(
     widget = GateHierarchy(state)
     qtbot.addWidget(widget)
 
+    # Fully migrated to theme_manager.apply_style() (SDK_Abstraction_Performance_Plan.md
+    # DRY item, static _apply_theme_styles batch) — no _apply_theme_styles method left
+    # to (redundantly) subscribe, and no direct theme_changed subscription at all.
+    assert not hasattr(widget, "_apply_theme_styles")
     connected = _connected_callbacks(fresh_theme_changed_signal)
-    assert widget._apply_theme_styles not in connected
+    assert connected == []
 
 
 @pytest.mark.ui

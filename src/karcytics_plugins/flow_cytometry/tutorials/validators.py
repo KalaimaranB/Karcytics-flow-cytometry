@@ -1282,6 +1282,35 @@ class PopupClosedValidator(FlowValidator):
         return True
 
 
+class PreferencesPageValidator(FlowValidator):
+    """Verifies the SDK Preferences dialog is open — and, if `page_title` is
+    given, showing that page (e.g. "Workspace").
+
+    The dialog is a separate top-level window (parented to the main window,
+    not the panel), so it's found via `QApplication.topLevelWidgets()` by
+    the SDK's stable object name rather than through app_state.
+    """
+
+    def __init__(self, page_title: str | None = None) -> None:
+        self._page_title = page_title
+
+    def validate_flow(self, _app_state: FlowState) -> bool:
+        from PyQt6.QtWidgets import QApplication
+
+        for w in QApplication.topLevelWidgets():
+            if w.objectName() != "PreferencesDialog" or not w.isVisible():
+                continue
+            if self._page_title is None:
+                return True
+            current = w.current_page_title() if hasattr(w, "current_page_title") else ""
+            if current == self._page_title:
+                return True
+            return self.log_failure(
+                f"Preferences is on '{current}', waiting for '{self._page_title}'."
+            )
+        return self.log_failure("Preferences dialog is not open.")
+
+
 class Course2GatingCompleteValidator(FlowValidator):
     """Verifies Course 2's core gating (Leukocytes, T-cells, B-cells) exists
     on every FULL_PANEL sample, before Course 3 starts leaning on it.

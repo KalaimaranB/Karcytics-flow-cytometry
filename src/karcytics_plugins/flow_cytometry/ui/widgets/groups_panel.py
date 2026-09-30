@@ -10,7 +10,7 @@ control, test), and a color indicator.
 from __future__ import annotations
 
 from karcytics_sdk.plugin import get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QLabel,
@@ -74,6 +74,12 @@ class GroupsPanel(QWidget):
         layout.setSpacing(4)
 
         self._header = QLabel("Groups")
+        theme_manager.apply_style(
+            self._header,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " font-weight: 700; text-transform: uppercase;"
+            " letter-spacing: 1px; background: transparent;",
+        )
         layout.addWidget(self._header)
 
         self._list = GroupListWidget()
@@ -81,32 +87,21 @@ class GroupsPanel(QWidget):
         self._list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._list.customContextMenuRequested.connect(self._on_context_menu)
         self._list.on_drop = self._on_drop_event
+        theme_manager.apply_style(
+            self._list,
+            "QListWidget { background: {BG_DARKEST};"
+            " border: none; outline: none; }"
+            "QListWidget::item { padding: 6px 8px;"
+            " border-bottom: 1px solid {BORDER};"
+            " color: {FG_PRIMARY}; }"
+            "QListWidget::item:selected { background: {BG_MEDIUM};"
+            " color: {ACCENT_PRIMARY}; }"
+            "QListWidget::item:hover { background: {BG_DARK}; }",
+        )
         layout.addWidget(self._list, stretch=1)
-
-        self._apply_theme_styles()
 
         # Add "All Samples" as default
         self._populate_default()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on the current theme."""
-        if hasattr(self, "_header"):
-            self._header.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" font-weight: 700; text-transform: uppercase;"
-                f" letter-spacing: 1px; background: transparent;"
-            )
-        if hasattr(self, "_list"):
-            self._list.setStyleSheet(
-                f"QListWidget {{ background: {Colors.BG_DARKEST};"
-                f" border: none; outline: none; }}"
-                f"QListWidget::item {{ padding: 6px 8px;"
-                f" border-bottom: 1px solid {Colors.BORDER};"
-                f" color: {Colors.FG_PRIMARY}; }}"
-                f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM};"
-                f" color: {Colors.ACCENT_PRIMARY}; }}"
-                f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; }}"
-            )
 
     def _populate_default(self) -> None:
         """Add the default 'All Samples' entry."""

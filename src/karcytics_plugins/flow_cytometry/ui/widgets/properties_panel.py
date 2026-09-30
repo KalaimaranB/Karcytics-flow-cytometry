@@ -17,7 +17,7 @@ from collections.abc import Callable
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QFormLayout,
@@ -108,24 +108,26 @@ class PropertiesPanel(QWidget):
         # Header
         self._header = QLabel("Properties")
         self._header.setFixedHeight(32)
-        self._header.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-            f" font-weight: 700; text-transform: uppercase;"
-            f" letter-spacing: 1px; background: {Colors.BG_DARK};"
-            f" padding: 6px 12px;"
-            f" border-bottom: 1px solid {Colors.BORDER};"
+        theme_manager.apply_style(
+            self._header,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " font-weight: 700; text-transform: uppercase;"
+            " letter-spacing: 1px; background: {BG_DARK};"
+            " padding: 6px 12px;"
+            " border-bottom: 1px solid {BORDER};",
         )
         layout.addWidget(self._header)
 
         # Splitter to allow user to resize the two panels
         self._splitter = QSplitter(Qt.Orientation.Vertical)
         self._splitter.setHandleWidth(2)
-        self._splitter.setStyleSheet(f"QSplitter::handle {{ background: {Colors.BORDER}; }}")
+        theme_manager.apply_style(self._splitter, "QSplitter::handle { background: {BORDER}; }")
 
         # Scrollable content (Top)
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        theme_manager.apply_style(self._scroll, "background: {BG_DARKEST};")
 
         self._content = QWidget()
         self._content_layout = QVBoxLayout(self._content)
@@ -145,27 +147,15 @@ class PropertiesPanel(QWidget):
 
         layout.addWidget(self._splitter)
 
-        self._apply_theme_styles()
-
         # Initial state
         self._show_empty()
 
     def _apply_theme_styles(self) -> None:
-        """Dynamically refresh all UI colors based on the current theme."""
-        if hasattr(self, "_header"):
-            self._header.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" font-weight: 700; text-transform: uppercase;"
-                f" letter-spacing: 1px; background: {Colors.BG_DARK};"
-                f" padding: 6px 12px;"
-                f" border-bottom: 1px solid {Colors.BORDER};"
-            )
-        if hasattr(self, "_splitter"):
-            self._splitter.setStyleSheet(f"QSplitter::handle {{ background: {Colors.BORDER}; }}")
-        if hasattr(self, "_scroll"):
-            self._scroll.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        if hasattr(self, "_group_preview") and hasattr(self._group_preview, "_apply_theme_styles"):
-            self._group_preview._apply_theme_styles()
+        """Re-render the currently-displayed sample/group properties (their
+        content is Colors-derived) on theme change. The panel's own static
+        chrome (header/splitter/scroll) self-themes via `theme_manager` and
+        doesn't need re-invocation here.
+        """
         if hasattr(self, "_current_sample_id") and (
             self._current_sample_id or self._current_node_id
         ):
