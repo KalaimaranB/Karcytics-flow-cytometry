@@ -101,7 +101,7 @@ class TestHandleAutosave:
         mock_error.assert_not_called()
         assert results == [True]
 
-    def test_on_success_clears_dirty_and_publishes_saved_event(
+    def test_on_success_marks_what_the_save_started_with_as_saved(
         self, handler, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
         with patch(
@@ -114,7 +114,10 @@ class TestHandleAutosave:
             ):
                 handler.handle_autosave(lambda success: None)
 
-        parent_widget.set_dirty.assert_called_once_with(False)
+        # The token is taken when the save *starts*, so edits made while it
+        # runs in the background stay dirty (see FlowStore.finish_save).
+        token = parent_widget._begin_save.return_value
+        parent_widget._finish_save.assert_called_once_with(token)
 
     def test_never_shows_a_blocking_dialog_on_failure(
         self, handler, parent_widget, fake_task_scheduler
@@ -133,7 +136,7 @@ class TestHandleAutosave:
         mock_info.assert_not_called()
         mock_error.assert_not_called()
         assert results == [False]
-        parent_widget.set_dirty.assert_not_called()
+        parent_widget._finish_save.assert_not_called()
 
     def test_reports_failure_without_saving_when_nothing_saved_yet(
         self, handler, parent_widget, fake_task_scheduler

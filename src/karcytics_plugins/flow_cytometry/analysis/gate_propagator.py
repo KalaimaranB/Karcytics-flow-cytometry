@@ -84,6 +84,20 @@ class GatePropagator:
             self._timer = threading.Timer(self.DEBOUNCE_MS / 1000.0, self._execute_propagation)
             self._timer.start()
 
+    def cancel_pending(self) -> None:
+        """Drop any queued or running propagation without applying its result.
+
+        Called whenever the model is replaced wholesale (undo/redo, loading a
+        workflow): a result computed from the old source tree would
+        otherwise land a moment later and overwrite the restored targets.
+        """
+        with self._lock:
+            if self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
+            self._pending_source_id = None
+        self._active_task_id = None
+
     def _execute_propagation(self) -> None:
         """Actually run the propagation logic after debouncing."""
         try:

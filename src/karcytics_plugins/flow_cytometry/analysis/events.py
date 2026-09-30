@@ -58,3 +58,14 @@ EXPERIMENT_DATA_CHANGED = "flow.experiment.data_changed"
 # Derived-parameter definitions created/edited/deleted. Payload:
 # {"param_id": str, "action": "created" | "updated" | "deleted" | "synced"}
 DERIVED_PARAMS_CHANGED = "flow.derived.changed"
+
+# ── Undo/redo & unsaved changes (see store.FlowStore, history_recorder) ──
+# A user edit to the analysis model that has no more specific event above.
+# Payload: {"label": str} — the step's name in Edit → Undo "<label>".
+MODEL_EDITED = "flow.model.edited"
+# A saved-but-not-undoable setting changed (axis scales, render settings):
+# marks the workspace unsaved without adding an undo step. Payload: {}.
+DISPLAY_SETTINGS_CHANGED = "flow.display.settings_changed"
+# Undo/redo just rebuilt state.data.experiment from a snapshot. Every
+# Sample/Group/GateNode object is new — views must re-resolve by id.
+STATE_RESTORED = "flow.state.restored"

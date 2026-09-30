@@ -39,7 +39,7 @@ Current call sites:
 | New sample added | `Experiment.add_sample()` |
 | Compensation apply / toggle | `CompensationRibbon._on_apply_all`, `_on_toggle_compensation` |
 | Workspace reload | `WorkflowService.reload_fcs_data` — before `on_complete` evaluates gates |
-| State restore (undo / load_state) | `FlowCytometryPanel.set_state`, `load_state` |
+| State restore (undo/redo, workflow load) | `FlowStore.restore`, `WorkflowService.reload_fcs_data` |
 | Definition created / edited / deleted | `DerivedParameterService._after_change` |
 | **Safety nets** | `PopulationService.get_gated_events`, `GateCoordinator.recompute_all_stats` |
 
@@ -67,7 +67,7 @@ How sync stays correct and cheap:
 
 `events.DERIVED_PARAMS_CHANGED` (`{"param_id", "action"}` with `action` ∈ created/updated/deleted) is published after every sample has been re-synced:
 
-- `MainPanelController` pushes an undo step, marks the workspace dirty and calls `_on_derived_params_changed` (refreshes Statistics/Comparisons pickers, hierarchy, node canvas; recomputes stats for samples with gates on an *edited* parameter).
+- `HistoryRecorder` records an undo step (created/updated/deleted — not `synced`), and `MainPanelController` calls `_on_derived_params_changed` (refreshes Statistics/Comparisons pickers, hierarchy, node canvas; recomputes stats for samples with gates on an *edited* parameter).
 - Each `GraphWindow` rebuilds its own axis lists — falling back to FSC-A/SSC-A if its axis was deleted, re-rendering if its axis was edited.
 - The dialog refreshes its list (e.g. after undo).
 

@@ -118,3 +118,27 @@ def test_propagation_complete_all_succeeded_has_no_errors(flow_state, qtbot):
     assert len(complete_calls) == 1
     payload = complete_calls[0].args[1]
     assert payload == {"total": 1, "succeeded": 1, "failed": 0, "errors": {}}
+
+
+def test_cancel_pending_drops_queued_and_running_propagation():
+    """Undo/redo or a load replaces the model; a propagation computed from
+    the old source tree must never land on top of it afterwards.
+    """
+    from unittest.mock import MagicMock
+
+    from karcytics_plugins.flow_cytometry.analysis.gate_propagator import GatePropagator
+    from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+
+    propagator = GatePropagator(FlowState(), task_scheduler=None)
+    propagator.request_propagation("gate", "s0")
+    timer = propagator._timer
+    propagator._active_task_id = "running"
+    applied = MagicMock()
+    propagator._on_propagation_finished = applied
+
+    propagator.cancel_pending()
+
+    assert timer is not None and timer.finished.is_set()
+    assert propagator._pending_source_id is None
+    propagator._on_task_finished("running", {"propagation_results": {}})
+    applied.assert_not_called()

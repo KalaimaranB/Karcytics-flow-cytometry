@@ -48,6 +48,7 @@ class WorkspaceIOHandler:
         from karcytics_sdk.plugin.managed_task import FunctionalTask
         from karcytics_sdk.plugin.runtime_services import task_scheduler
 
+        save_token = self.parent_widget._begin_save()
         self.parent_widget._loading = True
 
         def _task():
@@ -57,6 +58,7 @@ class WorkspaceIOHandler:
 
         def _on_finished(results: dict):
             self.parent_widget._loading = False
+            self.parent_widget._finish_save(save_token)
             on_success(str(results.get("result", "")))
 
         def _on_task_error(err: str):
@@ -101,6 +103,7 @@ class WorkspaceIOHandler:
                 from karcytics_sdk.plugin.managed_task import FunctionalTask
                 from karcytics_sdk.plugin.runtime_services import task_scheduler
 
+                save_token = self.parent_widget._begin_save()
                 self.parent_widget._loading = True
 
                 def _save_task():
@@ -113,7 +116,7 @@ class WorkspaceIOHandler:
                     new_filename = results.get("result")
                     self.parent_widget._current_workflow_filename = new_filename
                     self.parent_widget._current_workflow_metadata = metadata
-                    self.parent_widget.set_dirty(False)
+                    self.parent_widget._finish_save(save_token)
                     from karcytics_sdk.plugin.dialogs import show_info
 
                     show_info(
@@ -171,6 +174,7 @@ class WorkspaceIOHandler:
         from karcytics_sdk.plugin.managed_task import FunctionalTask
         from karcytics_sdk.plugin.runtime_services import task_scheduler
 
+        save_token = self.parent_widget._begin_save()
         self.parent_widget._loading = True
 
         def _standalone_save_task():
@@ -179,7 +183,7 @@ class WorkspaceIOHandler:
 
         def _on_standalone_save_finished(results: dict):
             self.parent_widget._loading = False
-            self.parent_widget.set_dirty(False)
+            self.parent_widget._finish_save(save_token)
             from karcytics_sdk.plugin.dialogs import show_info
 
             show_info(
@@ -247,7 +251,6 @@ class WorkspaceIOHandler:
         metadata = getattr(self.parent_widget, "_current_workflow_metadata", {})
 
         def _on_success(_new_filename: str) -> None:
-            self.parent_widget.set_dirty(False)
             from karcytics_sdk.plugin.dialogs import show_info
 
             show_info(
@@ -283,7 +286,6 @@ class WorkspaceIOHandler:
         metadata = getattr(self.parent_widget, "_current_workflow_metadata", {})
 
         def _on_success(_new_filename: str) -> None:
-            self.parent_widget.set_dirty(False)
             self._publish_saved(filename)
             on_done(True)
 
@@ -336,7 +338,7 @@ class WorkspaceIOHandler:
                 # not the full keyed umap_results mapping).
                 self.parent_widget._on_tab_changed(self.parent_widget._tab_bar.currentIndex())
 
-                self.parent_widget.set_dirty(False)
+                self.parent_widget._store.reset()
                 from karcytics_sdk.plugin.dialogs import show_info
 
                 show_info(
@@ -389,7 +391,7 @@ class WorkspaceIOHandler:
             # matching comment in handle_load's _on_load_finished above.
             self.parent_widget._on_tab_changed(self.parent_widget._tab_bar.currentIndex())
 
-            self.parent_widget.set_dirty(False)
+            self.parent_widget._store.reset()
             from karcytics_sdk.plugin.dialogs import show_info
 
             show_info(self.parent_widget, "Workflow Loaded", "Workflow loaded successfully.")

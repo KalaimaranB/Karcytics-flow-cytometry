@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
 import pandas as pd
 
@@ -17,15 +19,17 @@ class SubsetGate(Gate):
 
     def __init__(
         self,
-        indices: list[int],
+        indices: Sequence[int],
         gate_id: str | None = None,
     ) -> None:
         # subset gates don't truly have x/y params, but we pass dummy values to satisfy the base class
         super().__init__(x_param="Subset", y_param=None, adaptive=False, gate_id=gate_id)
         # Convert to a set for O(1) lookup during contains()
         self.indices = set(indices)
-        # We also store a list for serialization
-        self._indices_list = list(indices)
+        # An immutable copy for serialization: a tuple can be shared by every
+        # undo snapshot of this gate instead of being copied into each one
+        # (see workspace_document.detached) — these can run to 100k+ ids.
+        self._indices_list: tuple[int, ...] = tuple(indices)
 
     def copy(self) -> SubsetGate:
         """Create a deep copy of this gate."""

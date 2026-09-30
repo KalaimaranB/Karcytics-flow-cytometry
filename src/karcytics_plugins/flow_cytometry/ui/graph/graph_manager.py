@@ -407,6 +407,32 @@ class GraphManager(QWidget):
                 if widget.node_id in deleted_nodes:
                     self._close_tab(i)
 
+    def cancel_active_drawing(self) -> None:
+        """Abandon any half-finished gate draw/drag in every open graph."""
+        for graph in self._graphs.values():
+            graph.canvas._cancel_drawing()
+
+    def reconcile_with_state(self) -> None:
+        """Bring every open graph back in line after undo/redo replaced the model.
+
+        Tabs whose sample or population no longer exists are closed; every
+        other one re-reads its gates, scales and data by id.
+        """
+        experiment = self._state.data.experiment
+        for i in range(self._tabs.count() - 1, -1, -1):
+            graph = self._tabs.widget(i)
+            if not isinstance(graph, GraphWindow):
+                continue
+            sample = experiment.samples.get(graph.sample_id)
+            if sample is None or (
+                graph.node_id is not None
+                and sample.gate_tree.find_node_by_id(graph.node_id) is None
+            ):
+                self._close_tab(i)
+                continue
+            graph.reload_from_state()
+            self._update_tab_label(i)
+
     def _get_parallel_node(
         self, source_sample_id: str, source_node_id: str | None, target_sample_id: str
     ) -> str | None:

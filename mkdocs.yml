@@ -82,3 +82,4 @@ nav:
       - "Rendering & Visualization": developer/07_RENDERING_AND_VISUALIZATION.md
       - "Data Flow & Signal Connections": developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md
       - "Derived Parameters": developer/09_DERIVED_PARAMETERS.md
+      - "State, Undo/Redo & Persistence": developer/10_STATE_UNDO_AND_PERSISTENCE.md

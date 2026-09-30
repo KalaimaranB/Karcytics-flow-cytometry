@@ -49,7 +49,7 @@ small dummies before any plugin code is imported. `repopulate_combo` and
 test delivers nothing, and asserting `theme_manager.apply_style` was called
 only checks the mock. Test the handler or the resulting state directly instead:
 call the subscribed callback yourself (see `test_main_panel_smoke.py::
-test_gate_modified_pushes_undo_and_dirty_flag`), or check what the widget
+test_gate_modified_records_one_undo_step_and_dirties`), or check what the widget
 shows.
 
 `Colors` resolves every token to `"#000000"`. If code needs a real palette

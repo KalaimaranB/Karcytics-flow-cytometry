@@ -22,17 +22,25 @@ class MainPanelController:
             CentralEventBus.subscribe(topic, cb)
             panel._subscriptions.append((topic, cb))  # type: ignore[attr-defined]
 
-        # ── Any structural change → Karcytics history manager & Node Canvas ────────────
-        def _on_structural_change(payload):
-            if not getattr(panel, "_loading", False):
-                panel.push_state()
-                panel.set_dirty(True)
-            panel._refresh_node_canvas()
+        # ── Undo history & unsaved changes ────────────────────────────
+        # HistoryRecorder (analysis/history_recorder.py) is the one table of
+        # which events are undo steps; the store behind it decides dirtiness.
+        from PyQt6.QtCore import QTimer
 
-        def _on_state_mutated(payload):
-            if not getattr(panel, "_loading", False):
-                panel.push_state()
-                panel.set_dirty(True)
+        from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
+
+        panel._history_recorder = HistoryRecorder(  # type: ignore[attr-defined]
+            panel._store,
+            CentralEventBus.subscribe,
+            CentralEventBus.unsubscribe,
+            defer=lambda fn: QTimer.singleShot(0, fn),
+        )
+        panel._history_recorder.start()  # type: ignore[attr-defined]
+        _subscribe(events.STATE_RESTORED, panel._on_state_restored)
+
+        # ── Structural change → Node Canvas ───────────────────────────
+        def _on_structural_change(_payload):
+            panel._refresh_node_canvas()
 
         _subscribe(events.GATE_CREATED, _on_structural_change)
         _subscribe(events.LOGIC_NODE_CREATED, _on_structural_change)
@@ -42,8 +50,7 @@ class MainPanelController:
         # GATE_MODIFIED only ever fires once per completed drag gesture (see
         # FlowCanvas._commit_gate_edit / GateDrawingFSM._finish_edit — the
         # live-drag preview mutates the Gate object directly and never
-        # publishes this event), so one edit = one undo step, matching
-        # GATE_CREATED/GATE_DELETED/GATE_RENAMED's coalescing for free.
+        # publishes this event), so one edit = one undo step.
         _subscribe(events.GATE_MODIFIED, _on_structural_change)
 
         def _on_gate_renamed_ui(payload):
@@ -56,29 +63,12 @@ class MainPanelController:
         _subscribe(events.GATE_RENAMED, _on_gate_renamed_ui)
 
         # A connection that doesn't (yet) satisfy a logic node's wiring
-        # requirements is still undo/dirty-worthy, but must NOT trigger the
-        # full canvas rebuild that _on_structural_change does — CanvasManager
-        # handles its own cheap, targeted redraw for these (see
-        # CanvasManager._on_connection_pending). Once a connection actually
-        # fulfills the node's requirements, GATE_STATS_UPDATED is published
-        # instead and does drive the full refresh (see _on_stats_updated below).
-        def _on_connection_pending(payload):
-            if not getattr(panel, "_loading", False):
-                panel.push_state()
-                panel.set_dirty(True)
+        # requirements must NOT trigger the full canvas rebuild above —
+        # CanvasManager handles its own cheap, targeted redraw for these (see
+        # CanvasManager._on_connection_pending); the HistoryRecorder still
+        # records them as steps.
 
-        _subscribe("flow.pipeline.connection_added", _on_connection_pending)
-        _subscribe("flow.pipeline.connection_removed", _on_connection_pending)
-
-        _subscribe(events.UMAP_COMPLETED, _on_state_mutated)
-
-        def _on_derived_params_changed(payload):
-            panel._on_derived_params_changed(payload)
-            _on_state_mutated(payload)
-
-        _subscribe(events.DERIVED_PARAMS_CHANGED, _on_derived_params_changed)
-        _subscribe(events.COMPENSATION_APPLIED, _on_state_mutated)
-        _subscribe(events.SAMPLE_LOADED, _on_state_mutated)
+        _subscribe(events.DERIVED_PARAMS_CHANGED, panel._on_derived_params_changed)
 
         # ── Workspace ribbon: samples loaded → refresh tree + groups ──
         # Note: Event subscription for UI refresh is handled in the components themselves
@@ -332,3 +322,6 @@ class MainPanelController:
             for topic, cb in panel._subscriptions:
                 CentralEventBus.unsubscribe(topic, cb)
             panel._subscriptions.clear()
+        recorder = getattr(panel, "_history_recorder", None)
+        if recorder is not None:
+            recorder.stop()

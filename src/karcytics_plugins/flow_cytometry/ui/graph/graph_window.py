@@ -342,6 +342,24 @@ class GraphWindow(QWidget):
         """
         self._canvas.set_gates(gates, gate_nodes)
 
+    def reload_from_state(self) -> None:
+        """Re-read everything this graph shows from the state, by id.
+
+        After undo/redo every Sample/GateNode object is new: the gate
+        overlays (which hold Gate objects), the FMO choices, the channel list
+        (a derived parameter may have come or gone), the scales and the
+        plotted population all have to be looked up again. Also abandons a
+        half-finished gate drag, which would otherwise commit onto a gate
+        that no longer exists.
+        """
+        self._canvas._cancel_drawing()
+        gates, nodes = self._controller.get_gates_for_display(self._sample_id, self._node_id)
+        self.refresh_gates(gates, nodes)
+        self._populate_fmo_combo()
+        self._refresh_axis_channels(None)
+        self._update_breadcrumb()
+        self._on_axis_changed()
+
     def update_gate_info(self, gate: Gate | None, stats: dict) -> None:
         """Update the gate info bar at the bottom of the window.
 
