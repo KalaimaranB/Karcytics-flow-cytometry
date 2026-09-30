@@ -58,8 +58,9 @@ class TestRectangleGateContains:
             }
         )
         result = gate_rectangle_singlet.contains(data)
-        # Boundary behavior depends on implementation
-        assert isinstance(result[0], (bool, np.bool_))
+
+        # Bounds are inclusive: the (x_min, y_min) corner is inside.
+        assert result.tolist() == [True]
 
     @pytest.mark.unit
     def test_contains_is_pure_and_deterministic(self, gate_rectangle_singlet):
@@ -112,8 +113,11 @@ class TestRectangleGateEventCounting:
         membership = gate.contains(synthetic_events_small)
         count = np.sum(membership)
 
-        assert count >= 0, "Event count should be non-negative"
-        assert count <= len(synthetic_events_small), "Count should not exceed total events"
+        fsc = synthetic_events_small["FSC-A"]
+        ssc = synthetic_events_small["SSC-A"]
+        expected = (fsc.between(70_000, 150_000) & ssc.between(30_000, 120_000)).sum()
+        assert count == expected
+        assert 0 < count < len(synthetic_events_small)
 
     @pytest.mark.unit
     def test_event_count_empty(self, synthetic_events_small):
@@ -174,11 +178,11 @@ class TestEllipseGateContains:
         cx, cy = gate_ellipse_cd4_plus.center
         w = gate_ellipse_cd4_plus.width
 
-        # Point on x-axis of ellipse
-        data = pd.DataFrame({"FITC-A": [cx + w * 0.9], "PE-A": [cy]})
+        # `width` is the X semi-axis: 0.9w along the axis is inside, 1.1w is not.
+        data = pd.DataFrame({"FITC-A": [cx + w * 0.9, cx + w * 1.1], "PE-A": [cy, cy]})
         result = gate_ellipse_cd4_plus.contains(data)
-        # Should be in gate (within semi-major axis)
-        assert isinstance(result[0], (bool, np.bool_))
+
+        assert result.tolist() == [True, False]
 
 
 class TestQuadrantGateContains:
@@ -191,16 +195,20 @@ class TestQuadrantGateContains:
         ym = gate_quadrant_cd4_cd8.y_mid
 
         # Create test points in each quadrant
-        q1 = (xm + 1000, ym + 500)  # +/+
-        q2 = (xm - 1000, ym + 500)  # -/+
-        q3 = (xm - 1000, ym - 500)  # -/-
-        q4 = (xm + 1000, ym - 500)  # +/-
+        # Q1 upper-left, Q2 upper-right, Q3 lower-left, Q4 lower-right.
+        points = {
+            "Q1": (xm - 1000, ym + 500),
+            "Q2": (xm + 1000, ym + 500),
+            "Q3": (xm - 1000, ym - 500),
+            "Q4": (xm + 1000, ym - 500),
+        }
+        data = pd.DataFrame(
+            {"FITC-A": [p[0] for p in points.values()], "PE-A": [p[1] for p in points.values()]}
+        )
 
-        for qx, qy in [q1, q2, q3, q4]:
-            data = pd.DataFrame({"FITC-A": [qx], "PE-A": [qy]})
-            result = gate_quadrant_cd4_cd8.contains(data)
-            # All should be valid boolean
-            assert isinstance(result[0], (bool, np.bool_))
+        for i, quadrant in enumerate(points):
+            mask = gate_quadrant_cd4_cd8.get_quadrant(data, quadrant)
+            assert mask.tolist() == [j == i for j in range(len(points))], quadrant
 
 
 class TestRangeGateContains:
@@ -228,8 +236,9 @@ class TestRangeGateContains:
         x = 1e7
         data = pd.DataFrame({"CD3": [x]})
         result = gate_range_cd3.contains(data)
-        # Depends on gate.high value
-        assert isinstance(result[0], (bool, np.bool_))
+
+        # 1e7 is far above high (262144) — well clear of the biex boundary.
+        assert result.tolist() == [False]
 
 
 class TestGateOperationsWithTransforms:
@@ -281,6 +290,5 @@ class TestGateErrorHandling:
 
         result = gate_rectangle_singlet.contains(data)
 
-        # NaN rows should typically be False (not in gate)
-        assert len(result) == 3
-        assert isinstance(result[1], (bool, np.bool_))
+        # NaN in either coordinate is never inside a gate.
+        assert result.tolist() == [True, False, False]
