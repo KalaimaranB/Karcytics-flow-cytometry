@@ -324,7 +324,17 @@ def apply_transform(
     fn = _TRANSFORM_REGISTRY.get(val)
     if fn is None:
         raise ValueError(f"Unknown transform: {transform_type}")
-    return fn(data, **_kwargs)
+    out = fn(data, **_kwargs)
+    # Logicle maps NaN to a finite value (≈ -1 in display space), which would
+    # draw — and gate — invalid derived-parameter events at the axis floor.
+    # FCS detector data is always finite, so this only affects NaN inputs.
+    arr = np.asarray(data)
+    if arr.dtype.kind == "f" and arr.shape == np.shape(out):
+        invalid = np.isnan(arr)
+        if invalid.any():
+            out = np.array(out, dtype=np.float64, copy=True)
+            out[invalid] = np.nan
+    return out
 
 
 def invert_linear_transform(

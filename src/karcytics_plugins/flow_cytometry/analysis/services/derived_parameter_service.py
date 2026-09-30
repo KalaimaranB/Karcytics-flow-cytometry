@@ -23,7 +23,8 @@ from ..derived import (
     is_derived_key,
     new_param_id,
     parse_formula,
-    sync_fcs_data,
+    sync_experiment,
+    sync_sample,
 )
 from ..fcs_io import get_channel_marker_label
 
@@ -239,12 +240,10 @@ class DerivedParameterService:
 
     def ensure_sample(self, sample: Sample) -> SyncResult:
         """Sync one sample's derived columns (idempotent, cheap if current)."""
-        if sample.fcs_data is None:
-            return SyncResult()
-        return sync_fcs_data(sample.fcs_data, self.definitions)
+        return sync_sample(self._experiment, sample)
 
     def sync_all(self) -> dict[str, SyncResult]:
-        return {sid: self.ensure_sample(s) for sid, s in self._experiment.samples.items()}
+        return sync_experiment(self._experiment)
 
     # ── Internals ─────────────────────────────────────────────────────────
 

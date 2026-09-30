@@ -142,6 +142,7 @@ class GraphWindow(QWidget):
         """Subscribe to relevant state events."""
         CentralEventBus.subscribe(events.GATE_RENAMED, self._on_gate_renamed)
         CentralEventBus.subscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+        CentralEventBus.subscribe(events.DERIVED_PARAMS_CHANGED, self._on_derived_params_changed)
         self.destroyed.connect(self._cleanup_events)
 
     def _cleanup_events(self) -> None:
@@ -154,6 +155,9 @@ class GraphWindow(QWidget):
         try:
             CentralEventBus.unsubscribe(events.GATE_RENAMED, self._on_gate_renamed)
             CentralEventBus.unsubscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+            CentralEventBus.unsubscribe(
+                events.DERIVED_PARAMS_CHANGED, self._on_derived_params_changed
+            )
         except Exception:
             pass
 
@@ -179,6 +183,46 @@ class GraphWindow(QWidget):
                 self._cleanup_events()
             else:
                 raise
+
+    def _on_derived_params_changed(self, data: dict) -> None:
+        """Rebuild axis lists after a derived parameter is added/edited/removed."""
+        try:
+            self._refresh_axis_channels(data.get("param_id"))
+        except RuntimeError as e:
+            if "has been deleted" in str(e):
+                self._cleanup_events()
+            else:
+                raise
+
+    def _refresh_axis_channels(self, changed_param: str | None) -> None:
+        sample = self._state.data.experiment.samples.get(self._sample_id)
+        if sample is None or sample.fcs_data is None:
+            return
+        fcs = sample.fcs_data
+        x_ch = self._axis_panel.get_current_x()
+        y_ch = self._axis_panel.get_current_y()
+
+        def _fallback(current: str, preferred: str) -> str:
+            if current in fcs.channels:
+                return current
+            if preferred in fcs.channels:
+                return preferred
+            return fcs.channels[0] if fcs.channels else current
+
+        new_x = _fallback(x_ch, "FSC-A")
+        new_y = _fallback(y_ch, "SSC-A")
+
+        self._axis_panel.block_combos(True)
+        self._axis_panel.clear_combos()
+        for ch in fcs.channels:
+            self._axis_panel.add_channel(get_channel_marker_label(fcs, ch), ch)
+        self._axis_panel.set_current_x(new_x)
+        self._axis_panel.set_current_y(new_y)
+        self._axis_panel.block_combos(False)
+
+        # Re-render if an axis was removed or its values/scale changed.
+        if (new_x, new_y) != (x_ch, y_ch) or changed_param in (x_ch, y_ch):
+            self._on_axis_changed()
 
     @property
     def sample_id(self) -> str:

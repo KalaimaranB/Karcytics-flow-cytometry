@@ -10,6 +10,7 @@ from karcytics_sdk.plugin import CentralEventBus, get_logger
 
 from . import events
 from .axis_manager import AxisManager
+from .derived.sync import sync_sample
 from .gate_propagator import GatePropagator
 from .gating import Gate, GateNode
 from .population_service import PopulationService
@@ -145,6 +146,9 @@ class GateCoordinator:
         from .statistics_analysis import StatisticsAnalysis
 
         sample = self._state.data.experiment.samples.get(sample_id)
+        if sample is not None:
+            # Safety net for derived columns (no-op when already current).
+            sync_sample(self._state.data.experiment, sample)
         if sample and sample.gate_tree:
             # Every mutation path funnels through here before stats are
             # considered valid again — the same choke point doubles as the

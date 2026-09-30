@@ -654,6 +654,10 @@ class ComparisonsViewer(QWidget):
                 first.setCheckState(Qt.CheckState.Checked)
         self._channel_list.blockSignals(False)
 
+    def refresh_channels(self) -> None:
+        """Rebuild the channel list (e.g. after derived parameters change)."""
+        self._refresh_channels()
+
     def _refresh_channels(self) -> None:
         spec = self._current_spec()
         # A channel checked under single-channel mode isn't a meaningful
@@ -685,11 +689,18 @@ class ComparisonsViewer(QWidget):
         sample = self._state.data.experiment.samples.get(sample_ids[0])
         if sample and sample.fcs_data:
             from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
+                derived_labels_of,
                 get_channel_marker_label,
                 get_fluorescence_channels,
             )
 
             fluo_channels = get_fluorescence_channels(sample.fcs_data)
+            if spec.channel_mode == ChannelMode.SINGLE:
+                # Derived parameters (ratios etc.) make sense on their own
+                # axis, but not side by side with raw intensities in the
+                # multi-channel heatmap/radar.
+                derived = derived_labels_of(sample.fcs_data)
+                fluo_channels += [ch for ch in sample.fcs_data.channels if ch in derived]
             channels = [(get_channel_marker_label(sample.fcs_data, ch), ch) for ch in fluo_channels]
 
         for label, key in channels:

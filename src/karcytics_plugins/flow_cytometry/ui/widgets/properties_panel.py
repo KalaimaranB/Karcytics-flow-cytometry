@@ -32,6 +32,7 @@ from PyQt6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
+from karcytics_plugins.flow_cytometry.analysis.fcs_io import derived_labels_of
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -450,7 +451,29 @@ class PropertiesPanel(QWidget):
                 "safely corrected and may undercount the true population.",
             )
 
-    def _show_gate_properties(self, sample: Sample, node_id: str) -> None:
+    @staticmethod
+    def _param_label(sample: Sample, param: str) -> str:
+        return derived_labels_of(sample.fcs_data).get(param, param)
+
+    def _derived_formula_rows(self, gate) -> list[tuple[str, str]]:
+        """Formula of each derived axis, noting if it changed since drawing."""
+        current = {d.param_id: d for d in self._state.data.experiment.derived_parameters}
+        recorded = getattr(gate, "derived_formulas", {}) or {}
+        rows: list[tuple[str, str]] = []
+        for param in dict.fromkeys(p for p in (gate.x_param, gate.y_param) if p):
+            defn = current.get(param)
+            drawn_on = recorded.get(param)
+            if defn is None:
+                if drawn_on:
+                    rows.append(("ƒ Formula:", f"{drawn_on} (definition deleted)"))
+                continue
+            text = defn.formula
+            if drawn_on and drawn_on != defn.formula:
+                text += f"\n⚠ Drawn on: {drawn_on}"
+            rows.append((f"ƒ {defn.name}:", text))
+        return rows
+
+    def _show_gate_properties(self, sample: Sample, node_id: str) -> None:  # noqa: PLR0915
         """Display gate-specific properties with detailed statistics."""
         self._clear_content()
 
@@ -505,9 +528,11 @@ class PropertiesPanel(QWidget):
         # Gate identity
         if gate is not None:
             _add_row("Type:", type(gate).__name__)
-            _add_row("X Param:", gate.x_param)
+            _add_row("X Param:", self._param_label(sample, gate.x_param))
             if gate.y_param:
-                _add_row("Y Param:", gate.y_param)
+                _add_row("Y Param:", self._param_label(sample, gate.y_param))
+            for label, text in self._derived_formula_rows(gate):
+                _add_row(label, text)
             _add_row("Adaptive:", "🧠 Yes" if gate.adaptive else "No")
         else:
             _add_row("Type:", f"{node.logic_operator} Logic")

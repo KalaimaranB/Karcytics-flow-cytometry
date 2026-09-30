@@ -43,4 +43,7 @@ def gate_from_dict(data: dict) -> Gate:
 
     # Use the polymorphic from_dict method to handle type-specific reconstruction.
     # This satisfies the Open/Closed Principle (OCP).
-    return cls.from_dict(data)
+    gate = cls.from_dict(data)
+    # Common field restored here once, rather than in every subclass.
+    gate.derived_formulas = dict(data.get("derived_formulas") or {})
+    return gate

@@ -517,6 +517,10 @@ class StatisticsExplorer(QWidget):
     def _on_selection_changed(self) -> None:
         self._refresh_channel_combo()
 
+    def refresh_channels(self) -> None:
+        """Rebuild the channel picker (e.g. after derived parameters change)."""
+        self._refresh_channel_combo()
+
     def _refresh_channel_combo(self) -> None:
         """Populate channel combo from the first checked sample."""
         prev_ch = self._channel_combo.currentData()

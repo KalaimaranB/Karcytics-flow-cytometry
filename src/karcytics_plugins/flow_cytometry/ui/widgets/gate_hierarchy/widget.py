@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
+from karcytics_plugins.flow_cytometry.analysis.fcs_io import derived_labels_of
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .all_samples_popup import AllSamplesPopup
@@ -277,7 +278,8 @@ class GateHierarchy(QWidget):
         if sample.fcs_data is not None:
             total_events = sample.fcs_data.num_events
 
-        rects = self._engine.compute(sample.gate_tree, total_events)
+        labels = derived_labels_of(sample.fcs_data)
+        rects = self._engine.compute(sample.gate_tree, total_events, labels)
         has_gates = len(rects) > 1
 
         if not has_gates:

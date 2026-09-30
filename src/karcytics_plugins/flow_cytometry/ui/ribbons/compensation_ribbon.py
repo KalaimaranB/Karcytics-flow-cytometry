@@ -29,6 +29,7 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
     extract_spill_from_fcs,
     import_matrix_from_csv,
 )
+from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -292,6 +293,8 @@ class CompensationRibbon(ThemedToolbarContainer):
             except Exception as exc:
                 logger.warning("Compensation failed for %s: %s", sample.display_name, exc)
 
+        sync_experiment(exp)
+
         msg = f"Compensation applied to {applied_count} sample(s)."
         if already_compensated_count > 0:
             msg += f"\n{already_compensated_count} sample(s) skipped (already compensated)."
@@ -359,6 +362,8 @@ class CompensationRibbon(ThemedToolbarContainer):
                 sample.fcs_data.is_compensated = False
                 sample.is_compensated = False
                 toggled_count += 1
+
+        sync_experiment(exp)
 
         if toggled_count > 0:
             state_str = "ON" if new_state else "OFF"

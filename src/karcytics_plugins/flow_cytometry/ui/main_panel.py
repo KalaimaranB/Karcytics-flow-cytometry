@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -173,6 +174,7 @@ class FlowCytometryPanel(PluginBase):
         self._umap_service = self._factory.get("umap_service")
         self._fluor_service = self._factory.get("fluor_service")
         self._workspace_io_handler = self._factory.get("workspace_io_handler")
+        self._derived_service = self._factory.get("derived_parameter_service")
 
         self._is_dirty = False
 
@@ -1136,6 +1138,26 @@ class FlowCytometryPanel(PluginBase):
             self.state_changed.emit()
             self.status_message.emit(f"Group '{name.strip()}' created.")
 
+    def _on_derived_params_changed(self, payload: dict) -> None:
+        """A derived-parameter definition was created, edited or deleted.
+
+        Columns are already re-synced by DerivedParameterService; open graph
+        windows rebuild their own axis lists (GraphWindow subscribes itself).
+        Here: refresh every other channel picker/label, and recompute stats
+        for samples whose gates sit on an edited parameter.
+        """
+        self._statistics_explorer.refresh_channels()
+        self._comparisons_viewer.refresh_channels()
+        self._gate_hierarchy.refresh()
+        self._properties_panel.refresh()
+        self._refresh_node_canvas()
+
+        if payload.get("action") == "updated":
+            param_id = payload.get("param_id", "")
+            affected = {d.sample_id for d in self._derived_service.find_dependents(param_id)}
+            for sample_id in affected:
+                self._gate_coordinator.recompute_all_stats(sample_id)
+
     def _on_compensation_changed(self) -> None:
         """Callback when the compensation matrix changes."""
         self._sample_list.refresh()  # Refresh event counts after comp
@@ -1218,6 +1240,7 @@ class FlowCytometryPanel(PluginBase):
         if not state:
             return
         self.state = state
+        sync_experiment(self.state.data.experiment)
         self._refresh_all()
 
     def export_state(self) -> dict:
@@ -1249,6 +1272,7 @@ class FlowCytometryPanel(PluginBase):
         self.state = FlowState.from_dict(flow_data)
 
         self.state.data.umap_results = current_umap
+        sync_experiment(self.state.data.experiment)
 
         # Clear active view context so UI starts blank on load
         self.state.view.current_sample_id = None

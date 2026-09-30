@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 from PyQt6.QtCore import QObject, pyqtSlot
 
+from ...analysis.derived import sync_experiment
+
 
 class WorkflowService(QObject):
     """Handles saving and loading of flow cytometry workflows."""
@@ -234,9 +236,13 @@ class WorkflowService(QObject):
                     path = project_dir / path
                 samples_with_paths.append((sample, path))
 
-            return self._data_loader.reload_samples_batch(
+            result = self._data_loader.reload_samples_batch(
                 samples_with_paths, self._state.data.compensation
             )
+            # Rebuild derived columns before on_complete evaluates any gates
+            # that were drawn on them.
+            sync_experiment(self._state.data.experiment)
+            return result
 
         task = FunctionalTask(_bg_reload, plugin_id="flow_cytometry", name="Reload FCS Files")
         scheduler = getattr(self._data_loader, "_scheduler", None)

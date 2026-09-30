@@ -33,6 +33,7 @@ from karcytics_sdk.plugin import get_logger
 from .models import DerivedParameter, is_derived_key
 
 if TYPE_CHECKING:
+    from ..experiment import Experiment, Sample
     from ..fcs_io import FCSData
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -111,6 +112,33 @@ def sync_fcs_data(fcs_data: FCSData, definitions: Sequence[DerivedParameter]) ->
     _record(fcs_data, merged, definitions)
     result.changed = True
     return result
+
+
+def sync_sample(experiment: Experiment, sample: Sample) -> SyncResult:
+    """Sync one sample against the experiment's definitions.
+
+    Returns immediately — touching nothing — for the common case of an
+    experiment with no derived parameters and a sample with no leftover
+    derived columns, so workspaces that never use the feature are unaffected.
+    """
+    fcs_data = sample.fcs_data
+    if fcs_data is None:
+        return SyncResult()
+    definitions = list(getattr(experiment, "derived_parameters", ()))
+    if not definitions:
+        columns = getattr(fcs_data.events, "columns", ())
+        if not any(is_derived_key(c) for c in columns):
+            return SyncResult()
+    return sync_fcs_data(fcs_data, definitions)
+
+
+def sync_experiment(experiment: Experiment) -> dict[str, SyncResult]:
+    """Sync every loaded sample in ``experiment``.
+
+    Call after anything that replaces event tables for many samples at once
+    (compensation, workspace reload, undo restore).
+    """
+    return {sid: sync_sample(experiment, s) for sid, s in experiment.samples.items()}
 
 
 def _compute(defn: DerivedParameter, base: pd.DataFrame, result: SyncResult) -> np.ndarray:

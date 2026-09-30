@@ -297,6 +297,7 @@ class WorkspaceRibbon(ThemedToolbarContainer):
             markers=list({m for mm in exp.marker_mappings for m in [mm.marker_name]}),
             marker_mappings=list(exp.marker_mappings),
             groups=group_templates,
+            derived_parameters=[d.to_dict() for d in exp.derived_parameters],
         )
 
         # Save dialog

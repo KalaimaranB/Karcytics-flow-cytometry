@@ -19,6 +19,7 @@ from enum import Enum
 from karcytics_sdk.plugin import get_logger
 
 from .derived.models import DerivedParameter
+from .derived.sync import sync_fcs_data
 from .fcs_io import FCSData
 from .gating import GateNode
 from .scaling import AxisScale
@@ -228,6 +229,8 @@ class Experiment:
         Args:
             sample: The sample to add.
         """
+        if sample.fcs_data is not None and self.derived_parameters:
+            sync_fcs_data(sample.fcs_data, self.derived_parameters)
         self.samples[sample.sample_id] = sample
 
     def remove_sample(self, sample_id: str) -> None:
@@ -288,6 +291,7 @@ class Experiment:
 
         self.active_template = template
         self.marker_mappings = list(template.marker_mappings)
+        self._merge_template_derived(template)
 
         for gt in template.groups:
             group = Group(
@@ -316,6 +320,22 @@ class Experiment:
             len(template.groups),
             sum(len(gt.tubes) for gt in template.groups),
         )
+
+    def _merge_template_derived(self, template: WorkflowTemplate) -> None:
+        """Adopt the template's derived parameters not already defined here."""
+        known_ids = {d.param_id for d in self.derived_parameters}
+        known_names = {d.name.casefold() for d in self.derived_parameters}
+        for data in template.derived_parameters:
+            try:
+                defn = DerivedParameter.from_dict(data)
+            except (KeyError, TypeError) as exc:
+                logger.warning("Skipping malformed derived parameter in template: %s", exc)
+                continue
+            if defn.param_id in known_ids or defn.name.casefold() in known_names:
+                continue
+            self.derived_parameters.append(defn)
+            known_ids.add(defn.param_id)
+            known_names.add(defn.name.casefold())
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

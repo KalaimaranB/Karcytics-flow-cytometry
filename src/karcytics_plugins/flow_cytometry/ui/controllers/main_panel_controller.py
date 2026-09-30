@@ -71,6 +71,12 @@ class MainPanelController:
         _subscribe("flow.pipeline.connection_removed", _on_connection_pending)
 
         _subscribe(events.UMAP_COMPLETED, _on_state_mutated)
+
+        def _on_derived_params_changed(payload):
+            panel._on_derived_params_changed(payload)
+            _on_state_mutated(payload)
+
+        _subscribe(events.DERIVED_PARAMS_CHANGED, _on_derived_params_changed)
         _subscribe(events.COMPENSATION_APPLIED, _on_state_mutated)
         _subscribe(events.SAMPLE_LOADED, _on_state_mutated)
 

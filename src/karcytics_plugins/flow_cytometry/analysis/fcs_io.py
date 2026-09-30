@@ -816,6 +816,15 @@ def get_fluorescence_channels(data: FCSData) -> list[str]:
     return [ch for ch in data.channels if not ch.startswith(exclude)]
 
 
+def derived_labels_of(data: object) -> dict[str, str]:
+    """``data.derived_labels`` if it's a real mapping, else ``{}``.
+
+    Tolerates FCSData stand-ins (tests, older pickles) that predate the field.
+    """
+    labels = getattr(data, "derived_labels", None)
+    return labels if isinstance(labels, dict) else {}
+
+
 def get_channel_marker_label(data: FCSData, channel: str) -> str:
     """Return the display label for a channel.
 
@@ -829,7 +838,7 @@ def get_channel_marker_label(data: FCSData, channel: str) -> str:
     Returns:
         A human-readable label.
     """
-    derived_label = data.derived_labels.get(channel)
+    derived_label = derived_labels_of(data).get(channel)
     if derived_label is not None:
         return derived_label
     try:
