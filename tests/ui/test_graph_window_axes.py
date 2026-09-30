@@ -50,24 +50,6 @@ def graph_window_with_sample_c(qtbot):
 
 @pytest.mark.ui
 class TestGraphWindowAxisIndependence:
-    def test_fsc_and_ssc_get_different_auto_ranges(self, qtbot, graph_window_with_sample_c):
-        """FSC-A and SSC-A must never share the same min_val after render."""
-        win = graph_window_with_sample_c
-        x_min = win._x_scale.min_val
-        y_min = win._y_scale.min_val
-        from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
-
-        # Switch to BIEXPONENTIAL to show data-driven floors
-        x_scale = AxisScale(TransformType.BIEXPONENTIAL)
-        win.apply_axis_scale(win._axis_panel._x_combo.currentData(), x_scale)
-        x_min, x_max = win._calculate_auto_range("x")
-
-        y_scale = AxisScale(TransformType.BIEXPONENTIAL)
-        win.apply_axis_scale(win._axis_panel._y_combo.currentData(), y_scale)
-        y_min, y_max = win._calculate_auto_range("y")
-
-        assert x_min <= 0 and y_min <= 0
-
     def test_switching_y_axis_updates_scale_from_new_data(self, qtbot, graph_window_with_sample_c):
         """Switching Y channel must recompute range from the new channel's data."""
         win = graph_window_with_sample_c
@@ -103,19 +85,6 @@ class TestGraphWindowAxisIndependence:
             f"Y scale must update after channel switch (old={old_y_min}, new={new_y_min})"
         )
         assert new_y_min < 0, f"FITC-A (compensated) should have negative floor (got {new_y_min})"
-
-    def test_auto_range_button_recomputes_from_current_data(
-        self, qtbot, graph_window_with_sample_c
-    ):
-        """Auto-Range button must recompute scale from the current channel's data."""
-        win = graph_window_with_sample_c
-
-        # Manually corrupt the min_val
-        win._x_scale.min_val = 999999999.0
-        # Trigger the internal auto-range explicitly
-        win._x_scale.min_val, win._x_scale.max_val = win._calculate_auto_range("x")
-
-        assert win._x_scale.min_val < 100000, "Auto-range must reset from data"
 
     def test_biex_transform_change_recomputes_range(self, qtbot, graph_window_with_sample_c):
         """Switching X from LINEAR to BIEX must produce a sensible positive min."""

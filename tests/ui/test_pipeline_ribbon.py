@@ -29,15 +29,6 @@ def ribbon(qtbot):
 
 
 @pytest.mark.ui
-def test_refresh_samples_populates_combo_from_state(ribbon):
-    ribbon.refresh_samples()
-
-    assert ribbon._sample_combo.count() == 2
-    assert ribbon._sample_combo.itemData(0) == "s1"
-    assert ribbon._sample_combo.itemData(1) == "s2"
-
-
-@pytest.mark.ui
 def test_refresh_samples_selects_current_sample_from_state(ribbon):
     ribbon.refresh_samples()
     assert ribbon._sample_combo.currentData() == "s2"

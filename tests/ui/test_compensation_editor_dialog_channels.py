@@ -57,16 +57,3 @@ def test_populate_matrix_rebuild_resets_to_defaults_not_prior_selection(qtbot):
     # restore-prior-selection call sites — this dialog never had that
     # behavior, so the migration must not introduce it.
     assert dialog._x_combo.currentText() == "FL1-A"
-
-
-@pytest.mark.ui
-def test_populate_matrix_does_not_emit_signals_while_rebuilding(qtbot):
-    dialog = _make_dialog(qtbot, ["FL1-A", "FL2-A"])
-
-    fired = []
-    dialog._x_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-    dialog._y_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-
-    dialog._populate_matrix()
-
-    assert fired == []

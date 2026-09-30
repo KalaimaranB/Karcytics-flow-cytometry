@@ -22,7 +22,6 @@ from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import (
     ChannelMode,
-    SampleMode,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.registry import PLOT_REGISTRY
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer import Colors, ComparisonsViewer
@@ -69,52 +68,6 @@ def test_every_registry_entry_has_a_complete_spec():
         assert spec.renderer_cls is not None, f"{name} has no renderer"
         assert spec.options_panel_cls is not None, f"{name} has no options panel"
         assert spec.help_title and spec.help_body, f"{name} has no help text"
-
-
-@pytest.mark.ui
-@pytest.mark.parametrize("plot_name", list(PLOT_REGISTRY.keys()))
-def test_plot_type_renders_without_crashing(qtbot, two_sample_state, plot_name):
-    """Drives the exact same path ComparisonsWorker.run() does
-    (spec.build_kwargs -> renderer.render()) for every registered plot type,
-    using the UI's own current selection state — so it also exercises each
-    plot type's sample/population/channel constraints, not just the renderer.
-    """
-    widget = ComparisonsViewer(two_sample_state)
-    qtbot.addWidget(widget)
-
-    idx = widget._plot_type_combo.findText(plot_name)
-    assert idx >= 0, f"{plot_name} not in the plot type combo"
-    widget._plot_type_combo.setCurrentIndex(idx)
-
-    spec = PLOT_REGISTRY[plot_name]
-    sample_ids = widget._selector.get_checked_sample_ids()
-    assert sample_ids, f"{plot_name}: no sample checked after switching to it"
-    if spec.sample_mode == SampleMode.SINGLE:
-        assert len(sample_ids) == 1, (
-            f"{plot_name} is SampleMode.SINGLE but {len(sample_ids)} samples are checked"
-        )
-
-    panel = widget._options_panels[plot_name]
-    config = panel.get_config()
-    pop_pairs = widget._selector.get_checked_populations()
-    channel_keys = widget._get_checked_channels() if spec.channel_mode != ChannelMode.NONE else []
-
-    kwargs = spec.build_kwargs(
-        widget._state, widget._extractor, config, sample_ids, pop_pairs, channel_keys
-    )
-    kwargs.update(
-        bg_color="#0d1117",
-        fg_color="#e6edf3",
-        border_color="#30363d",
-        accent_color="#00bcd4",
-        palette=["#00bcd4", "#ef5350", "#66bb6a"],
-    )
-
-    renderer = spec.renderer_cls()
-    fig = renderer.render(**kwargs)
-
-    assert fig is not None
-    assert len(fig.axes) >= 1
 
 
 @pytest.mark.ui

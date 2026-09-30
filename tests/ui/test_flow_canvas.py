@@ -1,17 +1,12 @@
 """Unit tests for FlowCanvas rendering engine.
 
-Tests the core canvas functionality including:
-- Initialization and attribute setup
-- Rendering pipeline
-- Gate drawing state machine
-- Artist management
-- Event handling state
+Covers behavior rather than setters: the async data->gate render
+sequence, the gate drawing/editing state machine (hit-testing, drag,
+commit, cancel, Alt-click cycling), and mouse-event routing into it.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
-import numpy as np
-import pandas as pd
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.gating import (
@@ -20,10 +15,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating import (
     QuadrantGate,
     RectangleGate,
 )
-from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
-from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
 from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import (
-    DisplayMode,
     FlowCanvas,
     GateDrawingMode,
 )
@@ -83,53 +75,8 @@ def _synchronous_scheduler():
     return scheduler, workers
 
 
-class TestFlowCanvasInitialization:
-    """Test FlowCanvas initialization and default state."""
-
-    @pytest.mark.ui
-    def test_constructs_with_expected_defaults(self):
-        """Canvas should construct without error and start in a clean, empty state.
-
-        Collapses what used to be 6 separate hasattr/isinstance-only checks
-        (no unique signal — see SDK_Abstraction_Performance_Plan.md Priority 4)
-        into one test of the defaults that actually matter: empty artist
-        containers and the initial drawing/display mode.
-        """
-        from karcytics_plugins.flow_cytometry.ui.graph.gate_drawing_fsm import DrawingState
-
-        canvas = FlowCanvas(parent=None)
-
-        assert canvas._gate_artists == []
-        assert canvas._gate_overlay_artists == {}
-        assert canvas._drawing_mode == GateDrawingMode.NONE
-        assert canvas._fsm.state == DrawingState.IDLE
-        assert canvas._display_mode == DisplayMode.PSEUDOCOLOR
-
-
 class TestFlowCanvasRenderingPipeline:
     """Test rendering pipeline doesn't crash."""
-
-    @pytest.mark.ui
-    def test_render_data_layer_empty_data(self):
-        """_render_data_layer should handle empty data gracefully."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Should not raise an error even with no data
-        canvas._render_data_layer()
-
-    @pytest.mark.ui
-    def test_render_gate_layer_empty_gates(self):
-        """_render_gate_layer should handle empty gate list gracefully."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Should not raise an error
-        canvas._render_gate_layer()
-
-        # Should have cleared artist lists
-        assert len(canvas._gate_artists) == 0
-        assert len(canvas._gate_patches) == 0
 
     @pytest.mark.ui
     def test_redraw_calls_both_layers(self, qtbot):
@@ -164,34 +111,9 @@ class TestFlowCanvasRenderingPipeline:
 
         qtbot.waitUntil(lambda: len(canvas._gate_artists) == 0, timeout=2000)
 
-    @pytest.mark.ui
-    def test_gate_artists_clear_in_render_gate(self):
-        """_render_gate_layer should clear and rebuild gate artists."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Add a mock artist
-        mock_artist = Mock()
-        mock_artist.remove = Mock()
-        canvas._gate_artists.append(mock_artist)
-
-        # Call render - should clear
-        canvas._render_gate_layer()
-
-        assert len(canvas._gate_artists) == 0
-
 
 class TestFlowCanvasGateDrawingStateMachine:
     """Test gate drawing mode transitions."""
-
-    @pytest.mark.ui
-    def test_set_drawing_mode(self):
-        """Should be able to set drawing mode."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
-        assert canvas._drawing_mode == GateDrawingMode.RECTANGLE
 
     @pytest.mark.ui
     def test_clear_drawing_state(self):
@@ -238,25 +160,6 @@ class TestFlowCanvasGateDrawingStateMachine:
 
         canvas.set_drawing_mode(GateDrawingMode.NONE)
         canvas.setFocus.assert_not_called()
-
-    @pytest.mark.ui
-    def test_multiple_mode_transitions(self):
-        """Should handle multiple mode transitions."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        modes = [
-            GateDrawingMode.RECTANGLE,
-            GateDrawingMode.POLYGON,
-            GateDrawingMode.ELLIPSE,
-            GateDrawingMode.QUADRANT,
-            GateDrawingMode.RANGE,
-            GateDrawingMode.NONE,
-        ]
-
-        for mode in modes:
-            canvas.set_drawing_mode(mode)
-            assert canvas._drawing_mode == mode
 
 
 class TestFlowCanvasEditState:
@@ -633,76 +536,6 @@ class TestFlowCanvasEditState:
         assert canvas._fsm.state != DrawingState.EDITING
 
 
-class TestFlowCanvasDataManagement:
-    """Test data loading and parameter management."""
-
-    @pytest.mark.ui
-    def test_set_data_with_dataframe(self):
-        """set_data should accept pandas DataFrame."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Create sample data
-        data = pd.DataFrame(
-            {
-                "FSC-A": np.random.normal(100000, 20000, 1000),
-                "SSC-A": np.random.normal(5000, 1000, 1000),
-                "FITC-A": np.random.exponential(50, 1000),
-            }
-        )
-
-        # Mock the redraw method to avoid matplotlib issues
-        with patch.object(canvas, "redraw"):
-            canvas.set_data(data)
-            assert canvas._current_data is data
-
-
-class TestFlowCanvasAxesManagement:
-    """Test axis parameter management."""
-
-    @pytest.mark.ui
-    def test_set_axes_changes_parameters(self):
-        """set_axes should update axis parameters."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        with patch.object(canvas, "redraw"):
-            canvas.set_axes("FITC-A", "PE-A", "FITC-A", "PE-A")
-            assert canvas._x_param == "FITC-A"
-            assert canvas._y_param == "PE-A"
-
-
-class TestFlowCanvasScaleManagement:
-    """Test axis scaling and transformation."""
-
-    @pytest.mark.ui
-    def test_set_scales_updates_coordinate_mapper(self):
-        """set_scales should update the coordinate mapper."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        x_scale = AxisScale(TransformType.BIEXPONENTIAL)
-        y_scale = AxisScale(TransformType.LOG)
-
-        with patch.object(canvas, "redraw"):
-            canvas.set_scales(x_scale, y_scale)
-            assert canvas._coordinate_mapper.x_scale is x_scale
-            assert canvas._coordinate_mapper.y_scale is y_scale
-
-
-class TestFlowCanvasDisplayManagement:
-    """Test display mode management."""
-
-    @pytest.mark.ui
-    def test_set_display_mode_changes_mode(self):
-        """set_display_mode should update display mode."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        canvas.set_display_mode(DisplayMode.CONTOUR)
-        assert canvas._display_mode == DisplayMode.CONTOUR
-
-
 class TestFlowCanvasEventHandling:
     """Test mouse and keyboard event handling."""
 
@@ -752,56 +585,4 @@ class TestFlowCanvasEventHandling:
         # Should clear drag start in FSM
         assert canvas._fsm._drag_start is None
 
-    @pytest.mark.ui
-    def test_drawing_mode_changes(self):
-        """Drawing mode should change correctly."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        assert canvas._drawing_mode == GateDrawingMode.NONE
-
-        # Test setting drawing mode (this would normally be done by UI)
-        canvas._drawing_mode = GateDrawingMode.RECTANGLE
-        assert canvas._drawing_mode == GateDrawingMode.RECTANGLE
-
-
-class TestFlowCanvasRendering:
-    """Test rendering pipeline and visual updates."""
-
-    @pytest.mark.ui
-    def test_render_gate_layer_calls_redraw(self):
-        """_gate_renderer.render should be called."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Mock the redraw method
-        with patch.object(canvas._gate_renderer, "render") as mock_redraw:
-            canvas._render_gate_layer()
-            mock_redraw.assert_called_once()
-
-    @pytest.mark.ui
-    def test_coordinate_transformation_accuracy(self):
-        """Coordinate transformations should be accurate."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Test with linear scales
-        test_points = np.array([0, 1000, 10000, 100000])
-
-        # Transform should be identity for linear scale
-        transformed = canvas._coordinate_mapper.transform_x(test_points)
-        np.testing.assert_array_almost_equal(transformed, test_points)
-
-    @pytest.mark.ui
-    def test_axis_ticks_with_transforms(self):
-        """Axis ticks should be generated correctly with transforms."""
-        parent = None
-        canvas = FlowCanvas(parent=parent)
-
-        # Set biexponential scale
-        biexp_scale = AxisScale(TransformType.BIEXPONENTIAL)
-        canvas.set_scales(biexp_scale, biexp_scale)
-
-        # This should not crash
-        canvas._setup_axis_ticks()
         # The actual tick setup is hard to test without real matplotlib

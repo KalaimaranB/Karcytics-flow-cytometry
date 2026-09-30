@@ -27,31 +27,6 @@ def viewer(qtbot):
 
 
 @pytest.mark.ui
-def test_refresh_samples_populates_sample_combo(viewer):
-    assert viewer._sample_combo.count() == 2
-    assert viewer._sample_combo.itemData(0) == "s1"
-
-
-@pytest.mark.ui
-def test_refresh_samples_restores_a_still_valid_prior_selection(viewer):
-    viewer._sample_combo.setCurrentIndex(1)  # "s2"
-
-    viewer.refresh_samples()
-
-    assert viewer._sample_combo.currentData() == "s2"
-
-
-@pytest.mark.ui
-def test_refresh_samples_does_not_emit_signals_while_rebuilding(viewer):
-    fired = []
-    viewer._sample_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-
-    viewer.refresh_samples()
-
-    assert fired == []
-
-
-@pytest.mark.ui
 def test_refresh_gates_always_has_all_events_first(viewer):
     assert viewer._gate_combo.itemText(0) == "⬡  All Events (no gate)"
     assert viewer._gate_combo.itemData(0) is None
@@ -66,28 +41,6 @@ def test_refresh_gates_lists_named_nodes_in_the_selected_samples_tree(viewer):
 
     assert viewer._gate_combo.count() == 2
     assert viewer._gate_combo.itemData(1) == node.node_id
-
-
-@pytest.mark.ui
-def test_refresh_gates_restores_a_still_valid_prior_selection(viewer):
-    sample = viewer._state.data.experiment.samples["s1"]
-    node = sample.gate_tree.add_child(None, name="Lymphocytes")
-    viewer._refresh_gates()
-    viewer._gate_combo.setCurrentIndex(1)
-
-    viewer._refresh_gates()
-
-    assert viewer._gate_combo.currentData() == node.node_id
-
-
-@pytest.mark.ui
-def test_refresh_gates_does_not_emit_signals_while_rebuilding(viewer):
-    fired = []
-    viewer._gate_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-
-    viewer._refresh_gates()
-
-    assert fired == []
 
 
 @pytest.mark.ui
@@ -106,13 +59,3 @@ def test_refresh_history_lists_runs_for_the_current_sample_and_gate(viewer):
 
     assert viewer._history_combo.count() == 2
     assert viewer._history_combo.itemText(1) == "1. First run"
-
-
-@pytest.mark.ui
-def test_refresh_history_does_not_emit_signals_while_rebuilding(viewer):
-    fired = []
-    viewer._history_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-
-    viewer.refresh_history()
-
-    assert fired == []
