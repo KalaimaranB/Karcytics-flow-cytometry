@@ -28,7 +28,7 @@ Open the editor either way:
 1. **Start from** a template — *Ratio A ÷ B*, *Log ratio*, *Fraction A ÷ (A + B)*, *Normalized difference*, or *Sum* — and pick channels **A** and **B**. The formula and a suggested name (e.g. *B220/CD45*) fill in automatically.
 2. Or write any formula yourself. Wrap channels in brackets — `[FITC-A]`, or a marker name like `[B220]` — and use `+ - * / ^ ( )` and the functions `log10`, `ln`, `log2`, `exp`, `sqrt`, `abs`, `asinh`, `min(a, b)`, `max(a, b)`. The channel and operator buttons insert at the cursor. Editing a template's formula by hand switches it to *Custom formula*.
 3. Choose the **default axis scale** (*Log* suits ratios; *Linear* suits log-ratios, fractions and differences).
-4. Check the **preview**: a histogram of the result with its median and the share of invalid events, for any sample and population you pick.
+4. Check the **preview**: a histogram of the result with its median and the share of invalid events, for any sample and population you pick. When you pick a population, it's drawn in **blue** over the whole sample in **grey**, on an axis that stays put as you switch populations — so you can see where each population sits.
 5. Click **Save**.
 
 Errors show as you type, with the position of the problem (for example *"Unknown channel [CD999] (character 12)"*).

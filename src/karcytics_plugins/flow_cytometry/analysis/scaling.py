@@ -45,6 +45,10 @@ class AxisScale:
     logicle_m: float = 4.5  # Positive decades
     logicle_a: float = 0.0  # Extra negative decades
 
+    # Log: values below this are clamped to it. 1.0 suits detector channels;
+    # derived parameters (e.g. ratios, mostly < 1) use DERIVED_LOG_FLOOR.
+    log_floor: float = 1.0
+
     # Outlier bounds (percentile to ignore at each end)
     outlier_percentile: float = 0.1  # Default to 0.1% (p0.1 and p99.9)
 
@@ -72,6 +76,9 @@ class AxisScale:
             if self.logicle_a < 0:
                 raise ValueError(f"logicle_a must be non-negative, got {self.logicle_a}")
 
+        if self.log_floor <= 0:
+            raise ValueError(f"log_floor must be positive, got {self.log_floor}")
+
         # Validate outlier percentile
         if not 0 <= self.outlier_percentile <= OUTLIER_PERCENTILE_MAX:
             raise ValueError(
@@ -87,6 +94,7 @@ class AxisScale:
             logicle_w=self.logicle_w,
             logicle_m=self.logicle_m,
             logicle_a=self.logicle_a,
+            log_floor=self.log_floor,
             outlier_percentile=self.outlier_percentile,
         )
 
@@ -100,6 +108,7 @@ class AxisScale:
             "logicle_w": self.logicle_w,
             "logicle_m": self.logicle_m,
             "logicle_a": self.logicle_a,
+            "log_floor": self.log_floor,
             "outlier_percentile": self.outlier_percentile,
         }
 
@@ -114,6 +123,7 @@ class AxisScale:
             logicle_w=data.get("logicle_w", 1.0),
             logicle_m=data.get("logicle_m", 4.5),
             logicle_a=data.get("logicle_a", 0.0),
+            log_floor=data.get("log_floor", 1.0),
             outlier_percentile=data.get("outlier_percentile", 0.1),
         )
 
@@ -132,6 +142,17 @@ def get_transform_kwargs(scale: AxisScale) -> dict:
             "positive": scale.logicle_m,
             "negative": scale.logicle_a,
         }
+    return log_transform_kwargs(scale)
+
+
+def log_transform_kwargs(scale: AxisScale) -> dict:
+    """apply_transform() kwargs for a log scale's floor; {} for other types.
+
+    Every caller that builds its own biexponential kwargs uses this for the
+    log case, so data, gates, ticks and limits all clamp at the same floor.
+    """
+    if scale.transform_type == TransformType.LOG:
+        return {"min_value": scale.log_floor}
     return {}
 
 

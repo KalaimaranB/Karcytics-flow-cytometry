@@ -243,12 +243,17 @@ course_4_reporting = Course(
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            target_widget_names=[
-                "DerivedTemplateCombo",
-                "DerivedChannelA",
-                "DerivedChannelB",
-                "DerivedSaveButton",
-            ],
+            # The dialog is its own window, which the Academy overlay can't
+            # paint over — the dialog spotlights these itself (see
+            # ui/widgets/tutorial_highlight.py).
+            metadata={
+                "in_window_targets": [
+                    "DerivedTemplateCombo",
+                    "DerivedChannelA",
+                    "DerivedChannelB",
+                    "DerivedSaveButton",
+                ]
+            },
             validator=DerivedRatioExistsValidator("FITC-A", "APC-A"),
             failure_hint=(
                 "Pick Ratio A ÷ B, set A to B220 (FITC-A) and B to CD45 (APC-A), then click Save."
@@ -258,22 +263,49 @@ course_4_reporting = Course(
         InfoStep(
             id="c4_d08_preview",
             text=(
-                "Read the preview before you go 🔍<br><br>"
-                "Switch the preview's population dropdown between **B-cells** "
-                "and **T-cells**:<br>"
-                "• **B-cells** — median around **0.6**<br>"
-                "• **T-cells** — median around **0.01**, almost no B220 at all<br><br>"
-                "**% invalid** is ~0% because CD45 is bright on every "
-                "leukocyte. If a denominator is dim in some population, that "
-                "number climbs — a warning that the ratio is mostly noise there."
+                "What the preview shows 🔍<br><br>"
+                "Your formula has already been run on every cell in Sample C — "
+                "the chart is the result, before you save anything.<br><br>"
+                "• **Left to right** — each cell's B220 ÷ CD45. Left = little "
+                "B220 for its CD45, right = lots. The marks **0.01**, **0.1**, "
+                "**1** are each 10× the one before.<br>"
+                "• **Bar height** — how many cells have that value.<br>"
+                "• **Grey** — the whole sample. It has **two humps**: two kinds "
+                "of cell with very different amounts of B220.<br>"
+                "• **Blue** — only the population picked in the dropdown, so "
+                "you can see which hump is which."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
-            target_widget_names=[
-                "DerivedPreviewPopulation",
-                "DerivedPreviewHistogram",
-                "DerivedPreviewSummary",
-            ],
+            metadata={"in_window_targets": ["DerivedPreviewPopulation", "DerivedPreviewHistogram"]},
+            next_step_id="c4_d08b_compare",
+        ),
+        InfoStep(
+            id="c4_d08b_compare",
+            text=(
+                "Which hump is which? 🔬<br><br>"
+                "Switch the preview's population dropdown:<br>"
+                "• **T-cells** — blue sits on the **left** hump, near **0.01**. "
+                "T cells carry CD45 but almost no B220.<br>"
+                "• **B-cells** — blue jumps to the **right** hump, near **0.6**.<br><br>"
+                "The line under the chart puts numbers on it:<br>"
+                "• **median** — the ratio of a typical cell in that population.<br>"
+                "• **% invalid** — cells where the ratio can't be computed "
+                "(CD45 at or below zero). ~0% here, so CD45 is a safe thing to "
+                "divide by. A high number would mean the denominator is too dim "
+                "and the ratio is mostly noise.<br><br>"
+                "That's the point of the preview: check the parameter does what "
+                "you meant **before** you save it and gate on it."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            metadata={
+                "in_window_targets": [
+                    "DerivedPreviewPopulation",
+                    "DerivedPreviewHistogram",
+                    "DerivedPreviewSummary",
+                ]
+            },
             next_step_id="c4_d09_close_editor",
         ),
         VerificationStep(
@@ -282,7 +314,7 @@ course_4_reporting = Course(
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            target_widget_names=["DerivedCloseButton"],
+            metadata={"in_window_targets": ["DerivedCloseButton"]},
             validator=DerivedEditorClosedValidator(),
             on_success_step_id="c4_d10_histogram",
         ),
@@ -315,15 +347,38 @@ course_4_reporting = Course(
         InfoStep(
             id="c4_d12_read_histogram",
             text=(
-                "Two populations, one axis 📊<br><br>"
-                "The derived parameter opened on a **log** scale (the Ratio "
-                "template's default). Two peaks, roughly **60× apart**: T "
-                "cells down near **0.01**, B cells up near **0.6**.<br><br>"
-                "Dividing by CD45 also cancels cell-to-cell differences in "
-                "overall staining — in this data the B-cell peak is noticeably "
-                "**tighter** on B220 ÷ CD45 than on B220 alone, so the two "
-                "populations separate more cleanly. You could draw a Range gate "
-                "right here, exactly like on any channel."
+                "The preview, full size 📊<br><br>"
+                "This is the same picture as the preview, now on a real graph "
+                "you can gate on:<br>"
+                "• **X axis** — each cell's own **B220 ÷ CD45** value. It's a "
+                "**log** scale (the Ratio template's default): **10⁻²** = 0.01, "
+                "**10⁻¹** = 0.1, **10⁰** = 1, each step 10× the one before, so "
+                "small and large ratios both get room.<br>"
+                "• **Y axis** — **Count**: how many cells fall in each thin "
+                "slice of X.<br><br>"
+                "So every **peak** is a group of cells sharing a similar ratio "
+                "— one peak per kind of cell."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c4_d12b_two_peaks",
+        ),
+        InfoStep(
+            id="c4_d12b_two_peaks",
+            text=(
+                "Two populations, one axis 🔬<br><br>"
+                "• **Left peak, near 0.01** — leukocytes with almost no B220: "
+                "**T cells** and other non-B leukocytes. Broad, because their "
+                "B220 is just background noise — dividing noise by CD45 smears "
+                "it across decades.<br>"
+                "• **Right peak, near 0.6** — **B cells**. Tall (most of Sample "
+                "C's leukocytes are B cells) and **narrow**: bright B220 over "
+                "bright CD45 varies only a little from cell to cell.<br><br>"
+                "The peaks sit ~60× apart, so a **Range gate** on the right "
+                "peak, drawn inside Leukocytes, picks out B cells — ~97% pure "
+                "in this data. Keep it inside Leukocytes: a cell with almost no "
+                "CD45 gets a big ratio from almost no B220."
             ),
             cyto_emotion="happy",
             allow_interaction=True,

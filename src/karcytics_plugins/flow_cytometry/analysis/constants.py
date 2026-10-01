@@ -128,3 +128,7 @@ POLYGON_MIN_VERTICES = 3
 # Any channel key with this prefix is computed, never read from the FCS file.
 DERIVED_PREFIX = "derived:"
 MAX_DERIVED_PARAMETERS = 20
+# Log-scale floor for derived axes. Ratios mostly sit below 1, so the
+# detector floor (1.0) would clamp nearly every event onto one point; the
+# auto-range still starts at the data, so this only bounds outliers.
+DERIVED_LOG_FLOOR = 1e-6

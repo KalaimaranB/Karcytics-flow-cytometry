@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import numpy as np
 import pandas as pd
 import pytest
+from PyQt6.QtWidgets import QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.derived import DerivedParameterDraft
@@ -33,6 +36,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.derived_formula_editor import (
     CUSTOM_TEMPLATE,
     DerivedParameterEditor,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.tutorial_highlight import IN_WINDOW_TARGETS_KEY
 
 pytestmark = pytest.mark.ui
 
@@ -385,3 +389,88 @@ def test_gating_ribbon_button_requests_editor(qtbot, state):
     assert button is not None
     with qtbot.waitSignal(ribbon.derived_params_requested, timeout=1000):
         button.click()
+
+
+# ── Preview populations ──────────────────────────────────────────────────
+
+
+def test_population_preview_shows_whole_sample_behind_on_same_axis(state, editor):
+    _gate_on(state, "a", "FITC-A")
+    editor.refresh_sources()
+    editor._preview_population.setCurrentIndex(1)
+    editor.revalidate()
+    assert editor._histogram._reference is not None
+    assert editor._histogram.ticks
+    assert editor._histogram.legend == ("Ratio hi", "Whole sample")
+    assert "\n" not in editor._preview_summary.text()
+    editor._histogram.grab()  # paints reference bars and tick labels
+
+
+# ── Academy highlight inside the dialog ──────────────────────────────────
+
+
+def _step(**metadata):
+    return SimpleNamespace(metadata=metadata)
+
+
+def test_dialog_spotlights_its_own_widgets_for_the_academy(dialog):
+    dialog.open_new()
+    rects = dialog.get_tutorial_target_rects(
+        _step(**{IN_WINDOW_TARGETS_KEY: ["DerivedCloseButton", "DerivedSaveButton"]})
+    )
+    assert rects == [dialog.frameGeometry()]
+    assert dialog._tutorial_highlight.visible_count == 2  # noqa: PLR2004
+
+    assert dialog.get_tutorial_target_rects(_step()) == []
+    assert dialog._tutorial_highlight.visible_count == 0
+
+
+def test_dialog_highlight_expires_when_driver_stops_asking(qtbot, dialog):
+    dialog.open_new()
+    dialog.get_tutorial_target_rects(_step(**{IN_WINDOW_TARGETS_KEY: ["DerivedCloseButton"]}))
+    qtbot.waitUntil(lambda: dialog._tutorial_highlight.visible_count == 0, timeout=2000)
+
+
+def test_hidden_dialog_offers_no_targets(dialog):
+    assert (
+        dialog.get_tutorial_target_rects(_step(**{IN_WINDOW_TARGETS_KEY: ["DerivedCloseButton"]}))
+        == []
+    )
+
+
+def test_course4_in_window_targets_exist_in_the_dialog(dialog):
+    from karcytics_plugins.flow_cytometry.tutorials.courses import course_4_reporting
+
+    dialog.open_new()
+    named = [
+        (step.id, name)
+        for step in course_4_reporting.steps
+        for name in (getattr(step, "metadata", None) or {}).get(IN_WINDOW_TARGETS_KEY, [])
+    ]
+    assert named, "course 4 should spotlight widgets inside the Derived Parameters dialog"
+    missing = [(sid, n) for sid, n in named if dialog.findChild(QWidget, n) is None]
+    assert missing == []
+
+
+# ── Comparisons histogram overlay ────────────────────────────────────────
+
+
+def test_comparisons_log_floor_only_drops_for_sub_one_data():
+    from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.renderers import (
+        histogram_overlay_renderer as hor,
+    )
+
+    detector = [np.array([-50.0, 5.0, 300.0, 5000.0, 20000.0])]
+    assert hor._log_floor_kwargs(detector) == {}
+    ratio = [np.array([0.004, 0.01, 0.02, 0.5, 0.7])]
+    assert hor._log_floor_kwargs(ratio) == {"min_value": pytest.approx(1e-3)}
+
+
+def test_dialog_stays_above_the_main_window(dialog):
+    """Clicking the main window (e.g. the Academy's Next) mustn't bury it."""
+    from PyQt6.QtCore import Qt
+
+    assert dialog.windowType() == Qt.WindowType.Tool
+    dialog.open_new()
+    assert dialog.isVisible() and dialog.isWindow()
+    assert dialog.windowTitle() == "Derived Parameters"

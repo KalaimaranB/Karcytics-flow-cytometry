@@ -177,11 +177,12 @@ def project_to_display(raw_values: np.ndarray, scale: AxisScale) -> np.ndarray:
         Values projected into display space.
     """
     transform_type = TransformTypeResolver.resolve(getattr(scale, "transform_type", "linear"))
-    kwargs = (
-        BiexponentialParameters(scale).to_dict()
-        if transform_type == TransformType.BIEXPONENTIAL
-        else {}
-    )
+    if transform_type == TransformType.BIEXPONENTIAL:
+        kwargs = BiexponentialParameters(scale).to_dict()
+    elif transform_type == TransformType.LOG:
+        kwargs = {"min_value": getattr(scale, "log_floor", 1.0)}
+    else:
+        kwargs = {}
     return apply_transform(np.asarray(raw_values), transform_type, **kwargs)
 
 

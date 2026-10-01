@@ -345,6 +345,11 @@ class DerivedParameterEditor(QWidget):
         self._histogram.setObjectName("DerivedPreviewHistogram")
         layout.addWidget(self._histogram)
         self._preview_summary = self._status_label("DerivedPreviewSummary")
+        # Room for the summary plus its warning line: inside the scroll area
+        # a word-wrapped label can otherwise get one line's height and clip.
+        self._preview_summary.setMinimumHeight(
+            2 * self._preview_summary.fontMetrics().lineSpacing() + 4
+        )
         layout.addWidget(self._preview_summary)
 
     # ── Sources ───────────────────────────────────────────────────────────
@@ -555,7 +560,7 @@ class DerivedParameterEditor(QWidget):
             _set_status(self._preview_summary, "", "")
             return
 
-        events = sample.fcs_data.events
+        all_events = events = sample.fcs_data.events
         node_id = self._preview_population.currentData()
         node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
         if node is not None:
@@ -571,8 +576,14 @@ class DerivedParameterEditor(QWidget):
             events,
             positive_denominators=draft.positive_denominators,
             log_scale=draft.preferred_transform == TransformType.LOG.value,
+            # Whole sample behind a population: same axis whichever
+            # population is picked, and shows where it sits in the sample.
+            reference=all_events if node is not None else None,
         )
-        self._histogram.set_counts(summary.counts)
+        legend = (node.name, "Whole sample") if node is not None else None
+        self._histogram.set_counts(
+            summary.counts, summary.reference_counts, summary.ticks, legend=legend
+        )
         _set_status(self._preview_summary, *_summary_text(summary))
 
 

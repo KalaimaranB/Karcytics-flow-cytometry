@@ -58,6 +58,7 @@ How sync stays correct and cheap:
 - NaN fails every gate comparison and is dropped by `compute_statistic` (`dropna`), auto-range (`isfinite`) and pseudocolor rendering.
 - `apply_transform()` preserves NaN (Logicle would otherwise map it to ≈ −1 display units, which would plot — and gate — invalid events at the axis floor).
 - Only `linear` and `log` scales are offered: Logicle's parameter estimation assumes a ~262k fluorescence range.
+- **Log floor.** `log_transform` clamps values below `min_value` (1.0 for detectors), which would put every ratio < 1 on one point. `AxisScale.log_floor` carries the floor; `AxisManager` gives derived keys `DERIVED_LOG_FLOOR` (1e-6), and every transform call site gets it via `get_transform_kwargs()` / `log_transform_kwargs()` (`CoordinateMapper`, `project_to_display` for gates, `RenderTask`). Log-axis ticks are the decades within the visible range (`log_decade_tick_values`), not the fixed 10³–10⁵. The Comparisons histogram overlay has no `AxisScale`; it lowers the floor only when the pooled data's median is below 1.
 
 ## Formula language
 
@@ -77,7 +78,7 @@ Channel consumers intentionally differ: `get_fluorescence_channels()` excludes d
 
 ## Academy
 
-Course 4's derived-parameter block (`c4_d01`–`c4_d13`, plus `c4_s06a_ratio_channel`) uses `DerivedRatioExistsValidator`, `DerivedEditorClosedValidator`, `ActiveGraphDerivedAxisValidator` and `StatsDerivedChannelValidator`. They match on the saved canonical formula, not the name the learner chose. `tests/unit/tutorials/test_course_step_graph.py` checks every course for dangling or unreachable steps.
+Course 4's derived-parameter block (`c4_d01`–`c4_d13`, plus `c4_s06a_ratio_channel`) uses `DerivedRatioExistsValidator`, `DerivedEditorClosedValidator`, `ActiveGraphDerivedAxisValidator` and `StatsDerivedChannelValidator`. They match on the saved canonical formula, not the name the learner chose. The dialog is a separate window the Academy overlay can't paint over, so steps inside it list their targets under `metadata["in_window_targets"]` instead of `target_widget_names`; the dialog's `get_tutorial_target_rects()` (the driver's duck-typed hook) draws the spotlight itself via `ui/widgets/tutorial_highlight.py` and returns its own frame so Cyto stays clear of it. `tests/unit/tutorials/test_course_step_graph.py` checks every course for dangling or unreachable steps.
 
 ## Tests
 
