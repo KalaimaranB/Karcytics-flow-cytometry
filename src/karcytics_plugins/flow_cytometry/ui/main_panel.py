@@ -29,6 +29,8 @@ from karcytics_sdk.plugin.runtime_services import (
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
+    QApplication,
+    QMessageBox,
     QSizePolicy,
     QWidget,
 )
@@ -203,6 +205,7 @@ class FlowCytometryPanel(PluginBase):
         self._store.reset()
         self.bind_undo_history(self._store.history, self._store.restore)
         self._workflow_loading = False
+        self._close_after_save = False
 
         # Shared SDK loop (PluginBase.setup_workflow_autosave): every 15
         # minutes, silently re-saves a workflow that's already been saved
@@ -212,6 +215,7 @@ class FlowCytometryPanel(PluginBase):
         self._workflow_autosave_controller = self.setup_workflow_autosave(
             has_saved_once=lambda: bool(getattr(self, "_current_workflow_filename", None)),
             save=self._workspace_io_handler.handle_autosave,
+            has_unsaved_changes=lambda: self._store.is_dirty,
         )
 
     def _setup_footer_events(self) -> None:
@@ -1330,6 +1334,74 @@ class FlowCytometryPanel(PluginBase):
     def _finish_save(self, token: Any) -> None:
         """A save that started with `token` succeeded."""
         self._store.finish_save(token)
+        if self._close_after_save:
+            self._close_after_save = False
+            self._close_window_when_idle()
+
+    # ── Unsaved-changes prompts ───────────────────────────────────────
+
+    def _ask_unsaved_changes(
+        self, text: str, buttons: QMessageBox.StandardButton
+    ) -> QMessageBox.StandardButton:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Unsaved Changes")
+        box.setText(text)
+        box.setStandardButtons(buttons)
+        box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return QMessageBox.StandardButton(box.exec())
+
+    def confirm_close(self) -> bool:
+        """Asked by the isolated window before a user closes it.
+
+        Unsaved changes offer Save / Discard / Cancel. Save starts the usual
+        (background) save and closes the window once it succeeds; if that
+        save is cancelled or fails, the next close asks again.
+        """
+        if self._close_after_save:
+            if getattr(self, "_loading", False):
+                return False  # the save-then-close is still writing
+            self._close_after_save = False  # it was cancelled or failed
+        if not self._store.is_dirty:
+            return True
+
+        Btn = QMessageBox.StandardButton
+        choice = self._ask_unsaved_changes(
+            "Save changes to this workspace before closing?",
+            Btn.Save | Btn.Discard | Btn.Cancel,
+        )
+        if choice == Btn.Discard:
+            return True
+        if choice == Btn.Save:
+            self._close_after_save = True
+            if getattr(self, "_current_workflow_filename", None):
+                self._handle_update()
+            else:
+                self._handle_save()
+            if not getattr(self, "_loading", False):
+                self._close_after_save = False  # no save started (dialog cancelled)
+        return False
+
+    def _close_window_when_idle(self) -> None:
+        """Close the hosting window once no modal dialog (e.g. "Saved") is up."""
+        if QApplication.activeModalWidget() is not None:
+            QTimer.singleShot(200, self._close_window_when_idle)
+            return
+        window = self.window()
+        if window is not None:
+            window.close()
+
+    def _confirm_discard_before_load(self) -> bool:
+        """A workflow is about to replace a workspace with unsaved changes."""
+        if not self._store.is_dirty:
+            return True
+        Btn = QMessageBox.StandardButton
+        choice = self._ask_unsaved_changes(
+            "Loading a workflow will discard your unsaved changes to this workspace.\n\n"
+            "Choose Cancel to keep working and save first.",
+            Btn.Discard | Btn.Cancel,
+        )
+        return choice == Btn.Discard
 
     def export_workflow(self) -> dict:
         """Serialize the workspace for saving to disk."""
@@ -1341,6 +1413,10 @@ class FlowCytometryPanel(PluginBase):
         self, payload: dict, filename: str | None = None, metadata: dict | None = None
     ) -> None:
         """Restore the workspace from a saved file."""
+        if not self._confirm_discard_before_load():
+            self.status_message.emit("Workflow load cancelled — your workspace is unchanged.")
+            return
+
         # Nothing records while the workspace is being replaced; the history
         # restarts from the loaded state once it's complete
         # (_finish_workflow_load). Undo/redo are refused until then.

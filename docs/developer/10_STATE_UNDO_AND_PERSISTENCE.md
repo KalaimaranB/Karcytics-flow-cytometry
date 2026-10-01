@@ -96,6 +96,19 @@ step reads as clean again. A save calls `panel._begin_save()` when it
 *starts* and `panel._finish_save(token)` when it succeeds: edits made while
 a background save runs stay dirty.
 
+Everything that cares about unsaved changes reads `store.is_dirty`:
+
+- the **Save Workspace** button (via the store's dirty listener);
+- **closing the window** — the SDK's isolated window calls
+  `panel.confirm_close()`, which offers Save / Discard / Cancel. Save runs
+  the normal background save and closes once `_finish_save` sees it
+  succeed; a cancelled or failed save just means the next close asks again.
+  A close the Hub requests is never prompted;
+- **loading a workflow** over unsaved edits (e.g. the Hub injecting another
+  one) asks "Discard and load" / Cancel first;
+- the SDK's **15-minute autosave** (`has_unsaved_changes=`) skips a tick
+  entirely — no rewrite, no reminder toast — when nothing changed.
+
 ---
 
 ## 5. Recording edits — `HistoryRecorder`

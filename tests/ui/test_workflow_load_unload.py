@@ -75,6 +75,8 @@ def panel(qapp, qtbot, monkeypatch):
     # _refresh_all() touches Phase-2 widgets this minimal panel never built.
     monkeypatch.setattr(p, "_refresh_all", lambda: None)
     monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.StandardButton.Ok)
+    # Loading over unsaved edits asks first; these tests mean "load anyway".
+    monkeypatch.setattr(p, "_ask_unsaved_changes", lambda *_a: QMessageBox.StandardButton.Discard)
     return p
 
 
