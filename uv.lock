@@ -609,7 +609,7 @@ wheels = [
 
 [[package]]
 name = "karcytics-sdk"
-version = "2.1.9"
+version = "2.2.0"
 source = { editable = "../Karcytics-SDK" }
 dependencies = [
     { name = "cryptography" },
