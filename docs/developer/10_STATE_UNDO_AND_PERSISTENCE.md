@@ -53,7 +53,7 @@ fails if a field doesn't round-trip exactly.
 | Kind of change | Examples | Undoable | Marks unsaved |
 | --- | --- | --- | --- |
 | **Analysis model** | gates, logic wiring, samples, groups, roles, markers, compensation, derived parameters, UMAP runs | ✅ | ✅ |
-| **Display settings** | channel scales/transforms, render settings, auto-range | ❌ | ✅ |
+| **Display settings & annotations** | channel scales/transforms, render settings, UMAP cluster names/custom clusters | ❌ | ✅ |
 | **Navigation** | selected sample/gate, active tab, per-sample last-viewed axes, default axis params | ❌ | ❌ |
 
 Channel scales aren't undoable because rendering writes auto-ranged defaults
@@ -73,14 +73,16 @@ menu labels ("Undo Delete Gate") run on.
 - **`absorb()`** — fold the current state into the latest step. For
   background follow-ups to a user action (gate propagation to other samples
   lands ~300 ms after the edit): undoing the edit undoes both.
-- **`mark_display_dirty()`** — a display setting changed.
+- **`mark_unsaved_change()`** — a saved-but-not-undoable change (display settings, UMAP cluster names).
 - **`batch(label)`** / **`pause()`**/**`resume()`** — coalesce, or stop
   recording across a multi-turn operation (a workflow load).
 - **`restore(snapshot)`** — rebuild the experiment from a snapshot, reattach
   what snapshots only reference by id (event data, UMAP embeddings, group
   scales — cached by the store and released once no reachable step needs
-  them), repair view pointers that no longer resolve, and publish
-  `STATE_RESTORED`.
+  them), recompute compensated event data where it no longer matches the
+  restored compensation flags/matrix (Apply/Toggle Compensation rewrite
+  `fcs_data.events` in place), repair view pointers that no longer resolve,
+  and publish `STATE_RESTORED`.
 - **`record_unannounced_changes()`** — safety net run before every
   undo/redo/save: a live change that no event announced becomes its own
   "Edit" step (and logs a warning) instead of being merged into — and lost
@@ -88,7 +90,7 @@ menu labels ("Undo Delete Gate") run on.
 
 ### Unsaved changes
 
-`store.is_dirty` = display settings changed **or** the current history step
+`store.is_dirty` = a saved-but-not-undoable change was made **or** the current history step
 isn't the saved one. Because it's revision-based, undoing back to the saved
 step reads as clean again. A save calls `panel._begin_save()` when it
 *starts* and `panel._finish_save(token)` when it succeeds: edits made while
@@ -99,7 +101,7 @@ a background save runs stay dirty.
 ## 5. Recording edits — `HistoryRecorder`
 
 `analysis/history_recorder.py` is the one table mapping domain events to the
-store (`STEP_EVENTS`, `ABSORB_EVENTS`, `DISPLAY_EVENTS`).
+store (`STEP_EVENTS`, `ABSORB_EVENTS`, `UNTRACKED_EVENTS`).
 `MainPanelController.wire()` starts it.
 
 `CentralEventBus` delivers **synchronously** on the GUI thread, and one user
@@ -108,15 +110,21 @@ rename is applied across samples). The recorder therefore defers the commit
 to the end of the event-loop turn: everything requested in one turn is one
 step, named by the first request. Undo, redo and save `flush()` it first.
 
-**Adding a new kind of edit:** mutate the model, then publish either an
-existing event from `STEP_EVENTS` or
+**Adding a new kind of edit:** non-gate edits live in
+`analysis/services/experiment_edits.py` (samples, groups, roles, templates,
+compensation, UMAP runs) — each function mutates `state` by id and then
+announces itself with `MODEL_EDITED` plus the UI-refresh events widgets
+already listen for. Widgets call these; they never mutate the experiment
+directly. A new edit either goes there or, at minimum, ends with
 
 ```python
-CentralEventBus.publish(events.MODEL_EDITED, {"label": "Rename Group"})
+experiment_edits.announce("Rename Group")          # one undo step
+experiment_edits.announce_unsaved_change()         # saved, not undoable
 ```
 
-For a saved-but-not-undoable setting publish `events.DISPLAY_SETTINGS_CHANGED`.
-Don't call the store directly from widgets.
+Gate edits go through `GateCoordinator` as before (their events are already
+in `STEP_EVENTS`). Address samples/groups/nodes **by id** in any callback —
+a captured object is detached by the next undo.
 
 ---
 

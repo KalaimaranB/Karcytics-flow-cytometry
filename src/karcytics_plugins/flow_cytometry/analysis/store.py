@@ -11,8 +11,8 @@ three ways (``HistoryRecorder`` maps domain events onto these):
 * ``absorb()`` — a background follow-up to the latest step (e.g. gate
   propagation finishing a moment after the edit that triggered it). Folded
   into the current step: undoing that step undoes both.
-* ``mark_display_dirty()`` — a display setting that is saved with the
-  workflow but isn't undoable (axis scales, render settings).
+* ``mark_unsaved_change()`` — a change that is saved with the workflow
+  but isn't undoable (axis scales, render settings, UMAP cluster names).
 
 Restoring (undo/redo) rebuilds ``state.data.experiment`` from the snapshot
 *in place* — ``state``/``state.data``/``state.view`` keep their identity —
@@ -32,10 +32,17 @@ from typing import TYPE_CHECKING, Any
 from karcytics_sdk.plugin import UndoHistory, get_logger
 
 from . import events
+from .compensation import CompensationMatrix, apply_compensation
 from .derived import sync_experiment
-from .workspace_document import capture_model, deserialize_compensation, model_experiment
+from .workspace_document import (
+    capture_model,
+    deserialize_compensation,
+    model_experiment,
+    serialize_compensation,
+)
 
 if TYPE_CHECKING:
+    from .experiment import Experiment
     from .fcs_io import FCSData
     from .scaling import AxisScale
     from .state import FlowState
@@ -56,7 +63,7 @@ class SaveToken:
     """What a save captured when it started; hand back to ``finish_save``."""
 
     revision: int | None
-    display_generation: int
+    untracked_generation: int
 
 
 class FlowStore:
@@ -78,10 +85,11 @@ class FlowStore:
         self._batch_label: str | None = None
         self._restoring = False
 
-        self._display_dirty = False
-        self._display_generation = 0
+        self._untracked_dirty = False
+        self._untracked_generation = 0
         self._last_dirty: bool | None = None
         self._dirty_listeners: list[Callable[[bool], None]] = []
+        self._commit_listeners: list[Callable[[str], None]] = []
 
     # ── Snapshots ─────────────────────────────────────────────────────
 
@@ -134,8 +142,8 @@ class FlowStore:
 
     def reset(self, clean: bool = True) -> None:
         """Start a fresh history at the current state (after a load / new workspace)."""
-        self._display_dirty = False
-        self._display_generation += 1
+        self._untracked_dirty = False
+        self._untracked_generation += 1
         self.history.reset(self.capture(), clean=clean)
         self._prune()
         self._notify_dirty()
@@ -153,6 +161,8 @@ class FlowStore:
         recorded = self.history.record(label, self.capture())
         if recorded:
             self._prune()
+            for callback in list(self._commit_listeners):
+                callback(label)
         return recorded
 
     def absorb(self) -> None:
@@ -239,10 +249,16 @@ class FlowStore:
                 else self._group_scales.get(gid, {})
             )
 
+        live_compensation = serialize_compensation(state.data.compensation)
         self._restoring = True
         try:
             state.data.experiment = experiment
             state.data.compensation = deserialize_compensation(snapshot["compensation"])
+            _reconcile_compensated_events(
+                experiment,
+                state.data.compensation,
+                matrix_changed=snapshot["compensation"] != live_compensation,
+            )
             state.data.umap_results = {
                 key: [self._umap_runs[rid] for rid in ids if rid in self._umap_runs]
                 for key, ids in snapshot["umap_runs"].items()
@@ -280,27 +296,31 @@ class FlowStore:
 
     @property
     def is_dirty(self) -> bool:
-        return self._display_dirty or not self.history.is_clean
+        return self._untracked_dirty or not self.history.is_clean
 
-    def mark_display_dirty(self) -> None:
-        """A saved-but-not-undoable setting changed."""
+    def mark_unsaved_change(self) -> None:
+        """A saved-but-not-undoable change was made (see events.UNSAVED_CHANGE)."""
         if not self.is_recording:
             return
-        self._display_dirty = True
-        self._display_generation += 1
+        self._untracked_dirty = True
+        self._untracked_generation += 1
         self._notify_dirty()
 
     def begin_save(self) -> SaveToken:
         """Capture what a save that's about to start will contain."""
         self.record_unannounced_changes()
-        return SaveToken(self.history.revision, self._display_generation)
+        return SaveToken(self.history.revision, self._untracked_generation)
 
     def finish_save(self, token: SaveToken) -> None:
         """Mark what `token` captured as saved (changes made since stay dirty)."""
-        if token.display_generation == self._display_generation:
-            self._display_dirty = False
+        if token.untracked_generation == self._untracked_generation:
+            self._untracked_dirty = False
         self.history.mark_clean(token.revision)
         self._notify_dirty()
+
+    def add_commit_listener(self, callback: Callable[[str], None]) -> None:
+        """Call `callback(label)` after every recorded step."""
+        self._commit_listeners.append(callback)
 
     def add_dirty_listener(self, callback: Callable[[bool], None]) -> None:
         """Call `callback(is_dirty)` whenever the dirty state flips."""
@@ -313,3 +333,27 @@ class FlowStore:
         self._last_dirty = dirty
         for callback in list(self._dirty_listeners):
             callback(dirty)
+
+
+def _reconcile_compensated_events(
+    experiment: Experiment, compensation: CompensationMatrix | None, *, matrix_changed: bool
+) -> None:
+    """Make loaded event data agree with each restored sample's compensation flag.
+
+    Applying or toggling compensation rewrites ``fcs_data.events`` in place,
+    and snapshots never carry event data — so after undoing it, the model
+    says "uncompensated" while the events still are. Recompute from the
+    raw-data backup wherever the two disagree, or wherever the matrix the
+    events were compensated with is no longer the restored one.
+    """
+    for sample in experiment.samples.values():
+        fcs = sample.fcs_data
+        if fcs is None or fcs.raw_events is None:
+            continue
+        if sample.is_compensated:
+            if compensation is not None and (not fcs.is_compensated or matrix_changed):
+                fcs.events = apply_compensation(fcs, compensation)
+                fcs.is_compensated = True
+        elif fcs.is_compensated:
+            fcs.events = fcs.raw_events.copy()
+            fcs.is_compensated = False

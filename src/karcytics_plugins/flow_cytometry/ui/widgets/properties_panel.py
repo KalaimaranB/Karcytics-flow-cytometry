@@ -338,14 +338,16 @@ class PropertiesPanel(QWidget):
                 role_combo.setCurrentIndex(i)
                 break
 
+        sample_id = sample.sample_id
+
         def _on_role_changed(idx: int):
-            new_role = role_combo.itemData(idx)
-            sample.role = new_role
-            CentralEventBus.publish(
-                events.SAMPLE_UPDATED,
-                {"sample_id": sample.sample_id, "stats": None, "tree": None},
-            )
-            self.roleChanged.emit()
+            from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
+            # By id: after an undo/redo `sample` above is a detached object.
+            if experiment_edits.set_sample_roles(
+                self._state, [sample_id], role_combo.itemData(idx)
+            ):
+                self.roleChanged.emit()
 
         role_combo.currentIndexChanged.connect(_on_role_changed)
 

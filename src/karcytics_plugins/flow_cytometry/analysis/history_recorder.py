@@ -84,7 +84,7 @@ STEP_EVENTS: dict[str, str | Callable[[Any], str | None]] = {
 ABSORB_EVENTS: tuple[str, ...] = (events.PROPAGATION_COMPLETE,)
 
 #: Saved-but-not-undoable changes.
-DISPLAY_EVENTS: tuple[str, ...] = (events.DISPLAY_SETTINGS_CHANGED,)
+UNTRACKED_EVENTS: tuple[str, ...] = (events.UNSAVED_CHANGE,)
 
 
 class HistoryRecorder:
@@ -113,7 +113,7 @@ class HistoryRecorder:
             self._add(topic, self._make_step_handler(label))
         for topic in ABSORB_EVENTS:
             self._add(topic, self._on_absorb)
-        for topic in DISPLAY_EVENTS:
+        for topic in UNTRACKED_EVENTS:
             self._add(topic, self._on_display)
 
     def stop(self) -> None:
@@ -141,7 +141,7 @@ class HistoryRecorder:
         self._store.absorb()
 
     def _on_display(self, _data: Any) -> None:
-        self._store.mark_display_dirty()
+        self._store.mark_unsaved_change()
 
     # ── Commit coalescing ─────────────────────────────────────────────
 

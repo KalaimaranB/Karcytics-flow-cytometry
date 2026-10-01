@@ -173,21 +173,14 @@ class GroupsPanel(QWidget):
             from PyQt6.QtWidgets import QTreeWidget
 
             if isinstance(source, QTreeWidget):
-                group = self._state.data.experiment.groups.get(group_id)
-                if not group:
-                    return
+                from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
-                changed = False
-                for s_item in source.selectedItems():
-                    sample_id = s_item.data(0, Qt.ItemDataRole.UserRole)
-                    if sample_id and sample_id not in group.sample_ids:
-                        group.sample_ids.append(sample_id)
-                        sample = self._state.data.experiment.samples.get(sample_id)
-                        if sample and group_id not in sample.group_ids:
-                            sample.group_ids.append(group_id)
-                        changed = True
-
-                if changed:
+                sample_ids = [
+                    s_item.data(0, Qt.ItemDataRole.UserRole) for s_item in source.selectedItems()
+                ]
+                if experiment_edits.add_samples_to_group(
+                    self._state, group_id, sample_ids, source="GroupsPanel"
+                ):
                     event.acceptProposedAction()
                     self.refresh()
                     # Reselect the group to show updated items
@@ -195,11 +188,6 @@ class GroupsPanel(QWidget):
                         if self._list.item(i).data(Qt.ItemDataRole.UserRole) == group_id:
                             self._list.setCurrentRow(i)
                             break
-                    from karcytics_sdk.plugin import CentralEventBus
-
-                    from karcytics_plugins.flow_cytometry.analysis import events
-
-                    CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "GroupsPanel"})
             else:
                 event.ignore()
 
@@ -223,20 +211,16 @@ class GroupsPanel(QWidget):
 
         action = menu.exec(self._list.mapToGlobal(pos))
 
+        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
         if action == rename_action:
             group = self._state.data.experiment.groups.get(group_id)
             if group:
                 name, ok = QInputDialog.getText(
                     self, "Rename Group", "Enter new name:", text=group.name
                 )
-                if ok and name.strip():
-                    group.name = name.strip()
+                if ok and experiment_edits.rename_group(self._state, group_id, name):
                     self.refresh()
-                    from karcytics_sdk.plugin import CentralEventBus
-
-                    from karcytics_plugins.flow_cytometry.analysis import events
-
-                    CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "GroupsPanel"})
 
         elif action == delete_action:
             confirmed = ask_yes_no(
@@ -244,19 +228,5 @@ class GroupsPanel(QWidget):
                 "Delete Group",
                 "Are you sure you want to delete this group?",
             )
-            if confirmed:
-                group = self._state.data.experiment.groups.get(group_id)
-                if group:
-                    # Remove from all samples
-                    for sample_id in group.sample_ids:
-                        sample = self._state.data.experiment.samples.get(sample_id)
-                        if sample and group_id in sample.group_ids:
-                            sample.group_ids.remove(group_id)
-                    # Remove from experiment
-                    del self._state.data.experiment.groups[group_id]
-                    self.refresh()
-                    from karcytics_sdk.plugin import CentralEventBus
-
-                    from karcytics_plugins.flow_cytometry.analysis import events
-
-                    CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "GroupsPanel"})
+            if confirmed and experiment_edits.delete_group(self._state, group_id):
+                self.refresh()

@@ -425,7 +425,7 @@ def test_reset_drops_everything_the_new_workspace_doesnt_use(store, state):
 
 
 def test_display_changes_dirty_without_an_undo_step(store):
-    store.mark_display_dirty()
+    store.mark_unsaved_change()
     assert store.is_dirty
     assert not store.history.can_undo()
 
@@ -433,7 +433,7 @@ def test_display_changes_dirty_without_an_undo_step(store):
 def test_save_marks_what_it_captured_as_clean(store, state):
     _add_gate(state)
     store.commit("Add Gate")
-    store.mark_display_dirty()
+    store.mark_unsaved_change()
     token = store.begin_save()
     store.finish_save(token)
     assert not store.is_dirty
@@ -453,7 +453,7 @@ def test_edits_made_during_a_background_save_stay_dirty(store, state):
 
 def test_display_edit_during_a_save_stays_dirty(store):
     token = store.begin_save()
-    store.mark_display_dirty()
+    store.mark_unsaved_change()
     store.finish_save(token)
     assert store.is_dirty
 
@@ -478,7 +478,16 @@ def test_dirty_listeners_fire_only_on_flips(store, state):
     assert seen == [True, False]
 
 
-def test_reset_clears_display_dirty(store):
-    store.mark_display_dirty()
+def test_reset_clears_untracked_dirty(store):
+    store.mark_unsaved_change()
     store.reset()
     assert not store.is_dirty
+
+
+def test_commit_listeners_fire_only_for_recorded_steps(store, state):
+    labels = []
+    store.add_commit_listener(labels.append)
+    store.commit("nothing changed")
+    _add_gate(state)
+    store.commit("Add Gate")
+    assert labels == ["Add Gate"]

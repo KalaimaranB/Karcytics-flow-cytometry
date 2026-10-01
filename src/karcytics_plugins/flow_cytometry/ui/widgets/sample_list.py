@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
+from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 # Icons and Colors from the original SampleTree
@@ -361,9 +362,7 @@ class SampleList(QWidget):
         new_name, ok = QInputDialog.getText(
             self, "Rename Sample", "New name:", text=sample.display_name
         )
-        if ok and new_name and new_name.strip() != sample.display_name:
-            sample.display_name = new_name.strip()
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "SampleList"})
+        if ok and experiment_edits.rename_sample(self._state, sample_id, new_name):
             self.refresh()
 
     def _delete_samples(self, items: list[QTreeWidgetItem]) -> None:
@@ -375,54 +374,19 @@ class SampleList(QWidget):
         confirmed = ask_yes_no(self, "Remove Sample", msg)
 
         if confirmed:
-            changed = False
-            for item in items:
-                sample_id = item.data(0, Qt.ItemDataRole.UserRole)
-                if sample_id and sample_id in self._state.data.experiment.samples:
-                    self._state.data.experiment.remove_sample(sample_id)
-                    changed = True
-
-            if changed:
-                CentralEventBus.publish(events.EXPERIMENT_DATA_CHANGED, {"source": "SampleList"})
+            sample_ids = [item.data(0, Qt.ItemDataRole.UserRole) for item in items]
+            if experiment_edits.remove_samples(self._state, sample_ids):
                 self.refresh()
 
     def _add_samples_to_group(self, items, group_id: str) -> None:
         """Add selected samples to a specific group."""
-        group = self._state.data.experiment.groups.get(group_id)
-        if not group:
-            return
-
-        changed = False
-        for item in items:
-            sample_id = item.data(0, Qt.ItemDataRole.UserRole)
-            if sample_id and sample_id not in group.sample_ids:
-                group.sample_ids.append(sample_id)
-                sample = self._state.data.experiment.samples.get(sample_id)
-                if sample and group_id not in sample.group_ids:
-                    sample.group_ids.append(group_id)
-                changed = True
-
-        if changed:
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "SampleList"})
+        sample_ids = [item.data(0, Qt.ItemDataRole.UserRole) for item in items]
+        experiment_edits.add_samples_to_group(self._state, group_id, sample_ids)
 
     def _remove_samples_from_group(self, items, group_id: str) -> None:
         """Remove selected samples from the current group."""
-        group = self._state.data.experiment.groups.get(group_id)
-        if not group:
-            return
-
-        changed = False
-        for item in items:
-            sample_id = item.data(0, Qt.ItemDataRole.UserRole)
-            if sample_id and sample_id in group.sample_ids:
-                group.sample_ids.remove(sample_id)
-                sample = self._state.data.experiment.samples.get(sample_id)
-                if sample and group_id in sample.group_ids:
-                    sample.group_ids.remove(group_id)
-                changed = True
-
-        if changed:
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "SampleList"})
+        sample_ids = [item.data(0, Qt.ItemDataRole.UserRole) for item in items]
+        if experiment_edits.remove_samples_from_group(self._state, group_id, sample_ids):
             self.refresh()
 
     def cleanup(self) -> None:

@@ -118,7 +118,7 @@ def test_propagation_results_are_absorbed_into_the_triggering_step(env):
 
 def test_display_settings_only_mark_dirty(env):
     _, bus, store, defer, _ = env
-    bus.publish(events.DISPLAY_SETTINGS_CHANGED, {})
+    bus.publish(events.UNSAVED_CHANGE, {})
     defer.run()
     assert store.is_dirty
     assert not store.history.can_undo()

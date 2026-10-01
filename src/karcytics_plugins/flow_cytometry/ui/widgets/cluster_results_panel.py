@@ -1209,11 +1209,14 @@ class ClusterResultsPanel(QWidget):
         if self._gate_coordinator:
             self._gate_coordinator.recompute_all_stats(sample_id)
 
-        from karcytics_sdk.plugin import CentralEventBus
-
         from ...analysis import events
+        from ...analysis.services import experiment_edits
 
-        CentralEventBus.publish(events.GATE_CREATED, {"sample_id": sample_id})
+        # One undo step named for the export; GATE_CREATED still drives the
+        # usual refreshes (and joins the same step — same event-loop turn).
+        experiment_edits.announce(
+            "Export UMAP Clusters", (events.GATE_CREATED, {"sample_id": sample_id})
+        )
 
         from karcytics_sdk.plugin.dialogs import show_info
 

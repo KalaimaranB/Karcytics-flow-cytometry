@@ -836,7 +836,10 @@ class GraphWindow(QWidget):
 
     def _on_render_settings_applied(self, new_config) -> None:
         """Apply new settings and re-render."""
+        from ...analysis.services import experiment_edits
+
         self._state.view.render_config = new_config
+        experiment_edits.announce_unsaved_change()
         self._canvas.redraw()
 
     def _on_gate_created(self, gate: Gate) -> None:
@@ -935,6 +938,9 @@ class GraphWindow(QWidget):
                     },
                 )
 
+            from ...analysis.services import experiment_edits
+
+            experiment_edits.announce_unsaved_change()
             self._render_initial()
 
         dlg.scale_changed.connect(on_change)

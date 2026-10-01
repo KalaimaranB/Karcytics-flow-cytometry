@@ -119,7 +119,7 @@ undo steps (`GATE_CREATED`, `LOGIC_NODE_CREATED`, `GATES_CREATED`,
 `COMPENSATION_APPLIED`, `DERIVED_PARAMS_CHANGED`, `UMAP_COMPLETED`,
 `MODEL_EDITED`), which background completions fold into the previous step
 (`PROPAGATION_COMPLETE`), and which only mark the workspace unsaved
-(`DISPLAY_SETTINGS_CHANGED`). Commits are deferred to the end of the
+(`UNSAVED_CHANGE`). Commits are deferred to the end of the
 event-loop turn, so one user action = one undo step no matter how many
 events it publishes. See `10_STATE_UNDO_AND_PERSISTENCE.md`.
 

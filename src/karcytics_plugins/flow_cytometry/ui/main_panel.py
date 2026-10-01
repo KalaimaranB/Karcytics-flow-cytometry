@@ -197,6 +197,9 @@ class FlowCytometryPanel(PluginBase):
 
         self._store = FlowStore(self.state, CentralEventBus.publish)
         self._store.add_dirty_listener(self.set_dirty)
+        # state_changed keeps meaning "a user edit happened" (ui_daemon
+        # forwards it to the Hub, e.g. for the Academy's file-import check).
+        self._store.add_commit_listener(lambda _label: self.state_changed.emit())
         self._store.reset()
         self.bind_undo_history(self._store.history, self._store.restore)
         self._workflow_loading = False
@@ -1153,20 +1156,16 @@ class FlowCytometryPanel(PluginBase):
 
     def _on_group_requested(self) -> None:
         """Callback when the user clicks 'Create Group'."""
-        import uuid
-
         from PyQt6.QtWidgets import QInputDialog
 
-        from karcytics_plugins.flow_cytometry.analysis.experiment import Group, GroupRole
+        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
         name, ok = QInputDialog.getText(self, "New Group", "Enter name for the new group:")
 
-        if ok and name.strip():
-            new_group = Group(group_id=str(uuid.uuid4()), name=name.strip(), role=GroupRole.CUSTOM)
-            self.state.data.experiment.add_group(new_group)
+        group = experiment_edits.create_group(self.state, name) if ok else None
+        if group is not None:
             self._groups_panel.refresh()
-            self.state_changed.emit()
-            self.status_message.emit(f"Group '{name.strip()}' created.")
+            self.status_message.emit(f"Group '{group.name}' created.")
 
     def _on_derived_params_changed(self, payload: dict) -> None:
         """A derived-parameter definition was created, edited or deleted.
