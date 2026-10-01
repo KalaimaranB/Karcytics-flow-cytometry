@@ -119,8 +119,10 @@ real distributions.
   `biexponential_transform` adds ±0.5 random dither by default (meant for
   display banding), and `project_to_display`, which every gate's `contains()`
   uses, doesn't disable it. An event within about 0.5 raw units of a
-  biexponential gate edge can flip membership between evaluations. Tests
-  avoid biexponential boundaries until this is fixed.
+  biexponential gate edge can flip membership between evaluations (up to
+  ~0.4% of a gate's count on Sample A). Tests avoid biexponential boundaries
+  until this is fixed. Details and measurements:
+  [06_TRANSFORMS_AND_SCALING.md](06_TRANSFORMS_AND_SCALING.md#dithering-jitter-and-its-effect-on-gating).
 - **Inverted bounds** (`x_min > x_max`, `low > high`) match nothing rather
   than being swapped or rejected. `test_invalid_inputs.py` pins this. Change it
   there if the behavior changes.
