@@ -307,8 +307,8 @@ course_2_gating = Course(
             id="c2_s08_tcell_done",
             text=(
                 "**T-cells** gated! ✅<br><br>"
-                "Auto-Propagation just copied this gate to every other Full Panel "
-                "sample in the group — Samples B and C already have it too."
+                "Auto-Propagation just copied this gate to every other sample "
+                "in the group — Samples B and C (and the controls) already have it too."
             ),
             cyto_emotion="happy",
             next_step_id="c2_s09_switch_sample_intro",

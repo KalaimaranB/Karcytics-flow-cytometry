@@ -245,17 +245,12 @@ course_4_reporting = Course(
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            # The dialog is its own window, which the Academy overlay can't
-            # paint over — the dialog spotlights these itself (see
-            # ui/widgets/tutorial_highlight.py).
-            metadata={
-                "in_window_targets": [
-                    "DerivedTemplateCombo",
-                    "DerivedChannelA",
-                    "DerivedChannelB",
-                    "DerivedSaveButton",
-                ]
-            },
+            target_widget_names=[
+                "DerivedTemplateCombo",
+                "DerivedChannelA",
+                "DerivedChannelB",
+                "DerivedSaveButton",
+            ],
             validator=DerivedRatioExistsValidator("FITC-A", "APC-A"),
             failure_hint=(
                 "Pick Ratio A ÷ B, set A to B220 (FITC-A) and B to CD45 (APC-A), then click Save."
@@ -279,7 +274,7 @@ course_4_reporting = Course(
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
-            metadata={"in_window_targets": ["DerivedPreviewPopulation", "DerivedPreviewHistogram"]},
+            target_widget_names=["DerivedPreviewPopulation", "DerivedPreviewHistogram"],
             next_step_id="c4_d08b_compare",
         ),
         InfoStep(
@@ -301,13 +296,11 @@ course_4_reporting = Course(
             ),
             cyto_emotion="talking",
             allow_interaction=True,
-            metadata={
-                "in_window_targets": [
-                    "DerivedPreviewPopulation",
-                    "DerivedPreviewHistogram",
-                    "DerivedPreviewSummary",
-                ]
-            },
+            target_widget_names=[
+                "DerivedPreviewPopulation",
+                "DerivedPreviewHistogram",
+                "DerivedPreviewSummary",
+            ],
             next_step_id="c4_d09_close_editor",
         ),
         VerificationStep(
@@ -316,7 +309,7 @@ course_4_reporting = Course(
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            metadata={"in_window_targets": ["DerivedCloseButton"]},
+            target_widget_names=["DerivedCloseButton"],
             validator=DerivedEditorClosedValidator(),
             on_success_step_id="c4_d10_histogram",
         ),
@@ -523,9 +516,10 @@ course_4_reporting = Course(
                 "and resize from its corner for more room. Every population "
                 "starts checked by default — click **None** first, then check "
                 "4 cells total:<br><br>"
-                "• **B-cells** — one click on its row label checks your "
-                "manual gate for Sample A, B, and C all at once (it "
-                "propagated everywhere back in Course 2).<br>"
+                "• **B-cells** — check it in the **Sample A**, **B** and "
+                "**C** columns. Not the row label: in Course 2 the gate "
+                "propagated to *every* sample, controls included, so the "
+                "row would tick all 10.<br>"
                 "• **UMAP B Cells** — only exists on **Sample C**, where you "
                 "built it; check just that one cell.<br><br>"
                 "Heads up: UMAP only ever clustered a **25% subsample** of "
@@ -761,9 +755,9 @@ course_4_reporting = Course(
                 "Pick your population here too 🎯<br><br>"
                 "This tab has its own population picker, separate from the "
                 "one on the Statistics tab. Click **Edit Population "
-                "Selection** (highlighted) and check **B-cells** — one "
-                "click on its row label checks Sample A, B, and C all at "
-                "once.<br><br>"
+                "Selection** (highlighted) and check **B-cells** in the "
+                "**Sample A**, **B** and **C** columns (the row label would "
+                "tick the controls too).<br><br>"
                 "Violin (the first chart type below) only allows one "
                 "population per sample, so this is the one to use for it. "
                 "A later step brings **UMAP B Cells** into the mix once "
