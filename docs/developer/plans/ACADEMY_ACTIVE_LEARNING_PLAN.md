@@ -1,6 +1,6 @@
 # Plan: active, question-based learning in the Flow Academy
 
-**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–7 done on `feature/academy-course-plumbing` (2026-10-01); Phase 8 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–7 done on `feature/academy-course-plumbing` and released as flow 0.11.0 (2026-10-01); Phase 8's numbers test is still open. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
 
 **Released so far:** SDK 2.3.0 (`QuestionStep`, SDK #14); flow 0.10.0 (flow #2), plus the first Course 4 questions merged to `main` (flow #3).
 
@@ -184,7 +184,7 @@ Each phase is one commit on a single branch per repo (see the memory note on pha
     - The two results sub-tab switches (Interactive Map, Population Statistics) still had Phase 3's old click / "Checking tab…" / "Oops!" triple; each is now one interactive `VerificationStep` on `ClusterResultsTabBar`. That pays for the prediction step.
     - Real numbers on Sample C: 99.95% of UMAP B Cells fall inside the hand-gated B-cells, and the scaled estimate covers about 93% of B-cells.
   Steps: 65→62 total, 61→60 main path. Checked offscreen on the real panel: every question answered wrong then right, a real UMAP + HDBSCAN run with both sub-tab steps advancing on the click (and passing straight through when the tab is already open), and the reveal showing the recorded prediction over the AND node.
-- [ ] **Phase 8: numbers test** (§6), user docs (`docs/user/10_ACADEMY_TUTORIALS.md`), and the flow plugin version bump that releases it (the SDK side shipped as 2.4.0 in Phase 1–2).
+- [ ] **Phase 8: numbers test** (§6), user docs (`docs/user/10_ACADEMY_TUTORIALS.md`), and the flow plugin version bump that releases it (the SDK side shipped as 2.4.0 in Phase 1–2). The user docs and the bump (0.11.0, `min_core_version` 2.0.7) shipped with Phase 7; only the numbers test remains.
 
 ## Decisions (2026-10-01)
 
