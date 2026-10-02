@@ -1,6 +1,6 @@
 # Plan: active, question-based learning in the Flow Academy
 
-**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–4 done on `feature/academy-course-plumbing` (2026-10-01); Phase 5 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–5 done on `feature/academy-course-plumbing` (2026-10-01); Phase 6 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
 
 **Released so far:** SDK 2.3.0 (`QuestionStep`, SDK #14); flow 0.10.0 (flow #2), plus the first Course 4 questions merged to `main` (flow #3).
 
@@ -174,10 +174,10 @@ Each phase is one commit on a single branch per repo (see the memory note on pha
     - The chart-type question ("which charts keep long names readable?") felt awkward in play-through, so it was replaced with an on-screen CV question: Sample B's B-cells have the lowest CV on the ratio, so what does that mean? It's followed by one Heatmap step.
     - Exports are one `ForcedInteractionStep` with two checked subtasks (Comparisons plot, Statistics CSV); the tabs record successful exports in `completed_exports`.
     - Verified with a full offscreen walk-through to completion, including graduation.
-- [ ] **Phase 5: Course 1 questions.** *Checkpoint: play-through.*
+- [x] **Phase 5: Course 1 questions.** *Checkpoint: play-through.* Done: six questions, as drafted. The thymus prediction (`c1_thymus_few`) is revealed in Course 2's `c2_s54_mystery_reveal` alongside Sample A's 0.3% B-cells; Phase 6 may move it when `c2_s51`–`c2_s53` become questions. The spillover, debris, PI and % Total questions replace their InfoSteps and keep the content that mattered in the explanation (single stains drive the matrix; the Cells gate and Biexponential notes; Event Count and Group Preview). The FMO question sits after the roles intro. Steps: 73→75 total (the budget), 60→62 main path. Choices, feedback and explanations render as plain text, so `test_answer_text_is_plain` rejects markdown there. Checked offscreen: every question answered wrong then right on the real panel (debris on the Blank's FSC/SSC plot, PI on the PI sample at Cells), plus the Course 2 reveal showing the recorded answer.
 - [ ] **Phase 6: Course 2 questions,** including the Course 1 → 2 prediction reveal. *Checkpoint: play-through.*
 - [ ] **Phase 7: Course 3 questions.** *Checkpoint: play-through.*
-- [ ] **Phase 8: numbers test** (§6), user docs (`docs/user/10_ACADEMY_TUTORIALS.md`), SDK release 2.2.0 and the plugin pin bump.
+- [ ] **Phase 8: numbers test** (§6), user docs (`docs/user/10_ACADEMY_TUTORIALS.md`), and the flow plugin version bump that releases it (the SDK side shipped as 2.4.0 in Phase 1–2).
 
 ## Decisions (2026-10-01)
 

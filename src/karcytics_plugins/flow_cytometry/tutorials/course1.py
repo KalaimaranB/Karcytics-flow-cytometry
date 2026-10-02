@@ -13,13 +13,16 @@ Spotlight convention:
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
+    QUESTION_PREDICT,
     ActionStep,
+    AnswerChoice,
     BranchingStep,  # noqa: F401
     ConsentStep,
     Course,
     ForcedInteractionStep,  # noqa: F401
     InfoStep,
     InteractionStep,
+    QuestionStep,
     SubTask,  # noqa: F401
     VerificationStep,
 )
@@ -233,6 +236,24 @@ course_1_fundamentals = Course(
             ),
             cyto_emotion="happy",
             cyto_animation="cheering",
+            next_step_id="c1_s1a_prediction",
+        ),
+        QuestionStep(
+            id="c1_s1a_prediction",
+            text=(
+                "Make a prediction 🔮<br><br>"
+                "The thymus is where T cells grow up. Which cells do you "
+                "expect the thymus sample to have *very few* of? There's no "
+                "wrong answer — Course 2 will tell you."
+            ),
+            kind=QUESTION_PREDICT,
+            question_id="c1_thymus_few",
+            choices=[
+                AnswerChoice("B cells"),
+                AnswerChoice("T cells"),
+                AnswerChoice("Immune cells of any kind"),
+            ],
+            cyto_emotion="thinking",
             next_step_id="c1_s1b_objectives",
         ),
         InfoStep(
@@ -367,6 +388,34 @@ course_1_fundamentals = Course(
                 "We'll assign them one step at a time."
             ),
             cyto_emotion="talking",
+            next_step_id="c1_s4b_fmo_question",
+        ),
+        QuestionStep(
+            id="c1_s4b_fmo_question",
+            text=(
+                "Quick check ✅<br><br>"
+                "CD45 is stained with the dye **APC**. Later you'll need to "
+                "know how bright a cell can be *without* CD45. Which file "
+                "shows you that?"
+            ),
+            question_id="c1_cd45_background",
+            choices=[
+                AnswerChoice("FMO APC", correct=True),
+                AnswerChoice(
+                    "Blank",
+                    feedback="Close, but Blank has no dyes at all, so it misses the glow the other dyes spill into the APC detector. Its edge sits too low.",
+                ),
+                AnswerChoice(
+                    "Sample A",
+                    feedback="Sample A has CD45 stained, so its real signal hides the background you're looking for.",
+                ),
+            ],
+            explanation=(
+                "FMO APC has every dye except APC: the same spillover as your "
+                "samples, but no real CD45 signal. Whatever it shows in the APC "
+                "channel is background, so that's where CD45-negative ends."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c1_s5_blank_role",
         ),
         # Blank → Unstained
@@ -503,19 +552,32 @@ course_1_fundamentals = Course(
             cyto_emotion="thinking",
             next_step_id="c1_s12e_spectral_theory_2",
         ),
-        InfoStep(
+        QuestionStep(
             id="c1_s12e_spectral_theory_2",
             text=(
-                "For every pair of channels, Karcytics uses your Single Stain "
-                "controls to estimate what fraction of one dye's signal leaks "
-                "into the other's detector, then subtracts that estimated "
-                "leakage from every event.<br><br>"
-                "You'll see this overlap directly, curve by curve, with real "
-                "published spectra later on Course 2's Spectral tab. For now, "
-                "let's build that matrix yourself so you know exactly what Karcytics "
-                "just did for you automatically."
+                "Spillover in action 🌈<br><br>"
+                "FITC's glow spills into the PE detector. Without compensation, "
+                "how does a cell that's bright for FITC but carries no PE look?"
             ),
-            cyto_emotion="talking",
+            question_id="c1_spillover_effect",
+            choices=[
+                AnswerChoice("Falsely PE-positive", correct=True),
+                AnswerChoice(
+                    "PE-negative, as it should",
+                    feedback="The PE detector still catches FITC's shoulder, so its reading climbs even though there's no PE.",
+                ),
+                AnswerChoice(
+                    "Dimmer for FITC",
+                    feedback="Spillover adds to the neighbouring detector; it doesn't take away from FITC's own reading.",
+                ),
+            ],
+            explanation=(
+                "Compensation fixes this: your Single Stains show what fraction "
+                "of each dye leaks into each other detector, and that leak is "
+                "subtracted from every event. Next you'll build that matrix "
+                "yourself."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c1_s13b_verify_comp_tab",
         ),
         # A VerificationStep, not an InteractionStep: if the user is already
@@ -641,20 +703,35 @@ course_1_fundamentals = Course(
             event_trigger="sample_double_clicked",
             next_step_id="c1_s22c_verify_sample_open",
         ),
-        InfoStep(
+        QuestionStep(
             id="c1_s22d_scatter_physics",
             text=(
-                "What FSC and SSC actually measure 💡<br><br>"
-                "Forward Scatter (FSC) is laser light bent slightly forward as it "
-                "passes around a cell — bigger cells bend more light forward, so "
-                "FSC roughly tracks cell SIZE.<br><br>"
-                "Side Scatter (SSC) is light bounced sideways off internal "
-                "structures — granules, a lobed nucleus, organelles — so SSC "
-                "roughly tracks internal COMPLEXITY.<br><br>"
-                "Plotting them together is the classic first gate: it separates "
-                "intact cells from debris before you've added a single dye."
+                "Read the plot 💡<br><br>"
+                "**FSC** (forward scatter) tracks a particle's size; **SSC** "
+                "(side scatter) tracks how much is inside it. Debris is "
+                "fragments: small and simple. Where on this plot does it sit?"
+            ),
+            question_id="c1_debris_location",
+            choices=[
+                AnswerChoice("Bottom-left: low FSC, low SSC", correct=True),
+                AnswerChoice(
+                    "Top-right: high FSC, high SSC",
+                    feedback="That's big, granular cells. Fragments scatter little light either way.",
+                ),
+                AnswerChoice(
+                    "Bottom-right: high FSC, low SSC",
+                    feedback="High FSC means large. Fragments are small.",
+                ),
+            ],
+            explanation=(
+                "Fragments bend little light forward and have little inside to "
+                "bounce light sideways. Scatter alone separates intact cells "
+                "from junk, before a single dye is involved, which is why it's "
+                "the first gate."
             ),
             cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
             next_step_id="c1_s23_cells_intro",
         ),
         # Cells gate
@@ -665,7 +742,7 @@ course_1_fundamentals = Course(
                 "The current plot shows **FSC-A** (cell size) vs **SSC-A** "
                 "(cell complexity). You'll see:<br>"
                 "• 2 main clusters of cells<br>"
-                "• A small debris cloud in the bottom-left corner<br>"
+                "• The debris cloud in the bottom-left corner<br>"
                 "• A good chunk of splatter throughout the entire canvas<br><br>"
                 "We want to draw a gate that excludes the debris. "
                 "This ensures all downstream analysis excludes junk events.<br><br>"
@@ -830,23 +907,35 @@ course_1_fundamentals = Course(
             failure_hint="Make sure the **X:** axis dropdown is set to **PerCP-Cy5-5-A**, the PI detector channel.",
         ),
         # ── Step 3: Explain biexponential and populations ───────────────────
-        InfoStep(
+        QuestionStep(
             id="c1_s27c_biexp_explain",
             text=(
-                "Reading the PI plot 🔬<br><br>"
-                "Two populations: a large, dense cluster on the left (live cells) "
-                "and a smaller, brighter cluster on the right (dead cells "
-                "absorbing PI).<br><br>"
-                "Notice Karcytics opened this sample directly at your **Cells** "
-                "population, not the top-level view — it preserves your gating "
-                "context every time you switch samples.<br><br>"
-                "Also notice the X axis auto-switched to **Biexponential**. "
-                "Compensated fluorescence data can score negative for real "
-                "cells, and Linear/Log scales can't display negatives properly "
-                "— Biexponential can, so Karcytics reaches for it automatically "
-                "whenever it detects a fluorescence channel."
+                "Read the PI plot 🔬<br><br>"
+                "Two clusters: a big, dim one on the left and a smaller, "
+                "bright one on the right. PI can only get into cells whose "
+                "membranes are damaged. Which cluster is the dead cells?"
             ),
-            cyto_emotion="talking",
+            question_id="c1_dead_cluster",
+            choices=[
+                AnswerChoice("The smaller, bright one on the right", correct=True),
+                AnswerChoice(
+                    "The big, dim one on the left",
+                    feedback="Dim means little PI got in: intact membranes kept it out. Those are the live cells.",
+                ),
+                AnswerChoice(
+                    "Neither: PI marks live cells",
+                    feedback="PI can't cross a healthy membrane. It only reaches the DNA of cells that are breaking down.",
+                ),
+            ],
+            explanation=(
+                "Also notice Karcytics opened this sample at your Cells gate, "
+                "and switched X to Biexponential: compensated data can go "
+                "negative for real cells, and only Biexponential shows those "
+                "values properly."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
             next_step_id="c1_s27d_outlier_fix",
         ),
         # ── Step 4: Fix Outliers ────────────────────────────────────────────
@@ -937,18 +1026,34 @@ course_1_fundamentals = Course(
             target_widget_names=["PseudocolorSettingsButton"],
             next_step_id="c1_s28_stats_intro",
         ),
-        InfoStep(
+        QuestionStep(
             id="c1_s28_stats_intro",
             text=(
-                "Understanding the Stats 📊<br><br>"
-                "Now that you've gated **Live Cells**, check the Property Panel:<br>"
-                "- Event Count: How many cells fall inside your gate.<br>"
-                "- % Parent: Percentage of the parent population (e.g. out of **Cells**).<br>"
-                "- % Total: Percentage of all recorded events in the tube.<br><br>"
-                "Also, glance at the **Group Preview** below \u2014 it shows this gate applied to "
-                "every sample in your workspace instantly!"
+                "Understanding the stats 📊<br><br>"
+                "The **Properties Panel** shows **% Parent** (share of the gate "
+                "above) and **% Total** (share of every event in the tube). If "
+                "Live Cells is 90% of Cells, and Cells is 70% of all events, "
+                "what is Live Cells' % Total?"
             ),
-            cyto_emotion="talking",
+            question_id="c1_percent_total",
+            choices=[
+                AnswerChoice("63%", correct=True),
+                AnswerChoice(
+                    "90%",
+                    feedback="That's % Parent: the share of Cells only. % Total also counts the 30% that Cells left out.",
+                ),
+                AnswerChoice(
+                    "70%",
+                    feedback="That's Cells' share. Live Cells is only part of Cells, so its share of everything is smaller.",
+                ),
+            ],
+            explanation=(
+                "Shares multiply down the hierarchy: 90% of 70% is 63%. The "
+                "panel also shows the Event Count, and the Group "
+                "Preview below shows this gate on every sample at once."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
             target_widget_names=["PropertiesPanel"],
             next_step_id="c1_s29_leuko_intro",
         ),

@@ -45,6 +45,18 @@ def test_question_is_concise(course_id, step):
         assert _words(choice.feedback) <= MAX_FEEDBACK_WORDS, choice.feedback
 
 
+@pytest.mark.parametrize(("course_id", "step"), QUESTIONS, ids=[s.id for _, s in QUESTIONS])
+def test_answer_text_is_plain(course_id, step):
+    """Choices, feedback and explanations render as plain text: markup would
+    show its raw asterisks or tags (only the question text is rich)."""
+    for text in [
+        step.explanation,
+        *(c.text for c in step.choices),
+        *(c.feedback for c in step.choices),
+    ]:
+        assert not re.search(r"\*|<[a-z/]", text or ""), text
+
+
 def test_question_ids_are_unique_across_courses():
     """Answers are recorded by question_id across courses, so a clash would
     let one question's answer reveal as another's."""

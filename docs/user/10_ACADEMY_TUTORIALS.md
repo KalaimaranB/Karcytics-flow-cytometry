@@ -43,7 +43,7 @@ The courses build on each other in order — Course 2 requires Course 1's saved 
 
 **~50 minutes · no prerequisites · badge: 🔬 Flow Fundamentalist**
 
-The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus, one Bone Marrow — and told you'll have an evidence-based answer for which is which by the end of Course 2. Along the way you:
+The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus, one Bone Marrow — and told you'll have an evidence-based answer for which is which by the end of Course 2. You start by predicting which cells the thymus will barely have; Course 2 tells you if you were right. Along the way you:
 
 - Import all ten tutorial files and learn what a **Group** is and why it controls gate propagation.
 - Tag every file with its **Role** (Unstained, Single Stain, FMO Control, Full Panel), one at a time and then in bulk.
@@ -51,6 +51,8 @@ The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus
 - Build a real three-level gating hierarchy — **Cells → Live Cells → Leukocytes** — reading Forward/Side Scatter physics, using a viability control with a Biexponential axis, and anchoring a CD45 gate to an FMO control's true background before confirming it against a real stained sample.
 - Learn the "No-Jump" axis-locking rule and watch Auto-Propagation copy your gates to every sample in the group in real time via the **Group Preview** panel.
 - Save your workspace — required to continue into Course 2.
+
+Short questions check the key ideas as you go: which control marks where CD45-negative ends, what spillover does to an uncompensated cell, where debris sits on a scatter plot, which PI cluster is dead, and how % Parent becomes % Total. Pick the right answer to continue.
 
 <!-- SCREENSHOT: docs/images/user/academy/course1-gating-hierarchy.png — the Gating Hierarchy panel showing the completed Cells → Live Cells → Leukocytes tree at the end of Course 1 -->
 
