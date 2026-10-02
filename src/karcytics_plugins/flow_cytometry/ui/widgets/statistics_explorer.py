@@ -161,6 +161,9 @@ class StatisticsExplorer(QWidget):
         self._state = state
         self._gate_coordinator = gate_coordinator
         self._last_results: list[dict[str, Any]] = []
+        # Exports that actually succeeded ("csv", "copy", "plot"); the
+        # Academy's export checklist (ExportDoneValidator) reads it.
+        self.completed_exports: set[str] = set()
         self._section_labels: list[QLabel] = []
         self._worker: ComputeWorker | None = None
 
@@ -1143,6 +1146,7 @@ class StatisticsExplorer(QWidget):
                         facecolor=self._figure.get_facecolor(),
                     )
                 self._status_lbl.setText(f"✓ Plot exported to {path}")
+                self.completed_exports.add("plot")
             except Exception as e:  # noqa: BLE001 — report as a diagnostic, not a crash.
                 logger.exception("Statistics plot export failed")
                 self._status_lbl.setText(f"❌ Export failed: {e}")
@@ -1178,6 +1182,7 @@ class StatisticsExplorer(QWidget):
         if clipboard:
             clipboard.setText(clipboard_text)
         self._status_lbl.setText(f"✓ Copied all {self._table.rowCount()} row(s) to clipboard")
+        self.completed_exports.add("copy")
 
     # ── Export ────────────────────────────────────────────────────────────────
 
@@ -1226,6 +1231,7 @@ class StatisticsExplorer(QWidget):
                 writer.writeheader()
                 writer.writerows(rows)
             self._status_lbl.setText(f"✓ Exported to {path}")
+            self.completed_exports.add("csv")
         except Exception as exc:  # noqa: BLE001 — see comment below.
             # Intentionally broad: `_last_results`' row shape isn't a
             # closed contract (new estimation/annotation keys have already

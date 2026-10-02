@@ -11,8 +11,11 @@ from karcytics_plugins.flow_cytometry.analysis.derived import DerivedParameter
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.tutorials.validators import (
     ActiveGraphDerivedAxisValidator,
+    AllOf,
+    ComparisonsDerivedChannelValidator,
     DerivedEditorClosedValidator,
     DerivedRatioExistsValidator,
+    ExportDoneValidator,
     StatsDerivedChannelValidator,
 )
 
@@ -103,3 +106,40 @@ class TestStatsDerivedChannel:
 
     def test_fails_without_explorer(self):
         assert not StatsDerivedChannelValidator("FITC-A", "APC-A").validate(_state(RATIO))
+
+
+class TestComparisonsDerivedChannel:
+    @pytest.mark.parametrize(
+        ("checked", "expected"),
+        [
+            (["derived:ratio001"], True),
+            (["FITC-A"], False),
+            (["derived:ratio001", "FITC-A"], False),
+            ([], False),
+        ],
+    )
+    def test_only_the_ratio_checked(self, checked, expected):
+        st = _state(RATIO)
+        st.view._comparisons_viewer = SimpleNamespace(_get_checked_channels=lambda: checked)
+        assert ComparisonsDerivedChannelValidator("FITC-A", "APC-A").validate(st) is expected
+
+
+class TestExportDone:
+    def test_needs_a_completed_export_of_that_kind(self):
+        st = FlowState()
+        st.view._statistics_explorer = SimpleNamespace(completed_exports={"copy"})
+        assert not ExportDoneValidator("_statistics_explorer", "csv").validate(st)
+        st.view._statistics_explorer.completed_exports.add("csv")
+        assert ExportDoneValidator("_statistics_explorer", "csv").validate(st)
+
+    def test_missing_tab_fails(self):
+        assert not ExportDoneValidator("_comparisons_viewer", "plot").validate(FlowState())
+
+
+def test_all_of_needs_every_validator():
+    st = _state(RATIO)
+    assert AllOf(DerivedRatioExistsValidator("FITC-A", "APC-A")).validate(st)
+    assert not AllOf(
+        DerivedRatioExistsValidator("FITC-A", "APC-A"),
+        DerivedRatioExistsValidator("APC-A", "FITC-A"),
+    ).validate(st)

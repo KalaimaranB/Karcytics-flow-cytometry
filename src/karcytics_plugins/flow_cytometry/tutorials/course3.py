@@ -32,9 +32,12 @@ reporting half of what used to be one oversized course.
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
+    QUESTION_PREDICT,
+    AnswerChoice,
     Course,
     InfoStep,
     InteractionStep,
+    QuestionStep,
     VerificationStep,
 )
 
@@ -144,32 +147,15 @@ course_3_analysis = Course(
             next_step_id="__abandon__",
         ),
         # ── Switch to Population Analysis tab ───────────────────────────────────
-        InteractionStep(
+        VerificationStep(
             id="c3_s02_pop_analysis_switch",
             text="Your gating tree checks out! Click the 'Population Analysis' tab at the top.",
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s03_verify_pop_tab",
-        ),
-        VerificationStep(
-            id="c3_s03_verify_pop_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
+            allow_interaction=True,
             hide_next_button=True,
+            target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(6),
             on_success_step_id="c3_s04_umap_theory_1",
-            on_fail_step_id="c3_s03b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s03b_wrong_tab",
-            text="Oops! Click the 'Population Analysis' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s03_verify_pop_tab",
         ),
         # ── UMAP theory ──────────────────────────────────────────────────────────
         InfoStep(
@@ -186,18 +172,35 @@ course_3_analysis = Course(
             cyto_emotion="thinking",
             next_step_id="c3_s05_umap_theory_2",
         ),
-        InfoStep(
+        QuestionStep(
             id="c3_s05_umap_theory_2",
             text=(
-                "Reading the result 🗺️<br><br>"
-                "The **axes themselves have no biological meaning** — there's "
-                "no 'CD3 axis'. What matters is which cells end up near each "
-                "other. A tight cluster of points ('island') that stays "
-                "together means UMAP found those cells similar across all 6 "
-                "channels at once — often a real, biologically coherent "
-                "population, discovered with no gates drawn by you at all."
+                "Reading the map 🗺️<br><br>"
+                "UMAP squeezes your marker channels onto just two axes. One "
+                "cell lands at **x = 5**. What does that tell you about it?"
             ),
-            cyto_emotion="talking",
+            question_id="c3_umap_axis",
+            choices=[
+                AnswerChoice(
+                    "Its CD3 level is 5",
+                    feedback="There's no CD3 axis. UMAP makes its axes up for the layout; they don't measure any marker.",
+                ),
+                AnswerChoice(
+                    "Nothing on its own; only its neighbors matter",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "It sits halfway between the dimmest and brightest cells",
+                    feedback="The axes have no units and no direction of 'bright'. Only which cells land near it means anything.",
+                ),
+            ],
+            explanation=(
+                "UMAP's axes measure nothing. What matters is which cells end "
+                "up near each other: a tight island means those cells are "
+                "similar across all the channels at once, often a real "
+                "population you never gated."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c3_s05b_umap_caveats",
         ),
         InfoStep(
@@ -268,16 +271,38 @@ course_3_analysis = Course(
             validator=UmapGateSelectedValidator("leukocytes"),
             on_success_step_id="c3_s10_gate_why",
         ),
-        InfoStep(
+        QuestionStep(
             id="c3_s10_gate_why",
             text=(
                 "Why gate first? 🚫<br><br>"
-                "It's tempting to run UMAP on 'All Events' — but debris and "
-                "dead cells have no real biological identity, and UMAP will "
-                "happily invent fake structure out of that noise. Feeding it "
-                "the same **Leukocytes** gate you've used all along excludes "
-                "exactly that noise, so every 'island' it finds is made of "
-                "real, living, lineage-committed cells."
+                "You could run UMAP on **All Events**. Why give it "
+                "**Leukocytes** instead?"
+            ),
+            question_id="c3_why_gate_first",
+            multi_select=True,
+            choices=[
+                AnswerChoice(
+                    "Debris and dead cells would form fake islands",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "UMAP can't read scatter channels",
+                    feedback="It can read any channel. The problem is what debris and dead cells would add, not which channels they're in.",
+                ),
+                AnswerChoice(
+                    "Fewer events, so the run is faster",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "It pushes the T-cell and B-cell islands further apart",
+                    feedback="Distance between islands means little on a UMAP. Gating is about keeping junk events out of the map.",
+                ),
+            ],
+            explanation=(
+                "Debris and dead cells have no biological identity, but UMAP "
+                "will still group them into islands. Gating to Leukocytes "
+                "keeps them out, so every island is made of real, living "
+                "cells, and the smaller input runs faster."
             ),
             cyto_emotion="thinking",
             next_step_id="c3_s11_exclude_channels",
@@ -296,20 +321,36 @@ course_3_analysis = Course(
             validator=UmapChannelExcludedValidator("PerCP-Cy5-5-A", "APC-A"),
             on_success_step_id="c3_s12_exclude_why",
         ),
-        InfoStep(
+        QuestionStep(
             id="c3_s12_exclude_why",
             text=(
-                "Why exclude exactly these two? ✂️<br><br>"
-                "**PI** is a viability dye — it already did its job separating "
-                "live from dead cells before this gate even started; among "
-                "surviving Leukocytes, it carries no further information.<br><br>"
-                "**CD45** is the pan-leukocyte marker you gated on to define "
-                "this very population — everyone left in the room is already "
-                "CD45+, so it can't tell UMAP anything to discriminate between "
-                "them. Including either channel just adds dead weight the "
-                "algorithm has to wade through for nothing."
+                "Why exclude these two? ✂️<br><br>"
+                "**PI**'s job ended at the Live gate: the dead cells are "
+                "already gone. Inside **Leukocytes**, why is **CD45** no use "
+                "to UMAP either?"
             ),
-            cyto_emotion="talking",
+            question_id="c3_why_exclude_cd45",
+            choices=[
+                AnswerChoice(
+                    "It spills too much into the other channels",
+                    feedback="Compensation already corrected spillover. The issue is what CD45 measures inside this gate.",
+                ),
+                AnswerChoice(
+                    "UMAP can't use the APC channel",
+                    feedback="UMAP can use any channel. CD45 is left out for what it shows here, not where it's measured.",
+                ),
+                AnswerChoice(
+                    "Every cell here is CD45-positive, so it can't tell them apart",
+                    correct=True,
+                ),
+            ],
+            explanation=(
+                "You drew Leukocytes on CD45, so every cell left is "
+                "CD45-positive. A channel that's high in every cell can't "
+                "separate one population from another; it only adds noise "
+                "for UMAP to wade through."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c3_s13_run_name",
         ),
         # ── Run name ─────────────────────────────────────────────────────────────
@@ -335,19 +376,36 @@ course_3_analysis = Course(
             on_fail_step_id="c3_s13_run_name",
         ),
         # ── Explain Neighbors + Min Distance ─────────────────────────────────────
-        InfoStep(
+        QuestionStep(
             id="c3_s14_neighbors",
             text=(
                 "Neighbors 🔗<br><br>"
-                "This controls how many nearby cells UMAP looks at when "
-                "deciding what 'close together' means. **Lower** values (5-15) "
-                "chase fine, local detail — small, tight sub-populations. "
-                "**Higher** values (30-50) smooth that out in favor of the big "
-                "picture — how the major lineages relate to each other overall. "
-                "There's no single right answer here; it's a genuine judgment "
-                "call about what you're looking for."
+                "This sets how many nearby cells UMAP looks at when deciding "
+                "what 'close together' means. Say you're hunting a rare "
+                "population of about 200 cells. Raise it or lower it?"
             ),
-            cyto_emotion="talking",
+            question_id="c3_rare_neighbors",
+            choices=[
+                AnswerChoice(
+                    "Lower, to keep fine local detail",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "Raise, so each cell sees more of its surroundings",
+                    feedback="With many neighbors, a 200-cell group gets blended into the bigger populations around it.",
+                ),
+                AnswerChoice(
+                    "It makes no difference for rare cells",
+                    feedback="It does: neighbors decides how local UMAP's view is, and a rare group needs a local view.",
+                ),
+            ],
+            explanation=(
+                "Low values (5–15) keep small, tight populations apart; high "
+                "values (30–50) show how the major lineages relate. It's a "
+                "judgment call about what you're looking for. The default, "
+                "15, is fine for this run."
+            ),
+            cyto_emotion="thinking",
             allow_interaction=True,
             allow_scroll=True,
             target_widget_names=["UmapNeighborsGroup"],
@@ -443,17 +501,34 @@ course_3_analysis = Course(
             validator=UmapHdbscanEnabledValidator(),
             on_success_step_id="c3_s21_hdbscan_why",
         ),
-        InfoStep(
+        QuestionStep(
             id="c3_s21_hdbscan_why",
             text=(
-                "Why bother, if UMAP already shows islands? 🔬<br><br>"
-                "Because 'it looks like a cluster' isn't a measurement. "
-                "**HDBSCAN** clusters the real, original 6-dimensional data — "
-                "not the 2D picture UMAP draws — and groups cells by density "
-                "with zero human input. It's a fully independent second "
-                "opinion: if HDBSCAN's clusters line up with your manually "
-                "drawn gates, that's genuine, quantitative confirmation, not "
-                "just a plot that happened to look convincing."
+                "A second opinion 🔬<br><br>"
+                "UMAP already shows islands, so why run **HDBSCAN** too? It "
+                "comes down to what it clusters. Which data does HDBSCAN "
+                "group?"
+            ),
+            question_id="c3_hdbscan_data",
+            choices=[
+                AnswerChoice(
+                    "The 2-D picture UMAP draws",
+                    feedback="Then it would only trace islands you can already see. It works on the marker data itself.",
+                ),
+                AnswerChoice(
+                    "The same marker data UMAP read, before flattening",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "The gates you drew in Course 2",
+                    feedback="It never sees your gates. That's exactly why its agreement with them means something.",
+                ),
+            ],
+            explanation=(
+                "HDBSCAN groups cells by density in the original marker data, "
+                "with no human input. If its clusters line up with your "
+                "hand-drawn gates, that's a measurement, not a plot that "
+                "happened to look convincing."
             ),
             cyto_emotion="thinking",
             next_step_id="c3_s22_min_cluster",
@@ -567,7 +642,7 @@ course_3_analysis = Course(
                 "B-cell-restricted isoform of CD45. T-cells and B-cells "
                 "diverge early in development into consistently different "
                 "signatures across the other channels too — so UMAP, which "
-                "only ever looks at overall 6-channel similarity and knows "
+                "only ever looks at overall marker similarity and knows "
                 "nothing about what any channel *means*, separates them "
                 "anyway. That's the same T-cell/B-cell distinction you gated "
                 "by hand in Course 2, arrived at here without drawing a "
@@ -579,32 +654,16 @@ course_3_analysis = Course(
             next_step_id="c3_s28_switch_interactive",
         ),
         # ── Move to Interactive Map ──────────────────────────────────────────────
-        InteractionStep(
+        VerificationStep(
+            # Passes straight through if the tab is already open.
             id="c3_s28_switch_interactive",
             text="Click the 'Interactive Map' tab (highlighted).",
             cyto_emotion="pointing",
-            target_widget_name="ClusterResultsTabBar",
-            target_widget_names=["ClusterResultsTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s29_verify_interactive",
-        ),
-        VerificationStep(
-            id="c3_s29_verify_interactive",
-            text="Checking tab...",
-            cyto_emotion="scanning",
+            allow_interaction=True,
             hide_next_button=True,
+            target_widget_names=["ClusterResultsTabBar"],
             validator=ClusterResultsTabActiveValidator("Interactive Map"),
             on_success_step_id="c3_s30_hover_explore",
-            on_fail_step_id="c3_s29b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s29b_wrong_tab",
-            text="Oops! Click the 'Interactive Map' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="ClusterResultsTabBar",
-            target_widget_names=["ClusterResultsTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s29_verify_interactive",
         ),
         # ── Encourage hover exploration ──────────────────────────────────────────
         InfoStep(
@@ -684,32 +743,16 @@ course_3_analysis = Course(
             next_step_id="c3_s36_switch_pop_stats",
         ),
         # ── Switch to Population Statistics sub-tab ──────────────────────────────
-        InteractionStep(
+        VerificationStep(
+            # Passes straight through if the tab is already open.
             id="c3_s36_switch_pop_stats",
             text="Click the 'Population Statistics' tab (highlighted).",
             cyto_emotion="pointing",
-            target_widget_name="ClusterResultsTabBar",
-            target_widget_names=["ClusterResultsTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s37_verify_pop_stats",
-        ),
-        VerificationStep(
-            id="c3_s37_verify_pop_stats",
-            text="Checking tab...",
-            cyto_emotion="scanning",
+            allow_interaction=True,
             hide_next_button=True,
+            target_widget_names=["ClusterResultsTabBar"],
             validator=ClusterResultsTabActiveValidator("Population Statistics"),
             on_success_step_id="c3_s38_cluster_table",
-            on_fail_step_id="c3_s37b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s37b_wrong_tab",
-            text="Oops! Click the 'Population Statistics' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="ClusterResultsTabBar",
-            target_widget_names=["ClusterResultsTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s37_verify_pop_stats",
         ),
         # ── Explain the 3 plots ──────────────────────────────────────────────────
         InfoStep(
@@ -797,32 +840,15 @@ course_3_analysis = Course(
             on_success_step_id="c3_s46_switch_pipeline",
         ),
         # ── Switch to Pipeline ────────────────────────────────────────────────────
-        InteractionStep(
+        VerificationStep(
             id="c3_s46_switch_pipeline",
             text="Click the 'Pipeline' tab at the top.",
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s47_verify_pipeline_tab",
-        ),
-        VerificationStep(
-            id="c3_s47_verify_pipeline_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
+            allow_interaction=True,
             hide_next_button=True,
+            target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(3),
             on_success_step_id="c3_s48_verify_sample_c",
-            on_fail_step_id="c3_s47b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s47b_wrong_tab",
-            text="Oops! Click the 'Pipeline' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s47_verify_pipeline_tab",
         ),
         VerificationStep(
             id="c3_s48_verify_sample_c",
@@ -904,6 +930,24 @@ course_3_analysis = Course(
                 "unsupervised result against ground truth you already trust."
             ),
             cyto_emotion="talking",
+            next_step_id="c3_s51b2_overlap_prediction",
+        ),
+        QuestionStep(
+            id="c3_s51b2_overlap_prediction",
+            text=(
+                "Make a prediction 🔮<br><br>"
+                "Of the cells UMAP called B cells, how many will also be "
+                "inside your hand-drawn **B-cells** gate? There's no wrong "
+                "answer — the AND node will tell you."
+            ),
+            kind=QUESTION_PREDICT,
+            question_id="c3_umap_in_gate",
+            choices=[
+                AnswerChoice("Fewer than half"),
+                AnswerChoice("About three quarters"),
+                AnswerChoice("Nearly all of them"),
+            ],
+            cyto_emotion="thinking",
             next_step_id="c3_s51c_logic_nodes_theory",
         ),
         InfoStep(
@@ -976,6 +1020,7 @@ course_3_analysis = Course(
             id="c3_s56_explain_and_stats",
             text=(
                 "Read the AND node's two overlap rows 🔢<br><br>"
+                "You predicted: **{answer:c3_umap_in_gate}**.<br><br>"
                 "**% of UMAP B Cells** sits close to 100% — nearly every "
                 "UMAP-clustered B-cell really is inside your hand-gated "
                 "boundary too. No correction needed there: both sides only "

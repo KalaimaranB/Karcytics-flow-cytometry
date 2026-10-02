@@ -43,7 +43,7 @@ The courses build on each other in order — Course 2 requires Course 1's saved 
 
 **~50 minutes · no prerequisites · badge: 🔬 Flow Fundamentalist**
 
-The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus, one Bone Marrow — and told you'll have an evidence-based answer for which is which by the end of Course 2. Along the way you:
+The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus, one Bone Marrow — and told you'll have an evidence-based answer for which is which by the end of Course 2. You start by predicting which cells the thymus will barely have; Course 2 tells you if you were right. Along the way you:
 
 - Import all ten tutorial files and learn what a **Group** is and why it controls gate propagation.
 - Tag every file with its **Role** (Unstained, Single Stain, FMO Control, Full Panel), one at a time and then in bulk.
@@ -51,6 +51,8 @@ The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus
 - Build a real three-level gating hierarchy — **Cells → Live Cells → Leukocytes** — reading Forward/Side Scatter physics, using a viability control with a Biexponential axis, and anchoring a CD45 gate to an FMO control's true background before confirming it against a real stained sample.
 - Learn the "No-Jump" axis-locking rule and watch Auto-Propagation copy your gates to every sample in the group in real time via the **Group Preview** panel.
 - Save your workspace — required to continue into Course 2.
+
+Short questions check the key ideas as you go: which control marks where CD45-negative ends, what spillover does to an uncompensated cell, where debris sits on a scatter plot, which PI cluster is dead, and how % Parent becomes % Total. Pick the right answer to continue.
 
 <!-- SCREENSHOT: docs/images/user/academy/course1-gating-hierarchy.png — the Gating Hierarchy panel showing the completed Cells → Live Cells → Leukocytes tree at the end of Course 1 -->
 
@@ -64,8 +66,10 @@ Picks up exactly where Course 1 left off (it checks that your saved workflow is 
 - Split T-cells four ways at once with a single **Quadrant** gate (CD4+, CD8+, double-positive, double-negative), then rename all four resulting leaves.
 - Learn to read and reorient the **Pipeline** flowchart view, including the boolean **AND/OR/NOT** logic nodes you'll put to real use in a later course.
 - Explore the **Spectral Viewer**'s real, FPbase-sourced dye curves, work through an interactive **Learning Compensation** masterclass slideshow built from your own panel's real numbers, and learn when overlapping spectra actually matter biologically versus when they don't.
-- Use the **Quick-Stats** grid to read hard numbers across every sample and build a genuine, evidence-based hypothesis for which mystery sample is Thymus, Bone Marrow, and Spleen.
+- Use the **Quick-Stats** grid to read hard numbers across every sample and decide, from the evidence, which mystery sample is Thymus, Bone Marrow, and Spleen.
 - Save your workspace again — required to continue into Course 3.
+
+Questions along the way: where the T cells sit on a B220 vs CD3 plot, why the B220 threshold comes from the FMO (select all that apply), when a histogram beats a scatter plot, and which quadrant holds the helper T cells. To crack the mystery, you name each sample's organ yourself from the Quick-Stats grid, and Course 2 shows how your Course 1 prediction held up.
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
@@ -84,19 +88,23 @@ No new manual gating anywhere in it — instead, you hand your existing gated da
 - Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
 - Save your workspace again — required to continue into Course 4.
 
+Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you.
+
 <!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
 ### Course 4 — Derived Parameters, Statistics & Comparisons
 
-**~40 minutes · requires Course 3 · badge: 📊 Insight Reporter**
+**~35 minutes · requires Course 3 · badge: 📊 Insight Reporter**
 
-Picks up exactly where Course 3 left off, using your hand-gated **B-cells** and unsupervised **UMAP B Cells** as real, running evidence. You:
+Course 3 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 4 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
 
 - Confirm your Course 3 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
-- Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — read its live preview on B-cells vs T-cells, and plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
+- Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — predict where T cells land in its live preview, then plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
 - Learn the rules of thumb for ratios: compensate first, watch the denominator, and treat the result as relative units.
-- Read the real agreement between the two independent methods in the **Statistics** tab — the full table (with CV computed on your B220 ÷ CD45 ratio), then all three chart types (Grouped Bar, Horizontal Bar, Heatmap).
-- Walk every chart type in **Comparisons**, including the new Pseudocolor Overlay, actually generating each plot rather than just reading about it.
+- Choose a fair statistic in the **Statistics** tab (% Parent rather than % Total when samples carry different amounts of debris), read the table, and pick a chart that keeps long population names readable.
+- Compare the two methods in **Comparisons** with Violin, Channel Heatmap, Histogram Overlay (on your ratio) and Pseudocolor Overlay, then export a plot and the statistics table.
+
+Along the way, short questions check each idea before you move on: pick the right answer to continue, and after two tries the correct one is outlined. Your answers stay on your computer.
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
 

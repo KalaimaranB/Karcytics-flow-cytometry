@@ -133,6 +133,9 @@ class ComparisonsViewer(QWidget):
         self._extractor = ComparisonsDataExtractor()
         self._worker: ComparisonsWorker | None = None
         self._current_figure: Figure | None = None
+        # Exports that actually succeeded ("plot"); read by the Academy's
+        # export checklist (ExportDoneValidator).
+        self.completed_exports: set[str] = set()
         self._canvas_widget: FigureCanvasQTAgg | None = None
 
         # Build one options panel per plot type (instantiated once, reused)
@@ -596,6 +599,7 @@ class ComparisonsViewer(QWidget):
                 with MPL_RASTER_LOCK:
                     self._current_figure.savefig(path, dpi=300, bbox_inches="tight")
                 self._status_lbl.setText(f"✓ Exported to {path}")
+                self.completed_exports.add("plot")
             except Exception as exc:  # noqa: BLE001 — report as a diagnostic, not a crash.
                 logger.exception("Comparisons plot export failed")
                 self._status_lbl.setText(f"❌ Export failed: {exc}")

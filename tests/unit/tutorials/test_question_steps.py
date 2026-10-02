@@ -45,6 +45,31 @@ def test_question_is_concise(course_id, step):
         assert _words(choice.feedback) <= MAX_FEEDBACK_WORDS, choice.feedback
 
 
+@pytest.mark.parametrize(("course_id", "step"), QUESTIONS, ids=[s.id for _, s in QUESTIONS])
+def test_answer_text_is_plain(course_id, step):
+    """Choices, feedback and explanations render as plain text: markup would
+    show its raw asterisks or tags (only the question text is rich)."""
+    for text in [
+        step.explanation,
+        *(c.text for c in step.choices),
+        *(c.feedback for c in step.choices),
+    ]:
+        assert not re.search(r"\*|<[a-z/]", text or ""), text
+
+
+@pytest.mark.parametrize("course", COURSES, ids=[c.id for c in COURSES])
+def test_correct_answer_position_varies(course):
+    """Choices show in source order, so if every correct answer sits in the
+    same slot, learners learn the slot instead of the idea."""
+    slots = [
+        tuple(i for i, c in enumerate(s.choices) if c.correct)
+        for s in course.steps
+        if isinstance(s, QuestionStep) and s.kind == "check"
+    ]
+    if len(slots) >= 3:  # noqa: PLR2004
+        assert len(set(slots)) > 1, slots
+
+
 def test_question_ids_are_unique_across_courses():
     """Answers are recorded by question_id across courses, so a clash would
     let one question's answer reveal as another's."""
@@ -55,3 +80,15 @@ def test_question_ids_are_unique_across_courses():
 @pytest.mark.parametrize(("course_id", "step"), QUESTIONS, ids=[s.id for _, s in QUESTIONS])
 def test_answers_are_recorded(course_id, step):
     assert step.question_id, "give every question a question_id so attempts are saved"
+
+
+def test_every_prediction_is_revealed_later():
+    """A prediction is only worth asking if a later step — in this course or
+    a later one (Course 1's is revealed in Course 2) — shows it back.
+    """
+    for c, course in enumerate(COURSES):
+        for i, step in enumerate(course.steps):
+            if isinstance(step, QuestionStep) and step.kind == "predict":
+                later = [s.text for s in course.steps[i + 1 :]]
+                later += [s.text for nxt in COURSES[c + 1 :] for s in nxt.steps]
+                assert any(f"{{answer:{step.question_id}}}" in t for t in later), step.id
