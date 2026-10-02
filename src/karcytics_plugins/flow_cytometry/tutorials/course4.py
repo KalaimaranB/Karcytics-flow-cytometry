@@ -35,9 +35,11 @@ Expect this course to grow before it gets its own real ending.
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
+    AnswerChoice,
     Course,
     InfoStep,
     InteractionStep,
+    QuestionStep,
     VerificationStep,
 )
 
@@ -391,17 +393,50 @@ course_4_reporting = Course(
                 "Ratio rules of thumb ⚠️<br><br>"
                 "• **Compensate first** — a ratio of uncompensated channels "
                 "includes spillover.<br>"
-                "• **Watch the denominator** — if it's dim or near zero, the "
-                "ratio explodes. Karcytics marks those cells invalid (a few "
-                "percent of T cells, whose B220 dips below zero, can't appear "
-                "on a log axis at all).<br>"
                 "• **Relative units** — FITC and APC differ in brightness, so "
                 "0.6 doesn't mean 60% of CD45 is B220. Compare ratios between "
                 "cells and samples measured on the same panel, not as absolute "
-                "values.<br><br>"
-                "Next, you'll use this ratio in the Statistics tab."
+                "values."
             ),
             cyto_emotion="talking",
+            next_step_id="c4_d14_invalid_question",
+        ),
+        QuestionStep(
+            id="c4_d14_invalid_question",
+            text=(
+                "Your turn 🧠<br><br>"
+                "On another panel, a ratio shows **40% invalid** events in one "
+                "population and ~0% everywhere else. What's the most likely cause?"
+            ),
+            question_id="c4_ratio_invalid_cause",
+            choices=[
+                AnswerChoice(
+                    "The denominator is dim — near or below zero — in that population",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "The numerator is very bright there",
+                    feedback="A bright numerator just gives a big ratio. Invalid "
+                    "means the value can't be computed — dividing by ≤ 0.",
+                ),
+                AnswerChoice(
+                    "The axis is on a log scale",
+                    feedback="The scale only changes how values are drawn. % invalid "
+                    "counts cells whose ratio can't be computed at all.",
+                ),
+                AnswerChoice(
+                    "The population has too many events",
+                    feedback="% invalid is a share, so event count doesn't drive it. "
+                    "Look at what's being divided by.",
+                ),
+            ],
+            explanation=(
+                "Dividing by a value at or below zero has no meaningful answer, "
+                "so those cells are marked invalid. A dim denominator makes the "
+                "ratio mostly noise — pick a reference that's bright on every "
+                "cell you care about, like CD45 here."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c4_s02_switch_statistics",
         ),
         # ── Statistics tab ────────────────────────────────────────────────────────
@@ -439,13 +474,44 @@ course_4_reporting = Course(
                 "• % Parent — fraction of the immediate parent gate.<br>"
                 "• % Total — fraction of ALL events in the tube. The number "
                 "to use when comparing a population's true abundance.<br>"
-                "• Median / MFI — the standard, outlier-robust measure of "
-                "fluorescence intensity. Avoid the arithmetic Mean on "
-                "log-scaled fluorescence data.<br>"
                 "• CV (Coefficient of Variation) — how tight or spread-out "
                 "a peak is. High CV = broad, messy population."
             ),
             cyto_emotion="talking",
+            next_step_id="c4_s04b_median_question",
+        ),
+        QuestionStep(
+            id="c4_s04b_median_question",
+            text=(
+                "One more statistic — brightness 💡<br><br>"
+                "B220 spans four decades on a log axis, and a few cells are far "
+                "brighter than the rest. Which number best describes how bright "
+                "a **typical** B cell is?"
+            ),
+            question_id="c4_typical_brightness",
+            choices=[
+                AnswerChoice("The median (MFI)", correct=True),
+                AnswerChoice(
+                    "The arithmetic mean",
+                    feedback="A handful of very bright cells drag the mean upward "
+                    "on log-scaled data, so it overstates a typical cell.",
+                ),
+                AnswerChoice(
+                    "The maximum",
+                    feedback="The maximum is one extreme cell — often an outlier or "
+                    "a doublet — not a typical one.",
+                ),
+                AnswerChoice(
+                    "% Total",
+                    feedback="% Total measures how many cells there are, not how bright they are.",
+                ),
+            ],
+            explanation=(
+                "Half the cells are dimmer than the median and half brighter, so "
+                "a few extreme cells barely move it — that's why MFI is the "
+                "standard brightness statistic in flow."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c4_s05_select_pops",
         ),
         VerificationStep(

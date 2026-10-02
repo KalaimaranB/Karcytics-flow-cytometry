@@ -1,7 +1,7 @@
 {
     "security_version": 1,
     "plugin_id": "flow_cytometry",
-    "manifest_hash": "c4c2a9be9fd5009344dee18612f729c94210b1a11d11b9005e500a9e342c9f31",
+    "manifest_hash": "206c19edcef10a1f896173c00a8e314d5dbfe386d1e4fdd34109cab73b23cd63",
     "exclusions": [
         "tests"
     ],
@@ -171,7 +171,7 @@
         "src/karcytics_plugins/flow_cytometry/tutorials/course1.py": "1c19e0767933898cec35dbd464e0a97b55ee10811e4788189003130d818b455c",
         "src/karcytics_plugins/flow_cytometry/tutorials/course2.py": "f8b50f2ea926ccfc1af70ce2afe1404b5f1db2ab617f2ea4bc13c17820227645",
         "src/karcytics_plugins/flow_cytometry/tutorials/course3.py": "cff8973014ab14a04467a0a3d61259ba26016f192d93b3a37ddc9a53e30588da",
-        "src/karcytics_plugins/flow_cytometry/tutorials/course4.py": "db6d27e9cde306dbec8987181ca6e0df708276dbc1d2d54685dcc3991ace4c39",
+        "src/karcytics_plugins/flow_cytometry/tutorials/course4.py": "7bd53aeefc9443d767327e24122259365d549a6583affd0b6c2184576408110c",
         "src/karcytics_plugins/flow_cytometry/tutorials/courses.py": "ee81c37319e391815fce14d7e8b69565b8f64825321637dd2baf51033afd3304",
         "src/karcytics_plugins/flow_cytometry/tutorials/tutorial_assets.py": "0e094c1b2db45342f24bb97426b14b38b12620b523aea7883cff08026e29a191",
         "src/karcytics_plugins/flow_cytometry/tutorials/validators.py": "9bb25614c367506736bc7d8b4cb305717504d500d98208ed192f67d9e3a1073f",

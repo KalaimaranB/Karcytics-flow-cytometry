@@ -1,6 +1,8 @@
 # Plan: active, question-based learning in the Flow Academy
 
-**Status:** proposed, not started (2026-09-30). Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phase 1 in progress (2026-10-01). Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+
+**Branches:** SDK `feature/academy-question-step` (version 2.3.0); flow `feature/academy-active-learning`, branched from `feature/undo-redo-integration` (PR #2). Once #2 is merged, rebase onto `main` with `git rebase --onto origin/main feature/undo-redo-integration`.
 
 **Why:** the professors asked for more active learning. Today the courses explain and the learner clicks; they rarely have to *think*. We want:
 
@@ -158,8 +160,8 @@ Driving question, asked at `c4_s00_intro` as **(P)**: *"Are UMAP's B cells and y
 
 Each phase is one commit on a single branch per repo (see the memory note on phase commits), then a play-through checkpoint by the user before the next phase starts.
 
-- [ ] **Phase 0: land the current work.** Commit the derived-parameter fixes (plugin: `feature/derived-parameters`; SDK: spotlight repaint fix on a `fix/` branch). Create `feature/academy-active-learning` in both repos.
-- [ ] **Phase 1: SDK `QuestionStep`** (§2) plus tests, and a 3-question sandbox course for trying it in the app. *Checkpoint: user tries the sandbox; settle the look and wrong-answer policy.*
+- [x] **Phase 0: land the current work.** SDK 2.2.0 (including the spotlight repaint fix) merged as SDK PR #13. Flow work on `feature/undo-redo-integration`, bumped to 0.10.0, is in flow PR #2.
+- [ ] **Phase 1: SDK `QuestionStep`** (§2) plus tests. Done: SDK `e9668ca`. In place of a sandbox course, two real Course 4 questions were added for trying it in the app: `c4_d14_invalid_question` and `c4_s04b_median_question`. *Checkpoint: user plays Course 4 up to the Statistics tab and settles the look.*
 - [ ] **Phase 2: SDK cross-window highlights** (§3), then remove the plugin's `in_window_targets` special case. *Checkpoint: popup steps in Courses 1, 2 and 4 highlight correctly.*
 - [ ] **Phase 3: course plumbing.** Tab-switch and generate/wait collapses (§4) across all four courses; step-graph test updates. *Checkpoint: quick run of each course's first half.*
 - [ ] **Phase 4: Course 4** restructure plus questions (§5). *Checkpoint: full play-through.*
@@ -168,8 +170,8 @@ Each phase is one commit on a single branch per repo (see the memory note on pha
 - [ ] **Phase 7: Course 3 questions.** *Checkpoint: play-through.*
 - [ ] **Phase 8: numbers test** (§6), user docs (`docs/user/10_ACADEMY_TUTORIALS.md`), SDK release 2.2.0 and the plugin pin bump.
 
-## Open questions (decide at Phase 1's checkpoint)
+## Decisions (2026-10-01)
 
-1. **Wrong-answer policy.** Must pick the correct answer, with it highlighted after 2 tries (the plan's default)? Or allow moving on after 2 tries?
-2. **Recording for professors.** Store attempts per question only locally (default), or also export them?
-3. **Radar chart.** OK to drop it from Course 4? It's still in the app.
+1. **Wrong answers:** the learner must select the correct answer to continue. It's outlined after 2 wrong tries, but they still have to pick it.
+2. **Recording:** attempts per question are saved locally only (`progress.json`); no export.
+3. **Radar chart:** drop its steps from Course 4, but explain what it's for in one sentence: comparing populations' whole marker profiles at once (shape = profile). Point learners to it for many-marker panels.
