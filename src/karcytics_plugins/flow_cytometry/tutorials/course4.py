@@ -714,7 +714,7 @@ course_4_reporting = Course(
             ],
             explanation=(
                 "CV is the standard deviation divided by the mean: spread, scaled "
-                "to the average. B's B cells sit tightest (~35%); Sample A's ~76% "
+                "to the average. B's B cells sit tightest (~35%); Sample A's ~75% "
                 "comes from only ~1,000 cells — too few for a clean peak."
             ),
             cyto_emotion="thinking",
