@@ -60,45 +60,83 @@ _PREFERENCES_MENU_PATH = (
 def _copy_demo_file(_panel: Any) -> None:
     """Copy the bundled demo FCS file to the user's Downloads directory.
 
-    Mirrors the Hub's own `karcytics.tutorials.core_intro._copy_demo_file`
-    exactly (same dedup-by-size handling, same destination filename) — the
-    Hub used to run that step itself before handing control to the module;
-    now this plugin runs the equivalent locally, using the same bundled
-    ``demo_tutorial.fcs`` (copied in at repo level, not downloaded — it's
-    1KB, no reason to route it through the network-download machinery
-    `tutorial_assets.py` uses for Course 1's real, much larger FCS fixtures).
+    Adopts Course 1's `tutorial_assets.py` robust provisioning technique:
+    - Checks multiple candidate local paths for `demo_tutorial.fcs`.
+    - If local file is missing, fetches `demo_tutorial.fcs` from GitHub as fallback.
+    - Writes `demo_tutorial.fcs` to both `~/Downloads` and Qt's `QStandardPaths` location.
+    - Logs explicit diagnostic messages on success or failure.
     """
-    import contextlib
-    import shutil
+    import ssl
+    import urllib.request
 
+    from karcytics_sdk.plugin import get_logger
     from PyQt6.QtCore import QStandardPaths
 
-    src_file = Path(__file__).resolve().parent / "assets" / "demo_tutorial.fcs"
-    if not src_file.exists():
+    logger = get_logger(__name__, "flow_cytometry")
+    filename = "demo_tutorial.fcs"
+
+    candidates = [
+        Path(__file__).resolve().parent / "assets" / filename,
+        Path.home()
+        / ".karcytics"
+        / "plugins"
+        / "flow_cytometry"
+        / "src"
+        / "karcytics_plugins"
+        / "flow_cytometry"
+        / "tutorials"
+        / "assets"
+        / filename,
+    ]
+
+    src_content: bytes | None = None
+    for cand in candidates:
+        if cand.exists() and cand.stat().st_size > 0:
+            try:
+                src_content = cand.read_bytes()
+                logger.info(f"Loaded demo FCS asset from local path: {cand}")
+                break
+            except Exception as e:
+                logger.warning(f"Failed to read demo FCS from {cand}: {e}")
+
+    if src_content is None:
+        url = f"https://raw.githubusercontent.com/KalaimaranB/Karcytics-flow-cytometry/main/src/karcytics_plugins/flow_cytometry/tutorials/assets/{filename}"
+        try:
+            logger.info(f"Fetching demo FCS asset from {url}")
+            ssl_context = ssl.create_default_context()
+            try:
+                import certifi
+
+                ssl_context.load_verify_locations(certifi.where())
+            except ImportError:
+                pass
+            req = urllib.request.Request(url, headers={"User-Agent": "Karcytics-Academy/1.0"})
+            with urllib.request.urlopen(req, timeout=15, context=ssl_context) as resp:
+                src_content = resp.read()
+        except Exception as e:
+            logger.warning(f"Failed to download demo FCS file from GitHub: {e}")
+
+    if not src_content:
+        logger.error(
+            "Could not obtain demo_tutorial.fcs content from local assets or network fallback."
+        )
         return
 
+    target_dirs: list[Path] = [Path.home() / "Downloads"]
     download_loc = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
-    downloads_dir = Path(download_loc) if download_loc else Path.home() / "Downloads"
-    downloads_dir.mkdir(exist_ok=True, parents=True)
+    if download_loc:
+        qt_path = Path(download_loc)
+        if qt_path != target_dirs[0]:
+            target_dirs.append(qt_path)
 
-    dest_file = downloads_dir / "demo_tutorial.fcs"
-
-    with contextlib.suppress(Exception):
-        if dest_file.exists():
-            if dest_file.stat().st_size == src_file.stat().st_size:
-                return  # Already our demo file
-
-            suffix = 1
-            while True:
-                new_dest = downloads_dir / f"demo_tutorial_{suffix}.fcs"
-                if not new_dest.exists():
-                    dest_file = new_dest
-                    break
-                if new_dest.stat().st_size == src_file.stat().st_size:
-                    return
-                suffix += 1
-
-        shutil.copy(src_file, dest_file)
+    for target_dir in target_dirs:
+        try:
+            target_dir.mkdir(exist_ok=True, parents=True)
+            dest_file = target_dir / filename
+            dest_file.write_bytes(src_content)
+            logger.info(f"Successfully copied demo FCS file to {dest_file}")
+        except Exception as e:
+            logger.warning(f"Failed to write demo FCS file to {target_dir}: {e}")
 
 
 core_intro_module = Course(
