@@ -1,6 +1,6 @@
 # Plan: active, question-based learning in the Flow Academy
 
-**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–6 done on `feature/academy-course-plumbing` (2026-10-01); Phase 7 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–7 done on `feature/academy-course-plumbing` (2026-10-01); Phase 8 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
 
 **Released so far:** SDK 2.3.0 (`QuestionStep`, SDK #14); flow 0.10.0 (flow #2), plus the first Course 4 questions merged to `main` (flow #3).
 
@@ -137,7 +137,7 @@ These are drafts: wording and numbers get checked against the app and data while
 | 2 | replaces `c3_s10_gate_why` (multi) | "Why run UMAP on Leukocytes, not All Events? (select all)" | Debris/dead cells form fake islands ✓, faster ✓; "UMAP can't read scatter" ✗. |
 | 3 | replaces `c3_s12_exclude_why` | "Inside Leukocytes, why exclude CD45?" | Every cell is CD45⁺, so it can't separate anything. |
 | 4 | `c3_s14_neighbors` | "You're hunting a rare 200-cell population. Neighbours: raise or lower?" | Lower. |
-| 5 | replaces `c3_s21_hdbscan_why` | "HDBSCAN clusters which data?" | The original 6-D data, not the 2-D picture. |
+| 5 | replaces `c3_s21_hdbscan_why` | "HDBSCAN clusters which data?" | The marker data UMAP read, not the 2-D picture. |
 | 6 (P) | before `c3_s54_wire_and` | "What % of UMAP B cells will fall inside your hand-gated B cells?" | Revealed at `c3_s56` against the real AND-node number. |
 
 ### Course 4: restructured around one question
@@ -179,7 +179,11 @@ Each phase is one commit on a single branch per repo (see the memory note on pha
     - **Gate checks loosened** (user request): polygon overlap 80% (was 90%); range and rectangle edges within 10% of the axis or 35% of the edge's own value, whichever is larger, so high edges on log axes have room; quadrant crosshairs get a quarter of the target window's width as margin on each side. Low edges keep the axis-wide band only, so a B-cells threshold can't creep into the B cells.
     - **Correct answers no longer always come first.** The SDK shows choices in source order, and every check question in Courses 1 and 4 had the answer first. Positions now vary, and `test_correct_answer_position_varies` keeps it that way.
   Checked offscreen on the real panel: every Course 2 question answered wrong then right, with the plot or Quick-Stats grid it refers to on screen.
-- [ ] **Phase 7: Course 3 questions.** *Checkpoint: play-through.*
+- [x] **Phase 7: Course 3 questions.** *Checkpoint: play-through.* Done: five check questions replace their InfoSteps (UMAP axes `c3_s05`, why gate to Leukocytes `c3_s10` (select all), why exclude CD45 `c3_s12`, Neighbors for a rare population `c3_s14`, what HDBSCAN clusters `c3_s21`), and the overlap prediction (`c3_umap_in_gate`) sits after the AND-node plan (`c3_s51b2`), revealed at the top of `c3_s56`. Changes from the draft:
+    - HDBSCAN's answer is "the same marker data UMAP read", not "the original 6-D data": it clusters UMAP's input matrix (`hdbscan_space="high_dim"`), which is four markers once PI and CD45 are excluded. `c3_s27b`'s "6-channel similarity" became "marker similarity" for the same reason.
+    - The two results sub-tab switches (Interactive Map, Population Statistics) still had Phase 3's old click / "Checking tab…" / "Oops!" triple; each is now one interactive `VerificationStep` on `ClusterResultsTabBar`. That pays for the prediction step.
+    - Real numbers on Sample C: 99.95% of UMAP B Cells fall inside the hand-gated B-cells, and the scaled estimate covers about 93% of B-cells.
+  Steps: 65→62 total, 61→60 main path. Checked offscreen on the real panel: every question answered wrong then right, a real UMAP + HDBSCAN run with both sub-tab steps advancing on the click (and passing straight through when the tab is already open), and the reveal showing the recorded prediction over the AND node.
 - [ ] **Phase 8: numbers test** (§6), user docs (`docs/user/10_ACADEMY_TUTORIALS.md`), and the flow plugin version bump that releases it (the SDK side shipped as 2.4.0 in Phase 1–2).
 
 ## Decisions (2026-10-01)

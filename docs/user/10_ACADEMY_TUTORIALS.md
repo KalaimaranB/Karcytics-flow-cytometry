@@ -88,6 +88,8 @@ No new manual gating anywhere in it — instead, you hand your existing gated da
 - Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
 - Save your workspace again — required to continue into Course 4.
 
+Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you.
+
 <!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
 ### Course 4 — Derived Parameters, Statistics & Comparisons
