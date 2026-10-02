@@ -22,10 +22,12 @@ Panel reference (confirmed from the tutorial FCS file headers, $PnN/$PnS):
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
+    AnswerChoice,
     Course,
     ForcedInteractionStep,
     InfoStep,
     InteractionStep,
+    QuestionStep,
     SubTask,
     VerificationStep,
 )
@@ -227,21 +229,33 @@ course_2_gating = Course(
             on_success_step_id="c2_s06_tcell_plot_read",
             failure_hint="Make sure the **Y:** axis dropdown is set to **Pacific Blue-A**, the CD3 detector.",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s06_tcell_plot_read",
             text=(
-                "Reading the plot 🔍<br><br>"
-                "**T-cells** are CD3+, B220− — high on the Y axis, low on the X axis "
-                "(upper-left). Don't confuse them with the cluster in the "
-                "bottom-left: that's CD3−, B220− — a 'double negative' population "
-                "that's neither a T-cell nor a B-cell, and not what we're gating "
-                "here.<br><br>"
-                "As you draw the rectangle in the next step, watch the **Group "
-                "Preview** thumbnails (bottom-right panel) update live — that's how "
-                "the same gate looks across every other sample as you draw it."
+                "Read the plot 🔍<br><br>"
+                "X is **B220** (a B-cell marker), Y is **CD3** (a T-cell "
+                "marker). Where are the **T-cells**?"
+            ),
+            question_id="c2_tcell_location",
+            choices=[
+                AnswerChoice(
+                    "Lower-left: low on both",
+                    feedback="Low on both is CD3− B220−: a 'double negative' group that's neither T nor B cells.",
+                ),
+                AnswerChoice("Upper-left: CD3 high, B220 low", correct=True),
+                AnswerChoice(
+                    "Lower-right: B220 high, CD3 low",
+                    feedback="B220 without CD3 is a B cell. You'll gate those next, a different way.",
+                ),
+            ],
+            explanation=(
+                "T cells carry CD3 but not B220: high on Y, low on X. As you "
+                "draw the rectangle next, watch the Group Preview thumbnails "
+                "(bottom-right) update live across every sample."
             ),
             cyto_emotion="thinking",
-            target_widget_names=["FlowCanvas", "GroupPreviewPanel"],
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
             next_step_id="c2_s07_draw_tcell",
         ),
         InteractionStep(
@@ -439,19 +453,42 @@ course_2_gating = Course(
             cyto_emotion="surprised",
             next_step_id="c2_s16_verify_fmo",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s17_threshold_info",
             text=(
-                "Reading the overlay 📏<br><br>"
-                "The gray population in the background is the FMO overlay — it's "
-                "the negative signal for FITC. You'll see two distinct real "
-                "populations: the left one overlaps the gray FMO (that's "
-                "negative), the right one is your target **B-cells**.<br><br>"
-                "The red dashed **99th %tile (Gate Threshold)** line is computed "
-                "automatically from the FMO's distribution — 99% of true "
-                "background sits to its left."
+                "Read the overlay 📏<br><br>"
+                "The gray curve is the **FMO FITC**: every dye except B220's. "
+                "The red dashed line marks its 99th percentile. Why set the "
+                "B220 threshold from this FMO instead of the Blank?"
             ),
-            cyto_emotion="talking",
+            question_id="c2_why_fmo_threshold",
+            multi_select=True,
+            choices=[
+                AnswerChoice(
+                    "It has no cells, so its background is zero",
+                    feedback="An FMO has plenty of cells, just no B220 antibody. Its FITC signal is real background.",
+                ),
+                AnswerChoice(
+                    "Like your samples, it has the other dyes' spillover into FITC",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "The Blank is brighter in FITC",
+                    feedback="It's the reverse: with no dyes at all, the Blank is too dim, so a threshold from it sits too low.",
+                ),
+                AnswerChoice(
+                    "Its cells were stained and handled like your samples",
+                    correct=True,
+                ),
+            ],
+            explanation=(
+                "The FMO is your sample minus B220: everything that lights up "
+                "FITC except B220 itself. 99% of that background sits left of "
+                "the red line, so the hump to its right is real B-cells."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
             next_step_id="c2_s18_draw_bcell",
         ),
         InteractionStep(
@@ -503,19 +540,31 @@ course_2_gating = Course(
             metadata={"guide_range": (4000.0, 100000.0)},
             next_step_id="c2_s18_draw_bcell",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s19_bcell_done",
             text=(
                 "**B-cells** gated! ✅<br><br>"
-                "Two different techniques, same rigor: both are anchored to their "
-                "FMO control's true background, not a guess.<br><br>"
-                "When to reach for which: a 2-marker scatter plot (like your "
-                "**T-cells** gate) is fastest when two populations separate "
-                "cleanly on two axes at once. A histogram + FMO overlay is "
-                "better when you only have one marker to work with, or the "
-                "positive/negative split is subtle enough that you want the "
-                "FMO's exact threshold line rather than eyeballing a 2D "
-                "boundary."
+                "You've used two techniques, both anchored to an FMO. In your "
+                "next experiment, you need cells positive vs. negative for "
+                "**one** marker, and the split is subtle. Which do you reach for?"
+            ),
+            question_id="c2_histogram_or_scatter",
+            choices=[
+                AnswerChoice("A histogram with the FMO overlay", correct=True),
+                AnswerChoice(
+                    "A two-marker scatter rectangle",
+                    feedback="Scatter shines when two markers separate populations cleanly at once. One subtle marker needs the FMO's exact threshold.",
+                ),
+                AnswerChoice(
+                    "Gate by eye on the sample alone",
+                    feedback="Without a control, a subtle split is a guess. The FMO shows where background ends.",
+                ),
+            ],
+            explanation=(
+                "One marker means one axis, which a histogram shows best, and "
+                "the FMO's threshold line puts the cut on evidence. A scatter "
+                "rectangle is fastest when two markers separate populations "
+                "cleanly."
             ),
             cyto_emotion="happy",
             next_step_id="c2_s20_hierarchy_view",
@@ -749,22 +798,34 @@ course_2_gating = Course(
             metadata={"guide_quadrant": (5000.0, 5000.0)},
             next_step_id="c2_s37_draw_quadrant",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s38_quadrant_naming_info",
             text=(
-                "Behind the Scenes: Quadrant Naming ⚠️<br><br>"
-                "The 4 new leaves in your Gating Hierarchy are named **Q1**–**Q4**."
-                "With X=CD4, Y=CD8, the geometry is fixed:<br>"
-                "• **Q1** (upper-left) = CD4− CD8+ → **CD8+**<br>"
-                "• **Q2** (upper-right) = CD4+ CD8+ → **DP**<br>"
-                "• **Q3** (lower-left) = CD4− CD8− → **DN**<br>"
-                "• **Q4** (lower-right) = CD4+ CD8− → **CD4+**<br><br>"
-                "We will right-click each leaf in the Gating Hierarchy and choose **Rename "
-                "Gate** in the next step — scroll down in that panel if you need to, the 4 new "
-                "leaves are nested under T-cells."
+                "Quadrant naming ⚠️<br><br>"
+                "Your 4 new leaves are named **Q1**–**Q4**. With X = **CD4** and "
+                "Y = **CD8**, which quadrant holds CD4+ CD8− cells, the helper "
+                "T cells?"
             ),
-            cyto_emotion="talking",
-            target_widget_names=["GatingHierarchyScrollArea"],
+            question_id="c2_cd4_quadrant",
+            choices=[
+                AnswerChoice(
+                    "Upper-left",
+                    feedback="High on Y means CD8+. Upper-left is CD4− CD8+: the killer T cells.",
+                ),
+                AnswerChoice(
+                    "Upper-right",
+                    feedback="High on both is double positive (DP): young T cells, common in the thymus.",
+                ),
+                AnswerChoice("Lower-right", correct=True),
+            ],
+            explanation=(
+                "The layout is fixed: Q1 upper-left = CD8+, Q2 upper-right = DP, "
+                "Q3 lower-left = DN, Q4 lower-right = CD4+. Next you'll rename "
+                "each leaf under T-cells in the Gating Hierarchy."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas", "GatingHierarchyScrollArea"],
             next_step_id="c2_s39_rename_quadrants",
         ),
         ForcedInteractionStep(
@@ -994,64 +1055,94 @@ course_2_gating = Course(
             id="c2_s50c_quickstat_info",
             text=(
                 "That's the quick stats view 📊<br><br>"
-                "Every population's counts across every sample, at a glance — "
-                "**Cells**, **Live Cells**, **Leukocytes**, **T-cells**, **B-cells**, and your 4 "
-                "CD4/CD8 subsets, all in one grid.<br><br>"
-                "Can't see Sample A, B, or C's row? Scroll — both horizontally "
-                "and vertically — until you find it. Leave it open; we'll walk "
-                "through it together."
+                "Every population (rows) across every sample (columns), at a "
+                "glance: **Cells**, **Live Cells**, **Leukocytes**, **T-cells**, "
+                "**B-cells**, and your 4 CD4/CD8 subsets. Each cell is **% "
+                "Parent**: its share of the gate above it.<br><br>"
+                "Can't see Sample A, B, or C's column? Scroll — both "
+                "horizontally and vertically — until you find it. Leave it "
+                "open; we'll walk through it together."
             ),
             cyto_emotion="talking",
             allow_interaction=True,
             target_widget_names=["AllSamplesOverviewPopup"],
             next_step_id="c2_s51_mystery_sample_a",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s51_mystery_sample_a",
             text=(
-                "**Sample A**: T-cells, but barely any B-cells 🔬<br><br>"
-                "Find Sample A's row. Its **T-cells** % Total is high, and its "
-                "**B-cells** % Total is close to zero — matching what you saw "
-                "hands-on: a clean T-cell population on the B220 vs CD3 plot, "
-                "and not enough B-cells there to comfortably gate.<br><br>"
-                "Abundant T-cells with scarce B-cells is exactly the signature "
-                "of the one organ that *makes* T-cells: the **Thymus**. B-cells "
-                "aren't produced there, so they're never expected in force."
+                "Case file: **Sample A** 🔬<br><br>"
+                "Find Sample A's column and compare its **T-cells** and "
+                "**B-cells**, each a share of Leukocytes. Which organ is it?"
+            ),
+            question_id="c2_sample_a_organ",
+            choices=[
+                AnswerChoice(
+                    "Spleen",
+                    feedback="The spleen holds plenty of both lineages. Sample A has almost no B cells.",
+                ),
+                AnswerChoice("Thymus", correct=True),
+                AnswerChoice(
+                    "Bone marrow",
+                    feedback="Bone marrow makes B cells, so they'd be plentiful. Sample A's are close to zero.",
+                ),
+            ],
+            explanation=(
+                "The thymus is where T cells mature. B cells aren't made there, so they never show up in force."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["AllSamplesOverviewPopup"],
             next_step_id="c2_s52_mystery_sample_b",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s52_mystery_sample_b",
             text=(
-                "What about **Sample B**? 🤔<br><br>"
-                "You opened Sample B briefly back in Course 1, just to see the "
-                "CD45+ leukocyte cluster — but never dug into its T-cell/B-cell "
-                "split. Find its row here: almost no T-cells, but a solid "
-                "B220+ population.<br><br>"
-                "An organ producing B-cells while having next to no mature "
-                "T-cells points to the **Bone Marrow** — B-lymphopoiesis happens "
-                "there, while T-cells don't mature until they migrate on to the "
-                "Thymus."
+                "Case file: **Sample B** 🤔<br><br>"
+                "Now Sample B's column. How do its **T-cells** and **B-cells** "
+                "compare? Which organ is it?"
+            ),
+            question_id="c2_sample_b_organ",
+            choices=[
+                AnswerChoice(
+                    "Spleen",
+                    feedback="The spleen has mature T cells too. Sample B has almost none.",
+                ),
+                AnswerChoice(
+                    "Thymus",
+                    feedback="The thymus is packed with T cells. Sample B has almost none.",
+                ),
+                AnswerChoice("Bone marrow", correct=True),
+            ],
+            explanation=(
+                "B cells are made in the bone marrow. T cells leave it early and only mature later, in the thymus."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["AllSamplesOverviewPopup"],
             next_step_id="c2_s53_mystery_sample_c",
         ),
-        InfoStep(
+        QuestionStep(
             id="c2_s53_mystery_sample_c",
             text=(
-                "And **Sample C**: a bit of everything 🧩<br><br>"
-                "Find Sample C's row: solid % Total for BOTH T-cells and "
-                "B-cells, plus healthy counts across all 4 CD4/CD8 subsets — "
-                "everything you gated by hand this course, now confirmed in "
-                "the numbers.<br><br>"
-                "Mature populations of BOTH lineages, side by side, points to a "
-                "peripheral organ where B- and T-cells circulate together: the "
-                "**Spleen**."
+                "Case file: **Sample C** 🧩<br><br>"
+                "Last, Sample C's column: solid shares of **both** T-cells and "
+                "B-cells, plus all 4 CD4/CD8 subsets. Which organ is it?"
+            ),
+            question_id="c2_sample_c_organ",
+            choices=[
+                AnswerChoice("Spleen", correct=True),
+                AnswerChoice(
+                    "Thymus",
+                    feedback="The thymus has very few B cells. Sample C has plenty.",
+                ),
+                AnswerChoice(
+                    "Bone marrow",
+                    feedback="Bone marrow has very few mature T cells. Sample C has plenty.",
+                ),
+            ],
+            explanation=(
+                "Mature B and T cells circulate together through the spleen, so both lineages show up side by side."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
@@ -1081,8 +1172,8 @@ course_2_gating = Course(
                 "• **Sample B** = **Bone Marrow** (B220+ present, T-cells scarce)<br>"
                 "• **Sample C** = **Spleen** (both lineages present together)<br><br>"
                 "Back in Course 1 you predicted the thymus would have very few: "
-                "**{answer:c1_thymus_few}**. Sample A's B-cells are just 0.3% of "
-                "its events.<br><br>"
+                "**{answer:c1_thymus_few}**. Sample A's B-cells are just 0.4% of "
+                "its Leukocytes.<br><br>"
                 "That's not a guess — it's a conclusion backed by gates you "
                 "drew yourself and real stats you just read across every "
                 "sample."

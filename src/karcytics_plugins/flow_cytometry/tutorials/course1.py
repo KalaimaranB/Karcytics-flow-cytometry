@@ -400,11 +400,11 @@ course_1_fundamentals = Course(
             ),
             question_id="c1_cd45_background",
             choices=[
-                AnswerChoice("FMO APC", correct=True),
                 AnswerChoice(
                     "Blank",
                     feedback="Close, but Blank has no dyes at all, so it misses the glow the other dyes spill into the APC detector. Its edge sits too low.",
                 ),
+                AnswerChoice("FMO APC", correct=True),
                 AnswerChoice(
                     "Sample A",
                     feedback="Sample A has CD45 stained, so its real signal hides the background you're looking for.",
@@ -561,7 +561,6 @@ course_1_fundamentals = Course(
             ),
             question_id="c1_spillover_effect",
             choices=[
-                AnswerChoice("Falsely PE-positive", correct=True),
                 AnswerChoice(
                     "PE-negative, as it should",
                     feedback="The PE detector still catches FITC's shoulder, so its reading climbs even though there's no PE.",
@@ -570,6 +569,7 @@ course_1_fundamentals = Course(
                     "Dimmer for FITC",
                     feedback="Spillover adds to the neighbouring detector; it doesn't take away from FITC's own reading.",
                 ),
+                AnswerChoice("Falsely PE-positive", correct=True),
             ],
             explanation=(
                 "Compensation fixes this: your Single Stains show what fraction "
@@ -917,7 +917,6 @@ course_1_fundamentals = Course(
             ),
             question_id="c1_dead_cluster",
             choices=[
-                AnswerChoice("The smaller, bright one on the right", correct=True),
                 AnswerChoice(
                     "The big, dim one on the left",
                     feedback="Dim means little PI got in: intact membranes kept it out. Those are the live cells.",
@@ -926,6 +925,7 @@ course_1_fundamentals = Course(
                     "Neither: PI marks live cells",
                     feedback="PI can't cross a healthy membrane. It only reaches the DNA of cells that are breaking down.",
                 ),
+                AnswerChoice("The smaller, bright one on the right", correct=True),
             ],
             explanation=(
                 "Also notice Karcytics opened this sample at your Cells gate, "
@@ -1037,11 +1037,11 @@ course_1_fundamentals = Course(
             ),
             question_id="c1_percent_total",
             choices=[
-                AnswerChoice("63%", correct=True),
                 AnswerChoice(
                     "90%",
                     feedback="That's % Parent: the share of Cells only. % Total also counts the 30% that Cells left out.",
                 ),
+                AnswerChoice("63%", correct=True),
                 AnswerChoice(
                     "70%",
                     feedback="That's Cells' share. Live Cells is only part of Cells, so its share of everything is smaller.",

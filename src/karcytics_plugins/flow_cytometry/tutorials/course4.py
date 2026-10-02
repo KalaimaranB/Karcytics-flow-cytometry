@@ -314,12 +314,12 @@ course_4_reporting = Course(
             ),
             question_id="c4_tcell_hump",
             choices=[
-                AnswerChoice("The left hump, near 0.01", correct=True),
                 AnswerChoice(
                     "The right hump, near 0.6",
                     feedback="That's where cells with lots of B220 sit — and "
                     "B220 is a B-cell marker.",
                 ),
+                AnswerChoice("The left hump, near 0.01", correct=True),
                 AnswerChoice(
                     "Both humps equally",
                     feedback="Each cell has one ratio, and T cells are alike "
@@ -459,10 +459,6 @@ course_4_reporting = Course(
             question_id="c4_ratio_invalid_cause",
             choices=[
                 AnswerChoice(
-                    "The denominator is dim — near or below zero — in that population",
-                    correct=True,
-                ),
-                AnswerChoice(
                     "The numerator is very bright there",
                     feedback="A bright numerator just gives a big ratio. Invalid "
                     "means the value can't be computed — dividing by ≤ 0.",
@@ -471,6 +467,10 @@ course_4_reporting = Course(
                     "The axis is on a log scale",
                     feedback="The scale only changes how values are drawn. % invalid "
                     "counts cells whose ratio can't be computed at all.",
+                ),
+                AnswerChoice(
+                    "The denominator is dim — near or below zero — in that population",
+                    correct=True,
                 ),
                 AnswerChoice(
                     "The population has too many events",
@@ -574,7 +574,6 @@ course_4_reporting = Course(
             ),
             question_id="c4_fair_abundance",
             choices=[
-                AnswerChoice("% Parent — the share of Leukocytes", correct=True),
                 AnswerChoice(
                     "% Total — the share of every event",
                     feedback="% Total divides by debris and dead cells too, so a "
@@ -585,6 +584,7 @@ course_4_reporting = Course(
                     feedback="Count depends on how many events were recorded, "
                     "which differs between tubes.",
                 ),
+                AnswerChoice("% Parent — the share of Leukocytes", correct=True),
                 AnswerChoice(
                     "CV",
                     feedback="CV is how spread out a peak is, not how many cells there are.",
@@ -698,13 +698,13 @@ course_4_reporting = Course(
             question_id="c4_cv_meaning",
             choices=[
                 AnswerChoice(
-                    "Its B cells' ratios are the most alike — the tightest peak",
-                    correct=True,
-                ),
-                AnswerChoice(
                     "It has the most B cells",
                     feedback="That's % Parent's job. CV ignores how many cells there "
                     "are — only how spread out their values are.",
+                ),
+                AnswerChoice(
+                    "Its B cells' ratios are the most alike — the tightest peak",
+                    correct=True,
                 ),
                 AnswerChoice(
                     "Its B cells have the highest ratio",

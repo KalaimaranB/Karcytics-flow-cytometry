@@ -57,6 +57,19 @@ def test_answer_text_is_plain(course_id, step):
         assert not re.search(r"\*|<[a-z/]", text or ""), text
 
 
+@pytest.mark.parametrize("course", COURSES, ids=[c.id for c in COURSES])
+def test_correct_answer_position_varies(course):
+    """Choices show in source order, so if every correct answer sits in the
+    same slot, learners learn the slot instead of the idea."""
+    slots = [
+        tuple(i for i, c in enumerate(s.choices) if c.correct)
+        for s in course.steps
+        if isinstance(s, QuestionStep) and s.kind == "check"
+    ]
+    if len(slots) >= 3:  # noqa: PLR2004
+        assert len(set(slots)) > 1, slots
+
+
 def test_question_ids_are_unique_across_courses():
     """Answers are recorded by question_id across courses, so a clash would
     let one question's answer reveal as another's."""

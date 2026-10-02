@@ -66,8 +66,10 @@ Picks up exactly where Course 1 left off (it checks that your saved workflow is 
 - Split T-cells four ways at once with a single **Quadrant** gate (CD4+, CD8+, double-positive, double-negative), then rename all four resulting leaves.
 - Learn to read and reorient the **Pipeline** flowchart view, including the boolean **AND/OR/NOT** logic nodes you'll put to real use in a later course.
 - Explore the **Spectral Viewer**'s real, FPbase-sourced dye curves, work through an interactive **Learning Compensation** masterclass slideshow built from your own panel's real numbers, and learn when overlapping spectra actually matter biologically versus when they don't.
-- Use the **Quick-Stats** grid to read hard numbers across every sample and build a genuine, evidence-based hypothesis for which mystery sample is Thymus, Bone Marrow, and Spleen.
+- Use the **Quick-Stats** grid to read hard numbers across every sample and decide, from the evidence, which mystery sample is Thymus, Bone Marrow, and Spleen.
 - Save your workspace again — required to continue into Course 3.
+
+Questions along the way: where the T cells sit on a B220 vs CD3 plot, why the B220 threshold comes from the FMO (select all that apply), when a histogram beats a scatter plot, and which quadrant holds the helper T cells. To crack the mystery, you name each sample's organ yourself from the Quick-Stats grid, and Course 2 shows how your Course 1 prediction held up.
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
