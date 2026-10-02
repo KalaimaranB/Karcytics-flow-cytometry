@@ -1,8 +1,10 @@
 # Plan: active, question-based learning in the Flow Academy
 
-**Status:** Phase 1 in progress (2026-10-01). Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phase 2 awaiting its checkpoint (2026-10-01). Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
 
-**Branches:** SDK `feature/academy-question-step` (version 2.3.0); flow `feature/academy-active-learning`, branched from `feature/undo-redo-integration` (PR #2). Once #2 is merged, rebase onto `main` with `git rebase --onto origin/main feature/undo-redo-integration`.
+**Released so far:** SDK 2.3.0 (`QuestionStep`, SDK #14); flow 0.10.0 (flow #2), plus the first Course 4 questions merged to `main` (flow #3).
+
+**Branches:** one per phase in each repo, each merged before the next starts. Phase 2: SDK and flow `feature/academy-popup-highlights` (SDK 2.4.0).
 
 **Why:** the professors asked for more active learning. Today the courses explain and the learner clicks; they rarely have to *think*. We want:
 
@@ -161,8 +163,8 @@ Driving question, asked at `c4_s00_intro` as **(P)**: *"Are UMAP's B cells and y
 Each phase is one commit on a single branch per repo (see the memory note on phase commits), then a play-through checkpoint by the user before the next phase starts.
 
 - [x] **Phase 0: land the current work.** SDK 2.2.0 (including the spotlight repaint fix) merged as SDK PR #13. Flow work on `feature/undo-redo-integration`, bumped to 0.10.0, is in flow PR #2.
-- [ ] **Phase 1: SDK `QuestionStep`** (§2) plus tests. Done: SDK `e9668ca`. In place of a sandbox course, two real Course 4 questions were added for trying it in the app: `c4_d14_invalid_question` and `c4_s04b_median_question`. *Checkpoint: user plays Course 4 up to the Statistics tab and settles the look.*
-- [ ] **Phase 2: SDK cross-window highlights** (§3), then remove the plugin's `in_window_targets` special case. *Checkpoint: popup steps in Courses 1, 2 and 4 highlight correctly.*
+- [x] **Phase 1: SDK `QuestionStep`** (§2) plus tests. Merged: SDK #14 (2.3.0), flow #3. In place of a sandbox course, two real Course 4 questions were added for trying it in the app: `c4_d14_invalid_question` and `c4_s04b_median_question`. *Checkpoint: user plays Course 4 up to the Statistics tab and settles the look.*
+- [ ] **Phase 2: SDK cross-window highlights** (§3), then remove the plugin's `in_window_targets` special case. Done on `feature/academy-popup-highlights` (SDK 2.4.0); awaiting play-through. *Checkpoint: popup steps in Courses 1, 2 and 4 highlight correctly.*
 - [ ] **Phase 3: course plumbing.** Tab-switch and generate/wait collapses (§4) across all four courses; step-graph test updates. *Checkpoint: quick run of each course's first half.*
 - [ ] **Phase 4: Course 4** restructure plus questions (§5). *Checkpoint: full play-through.*
 - [ ] **Phase 5: Course 1 questions.** *Checkpoint: play-through.*

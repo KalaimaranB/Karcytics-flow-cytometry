@@ -245,17 +245,12 @@ course_4_reporting = Course(
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            # The dialog is its own window, which the Academy overlay can't
-            # paint over — the dialog spotlights these itself (see
-            # ui/widgets/tutorial_highlight.py).
-            metadata={
-                "in_window_targets": [
-                    "DerivedTemplateCombo",
-                    "DerivedChannelA",
-                    "DerivedChannelB",
-                    "DerivedSaveButton",
-                ]
-            },
+            target_widget_names=[
+                "DerivedTemplateCombo",
+                "DerivedChannelA",
+                "DerivedChannelB",
+                "DerivedSaveButton",
+            ],
             validator=DerivedRatioExistsValidator("FITC-A", "APC-A"),
             failure_hint=(
                 "Pick Ratio A ÷ B, set A to B220 (FITC-A) and B to CD45 (APC-A), then click Save."
@@ -279,7 +274,7 @@ course_4_reporting = Course(
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
-            metadata={"in_window_targets": ["DerivedPreviewPopulation", "DerivedPreviewHistogram"]},
+            target_widget_names=["DerivedPreviewPopulation", "DerivedPreviewHistogram"],
             next_step_id="c4_d08b_compare",
         ),
         InfoStep(
@@ -301,13 +296,11 @@ course_4_reporting = Course(
             ),
             cyto_emotion="talking",
             allow_interaction=True,
-            metadata={
-                "in_window_targets": [
-                    "DerivedPreviewPopulation",
-                    "DerivedPreviewHistogram",
-                    "DerivedPreviewSummary",
-                ]
-            },
+            target_widget_names=[
+                "DerivedPreviewPopulation",
+                "DerivedPreviewHistogram",
+                "DerivedPreviewSummary",
+            ],
             next_step_id="c4_d09_close_editor",
         ),
         VerificationStep(
@@ -316,7 +309,7 @@ course_4_reporting = Course(
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            metadata={"in_window_targets": ["DerivedCloseButton"]},
+            target_widget_names=["DerivedCloseButton"],
             validator=DerivedEditorClosedValidator(),
             on_success_step_id="c4_d10_histogram",
         ),

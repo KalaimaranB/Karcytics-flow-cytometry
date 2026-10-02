@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -36,7 +35,6 @@ from karcytics_plugins.flow_cytometry.ui.widgets.derived_formula_editor import (
     CUSTOM_TEMPLATE,
     DerivedParameterEditor,
 )
-from karcytics_plugins.flow_cytometry.ui.widgets.tutorial_highlight import IN_WINDOW_TARGETS_KEY
 
 pytestmark = pytest.mark.ui
 
@@ -406,48 +404,21 @@ def test_population_preview_shows_whole_sample_behind_on_same_axis(state, editor
     editor._histogram.grab()  # paints reference bars and tick labels
 
 
-# ── Academy highlight inside the dialog ──────────────────────────────────
+# ── Academy targets inside the dialog ────────────────────────────────────
+
+DIALOG_STEPS = ("c4_d07_build_ratio", "c4_d08_preview", "c4_d08b_compare", "c4_d09_close_editor")
 
 
-def _step(**metadata):
-    return SimpleNamespace(metadata=metadata)
-
-
-def test_dialog_spotlights_its_own_widgets_for_the_academy(dialog):
-    dialog.open_new()
-    rects = dialog.get_tutorial_target_rects(
-        _step(**{IN_WINDOW_TARGETS_KEY: ["DerivedCloseButton", "DerivedSaveButton"]})
-    )
-    assert rects == [dialog.frameGeometry()]
-    assert dialog._tutorial_highlight.visible_count == 2  # noqa: PLR2004
-
-    assert dialog.get_tutorial_target_rects(_step()) == []
-    assert dialog._tutorial_highlight.visible_count == 0
-
-
-def test_dialog_highlight_expires_when_driver_stops_asking(qtbot, dialog):
-    dialog.open_new()
-    dialog.get_tutorial_target_rects(_step(**{IN_WINDOW_TARGETS_KEY: ["DerivedCloseButton"]}))
-    qtbot.waitUntil(lambda: dialog._tutorial_highlight.visible_count == 0, timeout=2000)
-
-
-def test_hidden_dialog_offers_no_targets(dialog):
-    assert (
-        dialog.get_tutorial_target_rects(_step(**{IN_WINDOW_TARGETS_KEY: ["DerivedCloseButton"]}))
-        == []
-    )
-
-
-def test_course4_in_window_targets_exist_in_the_dialog(dialog):
+def test_course4_dialog_targets_exist_in_the_dialog(dialog):
+    """The SDK frames these inside the dialog's own window; a renamed widget
+    would silently lose its highlight.
+    """
     from karcytics_plugins.flow_cytometry.tutorials.courses import course_4_reporting
 
     dialog.open_new()
-    named = [
-        (step.id, name)
-        for step in course_4_reporting.steps
-        for name in (getattr(step, "metadata", None) or {}).get(IN_WINDOW_TARGETS_KEY, [])
-    ]
-    assert named, "course 4 should spotlight widgets inside the Derived Parameters dialog"
+    by_id = {s.id: s for s in course_4_reporting.steps}
+    named = [(sid, n) for sid in DIALOG_STEPS for n in by_id[sid].target_widget_names]
+    assert named
     missing = [(sid, n) for sid, n in named if dialog.findChild(QWidget, n) is None]
     assert missing == []
 

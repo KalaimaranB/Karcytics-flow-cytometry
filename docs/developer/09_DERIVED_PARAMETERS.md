@@ -78,7 +78,7 @@ Channel consumers intentionally differ: `get_fluorescence_channels()` excludes d
 
 ## Academy
 
-Course 4's derived-parameter block (`c4_d01`–`c4_d13`, plus `c4_s06a_ratio_channel`) uses `DerivedRatioExistsValidator`, `DerivedEditorClosedValidator`, `ActiveGraphDerivedAxisValidator` and `StatsDerivedChannelValidator`. They match on the saved canonical formula, not the name the learner chose. The dialog is a separate window the Academy overlay can't paint over, so steps inside it list their targets under `metadata["in_window_targets"]` instead of `target_widget_names`; the dialog's `get_tutorial_target_rects()` (the driver's duck-typed hook) draws the spotlight itself via `ui/widgets/tutorial_highlight.py` and returns its own frame so Cyto stays clear of it. `tests/unit/tutorials/test_course_step_graph.py` checks every course for dangling or unreachable steps.
+Course 4's derived-parameter block (`c4_d01`–`c4_d13`, plus `c4_s06a_ratio_channel`) uses `DerivedRatioExistsValidator`, `DerivedEditorClosedValidator`, `ActiveGraphDerivedAxisValidator` and `StatsDerivedChannelValidator`. They match on the saved canonical formula, not the name the learner chose. Steps inside the dialog use plain `target_widget_names`: the dialog is its own window, and since SDK 2.4.0 the Academy driver frames targets in other windows inside that window. `tests/unit/tutorials/test_course_step_graph.py` checks every course for dangling or unreachable steps.
 
 ## Tests
 

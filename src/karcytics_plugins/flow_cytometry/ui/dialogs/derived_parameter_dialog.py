@@ -20,7 +20,7 @@ from karcytics_sdk.plugin.components import (
 )
 from karcytics_sdk.plugin.dialogs import ask_ok_cancel, ask_yes_no, show_warning
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import QRect, Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -43,7 +43,6 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.derived_formula_editor import (
     DerivedParameterEditor,
 )
-from karcytics_plugins.flow_cytometry.ui.widgets.tutorial_highlight import TutorialHighlight
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -93,15 +92,10 @@ class DerivedParameterDialog(QDialog):
         theme_manager.apply_style(self, _DIALOG_QSS)
 
         self._build_ui()
-        self._tutorial_highlight = TutorialHighlight(self)
         CentralEventBus.subscribe(events.DERIVED_PARAMS_CHANGED, self._on_external_change)
         self.destroyed.connect(self._unsubscribe)
 
     # ── Public API ────────────────────────────────────────────────────────
-
-    def get_tutorial_target_rects(self, step) -> list[QRect]:
-        """Academy driver hook — spotlight this dialog's own widgets."""
-        return self._tutorial_highlight.rects_for_step(step)
 
     @property
     def editor(self) -> DerivedParameterEditor:
@@ -386,5 +380,4 @@ class DerivedParameterDialog(QDialog):
         # Discarded edits must not reappear next time the dialog opens.
         editing = self._editor.editing_id
         self._editor.load(self._service.get(editing) if editing else None)
-        self._tutorial_highlight.clear()
         event.accept()
