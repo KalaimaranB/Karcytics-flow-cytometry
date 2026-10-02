@@ -144,32 +144,15 @@ course_3_analysis = Course(
             next_step_id="__abandon__",
         ),
         # ── Switch to Population Analysis tab ───────────────────────────────────
-        InteractionStep(
+        VerificationStep(
             id="c3_s02_pop_analysis_switch",
             text="Your gating tree checks out! Click the 'Population Analysis' tab at the top.",
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s03_verify_pop_tab",
-        ),
-        VerificationStep(
-            id="c3_s03_verify_pop_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
+            allow_interaction=True,
             hide_next_button=True,
+            target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(6),
             on_success_step_id="c3_s04_umap_theory_1",
-            on_fail_step_id="c3_s03b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s03b_wrong_tab",
-            text="Oops! Click the 'Population Analysis' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s03_verify_pop_tab",
         ),
         # ── UMAP theory ──────────────────────────────────────────────────────────
         InfoStep(
@@ -797,32 +780,15 @@ course_3_analysis = Course(
             on_success_step_id="c3_s46_switch_pipeline",
         ),
         # ── Switch to Pipeline ────────────────────────────────────────────────────
-        InteractionStep(
+        VerificationStep(
             id="c3_s46_switch_pipeline",
             text="Click the 'Pipeline' tab at the top.",
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s47_verify_pipeline_tab",
-        ),
-        VerificationStep(
-            id="c3_s47_verify_pipeline_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
+            allow_interaction=True,
             hide_next_button=True,
+            target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(3),
             on_success_step_id="c3_s48_verify_sample_c",
-            on_fail_step_id="c3_s47b_wrong_tab",
-        ),
-        InteractionStep(
-            id="c3_s47b_wrong_tab",
-            text="Oops! Click the 'Pipeline' tab to proceed.",
-            cyto_emotion="surprised",
-            target_widget_name="MainTabBar",
-            target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c3_s47_verify_pipeline_tab",
         ),
         VerificationStep(
             id="c3_s48_verify_sample_c",

@@ -167,30 +167,20 @@ course_2_gating = Course(
             cyto_emotion="talking",
             next_step_id="c2_s01c_verify_gating_tab",
         ),
-        # Checks the tab FIRST — if the user is already on Gating (very
-        # likely, arriving straight from Course 1), this passes immediately
-        # instead of waiting on a currentChanged that will never fire.
+        # Passes at once if the user is already on Gating (very likely,
+        # arriving straight from Course 1).
         VerificationStep(
             id="c2_s01c_verify_gating_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(2),
-            on_success_step_id="c2_s02_open_sample",
-            on_fail_step_id="c2_s01b_gating_switch",
-        ),
-        InteractionStep(
-            id="c2_s01b_gating_switch",
             text=(
                 "Let's go find them — click the **Gating** tab at the top, "
                 "that's where the drawing tools live."
             ),
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c2_s01c_verify_gating_tab",
+            validator=TabActiveValidator(2),
+            on_success_step_id="c2_s02_open_sample",
         ),
         VerificationStep(
             id="c2_s02_open_sample",
@@ -545,25 +535,16 @@ course_2_gating = Course(
         # ── Pipeline mastery ─────────────────────────────────────────────────────
         VerificationStep(
             id="c2_s24_verify_pipeline_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(3),
-            on_success_step_id="c2_s25_pipeline_read",
-            on_fail_step_id="c2_s23_pipeline_switch",
-        ),
-        InteractionStep(
-            id="c2_s23_pipeline_switch",
             text=(
                 "Let's see your whole gating strategy at a glance — click "
                 "the **Pipeline** tab at the top."
             ),
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c2_s24_verify_pipeline_tab",
+            validator=TabActiveValidator(3),
+            on_success_step_id="c2_s25_pipeline_read",
         ),
         InfoStep(
             id="c2_s25_pipeline_read",
@@ -640,22 +621,13 @@ course_2_gating = Course(
         ),
         VerificationStep(
             id="c2_s29_verify_gating_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(2),
-            on_success_step_id="c2_s30_reenter_tcells_intro",
-            on_fail_step_id="c2_s28_gating_switch",
-        ),
-        InteractionStep(
-            id="c2_s28_gating_switch",
             text=("Time for one more split — click the **Gating** tab at the top to head back."),
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c2_s29_verify_gating_tab",
+            validator=TabActiveValidator(2),
+            on_success_step_id="c2_s30_reenter_tcells_intro",
         ),
         # ── CD4/CD8 quadrant split (still on Sample C) ──────────────────────────
         InfoStep(
@@ -873,22 +845,13 @@ course_2_gating = Course(
         ),
         VerificationStep(
             id="c2_s43_verify_spectral_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(5),
-            on_success_step_id="c2_s44_spectral_intro",
-            on_fail_step_id="c2_s42_spectral_switch",
-        ),
-        InteractionStep(
-            id="c2_s42_spectral_switch",
             text="Let's go find out why — click the **Spectral** tab at the top.",
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c2_s43_verify_spectral_tab",
+            validator=TabActiveValidator(5),
+            on_success_step_id="c2_s44_spectral_intro",
         ),
         InfoStep(
             id="c2_s44_spectral_intro",
@@ -1007,22 +970,13 @@ course_2_gating = Course(
         ),
         VerificationStep(
             id="c2_s50a2_verify_gating_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(2),
-            on_success_step_id="c2_s50b_quickstat_open",
-            on_fail_step_id="c2_s50a_gating_switch",
-        ),
-        InteractionStep(
-            id="c2_s50a_gating_switch",
             text="Click the **Gating** tab at the top — that's where the quick-stats grid lives.",
             cyto_emotion="pointing",
-            target_widget_name="MainTabBar",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            event_trigger="currentChanged",
-            next_step_id="c2_s50a2_verify_gating_tab",
+            validator=TabActiveValidator(2),
+            on_success_step_id="c2_s50b_quickstat_open",
         ),
         InteractionStep(
             id="c2_s50b_quickstat_open",

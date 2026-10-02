@@ -518,31 +518,22 @@ course_1_fundamentals = Course(
             cyto_emotion="talking",
             next_step_id="c1_s13b_verify_comp_tab",
         ),
-        # Checks the tab FIRST — if the user is already on Compensation
-        # (e.g. from browsing earlier), this passes immediately without
-        # ever showing a "click the tab" prompt that could never fire
-        # (currentChanged never emits for a tab that's already active).
+        # A VerificationStep, not an InteractionStep: if the user is already
+        # on Compensation it passes at once (clicking the active tab emits
+        # no currentChanged, so a click-wait would hang). Every tab switch
+        # in the courses uses this one-step form.
         VerificationStep(
             id="c1_s13b_verify_comp_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(1),
-            on_success_step_id="c1_s14_extract_matrix",
-            on_fail_step_id="c1_s13_switch_comp_tab",
-        ),
-        InteractionStep(
-            id="c1_s13_switch_comp_tab",
             text=(
                 "Click the **Compensation** tab (highlighted) at the top — "
                 "that's where Karcytics keeps its compensation tools."
             ),
             cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            target_widget_name="MainTabBar",
-            event_trigger="currentChanged",
-            next_step_id="c1_s13b_verify_comp_tab",
+            validator=TabActiveValidator(1),
+            on_success_step_id="c1_s14_extract_matrix",
         ),
         InteractionStep(
             id="c1_s14_extract_matrix",
@@ -601,25 +592,16 @@ course_1_fundamentals = Course(
         ),
         VerificationStep(
             id="c1_s22_verify_gating_tab",
-            text="Checking tab...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            allow_interaction=False,
-            validator=TabActiveValidator(2),
-            on_success_step_id="c1_s22b_open_sample",
-            on_fail_step_id="c1_s21_switch_gating_tab",
-        ),
-        InteractionStep(
-            id="c1_s21_switch_gating_tab",
             text=(
                 "Click the **Gating** tab (highlighted) at the top. "
                 "This shows the polygon, rectangle, and range drawing tools."
             ),
             cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            target_widget_name="MainTabBar",
-            event_trigger="currentChanged",
-            next_step_id="c1_s22_verify_gating_tab",
+            validator=TabActiveValidator(2),
+            on_success_step_id="c1_s22b_open_sample",
         ),
         # Open Blank Sample first — gate applies to whichever sample is open
         InteractionStep(
