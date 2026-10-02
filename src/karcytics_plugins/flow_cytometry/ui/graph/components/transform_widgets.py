@@ -155,6 +155,7 @@ class AxisTransformPanel(QWidget):
         # Outlier percentile
         grid_range.addWidget(QLabel("Outliers:"), 2, 0)
         self._outlier_combo = FlowComboBox()
+        self._outlier_combo.setObjectName("OutlierCombo")  # Course 1 points at it
         self._outlier_combo.addItems(["0%", "0.01%", "0.1% (Def)", "0.5%", "1%", "2%", "5%"])
         self._outlier_combo.currentIndexChanged.connect(self._on_outlier_changed)
         grid_range.addWidget(self._outlier_combo, 2, 1, 1, 3)
