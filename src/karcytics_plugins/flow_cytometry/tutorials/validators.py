@@ -1282,6 +1282,35 @@ class PopupClosedValidator(FlowValidator):
         return True
 
 
+class PreferencesPageValidator(FlowValidator):
+    """Verifies the SDK Preferences dialog is open — and, if `page_title` is
+    given, showing that page (e.g. "Workspace").
+
+    The dialog is a separate top-level window (parented to the main window,
+    not the panel), so it's found via `QApplication.topLevelWidgets()` by
+    the SDK's stable object name rather than through app_state.
+    """
+
+    def __init__(self, page_title: str | None = None) -> None:
+        self._page_title = page_title
+
+    def validate_flow(self, _app_state: FlowState) -> bool:
+        from PyQt6.QtWidgets import QApplication
+
+        for w in QApplication.topLevelWidgets():
+            if w.objectName() != "PreferencesDialog" or not w.isVisible():
+                continue
+            if self._page_title is None:
+                return True
+            current = w.current_page_title() if hasattr(w, "current_page_title") else ""
+            if current == self._page_title:
+                return True
+            return self.log_failure(
+                f"Preferences is on '{current}', waiting for '{self._page_title}'."
+            )
+        return self.log_failure("Preferences dialog is not open.")
+
+
 class Course2GatingCompleteValidator(FlowValidator):
     """Verifies Course 2's core gating (Leukocytes, T-cells, B-cells) exists
     on every FULL_PANEL sample, before Course 3 starts leaning on it.
@@ -1773,4 +1802,96 @@ class ComparisonsPlotGeneratedValidator(FlowValidator):
             return self.log_failure(
                 f"Last generated plot was '{generated}', expected '{self._expected}'."
             )
+        return True
+
+
+# ── Derived parameters (Course 4) ─────────────────────────────────────────────
+
+
+def _is_ratio_formula(formula: str, numerator: str, denominator: str) -> bool:
+    """True for exactly ``[numerator] / [denominator]`` (whitespace ignored)."""
+    return "".join(formula.split()) == f"[{numerator}]/[{denominator}]"
+
+
+def _ratio_param_ids(app_state: FlowState, numerator: str, denominator: str) -> set[str]:
+    return {
+        d.param_id
+        for d in app_state.data.experiment.derived_parameters
+        if _is_ratio_formula(d.formula, numerator, denominator)
+    }
+
+
+class DerivedRatioExistsValidator(FlowValidator):
+    """A derived parameter computing ``numerator ÷ denominator`` exists.
+
+    Matches on the saved (canonical, channel-name) formula, so it doesn't
+    care what the learner named it or whether they typed marker names.
+    """
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        if not _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"No derived parameter [{self._num}] / [{self._den}] yet.")
+        return True
+
+    def describe_failure(self, app_state: Any) -> ValidationFailure | None:
+        if not isinstance(app_state, FlowState):
+            return None
+        if _ratio_param_ids(app_state, self._den, self._num):
+            return ValidationFailure(
+                reason=(
+                    "That one is upside down — it divides the reference by the "
+                    "marker. Edit it and swap A and B, or build a new one with "
+                    f"A = {self._num} and B = {self._den}."
+                )
+            )
+        return None
+
+
+class DerivedEditorClosedValidator(FlowValidator):
+    """The Derived Parameters dialog is not currently open."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        editor = getattr(app_state.view, "_derived_editor", None)
+        if editor is not None and editor.is_open:
+            return self.log_failure("Derived Parameters dialog is still open.")
+        return True
+
+
+class ActiveGraphDerivedAxisValidator(FlowValidator):
+    """The active graph's X axis shows the ``numerator ÷ denominator`` parameter."""
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        graph_manager = getattr(app_state.view, "_graph_manager", None)
+        graph = graph_manager.get_active_graph() if graph_manager else None
+        if graph is None:
+            return self.log_failure("No active graph.")
+        x_param = graph._axis_panel.get_current_x()
+        if x_param not in _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"Active X axis is '{x_param}', not the derived ratio.")
+        return True
+
+
+class StatsDerivedChannelValidator(FlowValidator):
+    """The Statistics ★ channel picker is set to the ``numerator ÷ denominator`` ratio."""
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        explorer = getattr(app_state.view, "_statistics_explorer", None)
+        combo = getattr(explorer, "_channel_combo", None)
+        if combo is None:
+            return self.log_failure("Statistics channel picker missing.")
+        channel = combo.currentData()
+        if channel not in _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"Statistics channel is '{channel}', not the ratio.")
         return True

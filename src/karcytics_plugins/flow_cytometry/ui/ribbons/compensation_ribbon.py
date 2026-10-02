@@ -23,13 +23,13 @@ from PyQt6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
-    apply_compensation,
     calculate_spillover_matrix,
     export_matrix_to_csv,
     extract_spill_from_fcs,
     import_matrix_from_csv,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
+from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -134,7 +134,7 @@ class CompensationRibbon(ThemedToolbarContainer):
 
         try:
             comp = calculate_spillover_matrix(ss_data, unstained=unstained)
-            self._state.data.compensation = comp
+            experiment_edits.set_compensation(self._state, comp, "Compute Compensation Matrix")
 
             matrix_str = "\n".join([", ".join([f"{v:.3f}" for v in row]) for row in comp.matrix])
             show_info(
@@ -166,7 +166,7 @@ class CompensationRibbon(ThemedToolbarContainer):
 
             comp = extract_spill_from_fcs(sample.fcs_data)
             if comp is not None:
-                self._state.data.compensation = comp
+                experiment_edits.set_compensation(self._state, comp, "Extract Compensation Matrix")
 
                 matrix_str = "\n".join(
                     [", ".join([f"{v:.3f}" for v in row]) for row in comp.matrix]
@@ -215,7 +215,7 @@ class CompensationRibbon(ThemedToolbarContainer):
 
         try:
             comp = import_matrix_from_csv(Path(path))
-            self._state.data.compensation = comp
+            experiment_edits.set_compensation(self._state, comp, "Import Compensation Matrix")
 
             show_info(
                 self,
@@ -270,27 +270,10 @@ class CompensationRibbon(ThemedToolbarContainer):
             )
             return
 
-        exp = self._state.data.experiment
-        applied_count = 0
-        already_compensated_count = 0
-        no_data_count = 0
-
-        for sample in exp.samples.values():
-            if sample.fcs_data is None:
-                no_data_count += 1
-                continue
-            if sample.is_compensated:
-                already_compensated_count += 1
-                continue
-
-            try:
-                compensated_df = apply_compensation(sample.fcs_data, comp)
-                sample.fcs_data.events = compensated_df
-                sample.fcs_data.is_compensated = True
-                sample.is_compensated = True
-                applied_count += 1
-            except Exception as exc:
-                logger.warning("Compensation failed for %s: %s", sample.display_name, exc)
+        result = experiment_edits.apply_compensation_to_all(self._state)
+        applied_count = result.changed
+        already_compensated_count = result.already_compensated
+        no_data_count = result.no_data
 
         msg = f"Compensation applied to {applied_count} sample(s)."
         if already_compensated_count > 0:
@@ -329,36 +312,7 @@ class CompensationRibbon(ThemedToolbarContainer):
 
     def _on_toggle_compensation(self) -> None:
         """Toggle compensation on/off for all samples."""
-        exp = self._state.data.experiment
-
-        toggled_count = 0
-        new_state = None
-
-        for sample in exp.samples.values():
-            if sample.fcs_data is None:
-                continue
-
-            if sample.fcs_data.raw_events is None:
-                continue
-
-            # If we haven't decided the target state yet, base it on the first sample
-            if new_state is None:
-                new_state = not sample.fcs_data.is_compensated
-
-            if new_state:  # Turn ON
-                if self._state.data.compensation:
-                    compensated_df = apply_compensation(
-                        sample.fcs_data, self._state.data.compensation
-                    )
-                    sample.fcs_data.events = compensated_df
-                    sample.fcs_data.is_compensated = True
-                    sample.is_compensated = True
-                    toggled_count += 1
-            else:  # Turn OFF
-                sample.fcs_data.events = sample.fcs_data.raw_events.copy()
-                sample.fcs_data.is_compensated = False
-                sample.is_compensated = False
-                toggled_count += 1
+        toggled_count, new_state = experiment_edits.toggle_compensation(self._state)
 
         if toggled_count > 0:
             state_str = "ON" if new_state else "OFF"

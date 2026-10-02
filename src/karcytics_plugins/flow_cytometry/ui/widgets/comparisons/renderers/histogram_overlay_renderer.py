@@ -22,6 +22,8 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
     TransformType,
     apply_transform,
     biological_tick_values,
+    invert_transform,
+    log_decade_tick_values,
 )
 
 from .base import IPlotRenderer
@@ -268,6 +270,8 @@ def _resolve_transform(
     looks the same whether viewed here or on the main canvas.
     """
     transform_type = _X_TRANSFORM_TYPES.get(x_transform, TransformType.LINEAR)
+    if transform_type == TransformType.LOG:
+        return transform_type, _log_floor_kwargs(raw_arrays)
     if transform_type != TransformType.BIEXPONENTIAL:
         return transform_type, {}
 
@@ -275,6 +279,20 @@ def _resolve_transform(
     top = detect_logicle_top(pooled)
     width, negative = estimate_logicle_params(pooled, t=top)
     return transform_type, {"top": top, "width": width, "negative": negative}
+
+
+def _log_floor_kwargs(raw_arrays: list[np.ndarray]) -> dict:
+    """Log floor for this data: the detector default (1.0) unless the data
+    mostly lives below 1 (a derived ratio), where a 1.0 floor would clamp
+    nearly every event onto one point. Then floor at the decade below the
+    0.5th percentile of the positive values.
+    """
+    pooled = np.concatenate(raw_arrays) if raw_arrays else np.array([])
+    positive = pooled[pooled > 0]
+    if len(positive) == 0 or np.median(positive) >= 1.0:
+        return {}
+    low = float(np.percentile(positive, 0.5))
+    return {"min_value": 10.0 ** np.floor(np.log10(low))}
 
 
 def _global_range(arrays: list[np.ndarray]) -> tuple[float, float]:
@@ -292,7 +310,11 @@ def _global_range(arrays: list[np.ndarray]) -> tuple[float, float]:
 
 
 def _apply_bio_ticks(
-    ax, transform_type: TransformType, transform_kwargs: dict, show_neg_decade: bool
+    ax,
+    transform_type: TransformType,
+    transform_kwargs: dict,
+    show_neg_decade: bool,
+    x_range: tuple[float, float],
 ) -> None:
     """Place biological decade ticks ($10^3$/$10^4$/$10^5$, ...) at their
     correct transformed-space positions on the (already-linear) axis.
@@ -312,7 +334,12 @@ def _apply_bio_ticks(
     if transform_type == TransformType.LINEAR:
         return
     is_biex = transform_type == TransformType.BIEXPONENTIAL
-    raw_ticks, labels = biological_tick_values(is_biex, show_neg_decade)
+    if transform_type == TransformType.LOG:
+        # Decades actually on screen — a ratio lives below 10^0, not at 10^3+.
+        lo, hi = invert_transform(np.asarray(x_range, dtype=float), transform_type)
+        raw_ticks, labels = log_decade_tick_values(float(lo), float(hi))
+    else:
+        raw_ticks, labels = biological_tick_values(is_biex, show_neg_decade)
     tick_kwargs = dict(transform_kwargs)
     if is_biex:
         tick_kwargs["enable_dithering"] = False
@@ -381,7 +408,7 @@ def _render_overlay(  # noqa: PLR0913
             label=curve.label,
         )
 
-    _apply_bio_ticks(ax, transform_type, transform_kwargs, show_neg_decade)
+    _apply_bio_ticks(ax, transform_type, transform_kwargs, show_neg_decade, (x_min, x_max))
     ax.set_xlabel(channel_label, color=fg_color, fontsize=11)
     y_label = "Normalised Density" if normalize_to_peak else "Density"
     ax.set_ylabel(y_label, color=fg_color, fontsize=10)
@@ -487,7 +514,7 @@ def _render_ridge(  # noqa: PLR0913, PLR0915
         ax.set_ylim(0, y_vals.max() * 1.25 if y_vals.max() > 0 else 1.0)
         ax.set_xlim(x_min, x_max)
 
-        _apply_bio_ticks(ax, transform_type, transform_kwargs, show_neg_decade)
+        _apply_bio_ticks(ax, transform_type, transform_kwargs, show_neg_decade, (x_min, x_max))
 
         # Label — right-aligned text inside the panel (like reference image)
         ax.text(

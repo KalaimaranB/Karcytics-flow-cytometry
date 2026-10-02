@@ -294,6 +294,7 @@ class StatisticsExplorer(QWidget):
         scroll_layout.addLayout(ch_hdr)
 
         self._channel_combo = BioComboBox()
+        self._channel_combo.setObjectName("StatsChannelCombo")
         scroll_layout.addWidget(self._channel_combo)
 
         scroll_layout.addSpacing(16)
@@ -515,6 +516,10 @@ class StatisticsExplorer(QWidget):
     # ── Internal helpers ──────────────────────────────────────────────────────
 
     def _on_selection_changed(self) -> None:
+        self._refresh_channel_combo()
+
+    def refresh_channels(self) -> None:
+        """Rebuild the channel picker (e.g. after derived parameters change)."""
         self._refresh_channel_combo()
 
     def _refresh_channel_combo(self) -> None:

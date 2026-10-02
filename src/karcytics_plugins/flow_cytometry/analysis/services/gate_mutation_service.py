@@ -39,6 +39,15 @@ class GateMutationService:
     def generate_unique_name(self, sample_id: str, prefix: str = "Gate") -> str:
         return NamingService.generate_unique_name(self._state.data.experiment, sample_id, prefix)
 
+    def _record_derived_formulas(self, gate: Gate) -> None:
+        """Snapshot the formula of any derived-parameter axis onto the gate."""
+        definitions = {
+            d.param_id: d.formula for d in self._state.data.experiment.derived_parameters
+        }
+        gate.derived_formulas = {
+            p: definitions[p] for p in (gate.x_param, gate.y_param) if p in definitions
+        }
+
     def add_gate(
         self,
         gate: Gate,
@@ -54,6 +63,7 @@ class GateMutationService:
         if not name:
             name = self.generate_unique_name(sample_id)
 
+        self._record_derived_formulas(gate)
         child_nodes = self._population_service.add_population(sample_id, gate, parent_node_id, name)
         if not child_nodes:
             return None

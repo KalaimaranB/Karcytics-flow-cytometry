@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -27,6 +27,9 @@ class Gate(ABC):
         x_param:   Channel/parameter name for the X axis.
         y_param:   Channel/parameter name for the Y axis (None for 1-D).
         adaptive:  If True, the gate supports automatic repositioning.
+        derived_formulas: For axes that are derived parameters, the formula
+                   in effect when the gate was drawn (display/audit only —
+                   evaluation always uses the current definition).
     """
 
     def __init__(
@@ -41,6 +44,7 @@ class Gate(ABC):
         self.x_param = x_param
         self.y_param = y_param
         self.adaptive = adaptive
+        self.derived_formulas: dict[str, str] = {}
 
     @abstractmethod
     def copy(self) -> Gate:
@@ -88,13 +92,16 @@ class Gate(ABC):
 
     def to_dict(self) -> dict:
         """Serialize the gate to a JSON-compatible dictionary."""
-        return {
+        d: dict[str, Any] = {
             "type": type(self).__name__,
             "gate_id": self.gate_id,
             "x_param": self.x_param,
             "y_param": self.y_param,
             "adaptive": self.adaptive,
         }
+        if self.derived_formulas:
+            d["derived_formulas"] = dict(self.derived_formulas)
+        return d
 
     @classmethod
     def from_dict(cls, data: dict) -> Gate:

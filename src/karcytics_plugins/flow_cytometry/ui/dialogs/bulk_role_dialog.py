@@ -94,16 +94,14 @@ class BulkRoleDialog(QDialog):
             )
             return
 
-        target_role = self.role_combo.currentData()
-        exp = self._state.data.experiment
+        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
-        assigned_count = 0
-        for item in selected_items:
-            sid = item.data(Qt.ItemDataRole.UserRole)
-            sample = exp.samples.get(sid)
-            if sample:
-                sample.role = target_role
-                assigned_count += 1
+        target_role = self.role_combo.currentData()
+        assigned_count = experiment_edits.set_sample_roles(
+            self._state,
+            [item.data(Qt.ItemDataRole.UserRole) for item in selected_items],
+            target_role,
+        )
 
         logger.info(f"Bulk assigned role {target_role.value} to {assigned_count} samples.")
         self.accept()

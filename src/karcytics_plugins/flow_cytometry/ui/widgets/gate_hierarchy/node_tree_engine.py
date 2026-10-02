@@ -54,7 +54,12 @@ class NodeTreeEngine:
         self.horizontal_spacing = 10
         self.vertical_spacing = 60
 
-    def compute(self, root: GateNode, total_events: int = 0) -> list[TreeNodeRect]:  # noqa: PLR0915
+    def compute(  # noqa: PLR0915
+        self,
+        root: GateNode,
+        total_events: int = 0,
+        param_labels: dict[str, str] | None = None,
+    ) -> list[TreeNodeRect]:
         if not root:
             return []
 
@@ -151,6 +156,9 @@ class NodeTreeEngine:
 
             x_param = getattr(gate, "x_param", "") if gate else ""
             y_param = getattr(gate, "y_param", "") if gate else ""
+            if param_labels:
+                x_param = param_labels.get(x_param, x_param)
+                y_param = param_labels.get(y_param, y_param) if y_param else y_param
 
             count = int(node.statistics.get("count", 0))
             pct_parent = node.statistics.get("pct_parent", 0.0)

@@ -39,12 +39,12 @@ changes.
 
 | Constant | String value | Published by | Notable subscribers |
 |---|---|---|---|
-| `GATE_CREATED` | `flow.gate.created` | `GateMutationService.add_gate()` via `GateEventPublisher.publish_gate_created()` | `MainPanelController` (undo/dirty + tutorial-shape validation), `FlowCanvas` (`_on_controller_geometry_changed`) |
+| `GATE_CREATED` | `flow.gate.created` | `GateMutationService.add_gate()` via `GateEventPublisher.publish_gate_created()` | `HistoryRecorder` (undo step), `MainPanelController` (node canvas + tutorial-shape validation), `FlowCanvas` (`_on_controller_geometry_changed`) |
 | `LOGIC_NODE_CREATED` | `flow.gate.logic_node_created` | `GateMutationService.add_logic_node()` | `MainPanelController` (`_on_structural_change`) |
 | `GATES_CREATED` | `flow.gate.batch_created` | `GateMutationService` for multi-node creations (e.g. quadrant gates → 4 nodes in one action) via `GateEventPublisher.publish_gates_created()` | `MainPanelController` (`_on_structural_change`, `_handle_gates_created`), `FlowCanvas` |
 | `GATE_RENAMED` | `flow.gate.renamed` | `GateMutationService.rename_population()` via `GateEventPublisher.publish_gate_renamed()` | `MainPanelController`, `GraphManager._on_bus_event` (tab label refresh), `FlowCanvas` |
 | `GATE_DELETED` | `flow.gate.deleted` | `GateMutationService.remove_population()` via `GateEventPublisher.publish_gate_deleted()` | `MainPanelController`, `FlowCanvas`, footer status |
-| `GATE_MODIFIED` | `flow.gate.modified` | `GateMutationService.modify_gate()` via `GateEventPublisher.publish_gate_modified()` — fires **once per completed drag gesture**, never during live preview (§4 in `02_UI_ENGINE.md`) | `MainPanelController` (`_on_structural_change` — one edit = one undo step), `FlowCanvas` |
+| `GATE_MODIFIED` | `flow.gate.modified` | `GateMutationService.modify_gate()` via `GateEventPublisher.publish_gate_modified()` — fires **once per completed drag gesture**, never during live preview (§4 in `02_UI_ENGINE.md`) | `HistoryRecorder` (one edit = one undo step), `MainPanelController` (`_on_structural_change`), `FlowCanvas` |
 | `GATE_PROPAGATED` | `flow.gate.propagated` | *(defined; not observed published in the read source — likely legacy/reserved)* | — |
 | `GATE_SELECTED` | `flow.gate.selected` | `GateSelectionService` (via `GateCoordinator.select_gate()`) using `GateEventPublisher.publish_gate_selected()` | `MainPanelController` (`_on_gate_selected_from_controller`), `FlowCanvas` (`_on_controller_selected`) |
 | `GATE_PREVIEW` | `flow.gate.preview` | `GateDrawingFSM` during live drag/edit/polygon/quadrant preview, and `FlowCanvas._clear_previews()` | Subplot/thumbnail preview consumers |
@@ -109,45 +109,29 @@ scattered across each widget's own `__init__`. It does two kinds of wiring:
    unsubscribe everything on `panel.cleanup()`.
 2. **Direct PyQt signal→slot connections** between specific widget pairs.
 
-### Structural-change → undo/dirty tracking
+### Undo steps & unsaved changes
 
-```python
-def _on_structural_change(payload):
-    if not getattr(panel, "_loading", False):
-        panel.push_state()
-        panel.set_dirty(True)
-    panel._refresh_node_canvas()
-```
+`MainPanelController.wire()` starts a `HistoryRecorder`
+(`analysis/history_recorder.py`) — the single table of which events become
+undo steps (`GATE_CREATED`, `LOGIC_NODE_CREATED`, `GATES_CREATED`,
+`GATE_DELETED`, `GATE_RENAMED`, `GATE_MODIFIED`, the pipeline
+`connection_added`/`connection_removed` topics, `SAMPLE_LOADED`,
+`COMPENSATION_APPLIED`, `DERIVED_PARAMS_CHANGED`, `UMAP_COMPLETED`,
+`MODEL_EDITED`), which background completions fold into the previous step
+(`PROPAGATION_COMPLETE`), and which only mark the workspace unsaved
+(`UNSAVED_CHANGE`). Commits are deferred to the end of the
+event-loop turn, so one user action = one undo step no matter how many
+events it publishes. See `10_STATE_UNDO_AND_PERSISTENCE.md`.
 
-Subscribed to `GATE_CREATED`, `LOGIC_NODE_CREATED`, `GATES_CREATED`,
-`GATE_DELETED`, `GATE_RENAMED`, and `GATE_MODIFIED`. This is the single
-choke point that pushes an undo-history snapshot and marks the workspace
-dirty for every structural gate edit — deliberately coarse-grained: one
-`GATE_MODIFIED` per drag gesture (not per motion frame, see
-`02_UI_ENGINE.md` §3) means one undo step per user-visible edit, "for
-free", without `MainPanelController` needing gesture-level awareness itself.
-
-A connection edit in the Pipeline tab that hasn't yet satisfied a logic
-node's wiring requirements goes through a **separate**, similarly-named but
-distinct handler:
-
-```python
-def _on_connection_pending(payload):  # MainPanelController's own copy
-    if not getattr(panel, "_loading", False):
-        panel.push_state()
-        panel.set_dirty(True)
-```
-
-subscribed to the raw topics `"flow.pipeline.connection_added"` /
-`"flow.pipeline.connection_removed"`. This still marks the workspace dirty
-(a wiring change is undo-worthy) but does **not** call
-`panel._refresh_node_canvas()` or trigger any full rebuild — that's
-deliberate, because `CanvasManager` has its *own*, differently-scoped
-subscriber to the exact same two topics
-(`CanvasManager._on_connection_pending`, see `02_UI_ENGINE.md` §5) that does
-a cheap, targeted redraw of just the affected node/edges. Two different
-objects subscribed to the same topic doing two different, complementary
-things — worth knowing before assuming a topic has exactly one handler.
+Separately, `_on_structural_change` refreshes the node canvas for the gate
+events. A pipeline connection that doesn't yet satisfy a logic node's wiring
+requirements is still an undo step, but does **not** trigger that full
+rebuild — `CanvasManager` has its *own*, differently-scoped subscriber to
+the same two topics (`CanvasManager._on_connection_pending`, see
+`02_UI_ENGINE.md` §5) that does a cheap, targeted redraw of just the
+affected node/edges. Two different objects subscribed to the same topic
+doing two different, complementary things — worth knowing before assuming a
+topic has exactly one handler.
 
 ### Tutorial-aware gate validation
 
@@ -219,7 +203,7 @@ sequenceDiagram
     GMS->>Bus: publish(GATE_CREATED, {sample_id, node_id, gate_id, name})
     GMS->>GC: request_propagation(gate_id, sample_id)
 
-    Bus-->>MPC: GATE_CREATED → _on_structural_change<br/>(push_state, set_dirty, refresh node canvas)
+    Bus-->>MPC: GATE_CREATED → HistoryRecorder (undo step at end of turn)<br/>+ _on_structural_change (refresh node canvas)
     Bus-->>MPC: GATE_CREATED → _handle_gate_created<br/>(tutorial shape validation)
     MPC->>Panel: _on_gate_added(sample_id, node_id)
     Panel->>Panel: _refresh_gate_overlays(sample_id)<br/>_on_gate_selected(node_id)
@@ -241,17 +225,13 @@ Two things worth calling out explicitly:
    whatever default) immediately, and `GATE_STATS_UPDATED`/`ALL_STATS_UPDATED`
    land moments later once the background computation finishes and
    `GateCoordinator._on_stats_finished()` runs.
-2. **Two independent subscribers react to the same `GATE_CREATED` event**
-   for different reasons — `MainPanelController._on_structural_change`
-   (undo/dirty bookkeeping, unconditional) and
+2. **Several independent subscribers react to the same `GATE_CREATED` event**
+   for different reasons — the `HistoryRecorder` (undo step),
+   `MainPanelController._on_structural_change` (node canvas) and
    `MainPanelController._handle_gate_created` (tutorial validation, which
-   can *retroactively delete* the gate that was just created). Both are
-   registered via separate `_subscribe(events.GATE_CREATED, ...)` calls in
-   `wire()`; CentralEventBus delivers to both regardless of order-of-
-   registration guarantees, so don't assume the undo snapshot reflects a
-   tutorial-invalidated gate never having existed — it will show up in the
-   undo stack for one step before the tutorial validator's deletion adds
-   another.
+   can *retroactively delete* the gate that was just created). Because the
+   recorder commits at the end of the event-loop turn, a gate the tutorial
+   validator deletes in the same turn nets out to no undo step at all.
 
 ---
 
@@ -263,8 +243,8 @@ connected straight to `panel._on_samples_loaded()` in
 compensation matrix if none exists yet, then explicitly refreshes every
 sample-dependent widget in sequence — `_groups_panel`, `_sample_list`,
 `_pipeline_ribbon`, `_population_analysis_viewer`, `_statistics_explorer`,
-`_comparisons_viewer` — before emitting `panel.state_changed` (the
-Karcytics-required undo/redo signal) and a status-bar message. Sample
+`_comparisons_viewer` — before a status-bar message (the undo step itself comes from
+`SAMPLE_LOADED`, see §3). Sample
 loading is one of the few high-traffic operations in this module that goes
 through direct signal wiring end-to-end rather than round-tripping through
 `CentralEventBus` — there's no `SAMPLE_LOADED`-driven fan-out the way gate

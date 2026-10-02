@@ -143,11 +143,12 @@ class RenderTask(AnalysisBase):
         # 2. Transform raw data to display coordinates
         def _get_xform_params(scale):
             from ...analysis._utils import BiexponentialParameters
+            from ...analysis.scaling import log_transform_kwargs
 
             return (
                 BiexponentialParameters(scale).to_dict()
                 if scale.transform_type == TransformType.BIEXPONENTIAL
-                else {}
+                else log_transform_kwargs(scale)
             )
 
         x_vis = apply_transform(

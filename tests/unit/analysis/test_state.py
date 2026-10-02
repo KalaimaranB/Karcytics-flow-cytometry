@@ -51,13 +51,14 @@ def test_gate_node_estimation_fields_default_when_absent():
 
 
 def test_state_serialization_avoids_recursive_objects(flow_state):
-    """Verify that to_dict() handles non-serializable fields like EventBus."""
+    """to_dict() is the workflow document — services and live widget
+    references on the state must never leak into it.
+    """
     data = flow_state.to_dict()
     assert isinstance(data, dict)
-    assert "event_bus" not in data
-    assert "data" in data
-    assert "view" in data
-    assert "experiment" in data["data"]
+    assert set(data) == {"experiment", "compensation", "view"}
+    assert "axis_manager" not in data and "population_service" not in data
+    assert not any(key.startswith("_") for key in data["view"])
 
 
 def test_state_active_params(flow_state):
@@ -84,8 +85,7 @@ def test_render_config_serialization(flow_state):
     assert workflow_dict["view"]["render_config"]["pseudocolor"]["max_events"] == 42000
     assert workflow_dict["view"]["render_config"]["pseudocolor"]["population_detail"] == 3.5
 
-    # Test round trip
-    new_state = type(flow_state)()
-    new_state = new_state.from_dict(workflow_dict)
-    assert new_state.view.render_config.max_events == 42000
-    assert new_state.view.render_config.nbins_scaling == 3.5
+    # Round trip through the one serializer.
+    new_state = type(flow_state).from_dict(workflow_dict)
+    assert new_state.view.render_config.pseudocolor.max_events == 42000
+    assert new_state.view.render_config.pseudocolor.population_detail == 3.5

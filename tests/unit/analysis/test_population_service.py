@@ -1,7 +1,5 @@
 import pytest
 
-from karcytics_plugins.flow_cytometry.analysis.gating import QuadrantGate
-
 
 @pytest.fixture
 def service(flow_state):
@@ -16,13 +14,6 @@ def sample_with_data(flow_state):
 def test_population_service_get_events(service, sample_with_data):
     events = service.get_gated_events(sample_with_data.sample_id, None)
     assert len(events) == 1000
-
-
-def test_population_service_quadrant_creation(service, sample_with_data):
-    QuadrantGate(x_param="FSC-A", y_param="SSC-A", x_mid=500, y_mid=500)
-    # This would typically be called by GateController
-    # but we can test the helper logic if exposed or just the effect.
-    pass
 
 
 def test_population_service_find_node(service, sample_with_data):

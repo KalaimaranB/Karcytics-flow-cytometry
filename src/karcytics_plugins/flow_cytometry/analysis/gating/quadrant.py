@@ -91,6 +91,7 @@ class QuadrantGate(Gate):
         nodes = []
         for q_name in q_names:
             child_gate = QuadrantSubGate(self, q_name)
+            child_gate.derived_formulas = dict(self.derived_formulas)
             node = GateNode(gate=child_gate, name=q_name, parents=[parent_node])
             parent_node.children.append(node)
             nodes.append(node)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -112,6 +113,22 @@ class GateNode:
             if found:
                 return found
         return None
+
+    def iter_dag(self) -> Iterator[GateNode]:
+        """Yield this node and every descendant exactly once.
+
+        Logic nodes can have several parents, so a plain child recursion
+        would visit shared descendants repeatedly. Depth-first, stack order.
+        """
+        visited: set[str] = set()
+        stack: list[GateNode] = [self]
+        while stack:
+            node = stack.pop()
+            if node.node_id in visited:
+                continue
+            visited.add(node.node_id)
+            yield node
+            stack.extend(node.children)
 
     def find_nodes_by_gate(self, gate_id: str) -> list[GateNode]:
         """Find all population nodes that use a specific gate instance.

@@ -122,3 +122,13 @@ LOGIC_GATE_MIN_PARENTS = 2
 # ── Modifier ─────────────────────────────────────────────────────────
 # A polygon gate must have at least 3 vertices.
 POLYGON_MIN_VERTICES = 3
+
+# ── Derived Parameters ───────────────────────────────────────────────
+# Column-key prefix for user-defined per-event formulas (see analysis/derived/).
+# Any channel key with this prefix is computed, never read from the FCS file.
+DERIVED_PREFIX = "derived:"
+MAX_DERIVED_PARAMETERS = 20
+# Log-scale floor for derived axes. Ratios mostly sit below 1, so the
+# detector floor (1.0) would clamp nearly every event onto one point; the
+# auto-range still starts at the data, so this only bounds outliers.
+DERIVED_LOG_FLOOR = 1e-6

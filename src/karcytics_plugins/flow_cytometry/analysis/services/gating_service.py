@@ -57,14 +57,7 @@ class GatingService:
         represent. Instead, every reachable node is cloned exactly once and
         the parent/child lists are then rebuilt from the originals.
         """
-        all_nodes: dict[str, GateNode] = {}
-        stack = [source_root]
-        while stack:
-            node = stack.pop()
-            if node.node_id in all_nodes:
-                continue
-            all_nodes[node.node_id] = node
-            stack.extend(node.children)
+        all_nodes = {node.node_id: node for node in source_root.iter_dag()}
 
         clones: dict[str, GateNode] = {source_root.node_id: target_root}
         for node_id, node in all_nodes.items():

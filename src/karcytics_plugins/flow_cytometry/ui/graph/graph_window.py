@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QLabel,
@@ -81,6 +81,7 @@ class GraphWindow(QWidget):
     tool_change_requested = pyqtSignal(
         str
     )  # "select", "rectangle", "polygon", "ellipse", "quadrant", "range"
+    derived_editor_requested = pyqtSignal(object, str)  # this GraphWindow, "x" | "y"
 
     def __init__(  # noqa: PLR0913
         self,
@@ -142,6 +143,7 @@ class GraphWindow(QWidget):
         """Subscribe to relevant state events."""
         CentralEventBus.subscribe(events.GATE_RENAMED, self._on_gate_renamed)
         CentralEventBus.subscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+        CentralEventBus.subscribe(events.DERIVED_PARAMS_CHANGED, self._on_derived_params_changed)
         self.destroyed.connect(self._cleanup_events)
 
     def _cleanup_events(self) -> None:
@@ -154,6 +156,9 @@ class GraphWindow(QWidget):
         try:
             CentralEventBus.unsubscribe(events.GATE_RENAMED, self._on_gate_renamed)
             CentralEventBus.unsubscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+            CentralEventBus.unsubscribe(
+                events.DERIVED_PARAMS_CHANGED, self._on_derived_params_changed
+            )
         except Exception:
             pass
 
@@ -179,6 +184,62 @@ class GraphWindow(QWidget):
                 self._cleanup_events()
             else:
                 raise
+
+    def _on_derived_params_changed(self, data: dict) -> None:
+        """Rebuild axis lists after a derived parameter is added/edited/removed."""
+        try:
+            self._refresh_axis_channels(data.get("param_id"))
+        except RuntimeError as e:
+            if "has been deleted" in str(e):
+                self._cleanup_events()
+            else:
+                raise
+
+    def _refresh_axis_channels(self, changed_param: str | None) -> None:
+        sample = self._state.data.experiment.samples.get(self._sample_id)
+        if sample is None or sample.fcs_data is None:
+            return
+        fcs = sample.fcs_data
+        x_ch = self._axis_panel.get_current_x()
+        y_ch = self._axis_panel.get_current_y()
+
+        def _fallback(current: str, preferred: str) -> str:
+            if current in fcs.channels:
+                return current
+            if preferred in fcs.channels:
+                return preferred
+            return fcs.channels[0] if fcs.channels else current
+
+        new_x = _fallback(x_ch, "FSC-A")
+        new_y = _fallback(y_ch, "SSC-A")
+
+        self._axis_panel.block_combos(True)
+        self._axis_panel.clear_combos()
+        for ch in fcs.channels:
+            self._axis_panel.add_channel(get_channel_marker_label(fcs, ch), ch)
+        self._axis_panel.add_new_derived_entry()
+        self._axis_panel.set_current_x(new_x)
+        self._axis_panel.set_current_y(new_y)
+        self._axis_panel.block_combos(False)
+
+        # Re-render if an axis was removed or its values/scale changed.
+        if (new_x, new_y) != (x_ch, y_ch) or changed_param in (x_ch, y_ch):
+            self._on_axis_changed()
+
+    def select_axis_param(self, axis: str, param: str) -> None:
+        """Put ``param`` on ``axis`` ("x" or "y") and re-render.
+
+        Refreshes the channel list first, so a derived parameter created a
+        moment ago is selectable even before DERIVED_PARAMS_CHANGED arrives.
+        """
+        self._refresh_axis_channels(None)
+        self._axis_panel.block_combos(True)
+        if axis == "y":
+            self._axis_panel.set_current_y(param)
+        else:
+            self._axis_panel.set_current_x(param)
+        self._axis_panel.block_combos(False)
+        self._on_axis_changed()
 
     @property
     def sample_id(self) -> str:
@@ -215,6 +276,9 @@ class GraphWindow(QWidget):
         self._axis_panel.fmo_overlay_changed.connect(self._on_fmo_changed)
         self._axis_panel.transforms_requested.connect(self._open_transform_dialog)
         self._axis_panel.settings_requested.connect(self._open_render_settings_dialog)
+        self._axis_panel.new_derived_requested.connect(
+            lambda axis: self.derived_editor_requested.emit(self, axis)
+        )
 
         layout.addWidget(self._axis_panel)
 
@@ -247,28 +311,17 @@ class GraphWindow(QWidget):
         # ── Gate info bar ─────────────────────────────────────────────
         self._gate_info = QLabel()
         self._gate_info.setVisible(False)
+        theme_manager.apply_style(
+            self._gate_info,
+            "color: {FG_SECONDARY}; font-size: 10px;"
+            " background: {BG_DARK}; padding: 3px 8px;"
+            " border-radius: 3px;",
+        )
         layout.addWidget(self._gate_info)
 
         # Populate axis combos and trigger initial scale sync and render
         self._populate_axis_combos()
         self._on_axis_changed()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on current theme."""
-        if hasattr(self, "_toolbar") and hasattr(self._toolbar, "_apply_theme_styles"):
-            self._toolbar._apply_theme_styles()
-        if hasattr(self, "_axis_panel") and hasattr(self._axis_panel, "_apply_theme_styles"):
-            self._axis_panel._apply_theme_styles()
-        if hasattr(self, "_canvas") and hasattr(self._canvas, "_apply_theme_styles"):
-            self._canvas._apply_theme_styles()
-        if hasattr(self, "_gate_info"):
-            self._gate_info.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: 10px;"
-                f" background: {Colors.BG_DARK}; padding: 3px 8px;"
-                f" border-radius: 3px;"
-            )
 
     def set_drawing_mode(self, tool_name: str) -> None:
         """Set the canvas drawing mode from a tool name.
@@ -288,6 +341,24 @@ class GraphWindow(QWidget):
             gate_nodes: Matching GateNode list for stat labels.
         """
         self._canvas.set_gates(gates, gate_nodes)
+
+    def reload_from_state(self) -> None:
+        """Re-read everything this graph shows from the state, by id.
+
+        After undo/redo every Sample/GateNode object is new: the gate
+        overlays (which hold Gate objects), the FMO choices, the channel list
+        (a derived parameter may have come or gone), the scales and the
+        plotted population all have to be looked up again. Also abandons a
+        half-finished gate drag, which would otherwise commit onto a gate
+        that no longer exists.
+        """
+        self._canvas._cancel_drawing()
+        gates, nodes = self._controller.get_gates_for_display(self._sample_id, self._node_id)
+        self.refresh_gates(gates, nodes)
+        self._populate_fmo_combo()
+        self._refresh_axis_channels(None)
+        self._update_breadcrumb()
+        self._on_axis_changed()
 
     def update_gate_info(self, gate: Gate | None, stats: dict) -> None:
         """Update the gate info bar at the bottom of the window.
@@ -329,6 +400,7 @@ class GraphWindow(QWidget):
             for ch in fcs.channels:
                 label = get_channel_marker_label(fcs, ch)
                 self._axis_panel.add_channel(label, ch)
+            self._axis_panel.add_new_derived_entry()
 
             self._populate_fmo_combo()
 
@@ -764,7 +836,10 @@ class GraphWindow(QWidget):
 
     def _on_render_settings_applied(self, new_config) -> None:
         """Apply new settings and re-render."""
+        from ...analysis.services import experiment_edits
+
         self._state.view.render_config = new_config
+        experiment_edits.announce_unsaved_change()
         self._canvas.redraw()
 
     def _on_gate_created(self, gate: Gate) -> None:
@@ -863,6 +938,9 @@ class GraphWindow(QWidget):
                     },
                 )
 
+            from ...analysis.services import experiment_edits
+
+            experiment_edits.announce_unsaved_change()
             self._render_initial()
 
         dlg.scale_changed.connect(on_change)

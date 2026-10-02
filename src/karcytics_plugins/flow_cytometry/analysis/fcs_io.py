@@ -45,7 +45,12 @@ import pandas as pd  # noqa: E402
 
 logger.warning("[phase1] fcs_io: numpy/pandas imported")
 
-from .constants import FCS_LOCK_WARN_SECONDS, FCS_STRIP_RATIO_WARN  # noqa: E402
+from .constants import (  # noqa: E402
+    DERIVED_PREFIX,
+    FCS_LOCK_WARN_SECONDS,
+    FCS_STRIP_RATIO_WARN,
+)
+from .derived.state import DerivedColumnsState  # noqa: E402
 
 
 def _log_import_diagnostics() -> None:
@@ -180,6 +185,10 @@ class FCSData:
         _fk_sample: The underlying ``flowkit.Sample`` object, if loaded
                     via FlowKit.  Retained for downstream transform
                     and compensation operations.
+        derived:    Bookkeeping for derived-parameter columns appended to
+                    ``channels``/``events``; written only by
+                    ``analysis/derived/sync.py``. Read labels through
+                    :func:`derived_labels_of`.
     """
 
     file_path: Path
@@ -190,6 +199,9 @@ class FCSData:
     metadata: dict[str, str] = field(default_factory=dict)
     is_compensated: bool = False
     _fk_sample: object = field(default=None, repr=False)
+    derived: DerivedColumnsState = field(
+        default_factory=DerivedColumnsState, repr=False, compare=False
+    )
 
     @property
     def num_events(self) -> int:
@@ -800,8 +812,17 @@ def get_fluorescence_channels(data: FCSData) -> list[str]:
     Returns:
         List of fluorescence channel names.
     """
-    exclude = ("FSC", "SSC", "Time", "time")
+    exclude = ("FSC", "SSC", "Time", "time", DERIVED_PREFIX)
     return [ch for ch in data.channels if not ch.startswith(exclude)]
+
+
+def derived_labels_of(data: object) -> dict[str, str]:
+    """Derived-parameter display labels of ``data`` (``{}`` if none).
+
+    Tolerates FCSData stand-ins (tests, older pickles) that predate the field.
+    """
+    state = getattr(data, "derived", None)
+    return state.labels if isinstance(state, DerivedColumnsState) else {}
 
 
 def get_channel_marker_label(data: FCSData, channel: str) -> str:
@@ -817,6 +838,9 @@ def get_channel_marker_label(data: FCSData, channel: str) -> str:
     Returns:
         A human-readable label.
     """
+    derived_label = derived_labels_of(data).get(channel)
+    if derived_label is not None:
+        return derived_label
     try:
         idx = data.channels.index(channel)
         marker = data.markers[idx] if idx < len(data.markers) else ""

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 from ..flow_canvas import DisplayMode
+
+# Item data of the trailing "＋ New derived parameter…" entry in X/Y combos.
+NEW_DERIVED_SENTINEL = "__new_derived__"
+NEW_DERIVED_LABEL = "＋ New derived parameter…"
 
 
 class AxisControlPanel(QWidget):
@@ -19,9 +23,11 @@ class AxisControlPanel(QWidget):
     fmo_overlay_changed = pyqtSignal(str)  # FMO sample ID or empty string
     transforms_requested = pyqtSignal()
     settings_requested = pyqtSignal()
+    new_derived_requested = pyqtSignal(str)  # "x" or "y"
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self._last_index = {"x": 0, "y": 0}
         self._setup_ui()
 
     def _setup_ui(self) -> None:  # noqa: PLR0915
@@ -34,7 +40,7 @@ class AxisControlPanel(QWidget):
         self._x_combo = FlowComboBox()
         self._x_combo.setObjectName("AxisSelectorX")
         self._x_combo.setMinimumWidth(140)
-        self._x_combo.currentTextChanged.connect(lambda _: self.axis_changed.emit())
+        self._x_combo.currentIndexChanged.connect(lambda _: self._on_axis_combo_changed("x"))
         layout.addWidget(self._x_combo)
 
         layout.addSpacing(16)
@@ -49,10 +55,14 @@ class AxisControlPanel(QWidget):
         self._y_combo = FlowComboBox()
         self._y_combo.setObjectName("AxisSelectorY")
         self._y_combo.setMinimumWidth(140)
-        self._y_combo.currentTextChanged.connect(lambda _: self.axis_changed.emit())
+        self._y_combo.currentIndexChanged.connect(lambda _: self._on_axis_combo_changed("y"))
         self._y_stack.addWidget(self._y_combo)
 
         self._y_count_label = self._make_label("Count")
+        theme_manager.apply_style(
+            self._y_count_label,
+            "color: {FG_PRIMARY}; font-size: 12px; font-weight: 500; padding: 2px 8px;",
+        )
         self._y_stack.addWidget(self._y_count_label)
 
         # Default to Y combo
@@ -92,11 +102,17 @@ class AxisControlPanel(QWidget):
         self._transform_btn.setFixedHeight(24)
         self._transform_btn.setToolTip("Open Axis Scaling & Transforms dialog")
         self._transform_btn.clicked.connect(self.transforms_requested.emit)
+        self._style_btn(self._transform_btn)
         layout.addWidget(self._transform_btn)
 
         # ── Render spinner ────────────────────────────────────────────
         self._render_spinner = QLabel("⟳ Rendering…")
         self._render_spinner.setVisible(False)
+        theme_manager.apply_style(
+            self._render_spinner,
+            "color: {ACCENT_PRIMARY}; font-size: 11px; font-weight: 600;"
+            " background: transparent; padding: 0 6px;",
+        )
         layout.addWidget(self._render_spinner)
 
         # ── Render Settings Button ──
@@ -106,66 +122,31 @@ class AxisControlPanel(QWidget):
         self._btn_settings.setFixedHeight(24)
         self._btn_settings.setToolTip("Customize rendering parameters")
         self._btn_settings.clicked.connect(self.settings_requested.emit)
+        self._style_btn(self._btn_settings)
         layout.addWidget(self._btn_settings)
 
         layout.addStretch()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on current theme."""
-        for lbl in (
-            getattr(self, "_x_label", None),
-            getattr(self, "_y_label", None),
-            getattr(self, "_fmo_label", None),
-        ):
-            if lbl:
-                lbl.setStyleSheet(
-                    f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                    f" font-weight: 600; background: transparent;"
-                )
-        if hasattr(self, "_y_count_label"):
-            self._y_count_label.setStyleSheet(
-                f"color: {Colors.FG_PRIMARY}; font-size: 12px; font-weight: 500; padding: 2px 8px;"
-            )
-        if hasattr(self, "_render_spinner"):
-            self._render_spinner.setStyleSheet(
-                f"color: {Colors.ACCENT_PRIMARY}; font-size: 11px; font-weight: 600;"
-                " background: transparent; padding: 0 6px;"
-            )
-        for btn in (
-            getattr(self, "_transform_btn", None),
-            getattr(self, "_btn_settings", None),
-        ):
-            if btn:
-                self._style_btn(btn)
-        for combo in (
-            getattr(self, "_x_combo", None),
-            getattr(self, "_y_combo", None),
-            getattr(self, "_display_combo", None),
-            getattr(self, "_fmo_combo", None),
-        ):
-            if combo and hasattr(combo, "_apply_theme_styles"):
-                combo._apply_theme_styles()
 
     def set_spinner_visible(self, visible: bool) -> None:
         self._render_spinner.setVisible(visible)
 
     def _make_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-            f" font-weight: 600; background: transparent;"
+        theme_manager.apply_style(
+            lbl,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " font-weight: 600; background: transparent;",
         )
         return lbl
 
     def _style_btn(self, btn: QPushButton) -> None:
-        btn.setStyleSheet(
-            f"QPushButton {{ background: {Colors.BG_MEDIUM};"
-            f" color: {Colors.FG_PRIMARY}; border: 1px solid {Colors.BORDER};"
-            f" border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; }}"
-            f"QPushButton:hover {{ background: {Colors.BG_DARK};"
-            f" color: {Colors.ACCENT_PRIMARY}; }}"
+        theme_manager.apply_style(
+            btn,
+            "QPushButton { background: {BG_MEDIUM};"
+            " color: {FG_PRIMARY}; border: 1px solid {BORDER};"
+            " border-radius: 3px; font-size: 11px; font-weight: 600; padding: 2px 8px; }"
+            "QPushButton:hover { background: {BG_DARK};"
+            " color: {ACCENT_PRIMARY}; }",
         )
 
     # Proxy methods for combos
@@ -232,17 +213,36 @@ class AxisControlPanel(QWidget):
         self._x_combo.addItem(label, ch)
         self._y_combo.addItem(label, ch)
 
+    def add_new_derived_entry(self) -> None:
+        """Append the "＋ New derived parameter…" action after the channels."""
+        for combo in (self._x_combo, self._y_combo):
+            combo.insertSeparator(combo.count())
+            combo.addItem(NEW_DERIVED_LABEL, NEW_DERIVED_SENTINEL)
+
     def set_current_x(self, ch: str) -> None:
-        for i in range(self._x_combo.count()):
-            if self._x_combo.itemData(i) == ch:
-                self._x_combo.setCurrentIndex(i)
-                break
+        self._set_current(self._x_combo, "x", ch)
 
     def set_current_y(self, ch: str) -> None:
-        for i in range(self._y_combo.count()):
-            if self._y_combo.itemData(i) == ch:
-                self._y_combo.setCurrentIndex(i)
+        self._set_current(self._y_combo, "y", ch)
+
+    def _set_current(self, combo, axis: str, ch: str) -> None:
+        for i in range(combo.count()):
+            if combo.itemData(i) == ch:
+                combo.setCurrentIndex(i)
+                self._last_index[axis] = i
                 break
+
+    def _on_axis_combo_changed(self, axis: str) -> None:
+        combo = self._x_combo if axis == "x" else self._y_combo
+        if combo.currentData() == NEW_DERIVED_SENTINEL:
+            # An action, not an axis: snap back without re-rendering.
+            combo.blockSignals(True)
+            combo.setCurrentIndex(self._last_index[axis])
+            combo.blockSignals(False)
+            self.new_derived_requested.emit(axis)
+            return
+        self._last_index[axis] = combo.currentIndex()
+        self.axis_changed.emit()
 
     def add_fmo_option(self, label: str, sample_id: str) -> None:
         self._fmo_combo.addItem(label, sample_id)

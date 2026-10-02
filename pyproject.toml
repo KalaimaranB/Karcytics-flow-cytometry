@@ -1,6 +1,6 @@
 [project]
 name = "flow_cytometry"
-version = "0.9.0"
+version = "0.10.0"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
@@ -8,7 +8,7 @@ authors = [
   { name = "Kalaimaran Balasothy" },
 ]
 dependencies = [
-    "karcytics-sdk>=2.1.9",
+    "karcytics-sdk>=2.2.0",
     "msgpack>=1.0.0, <2.0.0",
     "pyobjc-framework-cocoa>=12.2.1 ; sys_platform == 'darwin'",
     "numpy==1.26.4",

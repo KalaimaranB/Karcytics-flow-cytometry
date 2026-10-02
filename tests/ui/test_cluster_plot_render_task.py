@@ -1,6 +1,6 @@
 """Headless tests for `ClusterPlotRenderTask.run()` (no Qt widget, no task_scheduler).
 
-Mirrors `test_group_preview.py::test_render_task_for_preview`'s convention of
+Mirrors `test_subplots.py::test_thumbnail_rendering_resolution`'s convention of
 calling an `AnalysisBase.run()` directly to verify the pure compute/render
 result, independent of how it's dispatched.
 """

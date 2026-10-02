@@ -258,7 +258,13 @@ class CompensationEditorDialog(QDialog):
 
     def _on_apply(self) -> None:
         if self._temp_matrix:
-            self._state.data.compensation = self._temp_matrix
+            from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
+            # The ribbon re-applies it to the data in this same event-loop
+            # turn, so both land in one "Edit Compensation Matrix" step.
+            experiment_edits.set_compensation(
+                self._state, self._temp_matrix, "Edit Compensation Matrix"
+            )
             self.accept()
         else:
             self.reject()

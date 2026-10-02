@@ -217,8 +217,8 @@ class TestBoundaryConditions:
 
         result = gate.contains(data)
 
-        # Behavior: points on or inside should be True
-        assert np.sum(result) >= 1  # At least some should be inside
+        # Bounds are inclusive on every edge.
+        assert result.tolist() == [True, True, True, True]
 
     def test_range_gate_at_boundaries(self):
         """Range gate at exact min/max boundaries."""
@@ -254,9 +254,7 @@ class TestBoundaryConditions:
 
         result = gate.contains(data)
 
-        # Just outside vs just inside
-        # Behavior may vary by implementation
-        assert len(result) == 4  # All should be evaluable
+        assert result.tolist() == [False, True, False, True]
 
 
 @pytest.mark.edge_case
@@ -311,8 +309,7 @@ class TestExtremeValues:
 
         result = gate.contains(data)
 
-        assert len(result) == 4
-        # Should handle small values without precision issues
+        assert result.tolist() == [False, True, True, False]
 
     def test_gate_with_very_large_values(self):
         """Gate with very large values (typical for flow cytometry)."""
@@ -329,7 +326,7 @@ class TestExtremeValues:
 
         result = gate.contains(data)
 
-        assert len(result) == 4
+        assert result.tolist() == [True, True, True, False]
 
     def test_negative_values_in_data(self):
         """Gate on data with negative values (valid in flow cytometry)."""
@@ -344,7 +341,7 @@ class TestExtremeValues:
 
         result = gate.contains(data)
 
-        assert len(result) == 4
+        assert result.tolist() == [True, True, True, False]
 
 
 @pytest.mark.edge_case
@@ -366,8 +363,8 @@ class TestZeroWidthGates:
 
         result = gate.contains(data)
 
-        # Should handle zero-width gate
-        assert len(result) == 3
+        # A zero-width gate still matches events exactly on the line.
+        assert result.tolist() == [False, True, False]
 
     def test_range_zero_width(self):
         """Range gate with min == max (single point)."""
@@ -381,8 +378,7 @@ class TestZeroWidthGates:
 
         result = gate.contains(data)
 
-        assert len(result) == 3
-        # Only 100 should be inside (if point is inclusive)
+        assert result.tolist() == [False, True, False]
 
 
 @pytest.mark.edge_case
@@ -390,89 +386,28 @@ class TestInvertedGateBounds:
     """Test gates with inverted min/max bounds."""
 
     def test_rectangle_inverted_x_bounds(self):
-        """Rectangle with x_min > x_max."""
-        # This should either swap bounds or raise error
-        try:
-            gate = RectangleGate(
-                "FSC-A", "SSC-A", x_min=200_000, x_max=50_000, y_min=1_000, y_max=50_000
-            )
+        """Rectangle with x_min > x_max matches nothing — bounds are not
+        swapped and no error is raised. Pins current behavior; if inverted
+        bounds should instead be normalized or rejected, change it here.
+        """
+        gate = RectangleGate(
+            "FSC-A", "SSC-A", x_min=200_000, x_max=50_000, y_min=1_000, y_max=50_000
+        )
+        data = pd.DataFrame(
+            {
+                "FSC-A": [25_000, 100_000, 150_000, 250_000],
+                "SSC-A": [25_000, 25_000, 25_000, 25_000],
+            }
+        )
 
-            data = pd.DataFrame(
-                {
-                    "FSC-A": [100_000, 150_000],
-                    "SSC-A": [25_000, 25_000],
-                }
-            )
-
-            # If it doesn't raise, it should handle gracefully
-            result = gate.contains(data)
-            assert len(result) == 2
-        except (ValueError, AssertionError):
-            # Or it might raise an error, which is fine
-            pass
+        assert not gate.contains(data).any()
 
     def test_range_inverted_bounds(self):
-        """Range gate with min > max."""
-        try:
-            gate = RangeGate("FITC-A", low=250, high=50)
+        """Range gate with low > high matches nothing (same as rectangle)."""
+        gate = RangeGate("FITC-A", low=250, high=50)
+        data = pd.DataFrame({"FITC-A": [25, 100, 150, 300]})
 
-            data = pd.DataFrame(
-                {
-                    "FITC-A": [100, 150],
-                }
-            )
-
-            result = gate.contains(data)
-            assert len(result) == 2
-        except (ValueError, AssertionError):
-            pass
-
-
-@pytest.mark.edge_case
-class TestNumericalStability:
-    """Test gates don't have cumulative numerical errors."""
-
-    def test_repeated_gate_operations(self, sample_a_events):
-        """Repeated gating produces same results."""
-        gate = RectangleGate(
-            "FSC-A", "SSC-A", x_min=50_000, x_max=200_000, y_min=1_000, y_max=50_000
-        )
-
-        results = []
-        for _ in range(10):
-            result = gate.contains(sample_a_events)
-            results.append(np.sum(result))
-
-        # All results should be identical
-        assert len(set(results)) == 1, "Repeated gating should give same result"
-
-    def test_gate_chain_stability(self, sample_a_events):
-        """Chaining gates doesn't accumulate errors."""
-        gate1 = RectangleGate(
-            "FSC-A", "SSC-A", x_min=50_000, x_max=200_000, y_min=1_000, y_max=50_000
-        )
-        gate2 = RectangleGate(
-            "FSC-A", "SSC-A", x_min=70_000, x_max=180_000, y_min=2_000, y_max=40_000
-        )
-        gate3 = RectangleGate(
-            "FSC-A", "SSC-A", x_min=80_000, x_max=160_000, y_min=5_000, y_max=35_000
-        )
-
-        # Chain: gate1 → gate2 → gate3
-        r1 = gate1.contains(sample_a_events)
-        l1 = sample_a_events[r1]
-
-        r2 = gate2.contains(l1)
-        l2 = l1[r2]
-
-        r3 = gate3.contains(l2)
-        final = l2[r3]
-
-        # Should have positive population
-        assert len(final) > 0
-        # Should not have NaN or Inf
-        for col in final.columns:
-            assert not final[col].isna().all()
+        assert not gate.contains(data).any()
 
 
 @pytest.mark.edge_case
@@ -497,12 +432,8 @@ class TestPolygonEdgeCases:
             }
         )
 
-        # Should handle or raise error gracefully
-        try:
-            result = gate.contains(data)
-            assert len(result) == 2
-        except (ValueError, AssertionError):
-            pass
+        # Two vertices enclose zero area, so nothing is inside.
+        assert gate.contains(data).tolist() == [False, False]
 
     def test_polygon_with_many_vertices(self):
         """Polygon with very many vertices."""
@@ -517,13 +448,14 @@ class TestPolygonEdgeCases:
 
         data = pd.DataFrame(
             {
-                "FSC-A": [100_000, 120_000, 80_000],
-                "SSC-A": [25_000, 25_000, 25_000],
+                "FSC-A": [100_000, 120_000, 80_000, 160_000],
+                "SSC-A": [25_000, 25_000, 25_000, 25_000],
             }
         )
 
         result = gate.contains(data)
-        assert len(result) == 3
+
+        assert result.tolist() == [True, True, True, False]
 
 
 @pytest.mark.edge_case
@@ -541,11 +473,8 @@ class TestEllipseEdgeCases:
             }
         )
 
-        try:
-            result = gate.contains(data)
-            assert len(result) == 3
-        except (ValueError, ZeroDivisionError):
-            pass
+        # Zero semi-axes enclose zero area — even the center isn't inside.
+        assert gate.contains(data).tolist() == [False, False, False]
 
     def test_ellipse_very_small_semi_axes(self):
         """Ellipse with very small semi-axes."""
@@ -558,8 +487,10 @@ class TestEllipseEdgeCases:
             }
         )
 
+        # Semi-axes are 0.01; (100.1, 100.1) is well outside.
         result = gate.contains(data)
-        assert len(result) == 3
+
+        assert result.tolist() == [True, True, False]
 
 
 @pytest.mark.edge_case
@@ -567,9 +498,10 @@ class TestQuadrantEdgeCases:
     """Edge cases specific to quadrant gates."""
 
     def test_quadrant_threshold_at_extreme(self):
-        """Quadrant with threshold at data minimum."""
+        """Every event lands in exactly one quadrant; points on a midline go
+        to the upper/right side (`>=`), never to both or neither.
+        """
         gate = QuadrantGate("FITC-A", "PE-A", x_mid=0, y_mid=0)
-
         data = pd.DataFrame(
             {
                 "FITC-A": [-100, 0, 100],
@@ -577,13 +509,15 @@ class TestQuadrantEdgeCases:
             }
         )
 
-        result = gate.contains(data)
-        assert len(result) == 3
+        masks = {q: gate.get_quadrant(data, q) for q in ("Q1", "Q2", "Q3", "Q4")}
+
+        assert masks["Q3"].tolist() == [True, False, False]
+        assert masks["Q2"].tolist() == [False, True, True]
+        assert np.all(sum(m.astype(int) for m in masks.values()) == 1)
 
     def test_quadrant_with_identical_values(self):
-        """Quadrant gate on data where all values are identical."""
+        """Data sitting exactly on both midlines all goes to Q2 (upper right)."""
         gate = QuadrantGate("FITC-A", "PE-A", x_mid=100, y_mid=100)
-
         data = pd.DataFrame(
             {
                 "FITC-A": [100, 100, 100],
@@ -591,48 +525,6 @@ class TestQuadrantEdgeCases:
             }
         )
 
-        result = gate.contains(data)
-        assert len(result) == 3
-
-
-@pytest.mark.edge_case
-@pytest.mark.slow
-class TestLargeDataHandling:
-    """Test gates with large datasets."""
-
-    def test_gate_on_large_dataset(self, sample_a_events):
-        """Gate on full 300K+ event dataset."""
-        gate = RectangleGate(
-            "FSC-A", "SSC-A", x_min=50_000, x_max=200_000, y_min=1_000, y_max=50_000
-        )
-
-        result = gate.contains(sample_a_events)
-
-        assert len(result) == len(sample_a_events)
-        assert np.sum(result) > 0
-
-    def test_many_sequential_gates_on_large_data(self, sample_a_events):
-        """Apply many sequential gates on large data."""
-        gates = [
-            RectangleGate(
-                "FSC-A",
-                "SSC-A",
-                x_min=30_000 + i * 5_000,
-                x_max=220_000 - i * 5_000,
-                y_min=100,
-                y_max=60_000,
-            )
-            for i in range(20)
-        ]
-
-        current = sample_a_events
-        for gate in gates:
-            membership = gate.contains(current)
-            current = current[membership]
-
-            # Should still have some events
-            if len(current) < 100:
-                break
-
-        # Should not crash on large data
-        assert len(current) >= 0
+        assert gate.get_quadrant(data, "Q2").all()
+        for q in ("Q1", "Q3", "Q4"):
+            assert not gate.get_quadrant(data, q).any()

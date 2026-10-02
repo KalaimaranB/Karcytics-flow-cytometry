@@ -116,7 +116,7 @@ class WorkspaceBuilder:
         panel._btn_smart_save.update_requested.connect(panel._handle_update)
         top_bar_layout.addWidget(panel._btn_smart_save)
 
-        panel.set_dirty(False)
+        panel.set_dirty(panel._store.is_dirty)
         root.addLayout(top_bar_layout)
 
         # ── Ribbon Stack ──────────────────────────────────────────────

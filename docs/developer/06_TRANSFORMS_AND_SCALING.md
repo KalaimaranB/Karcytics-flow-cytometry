@@ -127,6 +127,66 @@ def biexponential_transform(
 - **Interpretability:** Evenly displays dynamic range from negative to positive populations.
 - **Symmetry:** Negative/positive regions treated equally (with appropriate A parameter).
 
+### Dithering (jitter) and its effect on gating
+
+> [!WARNING]
+> **Known issue:** biexponential gate membership is currently non-deterministic
+> near gate edges. Events within about ±0.5 raw units of a boundary can land
+> inside on one evaluation and outside on the next.
+
+**What dithering is.** `biexponential_transform` (`analysis/transforms.py`)
+takes `enable_dithering: bool = True`. When on, it adds uniform random noise
+in `[-0.5, 0.5)` to every raw value before transforming. That's a display fix:
+cytometers often emit integer-valued channels, and near zero the Logicle
+curve spreads adjacent integers far apart. Without jitter, a density plot shows
+discrete "barcode" stripes instead of a continuous population.
+
+**Where it's turned off, and where it isn't.**
+
+| Code path | Dithered? | Effect |
+|---|---|---|
+| Density/pseudocolor rendering of event arrays | Yes (intended) | Removes barcode banding |
+| `CoordinateMapper` (`ui/graph/flow_services.py`): axis limits, gate outlines, click coordinates | No (forces `enable_dithering=False`) | What you see and click is exact |
+| Axis tick generation (`transforms.py`) | No | Ticks stay put |
+| `project_to_display` (`analysis/_utils.py`), used by **every gate's `contains()`** | **Yes (unintended)** | Gate membership is randomized near edges |
+
+`project_to_display` builds its kwargs from `BiexponentialParameters(scale)`,
+which defaults `enable_dithering` to `True`. `AxisScale` has no
+`enable_dithering` field, so that default always applies. Both the event
+values *and* the gate's own bounds are jittered independently on each call,
+so the effective edge moves by up to ±0.5 raw units every evaluation.
+
+**Measured impact.** On `tests/data/fcs/Specimen_001_Sample A.fcs`
+(302,017 events), 20 evaluations of the same biexponential gate gave:
+
+| Gate | Count spread across 20 runs | Events that switched in/out at least once |
+|---|---|---|
+| `RangeGate` FITC-A ≥ 500 | 244 (≈0.4% of ~65.6k) | 393 |
+| `RangeGate` PE-A ≥ 5,000 | 27 (≈0.01% of ~224.6k) | 39 |
+| `RectangleGate` FITC-A 0–1,000 × PE-A 0–8,000 | 209 (≈0.1% of ~204.8k) | 440 |
+
+The effect is largest when a boundary sits in a dense part of the
+distribution close to zero, which is exactly where biexponential scaling is
+normally used.
+
+**When users will notice.** Within a session, `GateNode`'s mask cache keeps a
+population's result stable, so the same gate doesn't visibly flicker. The
+count can shift slightly whenever the mask is recomputed: after editing any
+ancestor gate, changing compensation, reloading samples, reopening a
+project, or propagating a gate tree to another sample. Consequences:
+
+- A reopened project can report counts and percentages a few tenths of a
+  percent different from when it was saved.
+- Two samples with *identical* data can get slightly different counts for
+  the same propagated gate.
+- Linear and log gates are not affected; only axes on a biexponential scale.
+
+**Likely fix.** Gating needs exact, repeatable projection, like
+`CoordinateMapper`. Pass `enable_dithering=False` in `project_to_display`,
+leaving dithering on only for rendering. Until then, tests avoid asserting
+membership at biexponential boundaries (see
+[03_TESTING_AND_QA.md](03_TESTING_AND_QA.md#known-issues)).
+
 ---
 
 ## 2. Coordinate Mapper (Forward & Inverse Transforms)

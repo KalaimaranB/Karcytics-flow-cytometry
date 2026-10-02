@@ -222,9 +222,9 @@ class WorkspaceRibbon(ThemedToolbarContainer):
 
         dialog = BulkRoleDialog(self._state, parent=self)
         if dialog.exec():
-            # Refresh UI after bulk assigning roles
+            # Refresh UI after bulk assigning roles (the dialog announced the
+            # edit itself via experiment_edits.set_sample_roles).
             self.samples_loaded.emit()
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "BulkRoleDialog"})
 
     def _on_load_template(self) -> None:
         """Open a template file and apply it to the workspace."""
@@ -243,14 +243,10 @@ class WorkspaceRibbon(ThemedToolbarContainer):
 
         try:
             template = WorkflowTemplate.load(Path(path))  # type: ignore
-            self._state.data.experiment.apply_template(template)
-            self.template_load_requested.emit()
+            from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
-            # Publish event
-            CentralEventBus.publish(
-                events.SAMPLE_LOADED,
-                {"template_name": template.name, "source": "WorkspaceRibbon"},
-            )
+            experiment_edits.apply_template(self._state, template)
+            self.template_load_requested.emit()
             logger.info("Applied template: %s", template.name)
         except Exception as exc:
             logger.error("Failed to load template %s: %s", path, exc)
@@ -297,6 +293,7 @@ class WorkspaceRibbon(ThemedToolbarContainer):
             markers=list({m for mm in exp.marker_mappings for m in [mm.marker_name]}),
             marker_mappings=list(exp.marker_mappings),
             groups=group_templates,
+            derived_parameters=[d.to_dict() for d in exp.derived_parameters],
         )
 
         # Save dialog

@@ -350,20 +350,10 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             self.draw_idle()
             return
 
-        from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
+        from karcytics_plugins.flow_cytometry.analysis.scaling import get_transform_kwargs
 
-        def _get_kwargs(scale):
-            if scale.transform_type == TransformType.BIEXPONENTIAL:
-                return {
-                    "top": scale.logicle_t,
-                    "width": scale.logicle_w,
-                    "positive": scale.logicle_m,
-                    "negative": scale.logicle_a,
-                }
-            return {}
-
-        x_kwargs = _get_kwargs(self._x_scale)
-        y_kwargs = _get_kwargs(self._y_scale)
+        x_kwargs = get_transform_kwargs(self._x_scale)
+        y_kwargs = get_transform_kwargs(self._y_scale)
 
         # Common style
         style: dict[str, Any] = {

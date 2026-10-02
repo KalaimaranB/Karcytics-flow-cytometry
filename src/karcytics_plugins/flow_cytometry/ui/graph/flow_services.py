@@ -46,7 +46,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating import (
     RangeGate,
     RectangleGate,
 )
-from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
+from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale, log_transform_kwargs
 from karcytics_plugins.flow_cytometry.analysis.transforms import (
     TransformType,
     apply_transform,
@@ -101,44 +101,33 @@ class CoordinateMapper:
         kwargs["enable_dithering"] = False
         return kwargs
 
+    def _kwargs(self, scale: AxisScale) -> dict:
+        if scale.transform_type == TransformType.BIEXPONENTIAL:
+            return self._biexp_kwargs(scale)
+        return log_transform_kwargs(scale)
+
     def transform_x(self, x: np.ndarray) -> np.ndarray:
         """Transform X coordinates for display."""
-        x_kwargs = (
-            self._biexp_kwargs(self.x_scale)
-            if self.x_scale.transform_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
+        x_kwargs = self._kwargs(self.x_scale)
         return apply_transform(x, self.x_scale.transform_type, **x_kwargs)
 
     def transform_y(self, y: np.ndarray) -> np.ndarray:
         """Transform Y coordinates for display."""
         if self.y_scale is None:
             return y
-        y_kwargs = (
-            self._biexp_kwargs(self.y_scale)
-            if self.y_scale.transform_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
+        y_kwargs = self._kwargs(self.y_scale)
         return apply_transform(y, self.y_scale.transform_type, **y_kwargs)
 
     def inverse_transform_x(self, x: np.ndarray) -> np.ndarray:
         """Inverse-transform X coordinates (display → data space)."""
-        x_kwargs = (
-            self._biexp_kwargs(self.x_scale)
-            if self.x_scale.transform_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
+        x_kwargs = self._kwargs(self.x_scale)
         return invert_transform(x, self.x_scale.transform_type, **x_kwargs)
 
     def inverse_transform_y(self, y: np.ndarray) -> np.ndarray:
         """Inverse-transform Y coordinates (display → data space)."""
         if self.y_scale is None:
             return y
-        y_kwargs = (
-            self._biexp_kwargs(self.y_scale)
-            if self.y_scale.transform_type == TransformType.BIEXPONENTIAL
-            else {}
-        )
+        y_kwargs = self._kwargs(self.y_scale)
         return invert_transform(y, self.y_scale.transform_type, **y_kwargs)
 
     def transform_point(self, x: float, y: float) -> tuple[float, float]:

@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import get_logger
 
+from .derived.sync import sync_sample
+
 if TYPE_CHECKING:
     import pandas as pd
 
@@ -56,6 +58,9 @@ class PopulationService:
             return None
 
         assert sample.fcs_data is not None
+        # Safety net: no-op unless a load/compensation path forgot to re-sync
+        # derived columns, in which case gates on them would KeyError.
+        sync_sample(self._state.data.experiment, sample)
         events = sample.fcs_data.events
         if not node_id:
             return events

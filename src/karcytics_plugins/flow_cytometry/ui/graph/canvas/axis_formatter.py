@@ -6,6 +6,7 @@ from matplotlib.ticker import FixedFormatter, FixedLocator
 from karcytics_plugins.flow_cytometry.analysis.transforms import (
     TransformType,
     biological_tick_values,
+    log_decade_tick_values,
 )
 
 
@@ -23,8 +24,8 @@ class AxisFormatter:
         from ..flow_canvas import DisplayMode
 
         if x_scale.transform_type != TransformType.LINEAR:
-            raw_ticks, labels = self._build_bio_ticks(
-                x_scale, x_scale.transform_type == TransformType.BIEXPONENTIAL
+            raw_ticks, labels = self._build_ticks(
+                x_scale, ax.get_xlim(), mapper.inverse_transform_x
             )
             disp_ticks = mapper.transform_x(raw_ticks)
             ax.xaxis.set_major_locator(FixedLocator(disp_ticks))
@@ -34,8 +35,8 @@ class AxisFormatter:
 
         if display_mode not in (DisplayMode.HISTOGRAM, DisplayMode.CDF):
             if y_scale.transform_type != TransformType.LINEAR:
-                raw_ticks, labels = self._build_bio_ticks(
-                    y_scale, y_scale.transform_type == TransformType.BIEXPONENTIAL
+                raw_ticks, labels = self._build_ticks(
+                    y_scale, ax.get_ylim(), mapper.inverse_transform_y
                 )
                 disp_ticks = mapper.transform_y(raw_ticks)
                 ax.yaxis.set_major_locator(FixedLocator(disp_ticks))
@@ -65,6 +66,14 @@ class AxisFormatter:
                 zorder=0,
                 linewidth=0,
             )
+
+    def _build_ticks(self, scale, display_lim, inverse):
+        if scale.transform_type == TransformType.LOG:
+            # Log ranges follow the data (ratios live below 1), so label the
+            # decades actually on screen rather than fixed 10^3..10^5.
+            lo, hi = sorted(inverse(np.asarray(display_lim, dtype=float)))
+            return log_decade_tick_values(lo, hi)
+        return self._build_bio_ticks(scale, scale.transform_type == TransformType.BIEXPONENTIAL)
 
     def _build_bio_ticks(self, scale, is_biex):
         show_neg = False

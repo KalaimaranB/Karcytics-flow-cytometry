@@ -115,6 +115,38 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 
 ---
 
+### Issue: Gate counts change slightly after reopening or editing
+
+**Symptoms:** A population's count or percentage differs by a small amount
+(typically well under 1%) after you reopen a project, edit a parent gate,
+change compensation, or copy the gate to an identical sample, even though the
+gate itself didn't move.
+
+**Cause:** This is a known issue with gates on a **Biexponential** axis. To
+avoid striped "barcode" artifacts in plots, Karcytics adds a tiny random
+jitter (up to ±0.5 in raw channel units) to values on biexponential axes. That
+jitter is currently also applied when deciding which events fall inside a
+gate. Events sitting right on a gate's edge can therefore fall on either side
+each time the gate is recalculated. Gates on **Linear** or **Log** axes are not
+affected, and the plot you see is drawn exactly.
+
+**How much it matters:** On a typical 300,000-event sample the difference is
+tens to a few hundred events, a few tenths of a percent at most. It's largest
+when a gate edge cuts through a dense population near zero.
+
+**What to do:**
+
+1. For reported numbers, compute statistics once and export them (see
+   [Statistics](./06_STATISTICS.md)) rather than comparing counts across
+   separate sessions.
+2. Where the population allows it, place gate edges in a sparse region (the
+   valley between populations) instead of through a dense cluster. This also
+   makes the gate more robust in general.
+3. If exact repeatability matters more than display smoothness for a channel,
+   gate it on a **Linear** or **Log** axis.
+
+---
+
 ## Compensation Issues
 
 ### Issue: "Spillover Matrix Computation Failed"

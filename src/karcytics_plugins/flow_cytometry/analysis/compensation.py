@@ -24,6 +24,7 @@ import pandas as pd
 from karcytics_sdk.plugin import get_logger
 
 from .constants import MIN_SINGLE_STAINS, SPILLOVER_SIGNIFICANCE_THRESHOLD
+from .derived.sync import strip_derived_columns
 from .fcs_io import FCSData, get_fluorescence_channels
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -325,7 +326,9 @@ def apply_compensation(data: FCSData, comp: CompensationMatrix | None) -> pd.Dat
     if raw_events is not None:
         df = raw_events.copy()
     elif data.events is not None:
-        df = data.events.copy()
+        # Derived columns are computed from the (pre-compensation) inputs, so
+        # carrying them over would leave stale values; the caller re-syncs.
+        df = strip_derived_columns(data.events).copy()
     else:
         raise ValueError("No event data available for compensation.")
 

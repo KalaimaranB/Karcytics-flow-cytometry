@@ -2,8 +2,8 @@
 
 This is the main entry point UI class.  It sets up the workspace
 layout (toolbar ribbon, left sidebar, center canvas, right properties)
-and exposes the Karcytics-required interface: signals, export_state,
-load_state, export_workflow, load_workflow.
+and exposes the Karcytics-required interface: signals, export_workflow,
+load_workflow, and undo/redo (backed by ``analysis.store.FlowStore``).
 
 It also instantiates and wires the ``GateController`` and
 ``GatePropagator`` which coordinate gate lifecycle, statistics
@@ -29,11 +29,17 @@ from karcytics_sdk.plugin.runtime_services import (
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
+    QApplication,
+    QMessageBox,
     QSizePolicy,
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.controllers.derived_editor_controller import (
+    DerivedEditorController,
+)
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -173,8 +179,33 @@ class FlowCytometryPanel(PluginBase):
         self._umap_service = self._factory.get("umap_service")
         self._fluor_service = self._factory.get("fluor_service")
         self._workspace_io_handler = self._factory.get("workspace_io_handler")
+        self._derived_service = self._factory.get("derived_parameter_service")
+        self._derived_editor = DerivedEditorController(
+            self.state,
+            self._derived_service,
+            remove_population=self._gate_coordinator.remove_population,
+            parent=self,
+        )
+        self.state.view._derived_editor = self._derived_editor
 
-        self._is_dirty = False
+        # ── Undo/redo & unsaved changes ───────────────────────────────
+        # The store snapshots self.state (never a copy of it) into an SDK
+        # UndoHistory; PluginBase's undo()/redo() and the isolated window's
+        # Edit menu drive it through bind_undo_history. Domain events are
+        # turned into steps by the HistoryRecorder MainPanelController wires.
+        from karcytics_sdk.plugin import CentralEventBus
+
+        from ..analysis.store import FlowStore
+
+        self._store = FlowStore(self.state, CentralEventBus.publish)
+        self._store.add_dirty_listener(self.set_dirty)
+        # state_changed keeps meaning "a user edit happened" (ui_daemon
+        # forwards it to the Hub, e.g. for the Academy's file-import check).
+        self._store.add_commit_listener(lambda _label: self.state_changed.emit())
+        self._store.reset()
+        self.bind_undo_history(self._store.history, self._store.restore)
+        self._workflow_loading = False
+        self._close_after_save = False
 
         # Shared SDK loop (PluginBase.setup_workflow_autosave): every 15
         # minutes, silently re-saves a workflow that's already been saved
@@ -184,6 +215,7 @@ class FlowCytometryPanel(PluginBase):
         self._workflow_autosave_controller = self.setup_workflow_autosave(
             has_saved_once=lambda: bool(getattr(self, "_current_workflow_filename", None)),
             save=self._workspace_io_handler.handle_autosave,
+            has_unsaved_changes=lambda: self._store.is_dirty,
         )
 
     def _setup_footer_events(self) -> None:
@@ -231,9 +263,16 @@ class FlowCytometryPanel(PluginBase):
 
     # ── State Tracking ────────────────────────────────────────────────
 
+    @property
+    def _is_dirty(self) -> bool:
+        return self._store.is_dirty
+
     def set_dirty(self, dirty: bool) -> None:
-        """Mark the workflow as containing unsaved changes."""
-        self._is_dirty = dirty
+        """Show whether the workspace has unsaved changes.
+
+        Driven by ``FlowStore`` (which alone decides dirtiness — see
+        ``FlowStore.is_dirty``); also safe to call to re-sync the button.
+        """
         if hasattr(self, "_btn_smart_save"):
             has_wf = bool(
                 getattr(self, "_current_workflow_filename", None)
@@ -1121,20 +1160,36 @@ class FlowCytometryPanel(PluginBase):
 
     def _on_group_requested(self) -> None:
         """Callback when the user clicks 'Create Group'."""
-        import uuid
-
         from PyQt6.QtWidgets import QInputDialog
 
-        from karcytics_plugins.flow_cytometry.analysis.experiment import Group, GroupRole
+        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
         name, ok = QInputDialog.getText(self, "New Group", "Enter name for the new group:")
 
-        if ok and name.strip():
-            new_group = Group(group_id=str(uuid.uuid4()), name=name.strip(), role=GroupRole.CUSTOM)
-            self.state.data.experiment.add_group(new_group)
+        group = experiment_edits.create_group(self.state, name) if ok else None
+        if group is not None:
             self._groups_panel.refresh()
-            self.state_changed.emit()
-            self.status_message.emit(f"Group '{name.strip()}' created.")
+            self.status_message.emit(f"Group '{group.name}' created.")
+
+    def _on_derived_params_changed(self, payload: dict) -> None:
+        """A derived-parameter definition was created, edited or deleted.
+
+        Columns are already re-synced by DerivedParameterService; open graph
+        windows rebuild their own axis lists (GraphWindow subscribes itself).
+        Here: refresh every other channel picker/label, and recompute stats
+        for samples whose gates sit on an edited parameter.
+        """
+        self._statistics_explorer.refresh_channels()
+        self._comparisons_viewer.refresh_channels()
+        self._gate_hierarchy.refresh()
+        self._properties_panel.refresh()
+        self._refresh_node_canvas()
+
+        if payload.get("action") == "updated":
+            param_id = payload.get("param_id", "")
+            affected = {d.sample_id for d in self._derived_service.find_dependents(param_id)}
+            for sample_id in affected:
+                self._gate_coordinator.recompute_all_stats(sample_id)
 
     def _on_compensation_changed(self) -> None:
         """Callback when the compensation matrix changes."""
@@ -1199,66 +1254,154 @@ class FlowCytometryPanel(PluginBase):
         """Package the workspace state for the SDK."""
         return self.state
 
-    def push_state(self) -> None:
-        """Override SDK push_state to exclude UMAP results from undo history.
-
-        PluginBase.push_state() calls get_state().to_dict() which includes all
-        UMAP embedding arrays (100k+ floats each).  We strip them here so the
-        in-memory undo stack stays lightweight.  UMAP persistence is handled
-        separately by the workflow save/attachment pipeline.
-        """
-        state_dict = self.state.to_dict()
-        if "data" in state_dict and "umap_results" in state_dict["data"]:
-            state_dict["data"]["umap_results"] = {}
-        self.history.get_module_history(self.plugin_id).push(state_dict)
-        self.state_changed.emit()
+    def push_state(self, label: str = "") -> None:
+        """Record the current state as an undo step (see ``FlowStore.commit``)."""
+        self._store.commit(label or "Edit")
 
     def set_state(self, state: Any) -> None:
-        """Restore the workspace from an SDK state object."""
+        """Adopt `state`'s contents into this panel's own ``FlowState``, in place.
+
+        The panel's ``FlowState`` object is never replaced — every service
+        and widget holds a reference to it — so the given state is copied
+        in through the workflow document, the same path a load takes.
+        """
         if not state:
             return
-        self.state = state
+        from ..analysis.workspace_document import apply_workspace
+
+        apply_workspace(self.state, state.to_dict())
+        sync_experiment(self.state.data.experiment)
+        self._store.reset(clean=False)
         self._refresh_all()
 
-    def export_state(self) -> dict:
-        """Package the workspace state for undo/redo history snapshots.
+    # ── Undo / redo ───────────────────────────────────────────────────
 
-        UMAP results are intentionally excluded: they contain large embedding
-        arrays (100k+ floats) and are managed separately by the attachment /
-        workflow-save pipeline.  Including them in every undo snapshot would
-        create gigabytes of in-memory history and cause multi-second freezes
-        on close while Python's GC tears down the nested lists.
+    def _undo_blocked_reason(self) -> str | None:
+        if self._workflow_loading:
+            return "a workflow is loading"
+        if getattr(self, "_loading", False):
+            return "the workspace is being saved"
+        return None
+
+    def undo(self) -> bool:
+        """Edit → Undo (Cmd/Ctrl+Z)."""
+        return self._step_history("undo")
+
+    def redo(self) -> bool:
+        """Edit → Redo (Cmd+Shift+Z / Ctrl+Y)."""
+        return self._step_history("redo")
+
+    def _step_history(self, direction: str) -> bool:
+        reason = self._undo_blocked_reason()
+        if reason is not None:
+            self.status_message.emit(f"Can't {direction} while {reason}.")
+            return False
+        if hasattr(self, "_graph_manager"):
+            self._graph_manager.cancel_active_drawing()
+        # A step still waiting for the end of this event-loop turn, or a
+        # change nothing announced, must be its own step before we move.
+        if getattr(self, "_history_recorder", None) is not None:
+            self._history_recorder.flush()
+        self._store.record_unannounced_changes()
+
+        history = self._store.history
+        label = history.undo_label() if direction == "undo" else history.redo_label()
+        stepped = super().undo() if direction == "undo" else super().redo()
+        if stepped:
+            verb = "Undid" if direction == "undo" else "Redid"
+            self.status_message.emit(f"{verb} {label}." if label else f"{verb} last change.")
+        return stepped
+
+    def _on_state_restored(self, _payload: Any = None) -> None:
+        """Undo/redo replaced the model — make every view re-read it by id."""
+        self._gate_propagator.cancel_pending()
+        for sid, sample in self.state.data.experiment.samples.items():
+            if sample.fcs_data is not None and sample.gate_tree.children:
+                self._gate_controller.recompute_all_stats(sid)
+        if hasattr(self, "_graph_manager"):
+            self._graph_manager.reconcile_with_state()
+            self._refresh_all()
+            self._refresh_node_canvas()
+
+    # ── Saving ────────────────────────────────────────────────────────
+
+    def _begin_save(self) -> Any:
+        """Call right before a save starts; hand the token to ``_finish_save``."""
+        if getattr(self, "_history_recorder", None) is not None:
+            self._history_recorder.flush()
+        return self._store.begin_save()
+
+    def _finish_save(self, token: Any) -> None:
+        """A save that started with `token` succeeded."""
+        self._store.finish_save(token)
+        if self._close_after_save:
+            self._close_after_save = False
+            self._close_window_when_idle()
+
+    # ── Unsaved-changes prompts ───────────────────────────────────────
+
+    def _ask_unsaved_changes(
+        self, text: str, buttons: QMessageBox.StandardButton
+    ) -> QMessageBox.StandardButton:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Unsaved Changes")
+        box.setText(text)
+        box.setStandardButtons(buttons)
+        box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return QMessageBox.StandardButton(box.exec())
+
+    def confirm_close(self) -> bool:
+        """Asked by the isolated window before a user closes it.
+
+        Unsaved changes offer Save / Discard / Cancel. Save starts the usual
+        (background) save and closes the window once it succeeds; if that
+        save is cancelled or fails, the next close asks again.
         """
-        state_dict = self.state.to_dict()
-        # Strip the heavy binary payload — workflow save/load handles persistence.
-        if "data" in state_dict and "umap_results" in state_dict["data"]:
-            state_dict["data"]["umap_results"] = {}
-        return {
-            "flow_state": state_dict,
-            "active_tab": self._tab_bar.currentIndex(),
-        }
+        if self._close_after_save:
+            if getattr(self, "_loading", False):
+                return False  # the save-then-close is still writing
+            self._close_after_save = False  # it was cancelled or failed
+        if not self._store.is_dirty:
+            return True
 
-    def load_state(self, state_dict: dict) -> None:
-        """Restore the workspace for backward compatibility."""
-        if not state_dict:
+        Btn = QMessageBox.StandardButton
+        choice = self._ask_unsaved_changes(
+            "Save changes to this workspace before closing?",
+            Btn.Save | Btn.Discard | Btn.Cancel,
+        )
+        if choice == Btn.Discard:
+            return True
+        if choice == Btn.Save:
+            self._close_after_save = True
+            if getattr(self, "_current_workflow_filename", None):
+                self._handle_update()
+            else:
+                self._handle_save()
+            if not getattr(self, "_loading", False):
+                self._close_after_save = False  # no save started (dialog cancelled)
+        return False
+
+    def _close_window_when_idle(self) -> None:
+        """Close the hosting window once no modal dialog (e.g. "Saved") is up."""
+        if QApplication.activeModalWidget() is not None:
+            QTimer.singleShot(200, self._close_window_when_idle)
             return
+        window = self.window()
+        if window is not None:
+            window.close()
 
-        current_umap = self.state.data.umap_results if hasattr(self, "state") and self.state else {}
-
-        flow_data = state_dict.get("flow_state", {})
-        self.state = FlowState.from_dict(flow_data)
-
-        self.state.data.umap_results = current_umap
-
-        # Clear active view context so UI starts blank on load
-        self.state.view.current_sample_id = None
-        self.state.view.current_gate_id = None
-
-        tab_idx = state_dict.get("active_tab", 0)
-        self._tab_bar.setCurrentIndex(tab_idx)
-
-        # Refresh all UI widgets from the new state
-        self._refresh_all()
+    def _confirm_discard_before_load(self) -> bool:
+        """A workflow is about to replace a workspace with unsaved changes."""
+        if not self._store.is_dirty:
+            return True
+        Btn = QMessageBox.StandardButton
+        choice = self._ask_unsaved_changes(
+            "Loading a workflow will discard your unsaved changes to this workspace.\n\n"
+            "Choose Cancel to keep working and save first.",
+            Btn.Discard | Btn.Cancel,
+        )
+        return choice == Btn.Discard
 
     def export_workflow(self) -> dict:
         """Serialize the workspace for saving to disk."""
@@ -1270,17 +1413,29 @@ class FlowCytometryPanel(PluginBase):
         self, payload: dict, filename: str | None = None, metadata: dict | None = None
     ) -> None:
         """Restore the workspace from a saved file."""
+        if not self._confirm_discard_before_load():
+            self.status_message.emit("Workflow load cancelled — your workspace is unchanged.")
+            return
+
+        # Nothing records while the workspace is being replaced; the history
+        # restarts from the loaded state once it's complete
+        # (_finish_workflow_load). Undo/redo are refused until then.
+        self._begin_workflow_load()
+
         # Support raw data injection for CI/CD smoke tests
         if filename and str(filename).lower().endswith(".fcs"):
             self.logger.info(f"Direct raw FCS injection detected: {filename}")
 
             def _on_done(results: dict):
                 self.logger.info(f"Raw FCS injection complete. Processed {len(results)} samples.")
+                # Raw data was never saved as a workflow — starts unsaved.
+                self._finish_workflow_load(clean=False)
                 self._refresh_all()
                 self._emit_data_ready_once()
 
             def _on_error(err: str):
                 self.logger.error(f"FCS injection failed: {err}")
+                self._finish_workflow_load(clean=False)
                 self._emit_data_ready_once()
 
             data_loader = self._factory.get("data_loader_service")
@@ -1319,7 +1474,10 @@ class FlowCytometryPanel(PluginBase):
                     if len(sample.gate_tree.children) > 0:
                         self._gate_controller.recompute_all_stats(sid)
 
-            # 2. Refresh sample list, gate hierarchy, and active graph canvas
+            # 2. The loaded workspace is the new, saved baseline.
+            self._finish_workflow_load(clean=True)
+
+            # 3. Refresh sample list, gate hierarchy, and active graph canvas
             self._refresh_all()
 
             failed = (reload_result or {}).get("failed") or []
@@ -1348,33 +1506,34 @@ class FlowCytometryPanel(PluginBase):
                 self._emit_data_ready_once()
 
         project_dir = pm.project_dir if pm else None
-        if self._workflow_service.load_workflow(
+        if not self._workflow_service.load_workflow(
             payload, context=context, project_dir=project_dir, on_complete=_on_fcs_done
         ):
-            # Scrub legacy UMAP bloat from in-memory history
-            try:
-                history_mod = getattr(self.history, "get_module_history", lambda x: None)(
-                    self.plugin_id
-                )
-                if history_mod and hasattr(history_mod, "undo_stack"):
-                    for stack in (
-                        getattr(history_mod, "undo_stack", []),
-                        getattr(history_mod, "redo_stack", []),
-                    ):
-                        for snapshot in stack:
-                            if "data" in snapshot and "umap_results" in snapshot["data"]:
-                                if snapshot["data"]["umap_results"]:
-                                    snapshot["data"]["umap_results"] = {}
-                            elif "umap_results" in snapshot:
-                                if snapshot["umap_results"]:
-                                    snapshot["umap_results"] = {}
-            except (KeyError, TypeError, AttributeError) as e:
-                self.logger.warning(f"Failed to scrub legacy history: {e}")
-
-        else:
+            # Whatever was partially replaced is unsaved, not a clean workflow.
+            self._finish_workflow_load(clean=False)
             # Try to grab the last exception if we stored it
             error_msg = getattr(self._workflow_service, "_last_error", "Check logs for details.")
             show_error(self, "Load Error", f"Failed to restore workflow. {error_msg}")
+
+    def _begin_workflow_load(self) -> None:
+        # Flush first: a step still pending from before the load must land
+        # in the old history (which the load then discards), not be dropped
+        # by the pause below and then misattributed later.
+        if getattr(self, "_history_recorder", None) is not None:
+            self._history_recorder.flush()
+        if not self._workflow_loading:
+            self._workflow_loading = True
+            self._store.pause()
+        self._gate_propagator.cancel_pending()
+
+    def _finish_workflow_load(self, clean: bool) -> None:
+        # Only the load that's actually in progress may restart the history —
+        # never a stray late callback, which would wipe edits made since.
+        if not self._workflow_loading:
+            return
+        self._workflow_loading = False
+        self._store.resume()
+        self._store.reset(clean=clean)
 
     # ── Internal helpers ──────────────────────────────────────────────
 

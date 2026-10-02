@@ -13,38 +13,47 @@ def qapp():
     return app
 
 
-def test_gate_modified_pushes_undo_and_dirty_flag(qapp, qtbot):
-    """A gate edit (GATE_MODIFIED) must coalesce to exactly one undo
-    snapshot + dirty-flag set, same as GATE_CREATED/GATE_DELETED/GATE_RENAMED
-    — this was a gap: modify_gate() previously had no callers, so nothing
-    ever exercised whether editing a gate was undoable.
+def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
+    """A gate edit (GATE_MODIFIED) must become exactly one undo step and
+    mark the workspace unsaved, same as GATE_CREATED/GATE_DELETED/
+    GATE_RENAMED.
 
     Exercises MainPanelController.wire() directly against a mock panel
     (real FlowCytometryPanel construction runs `_wire_signals()` only as the
     last step of an async, PluginLoaderManager-driven Phase 2 build — not
-    worth dragging into a targeted wiring test).
+    worth dragging into a targeted wiring test), with a real FlowStore.
     """
     from unittest.mock import Mock
 
     from karcytics_plugins.flow_cytometry.analysis import events
+    from karcytics_plugins.flow_cytometry.analysis.store import FlowStore
     from karcytics_plugins.flow_cytometry.ui.controllers.main_panel_controller import (
         MainPanelController,
     )
+    from tests.fixtures.workspace import build_rich_state
 
+    state = build_rich_state()
     panel = Mock()
-    panel._loading = False
+    panel._store = FlowStore(state, lambda *_: None)
+    panel._store.reset()
     MainPanelController.wire(panel)
 
-    matches = [cb for topic, cb in panel._subscriptions if topic == events.GATE_MODIFIED]
-    assert len(matches) == 1, "GATE_MODIFIED must be subscribed exactly once"
+    recorder = panel._history_recorder
+    handlers = [h for topic, h in recorder._subscriptions if topic == events.GATE_MODIFIED]
+    assert len(handlers) == 1, "GATE_MODIFIED must be recorded exactly once"
 
-    panel.push_state.reset_mock()
-    panel.set_dirty.reset_mock()
+    state.data.experiment.samples["s0"].gate_tree.children[0].gate.vertices[0] = (1.0, 1.0)
+    handlers[0]({"sample_id": "s0", "gate_id": "g1"})
+    handlers[0]({"sample_id": "s0", "gate_id": "g1"})  # same turn → same step
+    recorder.flush()
 
-    matches[0]({"sample_id": "s1", "gate_id": "g1"})
+    assert panel._store.history.undo_label() == "Edit Gate"
+    assert panel._store.history.undo() is not None
+    assert panel._store.history.undo() is None  # exactly one step
+    assert panel._store.is_dirty is False  # back at the baseline
 
-    panel.push_state.assert_called_once()
-    panel.set_dirty.assert_called_once_with(True)
+    MainPanelController.unwire(panel)
+    assert recorder._subscriptions == []
 
 
 def test_graph_manager_opens_a_graph_for_a_sample(qapp, qtbot, flow_state):

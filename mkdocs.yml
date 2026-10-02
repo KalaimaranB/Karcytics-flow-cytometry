@@ -60,6 +60,7 @@ nav:
       - "Workspace": user/02_WORKSPACE.md
       - "Compensation": user/03_COMPENSATION.md
       - "Gating": user/04_GATING.md
+      - "Derived Parameters": user/15_DERIVED_PARAMETERS.md
       - "Pipeline": user/05_PIPELINE.md
       - "Statistics": user/06_STATISTICS.md
       - "Spectral": user/07_SPECTRAL.md
@@ -80,3 +81,5 @@ nav:
       - "Transforms & Scaling": developer/06_TRANSFORMS_AND_SCALING.md
       - "Rendering & Visualization": developer/07_RENDERING_AND_VISUALIZATION.md
       - "Data Flow & Signal Connections": developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md
+      - "Derived Parameters": developer/09_DERIVED_PARAMETERS.md
+      - "State, Undo/Redo & Persistence": developer/10_STATE_UNDO_AND_PERSISTENCE.md

@@ -90,6 +90,25 @@ def compute_bio_tick_positions(
     return disp_ticks, labels
 
 
+_MAX_LOG_TICK_DECADES = 12
+
+
+def log_decade_tick_values(lo: float, hi: float) -> tuple[np.ndarray, list[str]]:
+    """Every power of ten within the raw range [lo, hi], with $10^k$ labels.
+
+    For log axes, whose range follows the data — a ratio axis spans
+    10^-3..10^0, a detector axis 10^0..10^5 — unlike the fixed biological
+    decades above. Returns empty arrays for a non-positive or empty range.
+    """
+    if not (np.isfinite(lo) and np.isfinite(hi)) or hi <= 0 or hi <= lo:
+        return np.array([]), []
+    lo = max(lo, hi / 10.0**_MAX_LOG_TICK_DECADES)
+    first = int(np.ceil(np.log10(lo) - 1e-9))
+    last = int(np.floor(np.log10(hi) + 1e-9))
+    exponents = range(first, last + 1)
+    return np.array([10.0**k for k in exponents]), [f"$10^{{{k}}}$" for k in exponents]
+
+
 # ── Cache for FlowKit transform instances ────────────────────────────────────
 
 _thread_local = threading.local()
@@ -324,7 +343,17 @@ def apply_transform(
     fn = _TRANSFORM_REGISTRY.get(val)
     if fn is None:
         raise ValueError(f"Unknown transform: {transform_type}")
-    return fn(data, **_kwargs)
+    out = fn(data, **_kwargs)
+    # Logicle maps NaN to a finite value (≈ -1 in display space), which would
+    # draw — and gate — invalid derived-parameter events at the axis floor.
+    # FCS detector data is always finite, so this only affects NaN inputs.
+    arr = np.asarray(data)
+    if arr.dtype.kind == "f" and arr.shape == np.shape(out):
+        invalid = np.isnan(arr)
+        if invalid.any():
+            out = np.array(out, dtype=np.float64, copy=True)
+            out[invalid] = np.nan
+    return out
 
 
 def invert_linear_transform(

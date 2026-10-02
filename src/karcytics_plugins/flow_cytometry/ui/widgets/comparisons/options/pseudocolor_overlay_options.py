@@ -232,8 +232,3 @@ class PseudocolorOverlayOptionsPanel(IOptionsPanel):
             lbl.setStyleSheet(f"color: {sec}; font-size: 11px;")
         self._opacity_lbl.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-size: 11px;")
         self._density_cb.setStyleSheet(checkbox_qss())
-        if hasattr(self._pc_panel, "_apply_theme_styles"):
-            self._pc_panel._apply_theme_styles()
-        for panel in (self._x_transform_panel, self._y_transform_panel):
-            if hasattr(panel, "_apply_theme_styles"):
-                panel._apply_theme_styles()

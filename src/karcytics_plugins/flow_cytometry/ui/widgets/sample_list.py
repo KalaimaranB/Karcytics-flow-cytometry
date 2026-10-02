@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
+from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 # Icons and Colors from the original SampleTree
@@ -104,6 +105,22 @@ class SampleList(QWidget):
         self._tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._tree.customContextMenuRequested.connect(self._on_context_menu)
         self._tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
+        theme_manager.apply_style(
+            self._tree,
+            "QTreeWidget { background: {BG_DARKEST};"
+            " border: none; outline: none;"
+            " color: {FG_PRIMARY};"
+            f" font-size: {Fonts.SIZE_SMALL}px; }}"
+            "QTreeWidget::item { padding: 6px 4px;"
+            " border-bottom: 1px solid {BG_DARK}; }"
+            "QTreeWidget::item:selected { background: {BG_MEDIUM};"
+            " color: {ACCENT_PRIMARY}; border-left: 3px solid {ACCENT_PRIMARY}; }"
+            "QTreeWidget::item:hover { background: {BG_DARK}; }"
+            "QHeaderView::section { background: {BG_DARK};"
+            " color: {FG_SECONDARY}; border: none;"
+            " border-bottom: 1px solid {BORDER};"
+            " padding: 4px 6px; font-size: 10px; font-weight: 600; }",
+        )
         layout.addWidget(self._tree, stretch=1)
 
         # Empty state placeholder
@@ -112,34 +129,13 @@ class SampleList(QWidget):
         )
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_label.setWordWrap(True)
+        theme_manager.apply_style(
+            self._empty_label,
+            f"color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " padding: 24px; background: {BG_DARKEST};",
+        )
         layout.addWidget(self._empty_label, stretch=1)
         self._empty_label.hide()
-
-        self._apply_theme_styles()
-
-    def _apply_theme_styles(self) -> None:
-        """Dynamically refresh all UI colors based on the current theme."""
-        if hasattr(self, "_tree"):
-            self._tree.setStyleSheet(
-                f"QTreeWidget {{ background: {Colors.BG_DARKEST};"
-                f" border: none; outline: none;"
-                f" color: {Colors.FG_PRIMARY};"
-                f" font-size: {Fonts.SIZE_SMALL}px; }}"
-                f"QTreeWidget::item {{ padding: 6px 4px;"
-                f" border-bottom: 1px solid {Colors.BG_DARK}; }}"
-                f"QTreeWidget::item:selected {{ background: {Colors.BG_MEDIUM};"
-                f" color: {Colors.ACCENT_PRIMARY}; border-left: 3px solid {Colors.ACCENT_PRIMARY}; }}"
-                f"QTreeWidget::item:hover {{ background: {Colors.BG_DARK}; }}"
-                f"QHeaderView::section {{ background: {Colors.BG_DARK};"
-                f" color: {Colors.FG_SECONDARY}; border: none;"
-                f" border-bottom: 1px solid {Colors.BORDER};"
-                f" padding: 4px 6px; font-size: 10px; font-weight: 600; }}"
-            )
-        if hasattr(self, "_empty_label"):
-            self._empty_label.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" padding: 24px; background: {Colors.BG_DARKEST};"
-            )
 
         self._update_empty_state()
 
@@ -366,9 +362,7 @@ class SampleList(QWidget):
         new_name, ok = QInputDialog.getText(
             self, "Rename Sample", "New name:", text=sample.display_name
         )
-        if ok and new_name and new_name.strip() != sample.display_name:
-            sample.display_name = new_name.strip()
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "SampleList"})
+        if ok and experiment_edits.rename_sample(self._state, sample_id, new_name):
             self.refresh()
 
     def _delete_samples(self, items: list[QTreeWidgetItem]) -> None:
@@ -380,54 +374,19 @@ class SampleList(QWidget):
         confirmed = ask_yes_no(self, "Remove Sample", msg)
 
         if confirmed:
-            changed = False
-            for item in items:
-                sample_id = item.data(0, Qt.ItemDataRole.UserRole)
-                if sample_id and sample_id in self._state.data.experiment.samples:
-                    self._state.data.experiment.remove_sample(sample_id)
-                    changed = True
-
-            if changed:
-                CentralEventBus.publish(events.EXPERIMENT_DATA_CHANGED, {"source": "SampleList"})
+            sample_ids = [item.data(0, Qt.ItemDataRole.UserRole) for item in items]
+            if experiment_edits.remove_samples(self._state, sample_ids):
                 self.refresh()
 
     def _add_samples_to_group(self, items, group_id: str) -> None:
         """Add selected samples to a specific group."""
-        group = self._state.data.experiment.groups.get(group_id)
-        if not group:
-            return
-
-        changed = False
-        for item in items:
-            sample_id = item.data(0, Qt.ItemDataRole.UserRole)
-            if sample_id and sample_id not in group.sample_ids:
-                group.sample_ids.append(sample_id)
-                sample = self._state.data.experiment.samples.get(sample_id)
-                if sample and group_id not in sample.group_ids:
-                    sample.group_ids.append(group_id)
-                changed = True
-
-        if changed:
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "SampleList"})
+        sample_ids = [item.data(0, Qt.ItemDataRole.UserRole) for item in items]
+        experiment_edits.add_samples_to_group(self._state, group_id, sample_ids)
 
     def _remove_samples_from_group(self, items, group_id: str) -> None:
         """Remove selected samples from the current group."""
-        group = self._state.data.experiment.groups.get(group_id)
-        if not group:
-            return
-
-        changed = False
-        for item in items:
-            sample_id = item.data(0, Qt.ItemDataRole.UserRole)
-            if sample_id and sample_id in group.sample_ids:
-                group.sample_ids.remove(sample_id)
-                sample = self._state.data.experiment.samples.get(sample_id)
-                if sample and group_id in sample.group_ids:
-                    sample.group_ids.remove(group_id)
-                changed = True
-
-        if changed:
-            CentralEventBus.publish(events.SAMPLE_UPDATED, {"source": "SampleList"})
+        sample_ids = [item.data(0, Qt.ItemDataRole.UserRole) for item in items]
+        if experiment_edits.remove_samples_from_group(self._state, group_id, sample_ids):
             self.refresh()
 
     def cleanup(self) -> None:

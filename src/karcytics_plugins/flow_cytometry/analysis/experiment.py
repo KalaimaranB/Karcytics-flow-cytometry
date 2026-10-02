@@ -18,6 +18,8 @@ from enum import Enum
 
 from karcytics_sdk.plugin import get_logger
 
+from .derived.models import DerivedParameter
+from .derived.sync import sync_sample
 from .fcs_io import FCSData
 from .gating import GateNode
 from .scaling import AxisScale
@@ -180,6 +182,8 @@ class WorkflowTemplate:
         groups:          Group definitions with tube layouts.
         gate_template:   Optional saved gating tree (serialized).
         protocol_notes:  Free-text protocol instructions.
+        derived_parameters: Serialized derived-parameter definitions the
+                         gate template may reference.
     """
 
     name: str
@@ -189,6 +193,7 @@ class WorkflowTemplate:
     groups: list[GroupTemplate] = field(default_factory=list)
     gate_template: dict | None = None
     protocol_notes: str = ""
+    derived_parameters: list[dict] = field(default_factory=list)
 
 
 # ── Experiment ───────────────────────────────────────────────────────────────
@@ -207,6 +212,8 @@ class Experiment:
         groups:           All defined groups, keyed by group_id.
         marker_mappings:  The panel's marker-to-channel mappings.
         active_template:  The workflow template currently in use.
+        derived_parameters: Experiment-wide per-event formulas, appended to
+                          every sample's channels (see analysis/derived/).
     """
 
     name: str = "Untitled Experiment"
@@ -214,6 +221,7 @@ class Experiment:
     groups: dict[str, Group] = field(default_factory=dict)
     marker_mappings: list[MarkerMapping] = field(default_factory=list)
     active_template: WorkflowTemplate | None = None
+    derived_parameters: list[DerivedParameter] = field(default_factory=list)
 
     def add_sample(self, sample: Sample) -> None:
         """Add a sample to the experiment.
@@ -221,6 +229,7 @@ class Experiment:
         Args:
             sample: The sample to add.
         """
+        sync_sample(self, sample)
         self.samples[sample.sample_id] = sample
 
     def remove_sample(self, sample_id: str) -> None:
@@ -281,6 +290,7 @@ class Experiment:
 
         self.active_template = template
         self.marker_mappings = list(template.marker_mappings)
+        self._merge_template_derived(template)
 
         for gt in template.groups:
             group = Group(
@@ -309,6 +319,22 @@ class Experiment:
             len(template.groups),
             sum(len(gt.tubes) for gt in template.groups),
         )
+
+    def _merge_template_derived(self, template: WorkflowTemplate) -> None:
+        """Adopt the template's derived parameters not already defined here."""
+        known_ids = {d.param_id for d in self.derived_parameters}
+        known_names = {d.name.casefold() for d in self.derived_parameters}
+        for data in template.derived_parameters:
+            try:
+                defn = DerivedParameter.from_dict(data)
+            except (KeyError, TypeError) as exc:
+                logger.warning("Skipping malformed derived parameter in template: %s", exc)
+                continue
+            if defn.param_id in known_ids or defn.name.casefold() in known_names:
+                continue
+            self.derived_parameters.append(defn)
+            known_ids.add(defn.param_id)
+            known_names.add(defn.name.casefold())
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

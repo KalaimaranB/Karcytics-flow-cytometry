@@ -16,6 +16,7 @@ import pytest  # noqa: E402
 # karcytics_sdk.plugin.components gets mocked out below, so plugin code
 # under test exercises the actual shared logic rather than a second copy.
 from karcytics_sdk.plugin.components import repopulate_combo  # noqa: E402
+from karcytics_sdk.plugin.history import UndoHistory  # noqa: E402
 from PyQt6.QtWidgets import QLabel, QPushButton, QSplitter, QWidget  # noqa: E402
 
 # Mock karcytics_sdk before it gets imported
@@ -32,10 +33,43 @@ from PyQt6.QtCore import pyqtSignal  # noqa: E402
 
 class DummyPluginBase(QWidget):
     status_message = pyqtSignal(str)
+    state_changed = pyqtSignal()
+    undo_state_changed = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.plugin_id = kwargs.get("plugin_id", args[0] if args else "")
+        self._undo_history = None
+        self._undo_restore = None
+
+    # Same contract as the SDK's PluginBase undo API (bind_undo_history /
+    # undo / redo), which karcytics_sdk.plugin being mocked here hides.
+    def bind_undo_history(self, history, restore):
+        self._undo_history = history
+        self._undo_restore = restore
+
+    def _step(self, move, move_back):
+        snapshot = move()
+        if snapshot is None:
+            return False
+        try:
+            self._undo_restore(snapshot)
+        except Exception:
+            move_back()
+            return False
+        return True
+
+    def undo(self):
+        return self._step(self._undo_history.undo, self._undo_history.redo)
+
+    def redo(self):
+        return self._step(self._undo_history.redo, self._undo_history.undo)
+
+    def can_undo(self):
+        return self._undo_history.can_undo()
+
+    def can_redo(self):
+        return self._undo_history.can_redo()
 
     def setup_workflow_autosave(self, has_saved_once, save, **kwargs):
         """Stub for PluginBase.setup_workflow_autosave (karcytics_sdk.plugin
@@ -141,6 +175,9 @@ mock_karcytics_sdk_plugin.PluginDaemon = PluginDaemon
 mock_karcytics_sdk_plugin.AnalysisBase = DummyAnalysisBase
 mock_karcytics_sdk_plugin.PluginState = DummyAnalysisBase
 mock_karcytics_sdk_plugin.validate_file_exists = lambda path: (True, "")
+# Real, dependency-free undo stack — FlowStore's behaviour is the thing
+# under test, so it must not be a MagicMock.
+mock_karcytics_sdk_plugin.UndoHistory = UndoHistory
 
 mock_tasks = MagicMock()
 mock_tasks.TaskBase = DummyTaskBase
@@ -155,6 +192,7 @@ class MockComponents:
 mock_components = MockComponents()
 mock_components.PrimaryButton = DummyButton
 mock_components.SecondaryButton = DummyButton
+mock_components.DangerButton = DummyButton
 mock_components.BioSplitter = DummySplitter
 mock_components.BioFooter = DummyFooter
 mock_components.BioCaptionLabel = DummyLabel

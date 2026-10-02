@@ -9,6 +9,10 @@ from PyQt6.QtCore import QObject, QPointF, pyqtSignal
 from PyQt6.QtGui import QImage
 
 from karcytics_plugins.flow_cytometry.analysis import events as flow_events
+from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
+    derived_labels_of,
+    get_channel_marker_label,
+)
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -267,6 +271,13 @@ class CanvasManager(QObject):
         """
         from collections import deque
 
+        current = (
+            self.state.data.experiment.samples.get(self._current_sample_id)
+            if self._current_sample_id
+            else None
+        )
+        labels = derived_labels_of(current.fcs_data) if current else {}
+
         queue = deque([root])
         visited: set = set()
         while queue:
@@ -300,7 +311,9 @@ class CanvasManager(QObject):
             if is_root:
                 item.x_param, item.y_param = "FSC-A", "SSC-A"  # type: ignore
             elif node.gate:
-                item.x_param, item.y_param = node.gate.x_param, node.gate.y_param  # type: ignore
+                x_p, y_p = node.gate.x_param, node.gate.y_param
+                item.x_param = labels.get(x_p, x_p)  # type: ignore
+                item.y_param = labels.get(y_p, y_p) if y_p else y_p  # type: ignore
 
             self.scene.addItem(item)
             self._node_items[node.node_id] = item
@@ -557,19 +570,13 @@ class CanvasManager(QObject):
 
         sample = self.state.data.experiment.samples.get(sample_id)
         if sample and sample.has_data and sample.fcs_data:
+            # get_channel_marker_label also covers derived parameters and
+            # channels past the end of a short markers list.
             channels = sample.fcs_data.channels
-            markers = sample.fcs_data.markers
             if x_param in channels:
-                idx = channels.index(x_param)
-                marker = markers[idx]
-                if marker and marker.strip() and marker != x_param:
-                    x_label = f"{marker} ({x_param})"
-
+                x_label = get_channel_marker_label(sample.fcs_data, x_param)
             if y_param and y_param in channels:
-                idx = channels.index(y_param)
-                marker = markers[idx]
-                if marker and marker.strip() and marker != y_param:
-                    y_label = f"{marker} ({y_param})"
+                y_label = get_channel_marker_label(sample.fcs_data, y_param)
 
         # Sync axes to the node item so it knows what to label
         item.x_param = x_label

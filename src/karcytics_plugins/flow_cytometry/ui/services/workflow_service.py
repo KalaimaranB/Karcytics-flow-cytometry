@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 from PyQt6.QtCore import QObject, pyqtSlot
 
+from ...analysis.derived import sync_experiment
+
 
 class WorkflowService(QObject):
     """Handles saving and loading of flow cytometry workflows."""
@@ -30,6 +32,8 @@ class WorkflowService(QObject):
         scheduler = getattr(self._data_loader, "_scheduler", None)
         if scheduler is not None and hasattr(scheduler, "task_finished"):
             scheduler.task_finished.connect(self._on_task_done_handler)
+            if hasattr(scheduler, "task_error"):
+                scheduler.task_error.connect(self._on_task_error_handler)
             self.logger.info(
                 f"Successfully connected to TaskScheduler.task_finished in __init__. id(self)={id(self)}"
             )
@@ -65,26 +69,10 @@ class WorkflowService(QObject):
                         pass
                 sample_paths[sid] = str(file_path)
 
-        from ...analysis.experiment_io import ExperimentSerializer
+        from ...analysis.workspace_document import serialize_workspace
 
-        payload = {
-            "experiment": ExperimentSerializer.serialize_experiment(self._state.data.experiment),
-            "sample_paths": sample_paths,
-            "compensation": (
-                self._state.data.compensation.to_dict() if self._state.data.compensation else None
-            ),
-            "view": {
-                "current_sample_id": self._state.view.current_sample_id,
-                "current_gate_id": self._state.view.current_gate_id,
-                "active_x_param": self._state.view.active_x_param,
-                "active_y_param": self._state.view.active_y_param,
-                "active_transform_x": self._state.view.active_transform_x,
-                "active_transform_y": self._state.view.active_transform_y,
-                "active_plot_type": self._state.view.active_plot_type,
-                "render_config": self._state.view.render_config.to_dict(),
-                "auto_range_on_quality": self._state.view.auto_range_on_quality,
-            },
-        }
+        payload = serialize_workspace(self._state)
+        payload["sample_paths"] = sample_paths
 
         if context is not None:
             attachments_meta = self._attachment_manager.serialize_attachments(self._state, context)
@@ -110,8 +98,7 @@ class WorkflowService(QObject):
                 machine/OS to find its data after the whole project directory
                 is copied to another.
         """
-        from ...analysis.compensation import CompensationMatrix
-        from ...analysis.config import RenderConfig
+        from ...analysis.workspace_document import apply_workspace
 
         if not payload:
             self.logger.warning("Empty workflow payload.")
@@ -121,26 +108,10 @@ class WorkflowService(QObject):
         try:
             actual_data = payload.get("payload", payload)
 
-            # Compensation
-            comp_data = actual_data.get("compensation")
-            if comp_data:
-                self._state.data.compensation = CompensationMatrix.from_dict(comp_data)
-            else:
-                self._state.data.compensation = None
-
-            # View state
-            view = actual_data.get("view", {})
-            self._state.view.current_sample_id = view.get("current_sample_id")
-            self._state.view.current_gate_id = view.get("current_gate_id")
-            self._state.view.active_x_param = view.get("active_x_param", "FSC-A")
-            self._state.view.active_y_param = view.get("active_y_param", "SSC-A")
-            self._state.view.active_transform_x = view.get("active_transform_x", "linear")
-            self._state.view.active_transform_y = view.get("active_transform_y", "linear")
-            self._state.view.active_plot_type = view.get("active_plot_type", "pseudocolor")
-            self._state.view.render_config = RenderConfig.from_dict(view.get("render_config", {}))
-            self._state.view.auto_range_on_quality = view.get("auto_range_on_quality", True)
-
-            # Experiment reconstruction
+            # Replaces the whole previous workspace in place — experiment,
+            # compensation, view, and any UMAP runs (restored below from
+            # attachments, if this workflow has any).
+            apply_workspace(self._state, actual_data)
             exp_data = actual_data.get("experiment", {})
 
             def _post_fcs_load(reload_result: dict[str, list[str]] | None = None):
@@ -174,9 +145,6 @@ class WorkflowService(QObject):
                     on_complete(reload_result)
 
             if exp_data:
-                from ...analysis.experiment_io import ExperimentSerializer
-
-                self._state.data.experiment = ExperimentSerializer.deserialize_experiment(exp_data)
                 sample_paths = actual_data.get("sample_paths", {})
                 if sample_paths:
                     self.reload_fcs_data(
@@ -234,9 +202,13 @@ class WorkflowService(QObject):
                     path = project_dir / path
                 samples_with_paths.append((sample, path))
 
-            return self._data_loader.reload_samples_batch(
+            result = self._data_loader.reload_samples_batch(
                 samples_with_paths, self._state.data.compensation
             )
+            # Rebuild derived columns before on_complete evaluates any gates
+            # that were drawn on them.
+            sync_experiment(self._state.data.experiment)
+            return result
 
         task = FunctionalTask(_bg_reload, plugin_id="flow_cytometry", name="Reload FCS Files")
         scheduler = getattr(self._data_loader, "_scheduler", None)
@@ -257,6 +229,23 @@ class WorkflowService(QObject):
         result = _bg_reload()
         if on_complete:
             on_complete(result)
+
+    @pyqtSlot(str, str)
+    def _on_task_error_handler(self, failed_id: str, error_msg: str) -> None:
+        """A reload task that raised still has to complete its load.
+
+        Without this, the caller's on_complete never ran — the panel stayed
+        "loading" (undo refused, nothing recorded) for the rest of the
+        session. Reported as every sample having failed to reload.
+        """
+        if not self._pending_task_id or failed_id != self._pending_task_id:
+            return
+        self.logger.error(f"FCS reload task {failed_id} failed: {error_msg}")
+        self._pending_task_id = None
+        cb, self._pending_on_complete = self._pending_on_complete, None
+        if cb:
+            names = [s.display_name for s in self._state.data.experiment.samples.values()]
+            cb({"loaded": [], "failed": names})
 
     @pyqtSlot(str, dict)
     def _on_task_done_handler(self, finished_id: str, results: dict) -> None:

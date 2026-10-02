@@ -29,6 +29,7 @@ Once a geometric gate is drawn on a plot, it defines a new mathematical subset o
 ### Managing Gates
 - **🗑 Delete**: Select a gate on a plot (using the Select tool) and click Delete in the ribbon to remove it and its children.
 - **📋 Copy Gates**: After perfecting a gating hierarchy on a representative sample, click Copy Gates to automatically propagate the structural hierarchy to all other samples within the same Group.
+- **ƒ Derived**: Opens the Derived Parameters editor, where you build per-cell formulas such as a ratio of two channels. They appear in every axis dropdown (marked **ƒ**) and can be gated like any channel — see **[Derived Parameters](./15_DERIVED_PARAMETERS.md)**.
 
 !!! tip
     While spatial gating is powerful, biological logic often requires more than simple spatial overlap. To incorporate boolean logic (AND, OR, NOT) or to merge populations from different spatial hierarchies, utilize the **Pipeline** ribbon.

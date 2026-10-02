@@ -985,15 +985,11 @@ class PopulationAnalysisViewer(QWidget):
         self._replay_anim_btn.setEnabled(True)
 
     def _on_results_modified(self) -> None:
-        try:
-            # Publish UMAP_COMPLETED so the undo history and dirty flag are updated
-            from karcytics_sdk.plugin import CentralEventBus
+        # Cluster names / custom clusters live inside the run's result dict,
+        # which undo snapshots only reference by id: saved, not undoable.
+        from ...analysis.services import experiment_edits
 
-            from ...analysis import events
-
-            CentralEventBus.publish(events.UMAP_COMPLETED, {})
-        except Exception:
-            pass
+        experiment_edits.announce_unsaved_change()
 
     def _on_delete_run_clicked(self) -> None:
         idx = self._history_combo.currentIndex()
@@ -1006,32 +1002,11 @@ class PopulationAnalysisViewer(QWidget):
             gate_id = self._gate_combo.currentData()
             key = f"{sample_id}::{gate_id or 'root'}"
 
-            if key in self._state.data.umap_results:
-                runs = self._state.data.umap_results[key]
-                if 0 <= run_idx < len(runs):
-                    runs.pop(run_idx)
+            # An ordinary undoable edit now — it marks the workspace unsaved
+            # like any other, instead of silently overwriting the saved file.
+            from ...analysis.services import experiment_edits
 
-            # Publish UMAP_COMPLETED so the undo history and dirty flag are updated
-            from karcytics_sdk.plugin import CentralEventBus
-
-            from ...analysis import events
-
-            CentralEventBus.publish(events.UMAP_COMPLETED, {})
-
-            # Immediately persist the deletion to disk so it survives project close/reopen.
-            # CentralEventBus.publish() only updates the in-memory undo history; the
-            # workflow file on disk is not updated until handle_update() is called.
-            try:
-                p = self.parentWidget()
-                while p is not None and not hasattr(p, "_workspace_io_handler"):
-                    p = p.parentWidget()
-                if p is not None and hasattr(p, "_workspace_io_handler"):
-                    p._workspace_io_handler.handle_update()
-            except Exception:
-                logger.warning(
-                    "Could not auto-save after run deletion — save manually to persist.",
-                    exc_info=True,
-                )
+            experiment_edits.delete_umap_run(self._state, key, run_idx)
 
             self.refresh_history()
 
@@ -1305,16 +1280,9 @@ class PopulationAnalysisViewer(QWidget):
 
         self._last_results = results
 
-        key = f"{results['sample_id']}::{results['node_id'] or 'root'}"
-        if key not in self._state.data.umap_results:
-            self._state.data.umap_results[key] = []
-        self._state.data.umap_results[key].append(results)
+        from ...analysis.services import experiment_edits
 
-        from karcytics_sdk.plugin import CentralEventBus
-
-        from ...analysis import events
-
-        CentralEventBus.publish(events.UMAP_COMPLETED, {})
+        experiment_edits.add_umap_run(self._state, results)
 
         # We NO LONGER build the ClusterResultsPanel here, because building 10+ matplotlib
         # scatter plots takes 5-10 seconds and blocks the UI thread, which causes the

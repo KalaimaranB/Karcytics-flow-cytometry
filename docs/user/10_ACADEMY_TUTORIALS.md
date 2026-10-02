@@ -13,7 +13,7 @@ Best of all, it provisions its own demo data: **you don't need any FCS files of 
 
 Click **🎓 Cyto Academy**, next to the Save Workspace button in the tab bar. This opens the **Academy course catalog** — a set of course cards showing your progress and any badges you've already earned.
 
-<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing four course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis: Run & Validate, Statistics & Comparisons) with progress indicators -->
+<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing four course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis: Run & Validate, Derived Parameters, Statistics & Comparisons) with progress indicators -->
 
 Pick a course and it starts immediately: a floating tutor overlay appears on top of your workspace, with a speech-bubble guide (nicknamed **Cyto**) and a soft spotlight highlighting whichever button, panel, or plot region you need to interact with next.
 
@@ -86,14 +86,16 @@ No new manual gating anywhere in it — instead, you hand your existing gated da
 
 <!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
-### Course 4 — Statistics & Comparisons
+### Course 4 — Derived Parameters, Statistics & Comparisons
 
-**~30 minutes (growing) · requires Course 3 · badge: 📊 Insight Reporter (awarded once Course 4 is complete)**
+**~40 minutes · requires Course 3 · badge: 📊 Insight Reporter**
 
-Course 4 is being released in parts — it doesn't yet end in a graduation screen; a "Course 4 will be complete soon!" step marks where the released content currently stops, and you can safely resume from there once more ships. It picks up exactly where Course 3 left off, using your hand-gated **B-cells** and unsupervised **UMAP B Cells** as real, running evidence. You:
+Picks up exactly where Course 3 left off, using your hand-gated **B-cells** and unsupervised **UMAP B Cells** as real, running evidence. You:
 
 - Confirm your Course 3 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
-- Read the real agreement between the two independent methods in the **Statistics** tab — the full table, then all three chart types (Grouped Bar, Horizontal Bar, Heatmap).
+- Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — read its live preview on B-cells vs T-cells, and plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
+- Learn the rules of thumb for ratios: compensate first, watch the denominator, and treat the result as relative units.
+- Read the real agreement between the two independent methods in the **Statistics** tab — the full table (with CV computed on your B220 ÷ CD45 ratio), then all three chart types (Grouped Bar, Horizontal Bar, Heatmap).
 - Walk every chart type in **Comparisons**, including the new Pseudocolor Overlay, actually generating each plot rather than just reading about it.
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->

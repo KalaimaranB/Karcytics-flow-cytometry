@@ -116,6 +116,17 @@ Every geometric gate (`RectangleGate`, `PolygonGate`, `EllipseGate`, `QuadrantGa
 2. Project **both** the raw event values *and* the gate's own raw-space geometry (bounds, vertices, center, quadrant midpoint) through `apply_transform(raw_array, transform_type, **kwargs)` into the same display space.
 3. Run the geometric containment test entirely in display space.
 
+> [!WARNING]
+> **Biexponential axes add random jitter to step 2.** The projection goes
+> through `project_to_display`, which leaves `biexponential_transform`'s
+> ±0.5 display dithering switched on. Both the events and the gate's bounds
+> are jittered on every call, so events within about ±0.5 raw units of a
+> biexponential gate edge can switch between inside and outside across
+> recomputes. On real data that's up to ~0.4% of a gate's count. Linear and
+> log axes are unaffected. The canvas (`CoordinateMapper`) already disables
+> dithering, so what the user sees is exact; only membership is affected. See
+> [06_TRANSFORMS_AND_SCALING.md — Dithering (jitter) and its effect on gating](06_TRANSFORMS_AND_SCALING.md#dithering-jitter-and-its-effect-on-gating).
+
 This matters for two reasons a maintainer needs to keep in mind:
 
 - **A gate always "moves with" axis-scale changes.** If a user switches a channel from linear to biexponential, no gate coordinates are rewritten — the *projection* changes on every `contains()` call, so the visual gate boundary and the actual filtered events stay in sync automatically. There's no explicit "re-fit gates to new scale" step anywhere in the mutation services.

@@ -46,6 +46,7 @@ class ServiceFactory:
         from ..analysis.gate_coordinator import GateCoordinator
         from ..analysis.population_service import PopulationService
         from ..analysis.services.data_loader_service import DataLoaderService
+        from ..analysis.services.derived_parameter_service import DerivedParameterService
         from ..analysis.services.umap_service import UmapService
         from .services.attachment_manager import AttachmentManager
         from .services.workflow_service import WorkflowService
@@ -68,6 +69,9 @@ class ServiceFactory:
         fluor_service = FluorophoreService(cache_manager)
         marker_service = MarkerService(cache_manager)
         logger.warning("[phase1] ServiceFactory.build_all: CacheManager/bio services done")
+
+        logger.warning("[phase1] ServiceFactory.build_all: constructing DerivedParameterService")
+        derived_parameter_service = DerivedParameterService(self.state)
 
         # Gate Coordination
         gate_coordinator = GateCoordinator(
@@ -92,6 +96,7 @@ class ServiceFactory:
         # Store in registry
         self._services["axis_manager"] = axis_manager
         self._services["population_service"] = population_service
+        self._services["derived_parameter_service"] = derived_parameter_service
         self._services["cache_manager"] = cache_manager
         self._services["fluor_service"] = fluor_service
         self._services["marker_service"] = marker_service

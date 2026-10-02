@@ -24,6 +24,7 @@ class GatingRibbon(ThemedToolbarContainer):
         delete_gate_requested:         Emitted when Delete Gate is clicked.
         fmo_autogate_requested:        Emitted when FMO Auto-Gate is clicked.
         copy_gates_requested:          Emitted when Copy Gates is clicked.
+        derived_params_requested:      Emitted when ƒ Derived is clicked.
         adaptive_toggled(bool):        Emitted when Adaptive is toggled.
     """
 
@@ -31,6 +32,7 @@ class GatingRibbon(ThemedToolbarContainer):
     delete_gate_requested = pyqtSignal()
     fmo_autogate_requested = pyqtSignal()
     copy_gates_requested = pyqtSignal()
+    derived_params_requested = pyqtSignal()
     adaptive_toggled = pyqtSignal(bool)
 
     def __init__(self, state: FlowState, parent=None) -> None:
@@ -112,6 +114,15 @@ class GatingRibbon(ThemedToolbarContainer):
         btn_copy.setToolTip("Copy gates from this sample to all samples in the group")
         btn_copy.clicked.connect(self.copy_gates_requested)
         layout.addWidget(btn_copy)
+
+        btn_derived = SecondaryButton("ƒ Derived")
+        btn_derived.setObjectName("DerivedParamsButton")
+        btn_derived.setToolTip(
+            "Create per-cell formulas such as a ratio of two channels, "
+            "usable as a plot axis, a gate parameter and in statistics"
+        )
+        btn_derived.clicked.connect(self.derived_params_requested)
+        layout.addWidget(btn_derived)
 
         layout.addStretch()
 

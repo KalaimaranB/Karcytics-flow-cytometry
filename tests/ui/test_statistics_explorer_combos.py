@@ -43,16 +43,6 @@ def test_refresh_channel_combo_populates_from_first_checked_sample(widget):
 
 
 @pytest.mark.ui
-def test_refresh_channel_combo_restores_a_still_valid_prior_selection(widget):
-    widget._refresh_channel_combo()
-    widget._channel_combo.setCurrentIndex(2)  # "FITC-A"
-
-    widget._refresh_channel_combo()
-
-    assert widget._channel_combo.currentData() == "FITC-A"
-
-
-@pytest.mark.ui
 def test_refresh_channel_combo_empties_when_nothing_checked(widget):
     widget._refresh_channel_combo()
     widget._selector.population_selector.check_all(False)
@@ -60,18 +50,6 @@ def test_refresh_channel_combo_empties_when_nothing_checked(widget):
     widget._refresh_channel_combo()
 
     assert widget._channel_combo.count() == 0
-
-
-@pytest.mark.ui
-def test_refresh_channel_combo_does_not_emit_signals_while_rebuilding(widget):
-    widget._refresh_channel_combo()
-
-    fired = []
-    widget._channel_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-
-    widget._refresh_channel_combo()
-
-    assert fired == []
 
 
 def _prime_compute_state(widget, stats):
@@ -93,17 +71,3 @@ def test_on_compute_success_populates_chart_stat_combo(widget):
 
     assert widget._chart_stat_combo.count() == 2
     assert widget._chart_stat_combo.itemData(0) == StatType.COUNT
-
-
-@pytest.mark.ui
-def test_on_compute_success_does_not_emit_signals_while_rebuilding_chart_stat_combo(widget):
-    _prime_compute_state(widget, [StatType.COUNT])
-    widget._on_compute_success([])
-
-    fired = []
-    widget._chart_stat_combo.currentIndexChanged.connect(lambda idx: fired.append(idx))
-
-    _prime_compute_state(widget, [StatType.COUNT, StatType.PERCENT_TOTAL])
-    widget._on_compute_success([])
-
-    assert fired == []

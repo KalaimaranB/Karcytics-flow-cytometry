@@ -17,7 +17,7 @@ from collections.abc import Callable
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QFormLayout,
@@ -32,6 +32,7 @@ from PyQt6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
+from karcytics_plugins.flow_cytometry.analysis.fcs_io import derived_labels_of
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -108,24 +109,26 @@ class PropertiesPanel(QWidget):
         # Header
         self._header = QLabel("Properties")
         self._header.setFixedHeight(32)
-        self._header.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-            f" font-weight: 700; text-transform: uppercase;"
-            f" letter-spacing: 1px; background: {Colors.BG_DARK};"
-            f" padding: 6px 12px;"
-            f" border-bottom: 1px solid {Colors.BORDER};"
+        theme_manager.apply_style(
+            self._header,
+            f"color: {{FG_SECONDARY}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " font-weight: 700; text-transform: uppercase;"
+            " letter-spacing: 1px; background: {BG_DARK};"
+            " padding: 6px 12px;"
+            " border-bottom: 1px solid {BORDER};",
         )
         layout.addWidget(self._header)
 
         # Splitter to allow user to resize the two panels
         self._splitter = QSplitter(Qt.Orientation.Vertical)
         self._splitter.setHandleWidth(2)
-        self._splitter.setStyleSheet(f"QSplitter::handle {{ background: {Colors.BORDER}; }}")
+        theme_manager.apply_style(self._splitter, "QSplitter::handle { background: {BORDER}; }")
 
         # Scrollable content (Top)
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        theme_manager.apply_style(self._scroll, "background: {BG_DARKEST};")
 
         self._content = QWidget()
         self._content_layout = QVBoxLayout(self._content)
@@ -145,27 +148,15 @@ class PropertiesPanel(QWidget):
 
         layout.addWidget(self._splitter)
 
-        self._apply_theme_styles()
-
         # Initial state
         self._show_empty()
 
     def _apply_theme_styles(self) -> None:
-        """Dynamically refresh all UI colors based on the current theme."""
-        if hasattr(self, "_header"):
-            self._header.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" font-weight: 700; text-transform: uppercase;"
-                f" letter-spacing: 1px; background: {Colors.BG_DARK};"
-                f" padding: 6px 12px;"
-                f" border-bottom: 1px solid {Colors.BORDER};"
-            )
-        if hasattr(self, "_splitter"):
-            self._splitter.setStyleSheet(f"QSplitter::handle {{ background: {Colors.BORDER}; }}")
-        if hasattr(self, "_scroll"):
-            self._scroll.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        if hasattr(self, "_group_preview") and hasattr(self._group_preview, "_apply_theme_styles"):
-            self._group_preview._apply_theme_styles()
+        """Re-render the currently-displayed sample/group properties (their
+        content is Colors-derived) on theme change. The panel's own static
+        chrome (header/splitter/scroll) self-themes via `theme_manager` and
+        doesn't need re-invocation here.
+        """
         if hasattr(self, "_current_sample_id") and (
             self._current_sample_id or self._current_node_id
         ):
@@ -347,14 +338,16 @@ class PropertiesPanel(QWidget):
                 role_combo.setCurrentIndex(i)
                 break
 
+        sample_id = sample.sample_id
+
         def _on_role_changed(idx: int):
-            new_role = role_combo.itemData(idx)
-            sample.role = new_role
-            CentralEventBus.publish(
-                events.SAMPLE_UPDATED,
-                {"sample_id": sample.sample_id, "stats": None, "tree": None},
-            )
-            self.roleChanged.emit()
+            from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
+            # By id: after an undo/redo `sample` above is a detached object.
+            if experiment_edits.set_sample_roles(
+                self._state, [sample_id], role_combo.itemData(idx)
+            ):
+                self.roleChanged.emit()
 
         role_combo.currentIndexChanged.connect(_on_role_changed)
 
@@ -450,7 +443,29 @@ class PropertiesPanel(QWidget):
                 "safely corrected and may undercount the true population.",
             )
 
-    def _show_gate_properties(self, sample: Sample, node_id: str) -> None:
+    @staticmethod
+    def _param_label(sample: Sample, param: str) -> str:
+        return derived_labels_of(sample.fcs_data).get(param, param)
+
+    def _derived_formula_rows(self, gate) -> list[tuple[str, str]]:
+        """Formula of each derived axis, noting if it changed since drawing."""
+        current = {d.param_id: d for d in self._state.data.experiment.derived_parameters}
+        recorded = getattr(gate, "derived_formulas", {}) or {}
+        rows: list[tuple[str, str]] = []
+        for param in dict.fromkeys(p for p in (gate.x_param, gate.y_param) if p):
+            defn = current.get(param)
+            drawn_on = recorded.get(param)
+            if defn is None:
+                if drawn_on:
+                    rows.append(("ƒ Formula:", f"{drawn_on} (definition deleted)"))
+                continue
+            text = defn.formula
+            if drawn_on and drawn_on != defn.formula:
+                text += f"\n⚠ Drawn on: {drawn_on}"
+            rows.append((f"ƒ {defn.name}:", text))
+        return rows
+
+    def _show_gate_properties(self, sample: Sample, node_id: str) -> None:  # noqa: PLR0915
         """Display gate-specific properties with detailed statistics."""
         self._clear_content()
 
@@ -505,9 +520,11 @@ class PropertiesPanel(QWidget):
         # Gate identity
         if gate is not None:
             _add_row("Type:", type(gate).__name__)
-            _add_row("X Param:", gate.x_param)
+            _add_row("X Param:", self._param_label(sample, gate.x_param))
             if gate.y_param:
-                _add_row("Y Param:", gate.y_param)
+                _add_row("Y Param:", self._param_label(sample, gate.y_param))
+            for label, text in self._derived_formula_rows(gate):
+                _add_row(label, text)
             _add_row("Adaptive:", "🧠 Yes" if gate.adaptive else "No")
         else:
             _add_row("Type:", f"{node.logic_operator} Logic")

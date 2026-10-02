@@ -12,7 +12,8 @@ import numpy as np
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 
 from . import events
-from .channel_inference import ChannelInferenceStrategy, DefaultChannelInference
+from .channel_inference import ChannelInferenceStrategy, DerivedAwareChannelInference
+from .constants import DERIVED_LOG_FLOOR, DERIVED_PREFIX
 from .scaling import AxisScale, calculate_auto_range
 from .transforms import TransformType
 
@@ -22,6 +23,12 @@ if TYPE_CHECKING:
     from .state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
+
+
+def _new_scale(channel: str, transform: TransformType) -> AxisScale:
+    if channel.startswith(DERIVED_PREFIX):
+        return AxisScale(transform_type=transform, log_floor=DERIVED_LOG_FLOOR)
+    return AxisScale(transform_type=transform)
 
 
 class AxisManager:
@@ -38,7 +45,9 @@ class AxisManager:
         inference_strategy: ChannelInferenceStrategy | None = None,
     ):
         self._state = state
-        self._inference_strategy = inference_strategy or DefaultChannelInference()
+        self._inference_strategy = inference_strategy or DerivedAwareChannelInference(
+            lambda: self._state.data.experiment.derived_parameters
+        )
         if not hasattr(self._state.view, "fallback_scales"):
             self._state.view.fallback_scales = {}
 
@@ -61,11 +70,11 @@ class AxisManager:
                 group = self._state.data.experiment.groups.get(sample.group_ids[0])
                 if group:
                     if channel not in group.channel_scales:
-                        group.channel_scales[channel] = AxisScale(transform_type=default_transform)
+                        group.channel_scales[channel] = _new_scale(channel, default_transform)
                     return group.channel_scales[channel]
 
         if channel not in self._state.view.fallback_scales:
-            self._state.view.fallback_scales[channel] = AxisScale(transform_type=default_transform)
+            self._state.view.fallback_scales[channel] = _new_scale(channel, default_transform)
         return self._state.view.fallback_scales[channel]
 
     def set_scale(

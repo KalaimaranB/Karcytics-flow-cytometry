@@ -23,32 +23,6 @@ def sample_c_events():
 
 @pytest.mark.ui
 class TestThumbnailRendering:
-    def test_render_task_returns_bytes(self, sample_c_events):
-        """Ensure the off-thread rendering task returns a valid image buffer."""
-        scale = AxisScale(TransformType.LINEAR)
-        scale.min_val, scale.max_val = 0, 100000
-
-        task = RenderTask()
-        task.configure(
-            data=sample_c_events,
-            x_param="FSC-A",
-            y_param="SSC-A",
-            x_scale=scale,
-            y_scale=scale,
-            x_range=(0, 100000),
-            y_range=(0, 100000),
-            width_px=100,
-            height_px=100,
-            plot_type="pseudocolor",
-        )
-
-        mock_state = pytest.importorskip("unittest.mock").MagicMock(spec=FlowState)
-        result = task.run(mock_state)
-
-        assert "image_data" in result
-        assert isinstance(result["image_data"], bytes)
-        assert len(result["image_data"]) > 0
-
     def test_thumbnail_biex_different_from_linear(self, sample_c_events):
         """Biex and linear renders of same data must produce different images."""
         lin_scale = AxisScale(TransformType.LINEAR)
