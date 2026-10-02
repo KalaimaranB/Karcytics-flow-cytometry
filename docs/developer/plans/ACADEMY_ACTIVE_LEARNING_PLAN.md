@@ -171,7 +171,7 @@ Each phase is one commit on a single branch per repo (see the memory note on pha
     - `c4_d08q` is a check question, not a prediction: learners can reason it out from what B220 marks.
     - `c4_d13_pitfalls` stays an InfoStep; making it a question put three questions in four steps.
     - The % Parent question (`c4_s06q`) replaces the old stats theory step, and the table now uses **% Parent and CV** instead of % Total and CV. That also drops the subsample star: UMAP B Cells' % Parent is a share of the Leukocytes UMAP ran on, so it compares directly with B-cells' % of Leukocytes (64% vs 68%).
-    - The chart-type question is select-all (Horizontal Bar and Heatmap both keep long names readable), followed by one Heatmap step.
+    - The chart-type question ("which charts keep long names readable?") felt awkward in play-through, so it was replaced with an on-screen CV question: Sample B's B-cells have the lowest CV on the ratio, so what does that mean? It's followed by one Heatmap step.
     - Exports are one `ForcedInteractionStep` with two checked subtasks (Comparisons plot, Statistics CSV); the tabs record successful exports in `completed_exports`.
     - Verified with a full offscreen walk-through to completion, including graduation.
 - [ ] **Phase 5: Course 1 questions.** *Checkpoint: play-through.*

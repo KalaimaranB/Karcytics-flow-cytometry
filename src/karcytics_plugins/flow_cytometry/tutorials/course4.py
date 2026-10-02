@@ -685,31 +685,37 @@ course_4_reporting = Course(
             target_widget_name="StatsChartMode",
             event_trigger="clicked",
             cyto_emotion="pointing",
-            next_step_id="c4_s09_chart_question",
+            next_step_id="c4_s09_cv_question",
         ),
         QuestionStep(
-            id="c4_s09_chart_question",
+            id="c4_s09_cv_question",
             text=(
-                "Pick a chart 📈<br><br>"
-                "Population names here are long paths, like **Cells / Live Cells "
-                "/ Leukocytes / B-cells**, so the bar chart tilts them. Which "
-                "chart types keep long names readable?"
+                "Read the chart 📈<br><br>"
+                "With **Cv** picked in the dropdown beside the chart type, the "
+                "bars show each population's CV on **B220 ÷ CD45**. Sample B's "
+                "B-cells have the lowest. What does that tell you?"
             ),
-            question_id="c4_long_names_chart",
-            multi_select=True,
+            question_id="c4_cv_meaning",
             choices=[
-                AnswerChoice("Horizontal Bar", correct=True),
-                AnswerChoice("Heatmap", correct=True),
                 AnswerChoice(
-                    "Grouped Bar",
-                    feedback="That's the one on screen now — its names sit under "
-                    "the bars, tilted to fit.",
+                    "Its B cells' ratios are the most alike — the tightest peak",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "It has the most B cells",
+                    feedback="That's % Parent's job. CV ignores how many cells there "
+                    "are — only how spread out their values are.",
+                ),
+                AnswerChoice(
+                    "Its B cells have the highest ratio",
+                    feedback="CV is spread relative to the average, so a population "
+                    "can be bright and broad, or dim and tight.",
                 ),
             ],
             explanation=(
-                "Both put population names on the side, one per row, where long "
-                "text reads straight across. Grouped Bar suits a handful of short "
-                "names."
+                "CV is the standard deviation divided by the mean: spread, scaled "
+                "to the average. B's B cells sit tightest (~35%); Sample A's ~76% "
+                "comes from only ~1,000 cells — too few for a clean peak."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
@@ -718,7 +724,10 @@ course_4_reporting = Course(
         ),
         VerificationStep(
             id="c4_s13_heatmap",
-            text="Switch the chart-type dropdown (highlighted) to **Heatmap**.",
+            text=(
+                "Bars get crowded as populations pile up. Switch the chart-type "
+                "dropdown (highlighted) to **Heatmap** — a grid that stays readable."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
