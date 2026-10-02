@@ -84,6 +84,7 @@ def test_every_step_reachable_from_the_first(course):
 def test_course4_derived_block_sits_between_course3_check_and_statistics():
     by_id = {s.id: s for s in course_4_reporting.steps}
     assert by_id["c4_s01_validate_analysis"].on_success_step_id == "c4_d01_intro"
-    assert by_id["c4_d13_pitfalls"].next_step_id == "c4_s02_switch_statistics"
+    assert by_id["c4_d13_pitfalls"].next_step_id == "c4_d14_invalid_question"
+    assert by_id["c4_d14_invalid_question"].next_step_id == "c4_s02_switch_statistics"
     assert by_id["c4_s06_select_stats"].on_success_step_id == "c4_s06a_ratio_channel"
     assert by_id["c4_s06a_ratio_channel"].on_success_step_id == "c4_s06b_compute"
