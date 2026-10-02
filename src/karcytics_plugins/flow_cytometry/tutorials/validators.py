@@ -1895,3 +1895,48 @@ class StatsDerivedChannelValidator(FlowValidator):
         if channel not in _ratio_param_ids(app_state, self._num, self._den):
             return self.log_failure(f"Statistics channel is '{channel}', not the ratio.")
         return True
+
+
+class ComparisonsDerivedChannelValidator(FlowValidator):
+    """The Comparisons Channels list has exactly the ``numerator ÷ denominator`` ratio checked."""
+
+    def __init__(self, numerator: str, denominator: str) -> None:
+        self._num = numerator
+        self._den = denominator
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+        if viewer is None:
+            return self.log_failure("Comparisons viewer missing.")
+        checked = viewer._get_checked_channels()
+        if len(checked) != 1 or checked[0] not in _ratio_param_ids(app_state, self._num, self._den):
+            return self.log_failure(f"Comparisons channels are {checked}, not just the ratio.")
+        return True
+
+
+class ExportDoneValidator(FlowValidator):
+    """An export button on a tab has actually written its file (or clipboard).
+
+    Reads the tab's ``completed_exports`` set, which each export handler
+    adds to only on success — a cancelled save dialog doesn't count.
+    """
+
+    def __init__(self, view_attr: str, kind: str) -> None:
+        self._view_attr = view_attr
+        self._kind = kind
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        tab = getattr(app_state.view, self._view_attr, None)
+        if self._kind not in getattr(tab, "completed_exports", set()):
+            return self.log_failure(f"No '{self._kind}' export from {self._view_attr} yet.")
+        return True
+
+
+class AllOf(FlowValidator):
+    """Passes only when every wrapped validator passes (one step, several settings)."""
+
+    def __init__(self, *validators: FlowValidator) -> None:
+        self._validators = validators
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        return all(v.validate_flow(app_state) for v in self._validators)

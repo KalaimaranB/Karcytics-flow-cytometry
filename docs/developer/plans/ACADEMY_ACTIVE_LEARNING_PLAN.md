@@ -1,6 +1,6 @@
 # Plan: active, question-based learning in the Flow Academy
 
-**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phase 3 done on `feature/academy-course-plumbing` (2026-10-01); Phase 4 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phases 1–2 merged (SDK 2.4.0, flow #4); Phases 3–4 done on `feature/academy-course-plumbing` (2026-10-01); Phase 5 next. Resume from the first unchecked checkpoint in [Phases and checkpoints](#phases-and-checkpoints).
 
 **Released so far:** SDK 2.3.0 (`QuestionStep`, SDK #14); flow 0.10.0 (flow #2), plus the first Course 4 questions merged to `main` (flow #3).
 
@@ -166,7 +166,14 @@ Each phase is one commit on a single branch per repo (see the memory note on pha
 - [x] **Phase 1: SDK `QuestionStep`** (§2) plus tests. Merged: SDK #14 (2.3.0), flow #3. In place of a sandbox course, two real Course 4 questions were added for trying it in the app: `c4_d14_invalid_question` and `c4_s04b_median_question`. *Checkpoint: user plays Course 4 up to the Statistics tab and settles the look.* Done 2026-10-01 as an automated offscreen walk-through (below).
 - [x] **Phase 2: SDK cross-window highlights** (§3), then remove the plugin's `in_window_targets` special case. `feature/academy-popup-highlights` (SDK 2.4.0). *Checkpoint: popup steps in Courses 1, 2 and 4 highlight correctly.* Done 2026-10-01: the real panel, loaded from a saved Courses 1–3 workspace, was driven offscreen through every Course 4 step (all but the final Save, which needs the Hub) plus the Course 1 Transforms and Course 2 Quick-Stats popups, with a screenshot per step. It found and fixed: a scrolled-out target framed over the dialog's buttons, and sidebar targets spotlit off-screen (targets are now scrolled into view once per step); question feedback clipped after a wrong-then-right answer; Course 1's unnamed Outliers dropdown (now guarded by `test_target_names.py`); and Course 2/4 text claiming gates propagate only to Samples A–C (they reach every sample in the group, so the B-cells row checks all 10).
 - [x] **Phase 3: course plumbing.** Tab-switch and generate/wait collapses (§4) across all four courses; step-graph test updates. *Checkpoint: quick run of each course's first half.* Done: all 13 tab switches are one interactive `VerificationStep` on the tab bar (no "Checking tab…" or "Oops!" steps), and Course 4's Compute and five Generate steps wait on their own validator (no "Rendering…" step). Steps (total / main path): Course 1 75→73 / 60, Course 2 75→70 / 61, Course 3 69→65 / 63→61, Course 4 84→70 / 78→68. Tabs saved fewer main-path steps than the ~25 estimated: in Courses 1–2 the click step was already off the main path. Checked with a full Course 4 walk-through and a Course 2 tab step on the real panel.
-- [ ] **Phase 4: Course 4** restructure plus questions (§5). *Checkpoint: full play-through.*
+- [x] **Phase 4: Course 4** restructure plus questions (§5). *Checkpoint: full play-through.* Done: 56 main-path steps (from 68), 7 questions. Changes from the §5 draft, after checking the data:
+    - The opening prediction (`c4_same_measure`) asks whether the two B-cell methods **measure** the same on B220, since Course 3 already shows they're the same cells. It's revealed at the histogram overlay and at graduation.
+    - `c4_d08q` is a check question, not a prediction: learners can reason it out from what B220 marks.
+    - `c4_d13_pitfalls` stays an InfoStep; making it a question put three questions in four steps.
+    - The % Parent question (`c4_s06q`) replaces the old stats theory step, and the table now uses **% Parent and CV** instead of % Total and CV. That also drops the subsample star: UMAP B Cells' % Parent is a share of the Leukocytes UMAP ran on, so it compares directly with B-cells' % of Leukocytes (64% vs 68%).
+    - The chart-type question is select-all (Horizontal Bar and Heatmap both keep long names readable), followed by one Heatmap step.
+    - Exports are one `ForcedInteractionStep` with two checked subtasks (Comparisons plot, Statistics CSV); the tabs record successful exports in `completed_exports`.
+    - Verified with a full offscreen walk-through to completion, including graduation.
 - [ ] **Phase 5: Course 1 questions.** *Checkpoint: play-through.*
 - [ ] **Phase 6: Course 2 questions,** including the Course 1 → 2 prediction reveal. *Checkpoint: play-through.*
 - [ ] **Phase 7: Course 3 questions.** *Checkpoint: play-through.*

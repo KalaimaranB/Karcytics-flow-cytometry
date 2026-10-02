@@ -6,6 +6,7 @@ Step conventions:
   VerificationStep      — auto-polls a validator every ~2 s and advances automatically.
                           Set allow_interaction=True only if the user also needs to freely
                           interact with the UI before clicking the manual 'Check ✓' button.
+  QuestionStep          — the learner must answer (a "check" question correctly) to move on.
 
 Spotlight convention:
   target_widget_name  — single objectName for InteractionStep highlight.
@@ -17,40 +18,49 @@ Statistics, Spectral, Population Analysis, Comparisons.
 Course 4 picks up where Course 3 left off: Course 3 ends with a real,
 gate-tree population ("UMAP B Cells") exported from unsupervised
 clustering and cross-checked against the hand-gated "B-cells" population
-via a Pipeline AND node. Course 4 first builds a **derived parameter**
-(B220 ÷ CD45, a per-cell ratio used like any channel), then uses both
-B-cell populations as running evidence through the **Statistics** tab
-(table + all three chart types, with CV computed on the ratio) and the
-**Comparisons** tab (all five chart types).
+via a Pipeline AND node. That showed they are (nearly) the same cells;
+Course 4 asks the follow-up — *are they measured the same?* — as a
+prediction at the start (`c4_same_measure`), and answers it with a
+**derived parameter** (B220 ÷ CD45, a per-cell ratio used like any
+channel), the **Statistics** tab and the **Comparisons** tab. The
+histogram overlay and graduation steps show the prediction back.
 
-The ratio numbers quoted in the derived-parameter steps (B cells ≈ 0.6,
-T cells ≈ 0.01, ~0% invalid, a tighter B-cell peak than B220 alone) were
-measured on the tutorial's compensated Sample C with simple B220/CD3
-gates inside CD45⁺ events — re-check them if the tutorial files change.
+The numbers quoted below were measured on the tutorial's compensated
+samples with the Course 1–3 gates (Sample A = thymus, B = bone marrow,
+C = spleen) — re-check them if the tutorial files or gates change:
 
-This is currently placeholder-sized content only — it ends on a soft
-"more soon" note rather than a full graduation, so no completion/badge
-fires yet. See the closing step's own comment for how that's guaranteed.
-Expect this course to grow before it gets its own real ending.
+- B220 ÷ CD45 medians: B cells ≈ 0.6 (Sample C hand-gated 0.64, UMAP B
+  Cells 0.65), T cells ≈ 0.01; ~0% invalid; CV on the ratio 46% vs 44%.
+- B-cells % of Leukocytes: A 0.37%, B 43%, C 68%; % Total: A 0.33%, B 33%,
+  C 45% (Leukocytes are 89% / 77% / 65% of all events). UMAP B Cells are
+  64% of the Leukocytes UMAP ran on.
+- AND node: 99.95% of UMAP B Cells fall inside the hand-gated gate; ~93%
+  of hand-gated B-cells were found by UMAP.
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
+    QUESTION_PREDICT,
     AnswerChoice,
     Course,
+    ForcedInteractionStep,
     InfoStep,
     InteractionStep,
     QuestionStep,
+    SubTask,
     VerificationStep,
 )
 
 from ..analysis.statistics import StatType
 from .validators import (
     ActiveGraphDerivedAxisValidator,
+    AllOf,
     ComparisonPlotTypeValidator,
+    ComparisonsDerivedChannelValidator,
     ComparisonsPlotGeneratedValidator,
     Course3AnalysisCompleteValidator,
     DerivedEditorClosedValidator,
     DerivedRatioExistsValidator,
+    ExportDoneValidator,
     HistogramOverlayLayoutValidator,
     PlotTypeValidator,
     PopulationsCheckedValidator,
@@ -69,10 +79,10 @@ course_4_reporting = Course(
     description=(
         "Build a per-cell B220 ÷ CD45 derived parameter, then use your "
         "Course 3 populations — the hand-gated B-cells and the UMAP-exported "
-        "UMAP B Cells — as real evidence through the Statistics table/charts "
-        "and every Comparisons chart type."
+        "UMAP B Cells — to test whether they measure the same, with the "
+        "Statistics table and charts and the Comparisons charts."
     ),
-    estimated_minutes=40,
+    estimated_minutes=35,
     badge_reward="Insight Reporter",
     badge_icon="📊",
     prerequisite_course_ids=["flow_course_3_analysis"],
@@ -83,9 +93,11 @@ course_4_reporting = Course(
                 "Welcome to Course 4! 📊<br><br>"
                 "Course 3 left you with two independent ways of finding "
                 "B-cells — your own hand-gated **B-cells**, and the "
-                "unsupervised **UMAP B Cells** — plus an AND node proving "
-                "they largely agree. This course puts both to work: real "
-                "numbers in the Statistics tab, real charts in Comparisons."
+                "unsupervised **UMAP B Cells** — plus an AND node showing "
+                "they're nearly the same cells.<br><br>"
+                "This course asks the next question: are they also "
+                "**measured** the same? You'll answer it with a new kind of "
+                "parameter, real statistics and side-by-side charts."
             ),
             cyto_emotion="happy",
             next_step_id="c4_s00b_objectives",
@@ -97,19 +109,35 @@ course_4_reporting = Course(
                 "By the end of this course, you'll be able to:<br>"
                 "• Build a derived parameter — a per-cell formula like "
                 "B220 ÷ CD45 — and plot, gate and measure it like any channel<br>"
-                "• Pick a lean, readable set of populations and statistics "
-                "instead of a cramped table showing everything at once<br>"
-                "• Read % Total, CV, and an estimate-scaled UMAP count "
-                "correctly, and know which number to trust for a fair "
-                "comparison<br>"
-                "• Choose the right Statistics chart (Grouped Bar, "
-                "Horizontal Bar, Heatmap) for a given number of "
-                "populations and label lengths<br>"
+                "• Pick the statistic that makes a fair comparison between "
+                "samples, and read it from a lean table<br>"
+                "• Choose a Statistics chart that keeps long population "
+                "names readable<br>"
                 "• Choose the right Comparisons chart (Violin, Channel "
-                "Heatmap, Radar, Histogram Overlay, Pseudocolor Overlay) "
-                "for a given question about two populations"
+                "Heatmap, Histogram Overlay, Pseudocolor Overlay) for a "
+                "question about two populations<br>"
+                "• Export your tables and plots"
             ),
             cyto_emotion="talking",
+            next_step_id="c4_s00c_prediction",
+        ),
+        QuestionStep(
+            id="c4_s00c_prediction",
+            text=(
+                "Make a prediction 🔮<br><br>"
+                "UMAP B Cells and your hand-gated B-cells are nearly the same "
+                "cells. Measured on B220, how will UMAP's B cells compare with "
+                "yours? There's no wrong answer — we'll check at the end."
+            ),
+            kind=QUESTION_PREDICT,
+            question_id="c4_same_measure",
+            choices=[
+                AnswerChoice("About the same peak and spread"),
+                AnswerChoice("Brighter — UMAP keeps the clearest B cells"),
+                AnswerChoice("Dimmer — UMAP lets in borderline cells"),
+                AnswerChoice("Much broader — clustering is messier"),
+            ],
+            cyto_emotion="thinking",
             next_step_id="c4_s01_validate_analysis",
         ),
         # ── Validate Course 3's analysis output ─────────────────────────────────
@@ -275,22 +303,49 @@ course_4_reporting = Course(
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["DerivedPreviewPopulation", "DerivedPreviewHistogram"],
+            next_step_id="c4_d08q_tcell_hump",
+        ),
+        QuestionStep(
+            id="c4_d08q_tcell_hump",
+            text=(
+                "Before you switch 🤔<br><br>"
+                "If you picked **T-cells** in the preview's dropdown, which "
+                "hump would the blue bars land on?"
+            ),
+            question_id="c4_tcell_hump",
+            choices=[
+                AnswerChoice("The left hump, near 0.01", correct=True),
+                AnswerChoice(
+                    "The right hump, near 0.6",
+                    feedback="That's where cells with lots of B220 sit — and "
+                    "B220 is a B-cell marker.",
+                ),
+                AnswerChoice(
+                    "Both humps equally",
+                    feedback="Each cell has one ratio, and T cells are alike "
+                    "here: lots of CD45, very little B220.",
+                ),
+            ],
+            explanation=(
+                "T cells carry plenty of CD45 but almost no B220, so their "
+                "ratio is tiny. Switch the dropdown next and check."
+            ),
+            cyto_emotion="thinking",
+            target_widget_names=["DerivedPreviewPopulation", "DerivedPreviewHistogram"],
             next_step_id="c4_d08b_compare",
         ),
         InfoStep(
             id="c4_d08b_compare",
             text=(
-                "Which hump is which? 🔬<br><br>"
+                "Check it 🔬<br><br>"
                 "Switch the preview's population dropdown:<br>"
-                "• **T-cells** — blue sits on the **left** hump, near **0.01**. "
-                "T cells carry CD45 but almost no B220.<br>"
+                "• **T-cells** — blue sits on the **left** hump, near **0.01**.<br>"
                 "• **B-cells** — blue jumps to the **right** hump, near **0.6**.<br><br>"
                 "The line under the chart puts numbers on it:<br>"
                 "• **median** — the ratio of a typical cell in that population.<br>"
                 "• **% invalid** — cells where the ratio can't be computed "
                 "(CD45 at or below zero). ~0% here, so CD45 is a safe thing to "
-                "divide by. A high number would mean the denominator is too dim "
-                "and the ratio is mostly noise.<br><br>"
+                "divide by.<br><br>"
                 "That's the point of the preview: check the parameter does what "
                 "you meant **before** you save it and gate on it."
             ),
@@ -435,31 +490,18 @@ course_4_reporting = Course(
         # ── Statistics tab ────────────────────────────────────────────────────────
         VerificationStep(
             id="c4_s02_switch_statistics",
-            text="Click the 'Statistics' tab at the top.",
+            text=("Now put numbers on it — click the **Statistics** tab at the top."),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(4),
-            on_success_step_id="c4_s04_stats_theory",
-        ),
-        InfoStep(
-            id="c4_s04_stats_theory",
-            text=(
-                "Choosing the right statistic 📊<br><br>"
-                "• % Parent — fraction of the immediate parent gate.<br>"
-                "• % Total — fraction of ALL events in the tube. The number "
-                "to use when comparing a population's true abundance.<br>"
-                "• CV (Coefficient of Variation) — how tight or spread-out "
-                "a peak is. High CV = broad, messy population."
-            ),
-            cyto_emotion="talking",
-            next_step_id="c4_s04b_median_question",
+            on_success_step_id="c4_s04b_median_question",
         ),
         QuestionStep(
             id="c4_s04b_median_question",
             text=(
-                "One more statistic — brightness 💡<br><br>"
+                "First, brightness 💡<br><br>"
                 "B220 spans four decades on a log axis, and a few cells are far "
                 "brighter than the rest. Which number best describes how bright "
                 "a **typical** B cell is?"
@@ -505,11 +547,6 @@ course_4_reporting = Course(
                 "row would tick all 10.<br>"
                 "• **UMAP B Cells** — only exists on **Sample C**, where you "
                 "built it; check just that one cell.<br><br>"
-                "Heads up: UMAP only ever clustered a **25% subsample** of "
-                "Sample C — once you compute, the table marks UMAP B Cells' "
-                "Count and % Total with a trailing star because the app "
-                "scales those back up to a fair estimate, rather than "
-                "leaving them artificially low.<br><br>"
                 "Once your 4 cells are checked, close the popup (✕, Esc, or "
                 "click outside it) to continue."
             ),
@@ -524,26 +561,61 @@ course_4_reporting = Course(
                 max_checked=4,
                 require_popup_closed=True,
             ),
-            on_success_step_id="c4_s06_select_stats",
+            on_success_step_id="c4_s06q_fair_abundance",
+        ),
+        QuestionStep(
+            id="c4_s06q_fair_abundance",
+            text=(
+                "A fair comparison ⚖️<br><br>"
+                "Leukocytes are 89% of Sample A's events, 77% of B's and only "
+                "65% of C's — the rest is debris and dead cells. To compare "
+                "**how much of each sample's immune cells are B cells**, which "
+                "statistic?"
+            ),
+            question_id="c4_fair_abundance",
+            choices=[
+                AnswerChoice("% Parent — the share of Leukocytes", correct=True),
+                AnswerChoice(
+                    "% Total — the share of every event",
+                    feedback="% Total divides by debris and dead cells too, so a "
+                    "messier sample looks like it has fewer B cells.",
+                ),
+                AnswerChoice(
+                    "Count",
+                    feedback="Count depends on how many events were recorded, "
+                    "which differs between tubes.",
+                ),
+                AnswerChoice(
+                    "CV",
+                    feedback="CV is how spread out a peak is, not how many cells there are.",
+                ),
+            ],
+            explanation=(
+                "% Parent divides by the gate above — here Leukocytes — so debris "
+                "drops out. In this data % Total says C has 1.35× B's share of B "
+                "cells; % of Leukocytes says 1.6×."
+            ),
+            cyto_emotion="thinking",
+            next_step_id="c4_s06_select_stats",
         ),
         VerificationStep(
             id="c4_s06_select_stats",
             text=(
                 "Trim the stat list too ✂️<br><br>"
-                "**Count**, **% Parent** and **MFI** are checked by default — "
-                "uncheck those and check just **% Total** and **CV** instead. "
-                "Same reasoning as the populations: only the few stats you "
-                "actually want, or the chart gets cramped.<br><br>"
-                "That **★** next to CV (and MFI) means it needs a fluorescence "
-                "channel picked below before it can compute — a plain count "
-                "like % Total doesn't need one, since it isn't measuring a "
-                "specific marker's brightness."
+                "**Count**, **Percent Parent** and **MFI** are checked by "
+                "default — keep **Percent Parent** (that's % Parent), uncheck "
+                "the other two, and check **Cv** "
+                "(how spread out a peak is: high CV = broad, messy population)."
+                "<br><br>"
+                "That **★** next to CV means it needs a fluorescence channel "
+                "picked below — % Parent doesn't, since it counts cells rather "
+                "than measuring a marker."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["StatsCheckboxPanel"],
-            validator=StatsCheckedValidator(StatType.PERCENT_TOTAL, StatType.CV, max_checked=2),
+            validator=StatsCheckedValidator(StatType.PERCENT_PARENT, StatType.CV, max_checked=2),
             on_success_step_id="c4_s06a_ratio_channel",
         ),
         VerificationStep(
@@ -563,7 +635,10 @@ course_4_reporting = Course(
         ),
         VerificationStep(
             id="c4_s06b_compute",
-            text="Click '📊 Compute Statistics' (highlighted) to actually generate the table. Cyto carries on once it's ready.",
+            text=(
+                "Click '📊 Compute Statistics' (highlighted) to generate the "
+                "table. Cyto carries on once it's ready."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,
@@ -572,23 +647,32 @@ course_4_reporting = Course(
             validator=StatsResultsReadyValidator(),
             on_success_step_id="c4_s07_read_table",
         ),
-        InfoStep(
+        QuestionStep(
             id="c4_s07_read_table",
             text=(
                 "Read the table 🔍<br><br>"
-                "First, **B-cells' % Total** across Sample A, B, and C — "
-                "near-zero in A, solid in B, solid in C, the same "
-                "Thymus/Bone Marrow/Spleen story Course 2's mystery walked "
-                "you through.<br><br>"
-                "Then, on Sample C only: manual **B-cells** vs **UMAP B "
-                "Cells**. UMAP B Cells' Count and % Total carry a trailing "
-                "star marker — hover either cell for the exact subsample "
-                "size. That marker means the raw number already got scaled "
-                "back up from UMAP's subsample to estimate the full "
-                "population, so it's the fair number to compare against "
-                "manual B-cells, not a smaller, unscaled one. CV — computed "
-                "on **B220 ÷ CD45** — tells you which of the two is the "
-                "tighter, cleaner B-cell peak on the ratio you just built."
+                "Look along the **B-cells** row's **Percent Parent** columns. "
+                "Which sample "
+                "has almost no B cells?"
+            ),
+            question_id="c4_few_bcells_sample",
+            choices=[
+                AnswerChoice("Sample A", correct=True),
+                AnswerChoice(
+                    "Sample B",
+                    feedback="B's B-cells are a solid ~43% of its Leukocytes. Look "
+                    "for a value well under 1%.",
+                ),
+                AnswerChoice(
+                    "Sample C",
+                    feedback="C has the most — ~68% of its Leukocytes. Look for a "
+                    "value well under 1%.",
+                ),
+            ],
+            explanation=(
+                "Sample A is the thymus, where T cells mature — B cells are 0.4% "
+                "of its Leukocytes, against 43% in bone marrow (B) and 68% in "
+                "spleen (C): Course 2's mystery, in numbers."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
@@ -601,54 +685,40 @@ course_4_reporting = Course(
             target_widget_name="StatsChartMode",
             event_trigger="clicked",
             cyto_emotion="pointing",
-            next_step_id="c4_s09_grouped_bar",
+            next_step_id="c4_s09_chart_question",
         ),
-        VerificationStep(
-            id="c4_s09_grouped_bar",
-            text="From the chart-type dropdown, select 'Grouped Bar'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["StatsChartTypeCombo"],
-            validator=StatsChartTypeValidator("grouped bar"),
-            on_success_step_id="c4_s10_grouped_bar_read",
-        ),
-        InfoStep(
-            id="c4_s10_grouped_bar_read",
+        QuestionStep(
+            id="c4_s09_chart_question",
             text=(
-                "Good for a handful of populations side by side — "
-                "bars are easy to compare at a glance, up until the labels "
-                "start getting crowded."
+                "Pick a chart 📈<br><br>"
+                "Population names here are long paths, like **Cells / Live Cells "
+                "/ Leukocytes / B-cells**, so the bar chart tilts them. Which "
+                "chart types keep long names readable?"
             ),
-            cyto_emotion="happy",
-            next_step_id="c4_s11_horizontal_bar",
-        ),
-        VerificationStep(
-            id="c4_s11_horizontal_bar",
-            text="Now switch to 'Horizontal Bar'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["StatsChartTypeCombo"],
-            validator=StatsChartTypeValidator("horizontal bar"),
-            on_success_step_id="c4_s12_horizontal_bar_read",
-        ),
-        InfoStep(
-            id="c4_s12_horizontal_bar_read",
-            text=(
-                "Same chart, rotated 🔄<br><br>"
-                "Long population names (like 'UMAP B Cells') read much more "
-                "easily here than rotated along a vertical axis — reach for "
-                "this whenever your labels are the crowded part."
+            question_id="c4_long_names_chart",
+            multi_select=True,
+            choices=[
+                AnswerChoice("Horizontal Bar", correct=True),
+                AnswerChoice("Heatmap", correct=True),
+                AnswerChoice(
+                    "Grouped Bar",
+                    feedback="That's the one on screen now — its names sit under "
+                    "the bars, tilted to fit.",
+                ),
+            ],
+            explanation=(
+                "Both put population names on the side, one per row, where long "
+                "text reads straight across. Grouped Bar suits a handful of short "
+                "names."
             ),
-            cyto_emotion="talking",
+            cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["StatsChartCanvas"],
             next_step_id="c4_s13_heatmap",
         ),
         VerificationStep(
             id="c4_s13_heatmap",
-            text="Now switch to 'Heatmap'.",
+            text="Switch the chart-type dropdown (highlighted) to **Heatmap**.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
@@ -660,36 +730,22 @@ course_4_reporting = Course(
             id="c4_s14_heatmap_read",
             text=(
                 "One-glance comparison 🗺️<br><br>"
-                "Every population × every stat you picked, all at once — "
-                "B-cells spanning Sample A, B, and C right next to UMAP B "
-                "Cells' single Sample C column, this is the fastest way to "
-                "scan a wide comparison for anything unexpected."
+                "Rows are populations, columns are samples; the dropdown next "
+                "to the chart type picks which statistic fills the cells.<br><br>"
+                "Switch it to **Percent Parent** and look at Sample C: your B-cells "
+                "are **68%** of Leukocytes, UMAP B Cells **64%** of the "
+                "Leukocytes UMAP ran on. Close, with UMAP a little stricter — "
+                "one clue for your prediction."
             ),
             cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["StatsChartCanvas"],
-            next_step_id="c4_s14b_stats_recap",
-        ),
-        InfoStep(
-            id="c4_s14b_stats_recap",
-            text=(
-                "What that whole chunk was for 📋<br><br>"
-                "Trimming populations and stats, computing, then reading "
-                "the same numbers as a table and three different charts — "
-                "that was all one question: does manual **B-cells** agree "
-                "with unsupervised **UMAP B Cells**? Every view said yes.<br><br>"
-                "Comparisons is a different tool for the same question — "
-                "instead of numbers in a table, it plots the underlying "
-                "*distributions* and *shapes* side by side, five different "
-                "ways. Same two populations, a more visual kind of proof."
-            ),
-            cyto_emotion="talking",
             next_step_id="c4_s15_switch_comparisons",
         ),
         # ── Comparisons tab ───────────────────────────────────────────────────────
         VerificationStep(
             id="c4_s15_switch_comparisons",
-            text="Click the 'Comparisons' tab at the top.",
+            text=("Numbers done; now shapes. Click the **Comparisons** tab at the top."),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
@@ -700,10 +756,10 @@ course_4_reporting = Course(
         InfoStep(
             id="c4_s17_comparisons_intro",
             text=(
-                "5 ways to compare 🎨<br><br>"
-                "This tab has 5 dedicated chart types — let's walk all of "
-                "them, using your manual **B-cells** and new **UMAP B "
-                "Cells** populations as the running example."
+                "Comparing distributions 🎨<br><br>"
+                "Statistics gave single numbers; this tab plots the whole "
+                "*distribution* of each population. Four chart types, each "
+                "answering a different question about your two B-cell methods."
             ),
             cyto_emotion="talking",
             next_step_id="c4_s17b_select_pops",
@@ -766,7 +822,10 @@ course_4_reporting = Course(
         ),
         VerificationStep(
             id="c4_s18b_violin_generate",
-            text="Click '🔬 Generate Plot' (highlighted) to render it with the settings from the last step. Cyto carries on once it's ready.",
+            text=(
+                "Click '🔬 Generate Plot' (highlighted) to render it with the "
+                "settings from the last step. Cyto carries on once it's ready."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,
@@ -842,7 +901,10 @@ course_4_reporting = Course(
         ),
         VerificationStep(
             id="c4_s20b_channel_heatmap_generate",
-            text="Click '🔬 Generate Plot' (highlighted) to render it. Cyto carries on once it's ready.",
+            text=(
+                "Click '🔬 Generate Plot' (highlighted) to render it. Cyto "
+                "carries on once it's ready."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,
@@ -854,66 +916,15 @@ course_4_reporting = Course(
         InfoStep(
             id="c4_s21_channel_heatmap_info",
             text=(
-                "Both B-cell rows should light up for B220 the same way — "
-                "one glance, same conclusion as the AND node's numbers."
+                "Every marker at once 🗺️<br><br>"
+                "Both Sample C B-cell rows should light up the same way, "
+                "marker by marker — the same **profile**, not just the same "
+                "B220.<br><br>"
+                "(The **Radar Chart** in the same dropdown draws this as one "
+                "shape per population — handy for big panels with many "
+                "markers. We'll skip it here.)"
             ),
             cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["ComparisonsPlotDisplay"],
-            next_step_id="c4_s22_radar",
-        ),
-        VerificationStep(
-            id="c4_s22_radar",
-            text="Select '🕷️ Radar Chart'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("radar"),
-            on_success_step_id="c4_s22a_radar_channels",
-        ),
-        InfoStep(
-            id="c4_s22a_radar_channels",
-            text=(
-                "This time the Channels list didn't reset 🔄<br><br>"
-                "Channel Heatmap and Radar are both multi-channel — since "
-                "the mode didn't change, whatever you left checked on the "
-                "heatmap carried straight over. That's the flip side of "
-                "the reset you just saw: it only happens when the mode "
-                "itself changes, single ↔ multi, not on every chart-type "
-                "switch."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["ComparisonsChannelSection"],
-            next_step_id="c4_s22b_radar_generate",
-        ),
-        VerificationStep(
-            id="c4_s22b_radar_generate",
-            text="Click '🔬 Generate Plot' (highlighted) to render it. Cyto carries on once it's ready.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["ComparisonsGenerateButton"],
-            validator=ComparisonsPlotGeneratedValidator("radar"),
-            on_success_step_id="c4_s23_radar_info",
-        ),
-        InfoStep(
-            id="c4_s23_radar_info",
-            text=(
-                "Reading a radar chart 🕷️<br><br>"
-                "Each spoke is one channel; each coloured polygon is one "
-                "population. A point pulled out toward the edge means "
-                "**high** on that channel, relative to the highest value "
-                "seen among the populations plotted here — spokes are "
-                "scaled per-channel, not on one shared axis, so compare "
-                "shapes between populations, not one spoke's raw distance "
-                "against another spoke's.<br><br>"
-                "Two nearly-identical polygons here is exactly the visual "
-                "version of 'these two methods agree.'"
-            ),
-            cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["ComparisonsPlotDisplay"],
             next_step_id="c4_s24_histogram",
@@ -941,9 +952,8 @@ course_4_reporting = Course(
                 "peak hits 1.0, so a small population stays visible next "
                 "to a big one. Turn off to compare absolute event counts.<br>"
                 "• **X-axis scale** — Linear, Log₁₀, or Biexponential.<br><br>"
-                "And the Channels list reset again — Radar was "
-                "multi-channel, Histogram is back to single-channel mode, "
-                "so pick just B220."
+                "The Channels list reset again — Channel Heatmap was "
+                "multi-channel, Histogram is single-channel."
             ),
             cyto_emotion="talking",
             allow_interaction=True,
@@ -953,21 +963,28 @@ course_4_reporting = Course(
         VerificationStep(
             id="c4_s24a2_histogram_layout",
             text=(
-                "Try switching off Ridge (waterfall) mode 🔀<br><br>"
-                "From the **Layout** dropdown (highlighted), pick "
-                "**'Overlay (all on one axis)'** instead of the default "
-                "Ridge."
+                "Set it up to test your prediction 🔀<br><br>"
+                "• **Channels:** check only **ƒ B220/CD45** — your ratio.<br>"
+                "• **Layout:** pick **'Overlay (all on one axis)'**, so the "
+                "curves sit on top of each other."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
+            allow_scroll=True,
             hide_next_button=True,
-            target_widget_names=["ComparisonsOptionsPanel"],
-            validator=HistogramOverlayLayoutValidator("overlay"),
+            target_widget_names=["ComparisonsChannelSection", "ComparisonsOptionsPanel"],
+            validator=AllOf(
+                ComparisonsDerivedChannelValidator("FITC-A", "APC-A"),
+                HistogramOverlayLayoutValidator("overlay"),
+            ),
             on_success_step_id="c4_s24b_histogram_generate",
         ),
         VerificationStep(
             id="c4_s24b_histogram_generate",
-            text="Click '🔬 Generate Plot' (highlighted) to render it with Overlay mode. Cyto carries on once it's ready.",
+            text=(
+                "Click '🔬 Generate Plot' (highlighted) to render it. Cyto "
+                "carries on once it's ready."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,
@@ -979,7 +996,15 @@ course_4_reporting = Course(
         InfoStep(
             id="c4_s25_histogram_info",
             text=(
-                "Two closely-stacked peaks on B220 — the same story again, from yet another angle."
+                "Your prediction, tested 🔮<br><br>"
+                "You predicted: **{answer:c4_same_measure}**.<br><br>"
+                "Find Sample C's two curves — B-cells and UMAP B Cells. They "
+                "sit almost on top of each other: median ratio **0.64** vs "
+                "**0.65**, and a near-identical spread (CV **46%** vs "
+                "**44%**). B220 alone says the same: medians within 1%. Same "
+                "cells, measured the same — UMAP's just a touch tighter.<br><br>"
+                "(Sample A's lumpy curve comes from only ~1,000 thymus "
+                "B cells — too few for a clean peak.)"
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
@@ -988,7 +1013,7 @@ course_4_reporting = Course(
         ),
         VerificationStep(
             id="c4_s26_pseudocolor",
-            text="Select '🌈 Pseudocolor Overlay' — new since you last saw this tab.",
+            text="Last chart type: select '🌈 Pseudocolor Overlay'.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
@@ -998,7 +1023,10 @@ course_4_reporting = Course(
         ),
         VerificationStep(
             id="c4_s26b_pseudocolor_generate",
-            text="Click '🔬 Generate Plot' (highlighted) to render it. Cyto carries on once it's ready.",
+            text=(
+                "Click '🔬 Generate Plot' (highlighted) to render it. Cyto "
+                "carries on once it's ready."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,
@@ -1023,95 +1051,38 @@ course_4_reporting = Course(
             cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["ComparisonsPlotDisplay"],
-            next_step_id="c4_s27b_export_intro",
+            next_step_id="c4_s27b_export",
         ),
         # ── Take it with you (export) ────────────────────────────────────────────
-        InfoStep(
-            id="c4_s27b_export_intro",
+        ForcedInteractionStep(
+            id="c4_s27b_export",
             text=(
                 "Take it with you 📤<br><br>"
-                "Every table and chart you've built this course can leave "
-                "the app with you — CSV data, clipboard data, or an image "
-                "file. Both tabs have their own export buttons; let's use "
-                "them. Back to Statistics first."
+                "Both tabs export. Do these two, in either order — Cyto "
+                "carries on once both files are saved.<br><br>"
+                "Also worth knowing: **📋 Copy All** on Statistics puts the "
+                "table on your clipboard, and its Chart view has its own "
+                "**📸 Export**."
             ),
-            cyto_emotion="talking",
-            next_step_id="c4_s27c_switch_stats",
-        ),
-        VerificationStep(
-            id="c4_s27c_switch_stats",
-            text="Click the 'Statistics' tab at the top.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(4),
-            on_success_step_id="c4_s27e_export_csv",
-        ),
-        InteractionStep(
-            id="c4_s27e_export_csv",
-            text=(
-                "Click '📤 Export CSV' (highlighted) and save your table — "
-                "every row and column you computed, ready to open in a "
-                "spreadsheet or attach to a report."
-            ),
-            target_widget_name="StatsExportButton",
-            event_trigger="clicked",
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,
-            next_step_id="c4_s27f_copy_all",
-        ),
-        InteractionStep(
-            id="c4_s27f_copy_all",
-            text=(
-                "'📋 Copy All' (highlighted) is the faster version of the "
-                "same thing — same data, straight to your clipboard, no "
-                "file dialog. Click it now."
-            ),
-            target_widget_name="StatsCopyAllButton",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            next_step_id="c4_s27g_export_stats_plot",
-        ),
-        InteractionStep(
-            id="c4_s27g_export_stats_plot",
-            text=(
-                "You're still in Chart view from earlier, so there's a "
-                "third option here too: click '📸 Export' (highlighted) to "
-                "save the chart itself as an image file."
-            ),
-            target_widget_name="StatsExportPlotButton",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            next_step_id="c4_s27h_switch_comparisons_again",
-        ),
-        VerificationStep(
-            id="c4_s27h_switch_comparisons_again",
-            text="One more — click the 'Comparisons' tab at the top.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(7),
-            on_success_step_id="c4_s27j_export_comparisons_plot",
-        ),
-        InteractionStep(
-            id="c4_s27j_export_comparisons_plot",
-            text=(
-                "This tab's own '📸 Export' (highlighted) saves whatever "
-                "plot is currently on screen — your Pseudocolor Overlay — "
-                "as PNG, PDF, or SVG. Click it now."
-            ),
-            target_widget_name="ComparisonsExportButton",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
+            target_widget_names=["ComparisonsExportButton", "StatsExportButton", "MainTabBar"],
+            auto_advance_when_complete=True,
+            sub_tasks=[
+                SubTask(
+                    id="c4_export_comparisons_plot",
+                    instruction="Here on Comparisons: '📸 Export' saves this plot (PNG, PDF or SVG).",
+                    target_widget_name="ComparisonsExportButton",
+                    validator=ExportDoneValidator("_comparisons_viewer", "plot"),
+                ),
+                SubTask(
+                    id="c4_export_stats_csv",
+                    instruction="On Statistics: '📤 Export CSV' saves the table for a spreadsheet.",
+                    target_widget_name="StatsExportButton",
+                    validator=ExportDoneValidator("_statistics_explorer", "csv"),
+                ),
+            ],
             next_step_id="c4_s27k_save_workspace",
         ),
         # ── Save workspace + real completion ─────────────────────────────────────
@@ -1139,13 +1110,16 @@ course_4_reporting = Course(
             # step to loop back to.
             id="c4_s27z_graduation",
             text=(
-                "Your workspace is updated!<br><br>Course 4 is complete — "
-                "you're officially an **Insight Reporter**! 🏆<br><br>"
-                "You built a derived parameter and used it like a real "
-                "channel, then read the real agreement between your two "
-                "B-cell methods across a full statistics table, three chart "
-                "types, all five Comparisons chart types, and exported "
-                "every piece of it."
+                "Course 4 is complete — you're officially an **Insight "
+                "Reporter**! 🏆<br><br>"
+                "**The verdict.** You predicted: *{answer:c4_same_measure}*. "
+                "The evidence:<br>"
+                "• **Same cells** — 99.95% of UMAP B Cells sit inside your "
+                "gate, and UMAP found ~93% of yours.<br>"
+                "• **Same measurement** — ratio peaks at 0.64 vs 0.65, with "
+                "matching spread and marker profiles.<br><br>"
+                "Two independent methods, one answer — that's the kind of "
+                "cross-check worth putting in a report."
             ),
             cyto_emotion="cheering",
             cyto_animation="cheering",

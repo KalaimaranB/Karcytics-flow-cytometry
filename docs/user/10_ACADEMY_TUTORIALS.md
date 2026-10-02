@@ -88,15 +88,17 @@ No new manual gating anywhere in it — instead, you hand your existing gated da
 
 ### Course 4 — Derived Parameters, Statistics & Comparisons
 
-**~40 minutes · requires Course 3 · badge: 📊 Insight Reporter**
+**~35 minutes · requires Course 3 · badge: 📊 Insight Reporter**
 
-Picks up exactly where Course 3 left off, using your hand-gated **B-cells** and unsupervised **UMAP B Cells** as real, running evidence. You:
+Course 3 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 4 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
 
 - Confirm your Course 3 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
-- Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — read its live preview on B-cells vs T-cells, and plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
+- Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — predict where T cells land in its live preview, then plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
 - Learn the rules of thumb for ratios: compensate first, watch the denominator, and treat the result as relative units.
-- Read the real agreement between the two independent methods in the **Statistics** tab — the full table (with CV computed on your B220 ÷ CD45 ratio), then all three chart types (Grouped Bar, Horizontal Bar, Heatmap).
-- Walk every chart type in **Comparisons**, including the new Pseudocolor Overlay, actually generating each plot rather than just reading about it.
+- Choose a fair statistic in the **Statistics** tab (% Parent rather than % Total when samples carry different amounts of debris), read the table, and pick a chart that keeps long population names readable.
+- Compare the two methods in **Comparisons** with Violin, Channel Heatmap, Histogram Overlay (on your ratio) and Pseudocolor Overlay, then export a plot and the statistics table.
+
+Along the way, short questions check each idea before you move on: pick the right answer to continue, and after two tries the correct one is outlined. Your answers stay on your computer.
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
 

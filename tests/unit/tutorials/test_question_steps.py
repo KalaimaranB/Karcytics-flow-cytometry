@@ -55,3 +55,15 @@ def test_question_ids_are_unique_across_courses():
 @pytest.mark.parametrize(("course_id", "step"), QUESTIONS, ids=[s.id for _, s in QUESTIONS])
 def test_answers_are_recorded(course_id, step):
     assert step.question_id, "give every question a question_id so attempts are saved"
+
+
+def test_every_prediction_is_revealed_later():
+    """A prediction is only worth asking if a later step — in this course or
+    a later one (Course 1's is revealed in Course 2) — shows it back.
+    """
+    for c, course in enumerate(COURSES):
+        for i, step in enumerate(course.steps):
+            if isinstance(step, QuestionStep) and step.kind == "predict":
+                later = [s.text for s in course.steps[i + 1 :]]
+                later += [s.text for nxt in COURSES[c + 1 :] for s in nxt.steps]
+                assert any(f"{{answer:{step.question_id}}}" in t for t in later), step.id
