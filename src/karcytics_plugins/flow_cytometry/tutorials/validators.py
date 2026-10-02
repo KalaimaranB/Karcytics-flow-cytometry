@@ -519,7 +519,23 @@ class AxisYChannelValidator(FlowValidator):
 
 
 class GateShapeValidator(FlowValidator):
-    """Verifies that a newly created gate matches the required target shape."""
+    """Verifies that a newly created gate matches the required target shape.
+
+    Tolerances are meant to catch a gate in the wrong place, not to grade a
+    hand-drawn one: learners draw with a mouse, often on log-scaled axes.
+    """
+
+    # Drawn polygon vs target, intersection over union.
+    MIN_POLYGON_IOU = 0.80
+    # A range/rectangle edge may sit this far from its target edge: a share of
+    # the whole axis, or a share of the edge's own value, whichever is larger.
+    # The second term matters for high edges on log-scaled axes, where a fixed
+    # band is only a sliver (±26k around 200,000 barely shows on screen).
+    EDGE_AXIS_FRACTION = 0.10
+    EDGE_VALUE_FRACTION = 0.35
+    # A quadrant crosshair may land this share of the target window's width
+    # outside it, on each side.
+    QUADRANT_MARGIN = 0.25
 
     def __init__(
         self,
@@ -727,8 +743,7 @@ class GateShapeValidator(FlowValidator):
 
             iou = intersection / union if union > 0 else 0
 
-            # Ensure it is within 10% of the original shape
-            return iou >= 0.90  # noqa: PLR2004
+            return iou >= self.MIN_POLYGON_IOU
 
         if not self.target_bounds:
             return True
@@ -766,28 +781,26 @@ class GateShapeValidator(FlowValidator):
             # window) — over 12x more lenient than intended. A quadrant
             # target window is meant to already BE the acceptable region, so
             # just check containment directly, no extra tolerance layered on.
-            return t_min_x <= x_mid <= t_max_x and t_min_y <= y_mid <= t_max_y
+            mx = (t_max_x - t_min_x) * self.QUADRANT_MARGIN
+            my = (t_max_y - t_min_y) * self.QUADRANT_MARGIN
+            return t_min_x - mx <= x_mid <= t_max_x + mx and t_min_y - my <= y_mid <= t_max_y + my
         else:
             return True  # skip unknown gate types
 
         if gate_type in {"RangeGate", "RectangleGate"}:
-            # For 1D ranges, check relative error based on a typical flow axis range (262144)
+            # Fractions of a typical flow axis range (262144).
             axis_range = 262144.0
 
-            # Check X bounds
-            if (
-                abs(min_x - t_min_x) / axis_range > 0.10  # noqa: PLR2004
-                or abs(max_x - t_max_x) / axis_range > 0.10  # noqa: PLR2004
-            ):
-                return False
-
-            # Check Y bounds for Rectangle
-            return not (
-                gate_type == "RectangleGate"
-                and (
-                    abs(min_y - t_min_y) / axis_range > 0.10  # noqa: PLR2004
-                    or abs(max_y - t_max_y) / axis_range > 0.10  # noqa: PLR2004
+            def edge_ok(drawn: float, target: float) -> bool:
+                tolerance = max(
+                    self.EDGE_AXIS_FRACTION * axis_range, self.EDGE_VALUE_FRACTION * abs(target)
                 )
+                return abs(drawn - target) <= tolerance
+
+            if not (edge_ok(min_x, t_min_x) and edge_ok(max_x, t_max_x)):
+                return False
+            return gate_type != "RectangleGate" or (
+                edge_ok(min_y, t_min_y) and edge_ok(max_y, t_max_y)
             )
 
         return False

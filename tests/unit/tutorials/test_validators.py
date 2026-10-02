@@ -15,7 +15,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from karcytics_plugins.flow_cytometry.analysis.gating.polygon import PolygonGate
 from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate
+from karcytics_plugins.flow_cytometry.analysis.gating.range import RangeGate
+from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
 from karcytics_plugins.flow_cytometry.tutorials.validators import GateShapeValidator
 
 
@@ -130,8 +133,15 @@ class TestQuadrantGateShape:
     roughly 26,000 units of either target edge (over 12x wider than a 4,000-
     unit target window), because it checked "close to either target edge
     independently" instead of "contained within the target window". These
-    lock in the fix: containment against target_bounds, no bonus tolerance.
+    lock in the fix: containment against target_bounds, plus a margin of a
+    quarter of the window's width.
     """
+
+    def test_crosshair_just_beyond_the_window_is_accepted(self):
+        validator = GateShapeValidator(target_bounds=(3000.0, 7000.0, 3000.0, 7000.0))
+        gate = QuadrantGate(x_param="x", y_param="y", x_mid=2200.0, y_mid=7800.0)
+
+        assert validator.validate_shape(_app_state_with_gate(gate), node_id="n", sample_id="s1")
 
     def test_crosshair_inside_the_target_window_is_accepted(self):
         validator = GateShapeValidator(target_bounds=(3000.0, 7000.0, 3000.0, 7000.0))
@@ -149,6 +159,52 @@ class TestQuadrantGateShape:
 
     def test_crosshair_just_outside_the_window_on_one_axis_is_rejected(self):
         validator = GateShapeValidator(target_bounds=(3000.0, 7000.0, 3000.0, 7000.0))
-        gate = QuadrantGate(x_param="x", y_param="y", x_mid=5000.0, y_mid=7500.0)
+        # The window allows 25% of its width (1000) either side: up to 8000.
+        gate = QuadrantGate(x_param="x", y_param="y", x_mid=5000.0, y_mid=8500.0)
 
         assert not validator.validate_shape(_app_state_with_gate(gate), node_id="n", sample_id="s1")
+
+
+class TestHandDrawnGateTolerance:
+    """Learners draw with a mouse, often on log-scaled axes: a gate in the
+    right place but a little off the guide passes; one in the wrong place
+    doesn't. Targets are Course 1's Cells and Leukocytes and Course 2's B-cells."""
+
+    LEUKOCYTES = (2000.0, 200000.0, 500.0, 37000.0)
+    B_CELLS = (3000.0, 100000.0, 0.0, 0.0)
+    CELLS = [(8000, 38000), (248000, 34000), (248000, 500), (8000, 1000)]
+
+    def _ok(self, validator, gate) -> bool:
+        return bool(
+            validator.validate_shape(_app_state_with_gate(gate), node_id="n", sample_id="s1")
+        )
+
+    def test_rectangle_dragged_to_the_plot_edge_is_accepted(self):
+        validator = GateShapeValidator(target_bounds=self.LEUKOCYTES)
+        gate = RectangleGate("x", "y", x_min=2000.0, x_max=262144.0, y_min=500.0, y_max=37000.0)
+        assert self._ok(validator, gate)
+
+    def test_rectangle_stopping_well_short_is_rejected(self):
+        validator = GateShapeValidator(target_bounds=self.LEUKOCYTES)
+        gate = RectangleGate("x", "y", x_min=2000.0, x_max=100000.0, y_min=500.0, y_max=37000.0)
+        assert not self._ok(validator, gate)
+
+    def test_range_top_a_little_off_on_a_log_axis_is_accepted(self):
+        validator = GateShapeValidator(target_bounds=self.B_CELLS)
+        assert self._ok(validator, RangeGate("x", low=3000.0, high=130000.0))
+
+    def test_range_threshold_inside_the_population_is_rejected(self):
+        # Low edges keep the axis-wide band only: a value-scaled one would
+        # let a B-cells threshold creep up into the B cells themselves.
+        validator = GateShapeValidator(target_bounds=self.B_CELLS)
+        assert not self._ok(validator, RangeGate("x", low=40000.0, high=100000.0))
+
+    def test_polygon_roughly_tracing_the_guide_is_accepted(self):
+        validator = GateShapeValidator(target_poly=self.CELLS)
+        drawn = [(12000, 36000), (225000, 33000), (225000, 1500), (12000, 2000)]
+        assert self._ok(validator, PolygonGate("x", "y", drawn))
+
+    def test_polygon_covering_half_the_guide_is_rejected(self):
+        validator = GateShapeValidator(target_poly=self.CELLS)
+        drawn = [(8000, 38000), (128000, 36000), (128000, 700), (8000, 1000)]
+        assert not self._ok(validator, PolygonGate("x", "y", drawn))
