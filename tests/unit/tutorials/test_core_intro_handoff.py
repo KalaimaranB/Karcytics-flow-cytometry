@@ -79,3 +79,18 @@ def test_preferences_validators_track_the_dialog(qtbot):
 
     assert closed.validate(state)
     assert not opened.validate(state)
+
+
+def test_copy_demo_file_copies_fcs_to_downloads(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from karcytics_plugins.flow_cytometry.tutorials.core_intro_handoff import _copy_demo_file
+
+    fake_downloads = tmp_path / "Downloads"
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+    _copy_demo_file(None)
+
+    dest_file = fake_downloads / "demo_tutorial.fcs"
+    assert dest_file.exists()
+    assert dest_file.stat().st_size > 0

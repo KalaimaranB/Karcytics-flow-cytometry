@@ -36,6 +36,7 @@ dev_private_key.pem
 # Build and Test Artifacts
 *.npy
 *.fcs
+!src/karcytics_plugins/flow_cytometry/tutorials/assets/*.fcs
 *.zip
 mypy_output.txt
 
