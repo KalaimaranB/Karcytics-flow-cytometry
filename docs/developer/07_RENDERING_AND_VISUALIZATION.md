@@ -666,6 +666,37 @@ direct consequence of the `DisplayStrategy` split (§5): before that commit,
 computation included — ran inside the lock, serializing thumbnail density
 computation across every concurrent thumbnail render.
 
+### `GateHistogramPanel` — the other consumer of the data-layer pipeline
+
+`ui/widgets/gate_histogram_panel.py` is the Properties panel's Histogram
+view: the displayed population as an X and a Y histogram, with the events
+inside one gate drawn over it. It is not a `RenderTask` client — each
+`GateHistogramCanvas` is a `LayeredMatplotlibCanvas` (§2) running the same
+`FlowDataComputeStage` (§4) and `HistogramStrategy` (§5) as `FlowCanvas` in
+Histogram mode, so it inherits the debounce and stale-result dropping, and
+its bins/transforms/settings can't drift from the main plot's.
+
+What it adds on top:
+
+- `FlowRenderState.highlight_gate` — optional; the 1D compute path masks
+  `current_data` with `gate.contains()` and hands `HistogramStrategy` the
+  subset as `highlight_x`, which it draws over the (now grey) population on
+  the same `bin_edges`. `FlowCanvas` never sets it. The gate must be a
+  private copy: it is read on the compute thread while the live one is
+  mutated by a drag.
+- Its own small `RasterizeStage`. `FlowDataRasterizeStage` resets
+  `FlowCanvas`'s gate/tutorial bookkeeping, which this canvas doesn't have.
+  It does reuse `AxisFormatter` (the canvas exposes the attributes that
+  reads) and `GateOverlayRenderer.render_range` for the gate's edges —
+  `analysis/gating/projection.py::axis_interval()` says which gates have
+  straight edges along an axis.
+- The population frame is cut to the two axis columns, capped at
+  `render_config.max_events`, and cached per (sample, node, axes): a preview
+  frame during a drag costs one `contains()` on the capped frame, nothing
+  more. Any model event drops the cache.
+- It renders only while visible; a hidden panel marks itself stale and
+  renders on `showEvent`.
+
 ---
 
 ## 10. Decomposed `FlowCanvas` collaborators

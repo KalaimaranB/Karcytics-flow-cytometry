@@ -47,7 +47,7 @@ changes.
 | `GATE_MODIFIED` | `flow.gate.modified` | `GateMutationService.modify_gate()` via `GateEventPublisher.publish_gate_modified()` — fires **once per completed drag gesture**, never during live preview (§4 in `02_UI_ENGINE.md`) | `HistoryRecorder` (one edit = one undo step), `MainPanelController` (`_on_structural_change`), `FlowCanvas` |
 | `GATE_PROPAGATED` | `flow.gate.propagated` | *(defined; not observed published in the read source — likely legacy/reserved)* | — |
 | `GATE_SELECTED` | `flow.gate.selected` | `GateSelectionService` (via `GateCoordinator.select_gate()`) using `GateEventPublisher.publish_gate_selected()` | `MainPanelController` (`_on_gate_selected_from_controller`), `FlowCanvas` (`_on_controller_selected`) |
-| `GATE_PREVIEW` | `flow.gate.preview` | `GateDrawingFSM` during live drag/edit/polygon/quadrant preview, and `FlowCanvas._clear_previews()` | Subplot/thumbnail preview consumers |
+| `GATE_PREVIEW` | `flow.gate.preview` | `GateDrawingFSM` during live drag/edit/polygon/quadrant preview, and `FlowCanvas._clear_previews()` | `GroupPreviewPanel` (thumbnail overlays), `GateHistogramPanel` (highlighted gate) |
 | `SAMPLE_SELECTED` / `SAMPLE_DESELECTED` | `flow.sample.selected` / `flow.sample.deselected` | *(defined; selection is mostly handled via direct PyQt signals — see §3)* | — |
 | `SAMPLE_LOADED` | `flow.sample.loaded` | Sample loading path | Footer status message (`main_panel._setup_footer_events`) |
 | `RENDER_MODE_CHANGED` | `flow.render.mode_changed` | Display-mode changes | — |
@@ -342,6 +342,18 @@ Selection can be *initiated* from several different places —
 publishes `GATE_SELECTED`. Never set `state.view.current_gate_id` directly
 from a new UI entry point without going through this call, or the other
 readers listed above won't hear about it.
+
+### Selected node vs. displayed population
+
+The selected node is not always the population the main plot shows: clicking
+a gate overlay selects that gate's node while the plot keeps showing its
+parent. `PropertiesPanel` therefore tracks both — the selection through
+`show_sample_properties()` as above, and the displayed population through
+`set_displayed_population()`, called from
+`FlowCytometryPanel._on_active_graph_changed()`. `GateHistogramPanel` needs
+the pair: it histograms the displayed population and highlights the selected
+gate only if that gate is drawn on it. It does not subscribe to
+`GATE_SELECTED` itself; `PropertiesPanel` pushes both through `set_context()`.
 
 ---
 

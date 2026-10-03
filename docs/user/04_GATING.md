@@ -15,6 +15,15 @@ Karcytics supports complex geometric constraints tailored to isolate distinct ce
 - **✛ Quad**: Click to instantiate a bifurcating origin point that divides the coordinate space into four distinct quadrants (e.g., $CD4^+/CD8^-$, $CD4^-/CD8^+$, $CD4^+/CD8^+$, and $CD4^-/CD8^-$).
 - **⊢ Range**: Click and drag horizontally to draw a 1-dimensional range gate (ideal for histograms).
 
+### Checking a gate on the histograms
+
+A 2D plot shows where a gate sits; a histogram shows how it cuts each channel's distribution. To see both at once, switch the **Properties Panel** (right) to **Histogram**:
+
+- The whole population on the main plot is drawn in **grey**, and the events inside the gate are drawn over it in **colour**, on the same bins — for the X channel (top) and the Y channel (bottom).
+- It follows the gate **as you draw or drag it**, and settles on the selected gate once you finish. With no gate selected it shows the plain histograms.
+- **Rectangle** and **range** gates also show their edges as lines, and a **quadrant** shows its divider. Polygons and ellipses have no straight edge along an axis, so they show only the coloured events.
+- Bins, colour, and count/frequency follow the **Histogram** rendering settings. Like the main plot, the histograms draw at most the plot's event limit.
+
 ## 2. Gate Management & Propagation
 
 Once a geometric gate is drawn on a plot, it defines a new mathematical subset of the parent data. 

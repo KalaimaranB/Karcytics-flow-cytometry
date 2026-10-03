@@ -109,6 +109,12 @@ The **Group Preview** panel lives inside the **Properties Panel** on the right, 
 
 ![alt text](../images/02_workspace/group_preview.png)
 
+### Gate Histogram
+
+The top of the **Properties Panel** has a **Properties | Histogram** switch. **Histogram** replaces the properties form with two small histograms of the population on the main plot — one for its X channel, one for its Y channel — so you can check a gate against each channel's distribution while you draw it. See [Gating](04_GATING.md#checking-a-gate-on-the-histograms) for how to read them.
+
+The switch is disabled while the main plot is itself a **Histogram** or **CDF**, since it would only repeat it. Your choice is remembered between sessions, and you can drag the divider above the Group Preview to give the histograms more room.
+
 ## 4. Global Rendering Settings
 
 The **⚙ Settings** button on any plot's axis control bar opens a rendering dialog for the currently active plot type. Despite being opened from one plot, its changes apply to every open plot using that same mode — the dialog itself says so in its subtitle.
