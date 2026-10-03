@@ -110,8 +110,8 @@ class MainPanelController:
         # ── Workspace ribbon: template loaded → refresh everything ────
         panel._workspace_ribbon.template_load_requested.connect(panel._refresh_all)
 
-        # ── Compensation ribbon: matrix changed → refresh ─────────────
-        panel._compensation_ribbon.compensation_changed.connect(panel._on_compensation_changed)
+        # ── Compensation view: matrix changed → refresh ───────────────
+        panel._compensation_view.compensation_changed.connect(panel._on_compensation_changed)
 
         # ── Gating ribbon → drawing tool selection ────────────────────
         panel._gating_ribbon.tool_selected.connect(panel._graph_manager.set_drawing_mode)

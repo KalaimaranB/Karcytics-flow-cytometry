@@ -37,7 +37,7 @@ Current call sites:
 | Path | Where |
 | --- | --- |
 | New sample added | `Experiment.add_sample()` |
-| Compensation apply / toggle | `CompensationRibbon._on_apply_all`, `_on_toggle_compensation` |
+| Compensation apply / toggle | `CompensationView._on_apply_all`, `_on_toggle_compensation` |
 | Workspace reload | `WorkflowService.reload_fcs_data` — before `on_complete` evaluates gates |
 | State restore (undo/redo, workflow load) | `FlowStore.restore`, `WorkflowService.reload_fcs_data` |
 | Definition created / edited / deleted | `DerivedParameterService._after_change` |

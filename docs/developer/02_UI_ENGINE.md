@@ -29,7 +29,7 @@ a uniform 1:1 relationship between tab index and either stack's index:
 | Tab # | Tab label | Ribbon shown | Center-stack widget | `_ribbon_stack` visible? |
 |---|---|---|---|---|
 | 0 | Workspace | `WorkspaceRibbon` | `GraphManager` (index 0) | yes |
-| 1 | Compensation | `CompensationRibbon` | `GraphManager` (index 0) | yes |
+| 1 | Compensation | `CompensationRibbon` (empty placeholder, hidden) | `CompensationView` (index 6) | no |
 | 2 | Gating | `GatingRibbon` | `GraphManager` (index 0) | yes |
 | 3 | Pipeline | `PipelineRibbon` | `NodeCanvas` (index 1) | yes |
 | 4 | Statistics | `StatisticsRibbon` (empty placeholder) | `StatisticsExplorer` (index 4) | **no — ribbon stack hidden** |
@@ -37,48 +37,41 @@ a uniform 1:1 relationship between tab index and either stack's index:
 | 6 | Population Analysis | *(none wired)* | `PopulationAnalysisViewer` (index 3) | **no — ribbon stack hidden** |
 | 7 | Comparisons | `ComparisonsRibbon` (empty placeholder) | `ComparisonsViewer` (index 5) | **no — ribbon stack hidden** |
 
-For tabs 0–2, `_on_tab_changed` falls through to the `else` branch:
-`_center_stack.setCurrentIndex(0)` (always `GraphManager`, regardless of
-which of the three sub-tabs is active — Workspace/Compensation/Gating are
-three different ribbons over the *same* graph canvas), and it shows the
-left sidebar, properties panel, and ribbon stack. Tabs 3–7 each hide the
-sidebar and properties panel and switch to their own full-width center
-widget; tabs 4–7 additionally hide `_ribbon_stack` entirely, because those
-four widgets manage their own controls internally rather than delegating to
-a ribbon.
+For tabs 0 and 2, `_on_tab_changed` falls through to the `else` branch:
+`_center_stack.setCurrentIndex(0)` (always `GraphManager` — Workspace and
+Gating are two different ribbons over the *same* graph canvas), and it shows
+the left sidebar, properties panel, and ribbon stack. Tabs 1 and 3–7 each
+hide the sidebar and properties panel and switch to their own full-width
+center widget; tabs 1 and 4–7 additionally hide `_ribbon_stack` entirely,
+because those render the wrong ribbon (or nothing).
 
-!!! note "Note the index families don't line up"
-    Tab index, `_ribbon_stack` index, and `_center_stack` index are three
-    independent numbering schemes that only coincide for tabs 0–3. Center
-    stack index order is fixed by `WorkspaceBuilder.finalize_center_stack`'s
-    explicit `addWidget()` calls (`GraphManager`=0, `NodeCanvas`=1,
-    `SpectralViewer`=2, `PopulationAnalysisViewer`=3,
-    `StatisticsExplorer`=4, `ComparisonsViewer`=5) — note this does **not**
-    match tab order (Statistics is tab 4 but center-stack index 4 is
-    `StatisticsExplorer` only by coincidence; Spectral is tab 5 but
-    center-stack index 2). Always cross-check `_on_tab_changed` rather than
-    assuming a pattern.
+### The Compensation tab is a full view, built from matrix sources
 
-### `_ribbon_stack` has 7 widgets for 8 tabs
+`CompensationView` (`ui/widgets/compensation_view.py`) owns everything the
+tab does. Three pieces, kept separate so a new way of getting a matrix
+doesn't touch the other two:
 
-`build_skeleton()` adds exactly 7 widgets to `_ribbon_stack`, in this
-order: `_workspace_ribbon`(0), `_compensation_ribbon`(1), `_gating_ribbon`(2),
-`_pipeline_ribbon`(3), `_stats_ribbon`(4), `_spectral_ribbon`(5),
-`_comparisons_ribbon`(6). There is no ribbon widget for tab 6 (Population
-Analysis) at all. `_on_tab_changed` still unconditionally calls
-`self._ribbon_stack.setCurrentIndex(index)` at the top of the method before
-branching — so for tab 6 it sets the ribbon stack's current index to 6
-(`_comparisons_ribbon`, the wrong widget for that tab) and for tab 7 it
-calls `setCurrentIndex(7)`, which is out of range for a 7-widget stack
-(indices 0–6) and is simply a Qt no-op. Neither is currently a visible bug
-**only** because both tabs immediately hide `_ribbon_stack` in the same
-branch — but it means `_ribbon_stack`'s displayed page while hidden is
-whatever stale/wrong index was last set, so any future code path that shows
-the ribbon stack for tab 6 or 7 without also fixing this indexing will
-render the wrong ribbon (or nothing).
+- **`MatrixSource`** (`ui/widgets/matrix_sources.py`) — one way to obtain a
+  spillover matrix: `obtain(state, parent)` returns a `SourceResult`
+  (matrix, undo label, one-line summary), `None` if the user cancelled, or
+  raises `MatrixSourceError`. A source never changes state. The view builds
+  one button per entry in `MATRIX_SOURCES`, so an estimator ("smart
+  compensate") is a new subclass plus one line in that tuple.
+- **`CompensationEditor`** (`ui/widgets/compensation_editor.py`) — the matrix
+  table and `CompensationPreview`, editing a private working copy handed in
+  by `load()`. It never writes to the workspace.
+- **`CompensationView`** — decides when things reach the workspace. A
+  source's matrix becomes the workspace matrix at once (it does not touch
+  sample data). Table edits are a *draft* until **Apply to All**, which
+  saves them and calls `apply_compensation_to_all(reapply=True)` when the
+  matrix changed since it was last applied — without `reapply`, samples
+  already compensated with the old matrix would be skipped and keep its
+  values. `refresh()` keeps a draft across tab switches and drops it only
+  if the workspace matrix was replaced underneath it (undo, workflow load).
 
-### Two ribbons are known-empty placeholders
+### Three ribbons are known-empty placeholders
 
+`CompensationRibbon` (`ui/ribbons/compensation_ribbon.py`),
 `StatisticsRibbon` (`ui/ribbons/statistics_ribbon.py`) and
 `ComparisonsRibbon` (`ui/ribbons/comparisons_ribbon.py`) are explicitly
 documented, intentional empty placeholders — their module docstrings say so

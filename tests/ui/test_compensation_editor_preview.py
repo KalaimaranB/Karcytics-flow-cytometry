@@ -12,8 +12,8 @@ from PyQt6.QtCore import Qt
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor_dialog import (
-    CompensationEditorDialog,
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import (
+    CompensationEditor,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
     VIEW_HISTOGRAM,
@@ -51,8 +51,9 @@ def state():
 @pytest.fixture
 def dialog(qtbot, state):
     state.view.current_sample_id = "fl1"
-    widget = CompensationEditorDialog(state)
+    widget = CompensationEditor(state)
     qtbot.addWidget(widget)
+    widget.load(state.data.compensation)
     return widget
 
 
@@ -103,8 +104,8 @@ def test_the_two_cells_of_a_pair_stay_independent(dialog):
     """Spillover is directional — editing one cell must never mirror into the other."""
     dialog._table.item(0, 1).setText("0.5")
 
-    assert dialog._temp_matrix.matrix[0, 1] == 0.5
-    assert dialog._temp_matrix.matrix[1, 0] == 0.05
+    assert dialog._matrix.matrix[0, 1] == 0.5
+    assert dialog._matrix.matrix[1, 0] == 0.05
     assert "FL1-A → FL2-A</b> = 0.5000" in dialog._pair_help.text()
     assert _tinted(dialog) == {(0, 1), (1, 0)}  # highlighting survives the edit
 
@@ -131,7 +132,7 @@ def test_preview_compares_raw_events_with_the_edited_matrix(dialog, state):
 
     request = dialog._preview.render.call_args.args[0]
     raw = state.data.experiment.samples["fl1"].fcs_data.raw_events
-    expected = raw.to_numpy() @ np.linalg.inv(dialog._temp_matrix.matrix)
+    expected = raw.to_numpy() @ np.linalg.inv(dialog._matrix.matrix)
 
     pd.testing.assert_frame_equal(request.before, raw)
     np.testing.assert_allclose(request.after.to_numpy(), expected)
@@ -150,7 +151,7 @@ def test_switching_sample_re_renders_with_that_sample(dialog):
 def test_singular_matrix_shows_a_message_instead_of_raising(dialog):
     dialog._preview.show_message = MagicMock()
 
-    dialog._temp_matrix.matrix[0, :] = 0.0  # a row of zeros has no inverse
+    dialog._matrix.matrix[0, :] = 0.0  # a row of zeros has no inverse
     dialog._update_plots()
 
     assert "can't be inverted" in dialog._preview.show_message.call_args.args[0]
@@ -159,8 +160,9 @@ def test_singular_matrix_shows_a_message_instead_of_raising(dialog):
 def test_no_loaded_sample_shows_a_message(qtbot):
     state = FlowState()
     state.data.compensation = CompensationMatrix(matrix=np.eye(2), channel_names=["A", "B"])
-    dialog = CompensationEditorDialog(state)
+    dialog = CompensationEditor(state)
     qtbot.addWidget(dialog)
+    dialog.load(state.data.compensation)
 
     assert dialog._sample_combo.count() == 0
     assert any("Load a sample" in t.get_text() for t in dialog._preview._fig.texts)
@@ -193,3 +195,25 @@ def test_histogram_view_overlays_before_and_after_per_channel(dialog):
         ]
         # One filled histogram per version (plus any axis shading).
         assert len(ax.patches) >= 2
+
+
+# ── Working copy ──────────────────────────────────────────────────────
+
+
+def test_edits_stay_in_a_working_copy_until_the_owner_applies_them(dialog, state, qtbot):
+    with qtbot.waitSignal(dialog.edited):
+        dialog._table.item(0, 1).setText("0.5")
+
+    assert dialog.matrix.matrix[0, 1] == 0.5
+    assert state.data.compensation.matrix[0, 1] == 0.2  # the workspace is untouched
+
+
+def test_load_discards_edits_and_none_clears_the_table(dialog, state):
+    dialog._table.item(0, 1).setText("0.5")
+
+    dialog.load(state.data.compensation)
+    assert dialog.matrix.matrix[0, 1] == 0.2
+
+    dialog.load(None)
+    assert dialog.matrix is None
+    assert dialog._table.rowCount() == 0

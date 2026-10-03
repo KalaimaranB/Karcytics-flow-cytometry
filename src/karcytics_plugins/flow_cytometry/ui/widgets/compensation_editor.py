@@ -1,15 +1,15 @@
+"""Spillover matrix editor — the matrix table and its before/after preview."""
+
 from __future__ import annotations
 
 import typing
 
 import numpy as np
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor
 from PyQt6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
@@ -51,20 +51,22 @@ _MATRIX_CAPTION = (
 )
 
 
-class CompensationEditorDialog(QDialog):
-    """Dialog for fine-tuning and verifying compensation matrix."""
+class CompensationEditor(QWidget):
+    """Edits a working copy of a spillover matrix and previews its effect.
+
+    The copy is handed in with ``load()`` and read back from ``matrix``;
+    nothing here writes to the workspace — the owner decides when to apply.
+
+    Signals:
+        edited: a cell of the working copy changed.
+    """
+
+    edited = pyqtSignal()
 
     def __init__(self, state: FlowState, parent=None):
         super().__init__(parent)
         self._state = state
-        self.setWindowTitle("Spillover Matrix Editor")
-        self.resize(1100, 700)
-
-        self._temp_matrix: CompensationMatrix | None = None
-        if self._state.data.compensation:
-            # Deep copy to avoid mutating the state until applied
-            d = self._state.data.compensation.to_dict()
-            self._temp_matrix = CompensationMatrix.from_dict(d)
+        self._matrix: CompensationMatrix | None = None
 
         if self._state.axis_manager is not None:
             self._axis_manager = self._state.axis_manager
@@ -74,12 +76,25 @@ class CompensationEditorDialog(QDialog):
             self._axis_manager = AxisManager(self._state)
 
         self._setup_ui()
-        self._populate_samples()
+        self.refresh_samples()
+        self.load(None)
+
+    # ── Public API ────────────────────────────────────────────────────
+
+    @property
+    def matrix(self) -> CompensationMatrix | None:
+        """The working copy, including any edits."""
+        return self._matrix
+
+    def load(self, matrix: CompensationMatrix | None) -> None:
+        """Start editing a private copy of ``matrix``, discarding any edits."""
+        self._matrix = CompensationMatrix.from_dict(matrix.to_dict()) if matrix else None
         self._populate_matrix()
         self._on_pair_changed()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)
@@ -129,23 +144,6 @@ class CompensationEditorDialog(QDialog):
         splitter.addWidget(right_widget)
         splitter.setSizes([450, 650])
 
-        # ── Bottom Buttons ──
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-
-        btn_cancel = QPushButton("Cancel")
-        btn_cancel.clicked.connect(self.reject)
-        btn_layout.addWidget(btn_cancel)
-
-        btn_apply = QPushButton("Apply to Workspace")
-        btn_apply.setStyleSheet(
-            f"background: {Colors.ACCENT_PRIMARY}; color: {Colors.FG_PRIMARY}; font-weight: bold;"
-        )
-        btn_apply.clicked.connect(self._on_apply)
-        btn_layout.addWidget(btn_apply)
-
-        layout.addLayout(btn_layout)
-
     def _build_controls(self) -> QHBoxLayout:
         controls_layout = QHBoxLayout()
         self._sample_combo = FlowComboBox()
@@ -166,28 +164,33 @@ class CompensationEditorDialog(QDialog):
         controls_layout.addStretch()
         return controls_layout
 
-    def _populate_samples(self) -> None:
-        """List the samples that have data; start on the one open in the workspace."""
+    def refresh_samples(self) -> None:
+        """List the samples that have data, keeping the one on show if it still does.
+
+        Starts on the sample open in the workspace.
+        """
         samples = self._state.data.experiment.samples
         items = [
             (f"{s.display_name} · {s.role.value.replace('_', ' ').title()}", s_id)
             for s_id, s in samples.items()
             if s.fcs_data is not None
         ]
+        keep = self._sample_combo.currentData() or self._state.view.current_sample_id
         self._sample_combo.blockSignals(True)
-        repopulate_combo(self._sample_combo, items, restore_data=self._state.view.current_sample_id)
+        repopulate_combo(self._sample_combo, items, restore_data=keep)
         self._sample_combo.blockSignals(False)
+        self._update_plots()
 
     def _populate_matrix(self) -> None:
         self._table.blockSignals(True)
-        if not self._temp_matrix:
+        if not self._matrix:
             self._table.clear()
             self._table.setRowCount(0)
             self._table.setColumnCount(0)
             self._table.blockSignals(False)
             return
 
-        channels = self._temp_matrix.channel_names
+        channels = self._matrix.channel_names
         n = len(channels)
         self._table.setRowCount(n)
         self._table.setColumnCount(n)
@@ -206,7 +209,7 @@ class CompensationEditorDialog(QDialog):
 
         for i in range(n):
             for j in range(n):
-                val = self._temp_matrix.matrix[i, j]
+                val = self._matrix.matrix[i, j]
                 item = QTableWidgetItem(f"{val:.4f}")
                 if i == j:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
@@ -238,9 +241,9 @@ class CompensationEditorDialog(QDialog):
 
     def _pair_indices(self) -> tuple[int, int] | None:
         """Matrix indices of the plotted (X, Y) channels, if they are a real pair."""
-        if not self._temp_matrix:
+        if not self._matrix:
             return None
-        channels = self._temp_matrix.channel_names
+        channels = self._matrix.channel_names
         x_ch, y_ch = self._x_combo.currentText(), self._y_combo.currentText()
         if x_ch not in channels or y_ch not in channels or x_ch == y_ch:
             return None
@@ -272,11 +275,11 @@ class CompensationEditorDialog(QDialog):
 
     def _refresh_pair_help(self) -> None:
         pair = self._pair_indices()
-        if pair is None or self._temp_matrix is None:
+        if pair is None or self._matrix is None:
             self._pair_help.setText("Pick two different channels to see which cells correct them.")
             return
         x, y = pair
-        channels, matrix = self._temp_matrix.channel_names, self._temp_matrix.matrix
+        channels, matrix = self._matrix.channel_names, self._matrix.matrix
 
         def _line(color: str, dye: int, detector: int, low: str, high: str) -> str:
             return (
@@ -295,7 +298,7 @@ class CompensationEditorDialog(QDialog):
         )
 
     def _on_cell_changed(self, item: QTableWidgetItem) -> None:
-        if not self._temp_matrix:
+        if not self._matrix:
             return
 
         row = item.row()
@@ -305,20 +308,19 @@ class CompensationEditorDialog(QDialog):
         except ValueError:
             return  # Ignore invalid input
         # Recreate matrix because we can't mutate the cached inverse easily
-        m = self._temp_matrix.matrix.copy()
+        m = self._matrix.matrix.copy()
         m[row, col] = val
-        self._temp_matrix = CompensationMatrix(
-            matrix=m, channel_names=self._temp_matrix.channel_names
-        )
+        self._matrix = CompensationMatrix(matrix=m, channel_names=self._matrix.channel_names)
         self._refresh_pair_help()
         self._update_plots()
+        self.edited.emit()
 
     # ── Preview ───────────────────────────────────────────────────────
 
     def _update_plots(self) -> None:
         sample_id = self._sample_combo.currentData()
         sample = self._state.data.experiment.samples.get(sample_id) if sample_id else None
-        if not self._temp_matrix or sample is None or sample.fcs_data is None:
+        if not self._matrix or sample is None or sample.fcs_data is None:
             self._preview.show_message("Load a sample to preview the matrix.")
             return
 
@@ -342,7 +344,7 @@ class CompensationEditorDialog(QDialog):
             before = raw_events.copy()
 
         try:
-            after = compensate_events(before.copy(), self._temp_matrix)
+            after = compensate_events(before.copy(), self._matrix)
         except np.linalg.LinAlgError:
             self._preview.show_message(
                 "This matrix can't be inverted — check the value you just entered."
@@ -362,16 +364,3 @@ class CompensationEditorDialog(QDialog):
                 render_config=self._state.view.render_config,
             )
         )
-
-    def _on_apply(self) -> None:
-        if self._temp_matrix:
-            from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-
-            # The ribbon re-applies it to the data in this same event-loop
-            # turn, so both land in one "Edit Compensation Matrix" step.
-            experiment_edits.set_compensation(
-                self._state, self._temp_matrix, "Edit Compensation Matrix"
-            )
-            self.accept()
-        else:
-            self.reject()

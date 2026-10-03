@@ -258,9 +258,17 @@ class CompensationResult:
 
 
 def apply_compensation_to_all(
-    state: FlowState, publish: Publish | None = None, label: str = "Apply Compensation"
+    state: FlowState,
+    publish: Publish | None = None,
+    label: str = "Apply Compensation",
+    reapply: bool = False,
 ) -> CompensationResult:
-    """Compensate every loaded, not-yet-compensated sample with the current matrix."""
+    """Compensate every loaded, not-yet-compensated sample with the current matrix.
+
+    ``reapply`` also recompensates samples that already are, from their raw
+    backup — needed after the matrix itself changed, or they would keep the
+    values the old matrix gave them.
+    """
     comp = state.data.compensation
     if comp is None:
         return CompensationResult()
@@ -270,7 +278,8 @@ def apply_compensation_to_all(
         if sample.fcs_data is None:
             no_data += 1
             continue
-        if sample.is_compensated:
+        can_reapply = reapply and getattr(sample.fcs_data, "raw_events", None) is not None
+        if sample.is_compensated and not can_reapply:
             already += 1
             continue
         try:

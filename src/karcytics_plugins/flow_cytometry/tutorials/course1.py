@@ -645,7 +645,7 @@ course_1_fundamentals = Course(
         InteractionStep(
             id="c1_s14_extract_matrix",
             text=(
-                "Click **📄 Extract from FCS** (highlighted) in the ribbon.<br><br>"
+                "Click **📄 Extract from FCS** (highlighted) at the top of the tab.<br><br>"
                 "This reads the $SPILL keyword from the first file that has it."
             ),
             target_widget_name="ExtractFCSButton",
@@ -656,12 +656,14 @@ course_1_fundamentals = Course(
         InfoStep(
             id="c1_s15_view_matrix",
             text=(
-                "A dialog has popped up showing the extracted matrix values!<br><br>"
-                "Take a moment to look at it. The diagonal is usually 1.0, and "
-                "other numbers show how much light spills into adjacent detectors.<br><br>"
-                "Click **OK** on the dialog to close it, then click Next here."
+                "The extracted matrix now fills the tab (highlighted)!<br><br>"
+                "Take a moment to look at it. The diagonal is always 1.0, and "
+                "other numbers show how much light spills into adjacent detectors. "
+                "Each row is a dye; each column is the detector it spills into.<br><br>"
+                "The plots on the right show the same cells before and after this matrix."
             ),
             cyto_emotion="talking",
+            target_widget_names=["CompensationView"],
             next_step_id="c1_s16_apply_matrix",
         ),
         InteractionStep(
@@ -671,8 +673,8 @@ course_1_fundamentals = Course(
                 "Since Karcytics already auto-applied the matrix on import, this "
                 "won't actually change anything right now, but this is exactly "
                 "what you would do for uncompensated data.<br><br>"
-                "A popup will tell you that the samples were skipped because "
-                "they are already compensated. You can close it."
+                "The status line next to the button will say the samples were "
+                "skipped because they are already compensated."
             ),
             target_widget_name="ApplyAllButton",
             event_trigger="clicked",

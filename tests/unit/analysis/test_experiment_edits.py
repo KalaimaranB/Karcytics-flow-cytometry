@@ -249,3 +249,23 @@ def test_annotation_edits_mark_unsaved_without_a_step(env):
     env.end_turn()
     assert env.store.is_dirty
     assert not env.store.history.can_undo()
+
+
+def test_reapply_recompensates_already_compensated_samples_with_the_new_matrix(env):
+    edits.apply_compensation_to_all(env.state, env.bus.publish)
+    env.end_turn()
+    sample = env.state.data.experiment.samples["s0"]
+    with_old = sample.fcs_data.events.copy()
+
+    new = CompensationMatrix(np.array([[1.0, 0.5], [0.4, 1.0]]), ["FITC-A", "APC-A"])
+    edits.set_compensation(env.state, new, "Edit Compensation Matrix", env.bus.publish)
+
+    # Without reapply, compensated samples keep the old matrix's values.
+    skipped = edits.apply_compensation_to_all(env.state, env.bus.publish)
+    assert (skipped.changed, skipped.already_compensated) == (0, 3)
+    assert _events_equal(sample.fcs_data.events, with_old)
+
+    result = edits.apply_compensation_to_all(env.state, env.bus.publish, reapply=True)
+    assert (result.changed, result.already_compensated) == (3, 0)
+    assert not _events_equal(sample.fcs_data.events, with_old)
+    assert sample.is_compensated

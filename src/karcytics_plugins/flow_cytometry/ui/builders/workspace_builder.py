@@ -237,6 +237,7 @@ class WorkspaceBuilder:
     #   3 → PopulationAnalysisViewer (Population Analysis tab)
     #   4 → StatisticsExplorer     (Statistics tab)
     #   5 → ComparisonsViewer      (Comparisons tab)
+    #   6 → CompensationView       (Compensation tab)
 
     @staticmethod
     def build_step_graph_manager(panel: FlowCytometryPanel) -> None:
@@ -326,8 +327,18 @@ class WorkspaceBuilder:
         panel.state.view._comparisons_viewer = panel._comparisons_viewer
 
     @staticmethod
+    def build_step_compensation(panel: FlowCytometryPanel) -> None:
+        """Phase 2 step 7/7 — build the compensation view."""
+        # Deferred import — see build_step_graph_manager's comment.
+        from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import (
+            CompensationView,
+        )
+
+        panel._compensation_view = CompensationView(panel.state, parent=panel)
+
+    @staticmethod
     def finalize_center_stack(panel: FlowCytometryPanel) -> None:
-        """Replace the skeleton placeholder with all 6 real views at correct indices."""
+        """Replace the skeleton placeholder with all 7 real views at correct indices."""
         # Remove placeholder (only widget currently in the stack at index 0)
         placeholder = panel._center_stack.widget(0)
         panel._center_stack.removeWidget(placeholder)
@@ -340,6 +351,7 @@ class WorkspaceBuilder:
         panel._center_stack.addWidget(panel._population_analysis_viewer)  # 3
         panel._center_stack.addWidget(panel._statistics_explorer)  # 4
         panel._center_stack.addWidget(panel._comparisons_viewer)  # 5
+        panel._center_stack.addWidget(panel._compensation_view)  # 6
 
         panel._center_stack.setCurrentIndex(0)
 
@@ -364,6 +376,7 @@ class WorkspaceBuilder:
         WorkspaceBuilder.build_step_population(panel)
         WorkspaceBuilder.build_step_statistics(panel)
         WorkspaceBuilder.build_step_comparisons(panel)
+        WorkspaceBuilder.build_step_compensation(panel)
         WorkspaceBuilder.finalize_center_stack(panel)
         WorkspaceBuilder.connect_tab_bar(panel)
 

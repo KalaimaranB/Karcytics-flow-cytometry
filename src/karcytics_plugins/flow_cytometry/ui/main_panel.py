@@ -86,6 +86,7 @@ class FlowCytometryPanel(PluginBase):
     _ribbon_stack: Any
     _workspace_ribbon: Any
     _compensation_ribbon: Any
+    _compensation_view: Any
     _gating_ribbon: Any
     _pipeline_ribbon: Any
     _stats_ribbon: Any
@@ -311,8 +312,13 @@ class FlowCytometryPanel(PluginBase):
     def _on_tab_changed_locked(self, index: int) -> None:
         self._ribbon_stack.setCurrentIndex(index)
 
-        # 3=Pipeline, 4=Statistics, 5=Spectral, 6=Population Analysis
-        if index == 3:  # noqa: PLR2004
+        # 1=Compensation, 3=Pipeline, 4=Statistics, 5=Spectral, 6=Population Analysis
+        if index == 1:
+            self._center_stack.setCurrentIndex(6)  # CompensationView
+            self._left_sidebar.hide()
+            self._properties_panel.hide()
+            self._ribbon_stack.hide()
+        elif index == 3:  # noqa: PLR2004
             self._center_stack.setCurrentIndex(1)  # NodeCanvas
             self._left_sidebar.hide()
             self._properties_panel.hide()
@@ -444,6 +450,7 @@ class FlowCytometryPanel(PluginBase):
             ("population", lambda: WorkspaceBuilder.build_step_population(self)),
             ("statistics", lambda: WorkspaceBuilder.build_step_statistics(self)),
             ("comparisons", lambda: WorkspaceBuilder.build_step_comparisons(self)),
+            ("compensation", lambda: WorkspaceBuilder.build_step_compensation(self)),
             ("finalize", self._phase2_finalize),
         ]
         QTimer.singleShot(0, self._run_next_phase2_step)
@@ -1245,6 +1252,9 @@ class FlowCytometryPanel(PluginBase):
         # MainPanelController.unwire() does not touch — clean those up explicitly.
         if hasattr(self, "_properties_panel"):
             self._properties_panel.cleanup()
+
+        if hasattr(self, "_compensation_view"):
+            self._compensation_view.cleanup()
 
         if hasattr(self, "_umap_service"):
             self._umap_service.cancel()
