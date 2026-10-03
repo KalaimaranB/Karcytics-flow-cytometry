@@ -60,7 +60,7 @@ class FlowCytometryPanel(PluginBase):
     Layout::
 
         ┌────────────────────────────────────────────────────┐
-        │  Tab Bar: Workspace | Compensation | Gating | ...  │
+        │  Tab Bar: Workspace | Gating | Compensation | ...  │
         │  ┌──────────────────────────────────────────────┐  │
         │  │            Toolbar Ribbon (stacked)          │  │
         │  └──────────────────────────────────────────────┘  │
@@ -312,8 +312,9 @@ class FlowCytometryPanel(PluginBase):
     def _on_tab_changed_locked(self, index: int) -> None:
         self._ribbon_stack.setCurrentIndex(index)
 
-        # 1=Compensation, 3=Pipeline, 4=Statistics, 5=Spectral, 6=Population Analysis
-        if index == 1:
+        # 1=Gating, 2=Compensation, 3=Pipeline, 4=Statistics, 5=Spectral,
+        # 6=Population Analysis
+        if index == 2:  # noqa: PLR2004
             self._center_stack.setCurrentIndex(6)  # CompensationView
             self._left_sidebar.hide()
             self._properties_panel.hide()
@@ -1079,7 +1080,7 @@ class FlowCytometryPanel(PluginBase):
 
             # If we are in Pipeline view, switch back to Gating view automatically
             if self._tab_bar.currentIndex() == 3:  # noqa: PLR2004
-                self._tab_bar.setCurrentIndex(2)
+                self._tab_bar.setCurrentIndex(1)
                 if self._gate_hierarchy._active_sample_id != sample_id:
                     self.state.view.current_sample_id = sample_id
                     self._gate_hierarchy.set_active_sample(sample_id)

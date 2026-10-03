@@ -90,8 +90,8 @@ class WorkspaceBuilder:
         panel._tab_bar.setDocumentMode(True)
         tab_names = [
             "Workspace",
-            "Compensation",
             "Gating",
+            "Compensation",
             "Pipeline",
             "Statistics",
             "Spectral",
@@ -138,8 +138,8 @@ class WorkspaceBuilder:
         panel._comparisons_ribbon = ComparisonsRibbon()
 
         panel._ribbon_stack.addWidget(panel._workspace_ribbon)
-        panel._ribbon_stack.addWidget(panel._compensation_ribbon)
         panel._ribbon_stack.addWidget(panel._gating_ribbon)
+        panel._ribbon_stack.addWidget(panel._compensation_ribbon)
         panel._ribbon_stack.addWidget(panel._pipeline_ribbon)
         panel._ribbon_stack.addWidget(panel._stats_ribbon)
         panel._ribbon_stack.addWidget(panel._spectral_ribbon)

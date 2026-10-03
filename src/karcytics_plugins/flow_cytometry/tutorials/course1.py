@@ -639,7 +639,7 @@ course_1_fundamentals = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),
+            validator=TabActiveValidator(2),  # Compensation
             on_success_step_id="c1_s14_extract_matrix",
         ),
         InteractionStep(
@@ -713,7 +713,7 @@ course_1_fundamentals = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),
+            validator=TabActiveValidator(1),  # Gating
             on_success_step_id="c1_s22b_open_sample",
         ),
         # Open Blank Sample first — gate applies to whichever sample is open

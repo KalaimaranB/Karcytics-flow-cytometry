@@ -11,7 +11,7 @@ Spotlight convention:
   target_widget_name  — single objectName for InteractionStep highlight.
   target_widget_names — list of objectNames for multi-target InfoStep spotlights.
 
-Main tab bar order (0-indexed): Workspace, Compensation, Gating, Pipeline,
+Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
 Statistics, Spectral, Population Analysis, Comparisons.
 
 Panel reference (confirmed from the tutorial FCS file headers, $PnN/$PnS —

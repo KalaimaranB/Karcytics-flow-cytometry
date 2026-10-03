@@ -182,7 +182,7 @@ course_2_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),
+            validator=TabActiveValidator(1),
             on_success_step_id="c2_s02_open_sample",
         ),
         VerificationStep(
@@ -676,7 +676,7 @@ course_2_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),
+            validator=TabActiveValidator(1),
             on_success_step_id="c2_s30_reenter_tcells_intro",
         ),
         # ── CD4/CD8 quadrant split (still on Sample C) ──────────────────────────
@@ -1038,7 +1038,7 @@ course_2_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),
+            validator=TabActiveValidator(1),
             on_success_step_id="c2_s50b_quickstat_open",
         ),
         InteractionStep(

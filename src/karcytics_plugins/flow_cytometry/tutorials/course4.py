@@ -12,7 +12,7 @@ Spotlight convention:
   target_widget_name  — single objectName for InteractionStep highlight.
   target_widget_names — list of objectNames for multi-target InfoStep spotlights.
 
-Main tab bar order (0-indexed): Workspace, Compensation, Gating, Pipeline,
+Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
 Statistics, Spectral, Population Analysis, Comparisons.
 
 Course 4 picks up where Course 3 left off: Course 3 ends with a real,
@@ -247,7 +247,7 @@ course_4_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),
+            validator=TabActiveValidator(1),
             on_success_step_id="c4_d06_open_editor",
         ),
         InteractionStep(
