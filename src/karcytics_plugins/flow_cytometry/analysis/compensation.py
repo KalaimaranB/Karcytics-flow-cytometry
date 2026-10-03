@@ -19,6 +19,7 @@ Reference:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -43,6 +44,25 @@ CELL_EDITED = 2  # set by hand
 _FMO_FIT_MAX_EVENTS = 100_000
 _HUBER_K = 1.345
 _ROBUST_FIT_ITERATIONS = 30
+_LARGELY_IGNORED_WEIGHT = 0.5
+
+
+@dataclass(frozen=True)
+class ControlEvents:
+    """The events of one control an estimate is fitted on (see ``fit_population``)."""
+
+    events: pd.DataFrame
+    file_path: Path | None = None
+
+
+@dataclass(frozen=True)
+class DetectorFit:
+    """How the FMO fit for one detector went — what the estimate rests on."""
+
+    channel: str
+    events: int  # events the fit used
+    down_weighted: float  # share of them the robust fit largely ignored
+    r_squared: float  # how much of the detector's signal the other dyes explain
 
 
 @dataclass
@@ -102,8 +122,8 @@ class CompensationMatrix:
 
 
 def calculate_spillover_matrix(  # noqa: C901, PLR0912
-    single_stains: list[FCSData],
-    unstained: FCSData | None = None,
+    single_stains: Sequence[FCSData | ControlEvents],
+    unstained: FCSData | ControlEvents | None = None,
     fluorescence_channels: list[str] | None = None,
 ) -> CompensationMatrix:
     """Compute the spillover matrix from single-stain control samples.
@@ -135,7 +155,10 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
         raise ValueError("At least 2 single-stain samples are required.")
 
     if fluorescence_channels is None:
-        fluorescence_channels = get_fluorescence_channels(single_stains[0])
+        first = single_stains[0]
+        if not isinstance(first, FCSData):
+            raise ValueError("fluorescence_channels is required for bare control events.")
+        fluorescence_channels = get_fluorescence_channels(first)
 
     n = len(fluorescence_channels)
     spillover = np.eye(n, dtype=np.float64)
@@ -232,7 +255,9 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
 
 
 def calculate_spillover_from_fmo(
-    fmo_controls: dict[str, FCSData], fluorescence_channels: list[str]
+    fmo_controls: dict[str, pd.DataFrame],
+    fluorescence_channels: list[str],
+    fits: list[DetectorFit] | None = None,
 ) -> CompensationMatrix:
     """Estimate the spillover matrix from fluorescence-minus-one controls.
 
@@ -248,8 +273,11 @@ def calculate_spillover_from_fmo(
     to spill into it, and its column is marked ``CELL_DEFAULT``.
 
     Args:
-        fmo_controls:          Missing dye's channel → that FMO control.
+        fmo_controls:          Missing dye's channel → that FMO control's
+                               uncompensated events.
         fluorescence_channels: The matrix's channels, in order.
+        fits:                  If given, receives one ``DetectorFit`` per
+                               detector that was fitted.
 
     Raises:
         ValueError: No usable control, or the estimate can't be inverted.
@@ -258,16 +286,18 @@ def calculate_spillover_from_fmo(
     weights = np.zeros((n, n), dtype=np.float64)  # weights[j, k]: detector j's share in k
     covered: list[int] = []
     for k, channel in enumerate(fluorescence_channels):
-        control = fmo_controls.get(channel)
-        events = None if control is None else _raw_events(control)
+        events = fmo_controls.get(channel)
         if events is None or any(ch not in events.columns for ch in fluorescence_channels):
             continue
         step = max(1, len(events) // _FMO_FIT_MAX_EVENTS)
         values = events[fluorescence_channels].to_numpy(dtype=np.float64)[::step]
         others = [j for j in range(n) if j != k]
         design = np.column_stack([values[:, others], np.ones(len(values))])
-        weights[others, k] = _robust_fit(design, values[:, k])[:-1]
+        solution, fit = _robust_fit(design, values[:, k], channel)
+        weights[others, k] = solution[:-1]
         covered.append(k)
+        if fits is not None:
+            fits.append(fit)
     if not covered:
         raise ValueError("No FMO control has data for every channel of the matrix.")
 
@@ -293,7 +323,9 @@ def calculate_spillover_from_fmo(
     )
 
 
-def _robust_fit(design: np.ndarray, target: np.ndarray) -> np.ndarray:
+def _robust_fit(
+    design: np.ndarray, target: np.ndarray, channel: str = ""
+) -> tuple[np.ndarray, DetectorFit]:
     """Least squares that down-weights outlying events (Huber weights).
 
     Some events carry signal in the missing dye's detector that the other
@@ -303,6 +335,7 @@ def _robust_fit(design: np.ndarray, target: np.ndarray) -> np.ndarray:
     """
     weights = np.ones(len(target))
     solution = np.zeros(design.shape[1])
+    residual = target.copy()
     for _ in range(_ROBUST_FIT_ITERATIONS):
         weighted = design * weights[:, None]
         previous = solution
@@ -313,13 +346,16 @@ def _robust_fit(design: np.ndarray, target: np.ndarray) -> np.ndarray:
         if scale <= 0 or np.allclose(solution, previous, rtol=1e-6, atol=1e-9):
             break
         weights = np.minimum(1.0, _HUBER_K * scale / np.maximum(np.abs(residual), 1e-12))
-    return solution
 
-
-def _raw_events(data: FCSData) -> pd.DataFrame | None:
-    """Uncompensated events: the raw backup if compensation replaced them."""
-    raw = getattr(data, "raw_events", None)
-    return raw if raw is not None else data.events
+    centred = target - np.average(target, weights=weights)
+    spread = float(np.sum(weights * centred**2))
+    explained = 1.0 - float(np.sum(weights * residual**2)) / spread if spread > 0 else 1.0
+    return solution, DetectorFit(
+        channel=channel,
+        events=len(target),
+        down_weighted=float(np.mean(weights < _LARGELY_IGNORED_WEIGHT)),
+        r_squared=explained,
+    )
 
 
 # ── Import from FCS metadata ─────────────────────────────────────────────────

@@ -19,6 +19,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     FmoSource,
     MatrixSource,
     MatrixSourceError,
+    MethodOptions,
     Readiness,
     SingleStainSource,
     SourceResult,
@@ -83,10 +84,10 @@ class _FixedSource(MatrixSource):
         self._outcome = outcome
         self._ready = ready
 
-    def readiness(self, state):
-        return Readiness(self._ready, "what the estimator needs", "the specifics")
+    def readiness(self, state, options):
+        return Readiness(self._ready, "what the estimator needs")
 
-    def obtain(self, state, parent):
+    def obtain(self, state, parent, options):
         if isinstance(self._outcome, Exception):
             raise self._outcome
         return self._outcome
@@ -102,7 +103,9 @@ def _button(view, object_name):
 def test_no_matrix_shows_the_empty_state_with_actions_disabled(make_view, state):
     view = make_view(state)
 
-    assert view._body.currentWidget() is view._empty
+    # Nothing to edit yet: the body is the method's setup, and Matrix is unavailable.
+    assert view._body.currentWidget() is view._setup
+    assert not view._btn_matrix_page.isEnabled()
     assert not view._btn_apply.isEnabled() and not view._btn_export.isEnabled()
     assert view._btn_revert.isHidden()
 
@@ -150,7 +153,6 @@ def test_picking_a_method_retargets_the_run_button_and_sticks(make_view, state):
 
     assert view._btn_run.text() == "🧮 Estimate from FMOs"
     assert "No FMO controls loaded" in view._method_hint.text()
-    assert view._method_hint.toolTip() == ""
     view.refresh()  # coming back to the tab keeps the user's choice
     assert view._method_combo.currentData() == "fmo"
 
@@ -228,20 +230,20 @@ def test_fcs_source_reports_which_file_the_matrix_came_from(state, monkeypatch):
         lambda fcs: _matrix() if fcs is state.data.experiment.samples["b"].fcs_data else None,
     )
 
-    result = FcsMetadataSource().obtain(state, None)
+    result = FcsMetadataSource().obtain(state, None, MethodOptions())
 
     assert result.undo_label == "Extract Compensation Matrix"
     assert "B" in result.summary
 
     monkeypatch.setattr(matrix_sources, "extract_spill_from_fcs", lambda fcs: None)
     with pytest.raises(MatrixSourceError, match="SPILL"):
-        FcsMetadataSource().obtain(state, None)
+        FcsMetadataSource().obtain(state, None, MethodOptions())
 
 
 def test_single_stain_source_needs_two_controls(state):
-    assert SingleStainSource().readiness(state)[0] is False
+    assert SingleStainSource().readiness(state, MethodOptions())[0] is False
     with pytest.raises(MatrixSourceError, match="Found 0 single-stain controls"):
-        SingleStainSource().obtain(state, None)
+        SingleStainSource().obtain(state, None, MethodOptions())
 
 
 def _fmo(name: str, missing: int, fmo_minus: str | None = None) -> Sample:
@@ -258,26 +260,39 @@ def _fmo(name: str, missing: int, fmo_minus: str | None = None) -> Sample:
     return sample
 
 
+def _fmo_rows(state) -> dict[str, tuple[str, ...]]:
+    """The FMO method's inputs table, by tube name: (lacks, how we know, events used)."""
+    inputs = FmoSource().inputs(state, MethodOptions())
+    return {row.cells[0]: row.cells[1:] for row in inputs.rows}
+
+
 def test_fmo_source_matches_each_control_to_the_dye_it_lacks(state):
     source = FmoSource()
-    assert source.readiness(state)[0] is False
+    assert source.readiness(state, MethodOptions()).ready is False
     with pytest.raises(MatrixSourceError, match="could be matched"):
-        source.obtain(state, None)
+        source.obtain(state, None, MethodOptions())
 
     # By name ("CD4" must not match inside "CD45"), and by the template's fmo_minus.
     state.data.experiment.samples["f1"] = _fmo("Specimen_001_FMO CD4", 0)
     state.data.experiment.samples["f2"] = _fmo("Tube 7", 1, fmo_minus="cd45")
     state.data.experiment.samples["f3"] = _fmo("Mystery FMO", 1)
 
-    ready, text, detail = source.readiness(state)
+    ready, text = source.readiness(state, MethodOptions())
     assert ready and "2 of 2" in text and "1 not used" in text
-    assert "FL1-A: Specimen_001_FMO CD4" in detail and "FL2-A: Tube 7" in detail
-    assert "Not used: Mystery FMO" in detail
+    rows = _fmo_rows(state)
+    assert rows["Specimen_001_FMO CD4"][:2] == ("FL1-A", "from its name")
+    assert rows["Tube 7"][:2] == ("FL2-A", "set by you")
+    assert rows["Mystery FMO"][:2] == ("unknown", "not used — couldn't tell which dye it lacks")
 
-    result = source.obtain(state, None)
+    result = source.obtain(state, None, MethodOptions())
     np.testing.assert_allclose(result.matrix.matrix, SPILLOVER, atol=1e-8)
     assert result.matrix.source == "fmo"
     assert result.summary == "Estimated a 2×2 matrix from 2 FMO control(s)."
+    # The run says what it rested on: one fit per detector, with its tube.
+    assert [row[:2] for row in result.report.rows] == [
+        ("FL1-A", "Specimen_001_FMO CD4"),
+        ("FL2-A", "Tube 7"),
+    ]
 
 
 # ── The edit draft ────────────────────────────────────────────────────
@@ -404,19 +419,22 @@ def test_an_fmo_with_an_unrecognised_name_is_placed_by_its_signal(state):
         sample.fcs_data.raw_events = pd.DataFrame(true @ spillover + 20.0, columns=channels)
         state.data.experiment.samples[name] = sample
 
-    ready, text, detail = FmoSource().readiness(state)
+    ready, text = FmoSource().readiness(state, MethodOptions())
 
-    assert ready and "3 of 3" in text and "1 matched by signal" in text
-    assert "Pacific Blue-A: FMO e450 (matched by its signal" in detail
+    assert ready and "3 of 3" in text and "1 not used" in text
+    rows = _fmo_rows(state)
+    assert rows["FMO e450"][:2] == ("Pacific Blue-A", "from its data (dim in this channel)")
     # The channel is taken, so a second unnamed tube isn't forced onto it.
-    assert "Not used: FMO ???" in detail
-    result = FmoSource().obtain(state, None)
+    assert rows["FMO ???"][0] == "unknown"
+    result = FmoSource().obtain(state, None, MethodOptions())
     np.testing.assert_allclose(result.matrix.matrix, spillover, atol=1e-8)
 
     # A manual choice beats both the name and the signal.
     state.data.experiment.samples["FMO PE"].fmo_minus = "FITC-A"
-    detail = FmoSource().readiness(state).detail
-    assert "FITC-A: FMO PE" in detail and "Not used: FMO FITC" in detail
+    rows = _fmo_rows(state)
+    assert rows["FMO PE"][:2] == ("FITC-A", "set by you")
+    assert rows["FMO FITC"][1] == "not used — FMO PE already covers it"
+    assert rows["(no FMO control)"][:2] == ("PE-A", "not estimated — left at 0")
 
 
 def test_cells_show_whether_the_method_produced_them(make_view, state):

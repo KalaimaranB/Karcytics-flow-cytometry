@@ -2,8 +2,9 @@
 
 The header walks the two steps every matrix goes through: pick a method and
 run it (one ``MatrixSource`` per method), then fine-tune the result by hand
-and apply it. Below: the matrix editor with its before/after preview, or an
-empty state until there is a matrix.
+and apply it. Below, a switch between the matrix editor with its
+before/after preview and the selected method's setup page (how it works,
+its options, what it will use, what its last run rested on).
 
 Edits are a draft: they change the workspace only when the user applies
 them, so every keystroke doesn't recompensate every sample.
@@ -20,9 +21,11 @@ from karcytics_sdk.plugin.dialogs import show_error, show_warning
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QPushButton,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -40,16 +43,14 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     MATRIX_SOURCES,
     MatrixSource,
     MatrixSourceError,
+    MethodOptions,
+    Table,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 logger = get_logger(__name__, "flow_cytometry")
 
-_NO_MATRIX_TEXT = (
-    "No compensation matrix yet.\n\n"
-    "Pick a method above and run it: read the matrix from your FCS files, calculate it\n"
-    "from single-stain or FMO controls, or import a CSV. Then fine-tune it here."
-)
 _RUN_BUTTON_NAME = "RunMethodButton"
 _FINE_TUNE_HINT = " Fine-tune any cell below, then Apply to All."
 
@@ -91,6 +92,9 @@ class CompensationView(QWidget):
         self._draft_base: CompensationMatrix | None = None
         # The user picked a method themselves; stop following the default.
         self._method_picked = False
+        # Per method (by key): the user's setup choices, and its last run's report.
+        self._options: dict[str, MethodOptions] = {}
+        self._reports: dict[str, Table] = {}
         self._is_alive = True
         self.setObjectName("CompensationView")
         self._setup_ui()
@@ -126,18 +130,50 @@ class CompensationView(QWidget):
         )
         layout.addWidget(header)
 
+        layout.addWidget(self._build_page_toggle())
+
         self._body = QStackedWidget()
-        self._empty = QLabel(_NO_MATRIX_TEXT)
-        self._empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        theme_manager.apply_style(
-            self._empty,
-            f"color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_SMALL}px; background: {{BG_DARKEST}};",
-        )
         self._editor = CompensationEditor(self._state)
         self._editor.edited.connect(self._refresh_status)
-        self._body.addWidget(self._empty)
+        self._setup = MethodSetupPanel(self._state)
+        self._setup.changed.connect(self._refresh_method)
         self._body.addWidget(self._editor)
+        self._body.addWidget(self._setup)
         layout.addWidget(self._body, stretch=1)
+
+    def _build_page_toggle(self) -> QWidget:
+        """The Matrix | Method setup switch for the body."""
+        row = QWidget()
+        row.setObjectName("CompensationPageToggle")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(0)
+
+        self._btn_matrix_page = QPushButton("Matrix")
+        self._btn_setup_page = QPushButton("⚙ Method setup")
+        self._page_buttons = QButtonGroup(self)
+        for button in (self._btn_matrix_page, self._btn_setup_page):
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._page_buttons.addButton(button)
+            row_layout.addWidget(button)
+        self._btn_matrix_page.setChecked(True)
+        self._btn_matrix_page.setToolTip("The spillover matrix and its before/after preview.")
+        self._btn_setup_page.setToolTip(
+            "How the selected method works, its options, and what it uses."
+        )
+        self._page_buttons.buttonToggled.connect(lambda *_: self._sync_page())
+
+        theme_manager.apply_style(
+            row,
+            f"QPushButton {{ color: {{FG_SECONDARY}}; background: {{BG_DARK}};"
+            f" font-size: {Fonts.SIZE_SMALL}px; padding: 5px 0; border: none;"
+            " border-bottom: 2px solid {BORDER}; }"
+            " QPushButton:checked { color: {FG_PRIMARY};"
+            " border-bottom: 2px solid {ACCENT_PRIMARY}; }"
+            " QPushButton:disabled { color: {FG_DISABLED}; }",
+        )
+        return row
 
     def _build_method_row(self) -> QHBoxLayout:
         """Step 1: the method selector and its run button, then the matrix actions."""
@@ -229,7 +265,7 @@ class CompensationView(QWidget):
         """The method behind the current matrix; with none, the first that can run."""
         matrix = self._state.data.compensation
         used = self._source(matrix.source) if matrix is not None else None
-        ready = (s for s in self._sources if s.readiness(self._state)[0])
+        ready = (s for s in self._sources if s.readiness(self._state, self._options_for(s)).ready)
         return used or next(ready, None) or next(iter(self._sources), None)
 
     def _select_method(self, source: MatrixSource | None) -> None:
@@ -240,8 +276,11 @@ class CompensationView(QWidget):
     def _on_method_picked(self, _index: int) -> None:
         self._method_picked = True
 
+    def _options_for(self, source: MatrixSource) -> MethodOptions:
+        return self._options.setdefault(source.key, MethodOptions())
+
     def _refresh_method(self) -> None:
-        """Point the run button and the hint at the selected method."""
+        """Point the run button, the hint and the setup page at the selected method."""
         source = self._source(self._method_combo.currentData())
         self._btn_run.setEnabled(source is not None)
         if source is None:
@@ -250,9 +289,22 @@ class CompensationView(QWidget):
         self._btn_run.setToolTip(source.tooltip)
         self._btn_run.setObjectName(source.object_name or _RUN_BUTTON_NAME)
         self._method_combo.setToolTip(source.tooltip)
-        readiness = source.readiness(self._state)
-        self._method_hint.setText(readiness.text)
-        self._method_hint.setToolTip(readiness.detail)
+        options = self._options_for(source)
+        if self._body.currentWidget() is self._setup:
+            # Before the hint: the page drops choices that no longer exist.
+            self._setup.show_method(source, options, self._reports.get(source.key))
+        self._method_hint.setText(source.readiness(self._state, options).text)
+
+    def _sync_page(self) -> None:
+        """Show the page the user chose; without a matrix there is only the setup."""
+        has_matrix = self._editor.matrix is not None
+        self._btn_matrix_page.setEnabled(has_matrix)
+        show_setup = self._btn_setup_page.isChecked() or not has_matrix
+        page = self._setup if show_setup else self._editor
+        if self._body.currentWidget() is not page:
+            self._body.setCurrentWidget(page)
+            if show_setup:
+                self._refresh_method()
 
     def _on_run_method(self) -> None:
         source = self._source(self._method_combo.currentData())
@@ -272,7 +324,7 @@ class CompensationView(QWidget):
         matrix = self._state.data.compensation
         has_matrix = self._editor.matrix is not None
         dirty = self.has_unapplied_edits
-        self._body.setCurrentWidget(self._editor if has_matrix else self._empty)
+        self._sync_page()
         self._btn_revert.setVisible(dirty)
         for button in (self._btn_apply, self._btn_export, self._btn_toggle):
             button.setEnabled(has_matrix)
@@ -317,14 +369,17 @@ class CompensationView(QWidget):
 
     def _on_source(self, source: MatrixSource) -> None:
         try:
-            result = source.obtain(self._state, self)
+            result = source.obtain(self._state, self, self._options_for(source))
         except MatrixSourceError as exc:
             show_warning(self, exc.title, str(exc))
             return
         if result is None:
             return  # cancelled
+        if result.report is not None:
+            self._reports[source.key] = result.report
         self._set_workspace_matrix(result.matrix, result.undo_label)
         self._note.setText(result.summary + _FINE_TUNE_HINT)
+        self._btn_matrix_page.setChecked(True)  # look at what the method produced
         self._refresh_status()
         self.compensation_changed.emit()
         logger.info("Compensation matrix from %s: %s", type(source).__name__, result.summary)

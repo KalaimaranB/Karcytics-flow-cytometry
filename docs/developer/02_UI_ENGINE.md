@@ -63,6 +63,16 @@ doesn't touch the other two:
   selects that method by default (with no matrix: the first whose
   `readiness(state)` is true, in tuple order). Hand edits don't change
   `source`; they set `CompensationMatrix.fine_tuned`.
+  A source is also what fills the **Method setup** page
+  (`ui/widgets/method_setup_panel.py`, generic over sources): `explanation`
+  (how it works, its limits), `sample_choices()` / `gate_choices()` (the
+  options it takes, stored per method in a `MethodOptions` the view passes
+  back to `readiness`/`obtain`/`inputs`), `inputs()` (the samples it would
+  use now, optionally with one per-sample choice written back through
+  `set_choice()`), and `SourceResult.report` (what the run rested on; set
+  `reports = True`). Fits restricted to a gate get their events from
+  `analysis/fit_population.py` (`fit_events`), which only offers scatter
+  gates and always returns uncompensated events.
 - **`CompensationEditor`** (`ui/widgets/compensation_editor.py`) — the matrix
   table and `CompensationPreview`, editing a private working copy handed in
   by `load()`. It never writes to the workspace.

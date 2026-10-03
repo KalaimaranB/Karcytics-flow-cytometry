@@ -110,17 +110,13 @@ def test_compensation_to_dict():
 
 
 def _fmo_controls(spillover, channels, missing, noise=0.0):
-    from types import SimpleNamespace
-
     rng = np.random.default_rng(7)
     controls = {}
     for k in missing:
         true = np.abs(rng.normal(1000, 600, (4000, len(channels))))
         true[:, k] = 0.0
         raw = true @ spillover + 50.0 + rng.normal(0, noise, true.shape)  # + autofluorescence
-        controls[channels[k]] = SimpleNamespace(
-            events=pd.DataFrame(raw, columns=channels), raw_events=None
-        )
+        controls[channels[k]] = pd.DataFrame(raw, columns=channels)
     return controls
 
 
@@ -185,13 +181,18 @@ def test_fmo_fit_ignores_stray_signal_in_the_missing_dyes_detector():
     controls = _fmo_controls(spillover, channels, range(3), noise=5.0)
     rng = np.random.default_rng(3)
     for channel, control in controls.items():
-        junk = rng.choice(len(control.events), size=len(control.events) // 20, replace=False)
-        column = control.events.columns.get_loc(channel)
-        control.events.iloc[junk, column] += rng.uniform(2_000, 20_000, len(junk))
+        junk = rng.choice(len(control), size=len(control) // 20, replace=False)
+        column = control.columns.get_loc(channel)
+        control.iloc[junk, column] += rng.uniform(2_000, 20_000, len(junk))
 
-    estimate = calculate_spillover_from_fmo(controls, channels)
+    fits = []
+    estimate = calculate_spillover_from_fmo(controls, channels, fits)
 
     np.testing.assert_allclose(estimate.matrix, spillover, atol=0.01)
+    # The fit reports what it rested on: every detector, and the junk it set aside.
+    assert [fit.channel for fit in fits] == channels
+    assert all(fit.events == 4000 and 0.03 < fit.down_weighted < 0.12 for fit in fits)
+    assert all(0.0 <= fit.r_squared <= 1.0 for fit in fits)
 
 
 def test_single_stain_matrix_marks_dyes_without_a_control():

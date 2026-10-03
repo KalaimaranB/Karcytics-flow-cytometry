@@ -11,6 +11,11 @@ Every matrix is obtained in two steps, shown as the two rows at the top of the *
 1. **Get a matrix** — pick a **Method**, then click the button beside it. The line under the selector says what the method needs and what it found in your loaded samples.
 2. **Fine-tune & apply** — adjust any cell by hand (section 2), then apply.
 
+Below the header, a switch chooses what fills the tab:
+
+- **Matrix** — the matrix editor and its before/after preview (section 2).
+- **⚙ Method setup** — for the selected method: how it works and its limits, its options, the samples it will use right now, and (for calculated methods) a report of what the last run rested on. With no matrix yet, this page is shown.
+
 The status line always names the method behind the current numbers, for example *method: **Embedded in the FCS files**, then **fine-tuned by hand***. Running a method again replaces the matrix with that method's own numbers and clears the fine-tuned mark.
 
 | Method | Button | Needs |
@@ -20,21 +25,30 @@ The status line always names the method behind the current numbers, for example 
 | **FMO controls** | **🧮 Estimate from FMOs** | Samples with role **FMO Control** |
 | **Import from a file** | **📥 Import CSV** | A `.csv`, `.tsv` or `.txt` matrix, e.g. from FlowJo or R |
 
+### Fitting on a gated population
+Single-stain and FMO calculations use every recorded event by default. To calculate on the real cells only, draw a scatter gate (for example **Cells** on FSC/SSC) on the control samples in the Workspace tab, then pick it under **Fit on** in Method setup.
+
+- Only gates drawn on FSC/SSC are offered, including gates nested under other scatter gates (`Cells › Singlets`). A gate on a fluorescence axis depends on the very compensation being calculated, and can cut away the bright events the calculation needs.
+- The gate only chooses which events the calculation uses. The finished matrix is applied to every event of every sample.
+- A control without the chosen gate is used whole; the **Events used** column says so for each control.
+
 ### Embedded in the FCS files (default)
 Many acquisition cytometers record the acquisition-time matrix in the FCS metadata. When your files carry one, Karcytics loads and applies it as soon as the samples are loaded, and this method is the one selected when you open the tab. **📄 Extract from FCS** re-reads it, which is also how you go back to the cytometer's numbers after editing.
 
+Method setup lists which samples carry a matrix and whether they agree with the one being read. **Read from** picks the sample; by default it is the first one that has a matrix.
+
 ### Single-stain controls
-Assign the roles **Single Stain** (and optionally **Unstained Control**) in the Properties Panel first. Each control's primary channel is the one with the highest median; spill into every other detector is the ratio of medians, after subtracting the unstained background.
+Assign the roles **Single Stain** (and optionally **Unstained Control**) in the Properties Panel first. Each control's primary channel is the one with the highest median of its uncompensated events; spill into every other detector is the ratio of medians, after subtracting the unstained background. Method setup lists the controls and how many events of each are used.
 
 ### FMO controls
-A fluorescence-minus-one control carries every dye except one, so whatever its missing dye's detector records is spill from the other dyes. Karcytics fits that detector against the others for each FMO and solves for the spillover matrix.
+A fluorescence-minus-one control carries every dye except one, so whatever its missing dye's detector records is spill from the other dyes. Karcytics fits that detector against the others for each FMO and solves for the spillover matrix. Method setup spells out each step.
 
-- Assign the role **FMO Control** to each sample in the Properties Panel. A **Missing dye** choice appears under the role:
-    - **Auto-detect** (default) reads the dye from the sample's name (`FMO APC`, `FMO APCCy7`, `FMO CD4` and `FMO minus PE-A` all work). If the name doesn't say, it picks the channel where the tube is clearly dimmer than the other FMO controls.
-    - Pick the channel yourself when auto-detect is wrong or can't decide. A manual choice always wins.
-- The line under the method selector says how many channels the controls cover. Hover over it to see which tube covers which dye, and which tubes are not used. Check it before running.
+- Assign the role **FMO Control** to each sample in the Properties Panel.
+- **Which dye each tube lacks** is shown in the Method setup table, with how it was worked out: *set by you*, *from its name* (`FMO APC`, `FMO APCCy7`, `FMO CD4` and `FMO minus PE-A` all work), or *from its data* (the channel where the tube is clearly dimmer than the other FMO controls). Change it in the **Missing dye** column of that table, or in the Properties Panel; a manual choice always wins.
+- Only one tube is used per dye. A tube that can't be placed, or that duplicates another, is listed as *not used* with the reason.
 - A detector without an FMO gets no estimate. Those cells are left at 0 and shown in *grey italic* in the matrix, so you can see what still needs filling in by hand.
 - The fit is robust: events with signal in the missing dye's detector that the other dyes don't explain (dead cells, aggregates) are down-weighted rather than read as spill.
+- After a run, the **fit report** in Method setup lists, per detector: the tube used, the events fitted, the share set aside as outliers, how much of the detector's signal the fit attributes to spill (R²; near 0 simply means little spills into it), and the largest spill found.
 - Treat the result as a starting point: check each pair on the preview and fine-tune.
 
 ### Import from a file
