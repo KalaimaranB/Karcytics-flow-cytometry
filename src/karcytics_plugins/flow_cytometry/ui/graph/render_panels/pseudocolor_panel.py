@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis.config import COLORMAPS, PseudocolorConfig
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
-from ._utils import PANEL_STYLE, make_float_row, make_int_row, section_header
+from ._utils import make_float_row, make_int_row, section_header
 
 
 class PseudocolorSettingsPanel(QWidget):
@@ -44,7 +44,7 @@ class PseudocolorSettingsPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
-        self.setStyleSheet(PANEL_STYLE)
+        theme_manager.apply_style(self, "background: {BG_DARKEST};")
 
         # ── Presets ───────────────────────────────────────────────────
         layout.addWidget(section_header("Quick Presets"))

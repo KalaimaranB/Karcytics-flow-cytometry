@@ -35,16 +35,21 @@ class AxisControlPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
+        # Academy spotlights each label together with its dropdown, as one
+        # component (the SDK driver's `tutorial_spotlight_with`).
         self._x_label = self._make_label("X:")
+        self._x_label.setObjectName("AxisLabelX")
         layout.addWidget(self._x_label)
         self._x_combo = FlowComboBox()
         self._x_combo.setObjectName("AxisSelectorX")
-        self._x_combo.setMinimumWidth(140)
+        self._x_combo.setProperty("tutorial_spotlight_with", "AxisLabelX")
+        self._x_combo.setMinimumWidth(80)
         self._x_combo.currentIndexChanged.connect(lambda _: self._on_axis_combo_changed("x"))
         layout.addWidget(self._x_combo)
 
-        layout.addSpacing(16)
+        layout.addSpacing(8)
         self._y_label = self._make_label("Y:")
+        self._y_label.setObjectName("AxisLabelY")
         layout.addWidget(self._y_label)
 
         from PyQt6.QtWidgets import QStackedWidget
@@ -54,7 +59,8 @@ class AxisControlPanel(QWidget):
 
         self._y_combo = FlowComboBox()
         self._y_combo.setObjectName("AxisSelectorY")
-        self._y_combo.setMinimumWidth(140)
+        self._y_combo.setProperty("tutorial_spotlight_with", "AxisLabelY")
+        self._y_combo.setMinimumWidth(80)
         self._y_combo.currentIndexChanged.connect(lambda _: self._on_axis_combo_changed("y"))
         self._y_stack.addWidget(self._y_combo)
 
@@ -69,7 +75,7 @@ class AxisControlPanel(QWidget):
         self._y_stack.setCurrentIndex(0)
 
         # Display mode
-        layout.addSpacing(16)
+        layout.addSpacing(8)
         self._display_combo = FlowComboBox()
         self._display_combo.setObjectName("DisplayModeCombo")
         for mode in DisplayMode:
@@ -79,13 +85,15 @@ class AxisControlPanel(QWidget):
         layout.addWidget(self._display_combo)
 
         # ── FMO Overlay ──
-        layout.addSpacing(16)
-        self._fmo_label = self._make_label("FMO Overlay:")
+        layout.addSpacing(8)
+        self._fmo_label = self._make_label("FMO:")
+        self._fmo_label.setObjectName("AxisLabelFMO")
         layout.addWidget(self._fmo_label)
 
         self._fmo_combo = FlowComboBox()
         self._fmo_combo.setObjectName("AxisSelectorFMO")
-        self._fmo_combo.setMinimumWidth(120)
+        self._fmo_combo.setProperty("tutorial_spotlight_with", "AxisLabelFMO")
+        self._fmo_combo.setMinimumWidth(80)
         self._fmo_combo.addItem("None", "")
         self._fmo_combo.currentTextChanged.connect(
             lambda _: self.fmo_overlay_changed.emit(self.get_current_fmo())
@@ -96,7 +104,7 @@ class AxisControlPanel(QWidget):
         self._fmo_combo.setVisible(False)
 
         # ── Unified Transforms Button ──
-        layout.addSpacing(16)
+        layout.addSpacing(8)
         self._transform_btn = QPushButton("⚙ Transforms")
         self._transform_btn.setObjectName("TransformsButton")
         self._transform_btn.setFixedHeight(24)
@@ -116,7 +124,7 @@ class AxisControlPanel(QWidget):
         layout.addWidget(self._render_spinner)
 
         # ── Render Settings Button ──
-        layout.addSpacing(16)
+        layout.addSpacing(8)
         self._btn_settings = QPushButton("⚙ Settings")
         self._btn_settings.setObjectName("PseudocolorSettingsButton")
         self._btn_settings.setFixedHeight(24)

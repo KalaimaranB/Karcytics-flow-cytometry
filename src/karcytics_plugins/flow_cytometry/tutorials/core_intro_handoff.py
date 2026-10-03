@@ -47,13 +47,14 @@ CORE_INTRO_HANDOFF_COURSE_ID = "core_intro_module_v1"
 # module still loads against an SDK older than that constant.
 _PREFERENCES_DIALOG = "PreferencesDialog"
 
-# The SDK menu bar gives Preferences… QAction.MenuRole.PreferencesRole, which
-# macOS moves out of Edit into the app-name menu ("Flow Cytometry" — the
-# isolated window's app name, see ui_daemon.py's window_title).
+# The SDK menu bar puts Preferences… in the app-name menu ("Flow Cytometry" —
+# the isolated window's app name, see ui_daemon.py's window_title): macOS's
+# native one in the system menu bar, or the first menu in this window's own
+# menu bar on Windows/Linux.
 _PREFERENCES_MENU_PATH = (
     "the **Flow Cytometry** menu at the top of your screen → **Preferences…**"
     if sys.platform == "darwin"
-    else "the **Edit** menu → **Preferences…**"
+    else "the **Flow Cytometry** menu at the top of this window → **Preferences…**"
 )
 
 

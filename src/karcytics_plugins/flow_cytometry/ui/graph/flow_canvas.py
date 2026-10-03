@@ -571,6 +571,10 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         Args:
             mode: The drawing mode to activate.
         """
+        # Re-applying the current tool (tab switches and graph opens do this)
+        # must not abort a gate that is being drawn.
+        if mode == self._drawing_mode:
+            return
         self._cancel_drawing()
         self._drawing_mode = mode
 
@@ -718,6 +722,9 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             # Instead, we just re-invoke set_tutorial_guide
             self.set_tutorial_guide(step)
 
+        # ax.clear() also dropped any gate preview being drawn right now.
+        self._fsm.restore_preview()
+
         self.draw()  # Forced immediate draw instead of idle
 
     def _on_data_layer_failed(self, message: str) -> None:
@@ -775,6 +782,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             # and drawn repeatedly during fast UI updates (stacked rendering).
             if not getattr(self, "_gate_artists", []):
                 self._canvas_bitmap_cache = self._fig.canvas.copy_from_bbox(self._ax.bbox)  # type: ignore
+        # After the cache capture, so the preview is never baked into it.
+        self._fsm.paint_preview()
 
     def _on_scroll(self, event) -> None:
         """Handle scroll wheel to zoom in and out."""

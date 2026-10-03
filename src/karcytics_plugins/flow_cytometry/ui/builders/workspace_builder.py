@@ -206,6 +206,15 @@ class WorkspaceBuilder:
         panel._main_splitter.addWidget(panel._properties_panel)
         panel._main_splitter.setSizes([300, 800, 300])
 
+        # Prevent any panel from collapsing to zero when the handle is dragged too far
+        panel._main_splitter.setCollapsible(0, False)  # left sidebar
+        panel._main_splitter.setCollapsible(1, False)  # center canvas
+        panel._main_splitter.setCollapsible(2, False)  # right properties
+
+        # Enforce sensible floor widths so panels can't disappear
+        panel._left_sidebar.setMinimumWidth(160)
+        panel._properties_panel.setMinimumWidth(160)
+
         root.addWidget(panel._main_splitter, stretch=1)
 
         # ── Footer ────────────────────────────────────────────────────

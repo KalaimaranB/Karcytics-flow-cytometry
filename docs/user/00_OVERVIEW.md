@@ -41,7 +41,7 @@ This is home base and almost always the first tab you'll touch. Import your `.fc
 → [Workspace guide](./02_WORKSPACE.md)
 
 ### 2. Compensation
-Fluorescent dyes leak a little light into their neighbors' detectors, and this tab is where that gets corrected. Karcytics can extract a spillover matrix straight out of a file's own metadata with one click, or compute one algorithmically from your Single Stain controls — then apply it to every sample at once. Compensated samples get marked with a small **[Comp]** tag so you always know at a glance whether you're looking at raw or corrected data.
+Fluorescent dyes leak a little light into their neighbors' detectors, and this tab is where that gets corrected. Karcytics can extract a spillover matrix straight out of a file's own metadata with one click, or compute one algorithmically from your Single Stain controls — then apply it to every sample at once. Compensated samples get marked with a small **✦** tag so you always know at a glance whether you're looking at raw or corrected data.
 → [Compensation guide](./03_COMPENSATION.md)
 
 ### 3. Gating

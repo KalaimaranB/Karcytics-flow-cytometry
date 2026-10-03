@@ -161,6 +161,85 @@ class TestFlowCanvasGateDrawingStateMachine:
         canvas.set_drawing_mode(GateDrawingMode.NONE)
         canvas.setFocus.assert_not_called()
 
+    @pytest.mark.ui
+    def test_reapplying_same_drawing_mode_keeps_drag_alive(self):
+        """Tab switches and graph opens re-apply the current tool — that must
+        not cancel a rectangle that is being dragged out.
+        """
+        from karcytics_plugins.flow_cytometry.ui.graph.gate_drawing_fsm import DrawingState
+
+        canvas = FlowCanvas(parent=None)
+        canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
+        canvas._fsm.handle_press(10, 10, "rectangle")
+        canvas._fsm.handle_motion(50, 50, "rectangle")
+
+        canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
+
+        assert canvas._fsm.state == DrawingState.DRAWING
+        assert canvas._fsm._drag_start == (10, 10)
+
+        # A real tool change still cancels.
+        canvas.set_drawing_mode(GateDrawingMode.NONE)
+        assert canvas._fsm.state == DrawingState.IDLE
+
+    @pytest.mark.ui
+    def test_full_draw_repaints_rubber_band(self):
+        """The rubber band is animated, so a full draw skips it unless the
+        draw_event hook paints it back in.
+        """
+        canvas = FlowCanvas(parent=None)
+        canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
+        canvas._fsm.handle_press(0.1, 0.1, "rectangle")
+        canvas._fsm.handle_motion(0.5, 0.5, "rectangle")
+        band = canvas._fsm._rubber_band
+        assert band is not None
+
+        canvas._ax.draw_artist = Mock(wraps=canvas._ax.draw_artist)
+        canvas.draw()
+
+        canvas._ax.draw_artist.assert_any_call(band)
+
+    @pytest.mark.ui
+    def test_data_layer_rerender_restores_rubber_band(self):
+        """A data-layer re-render clears the axes mid-drag; the preview must
+        come back without waiting for the next mouse move.
+        """
+        from karcytics_plugins.flow_cytometry.ui.graph.gate_drawing_fsm import DrawingState
+
+        canvas = FlowCanvas(parent=None)
+        canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
+        canvas._fsm.handle_press(0.1, 0.1, "rectangle")
+        canvas._fsm.handle_motion(0.5, 0.5, "rectangle")
+
+        canvas._ax.clear()
+        assert canvas._fsm._rubber_band not in canvas._ax.patches
+        canvas._on_data_layer_finished()
+
+        assert canvas._fsm.state == DrawingState.DRAWING
+        assert canvas._fsm._rubber_band in canvas._ax.patches
+
+    @pytest.mark.ui
+    def test_deferred_rubber_band_retry_is_dropped_after_release(self, qtbot):
+        """A rubber-band draw deferred by a busy raster lock must not fire
+        once the drag has ended — it would leave a ghost band on the plot.
+        """
+        canvas = FlowCanvas(parent=None)
+        canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
+        canvas._finalize_drag_gate = Mock()
+        canvas._fsm.handle_press(0.1, 0.1, "rectangle")
+
+        real_lock = canvas.raster_lock
+        busy_lock = Mock()
+        busy_lock.try_run.side_effect = lambda action, on_busy, *a, **k: on_busy()
+        canvas.raster_lock = busy_lock
+        canvas._fsm.handle_motion(0.5, 0.5, "rectangle")  # deferred: lock busy
+        canvas.raster_lock = real_lock
+
+        canvas._fsm.handle_release(0.5, 0.5, "rectangle")
+        qtbot.wait(60)  # past the 15 ms retry timer
+
+        assert canvas._fsm._rubber_band is None
+
 
 class TestFlowCanvasEditState:
     """Test post-construction gate editing: handle/body hit-testing and the

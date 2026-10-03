@@ -37,6 +37,9 @@ class GateDrawingFSM:
         self.state = DrawingState.IDLE
         self._drag_start: tuple[float, float] | None = None
         self._rubber_band: object | None = None
+        # Last rubber-band geometry requested, so the preview can be rebuilt
+        # if a data-layer re-render clears the axes mid-drag.
+        self._last_rubber_args: tuple[float, float, float, float, str] | None = None
         self._polygon_vertices: list[tuple[float, float]] = []
         self._polygon_artists: list[object] = []
         self._crosshair_artists: list[object] = []
@@ -94,6 +97,7 @@ class GateDrawingFSM:
         # For drag-based gates
         self.state = DrawingState.DRAWING
         self._drag_start = (x, y)
+        self._last_rubber_args = None
 
     def handle_motion(self, x: float, y: float, mode: str):
         """Handle mouse motion (rubber-banding, polygon preview, or quadrant crosshair)."""
@@ -122,6 +126,7 @@ class GateDrawingFSM:
         x0, y0 = self._drag_start
         self.state = DrawingState.IDLE
         self._drag_start = None
+        self._last_rubber_args = None
         self._clear_rubber_band()
 
         # Check if drag was significant
@@ -151,10 +156,43 @@ class GateDrawingFSM:
 
         self.state = DrawingState.IDLE
         self._drag_start = None
+        self._last_rubber_args = None
         self._polygon_vertices.clear()
         self._clear_rubber_band(blit=True)
         self._clear_polygon_progress(blit=True)
         self._clear_quadrant_crosshair(blit=True)
+
+    # ── Preview persistence across full redraws ───────────────────────
+
+    def _live_preview_artists(self) -> list:
+        """In-progress preview artists still attached to the axes."""
+        attached = {id(child) for child in self.canvas._ax.get_children()}
+        candidates = [self._rubber_band, *self._polygon_artists, *self._crosshair_artists]
+        return [a for a in candidates if a is not None and id(a) in attached]
+
+    def paint_preview(self) -> None:
+        """Paint the in-progress preview into the frame matplotlib just drew.
+
+        Preview artists are animated, so a full draw skips them — without
+        this, any redraw landing mid-drag (gate overlay refresh, instruction
+        text, a pending data-layer render with no bitmap cache to blit onto)
+        blanks the preview until the next mouse move. Called from the
+        canvas's draw_event, so it only draws; the caller's own paint shows it.
+        """
+        ax = self.canvas._ax
+        for artist in self._live_preview_artists():
+            ax.draw_artist(artist)
+
+    def restore_preview(self) -> None:
+        """Rebuild the in-progress preview after the axes were cleared.
+
+        A data-layer re-render runs ax.clear(), which drops the preview
+        artists while the drag itself is still live.
+        """
+        if self.state == DrawingState.DRAWING and self._last_rubber_args is not None:
+            self._draw_rubber_band(*self._last_rubber_args)
+        elif self.state == DrawingState.POLYGON and self._polygon_vertices:
+            self._draw_polygon_progress()
 
     # ── Gate editing (drag handles / body-move) ────────────────────────
 
@@ -199,6 +237,9 @@ class GateDrawingFSM:
 
                 def _retry() -> None:
                     self._edit_timer_active = False
+                    # The drag may have been released or cancelled meanwhile.
+                    if self.state != DrawingState.EDITING:
+                        return
                     if hasattr(self, "_pending_edit_args"):
                         self._apply_edit_preview(*self._pending_edit_args)
 
@@ -267,6 +308,8 @@ class GateDrawingFSM:
     # ── Internal Drawing Helpers ──────────────────────────────────────
 
     def _draw_rubber_band(self, x0: float, y0: float, x1: float, y1: float, mode: str):  # noqa: PLR0912, PLR0915
+        self._last_rubber_args = (x0, y0, x1, y1, mode)
+
         def _on_busy() -> None:
             # Defer the draw if the lock is held, using a single debounced timer
             self._pending_rubber_args = (x0, y0, x1, y1, mode)
@@ -276,6 +319,10 @@ class GateDrawingFSM:
 
                 def _retry() -> None:
                     self._rubber_timer_active = False
+                    # The drag may have been released or cancelled meanwhile —
+                    # drawing now would leave a ghost band behind.
+                    if self.state != DrawingState.DRAWING:
+                        return
                     if hasattr(self, "_pending_rubber_args"):
                         self._draw_rubber_band(*self._pending_rubber_args)
 
@@ -439,6 +486,9 @@ class GateDrawingFSM:
 
                 def _retry() -> None:
                     self._crosshair_timer_active = False
+                    # The tool may have been switched or the gate placed meanwhile.
+                    if self.canvas._drawing_mode.value != "quadrant":
+                        return
                     if hasattr(self, "_pending_crosshair_args"):
                         self._draw_quadrant_crosshair(*self._pending_crosshair_args)
 
@@ -579,6 +629,9 @@ class GateDrawingFSM:
 
                 def _retry() -> None:
                     self._polygon_timer_active = False
+                    # The polygon may have been closed or cancelled meanwhile.
+                    if self.state != DrawingState.POLYGON:
+                        return
                     if hasattr(self, "_pending_polygon_mouse"):
                         self._draw_polygon_progress(self._pending_polygon_mouse)
 

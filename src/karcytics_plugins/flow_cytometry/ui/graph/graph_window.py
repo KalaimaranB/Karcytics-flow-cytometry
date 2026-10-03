@@ -284,7 +284,7 @@ class GraphWindow(QWidget):
 
         # ── Flow Canvas (the actual matplotlib plot) ──────────────────
         self._canvas = FlowCanvas(self._state, self._controller, self)
-        self._canvas.setMinimumSize(400, 400)
+        self._canvas.setMinimumSize(150, 150)
         layout.addWidget(self._canvas, stretch=1)
         logger.info(
             f"GraphWindow._setup_ui: Canvas added to layout, canvas_size={self._canvas.width()}x{self._canvas.height()}"

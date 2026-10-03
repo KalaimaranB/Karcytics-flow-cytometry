@@ -16,25 +16,29 @@ from PyQt6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
-from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
+from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-# Icons and Colors from the original SampleTree
+# Icons and Colors keyed on the real SampleRole enum
 _ROLE_BADGES = {
-    "tube": "○",
-    "fmo": "◉",
-    "compensation": "◧",
-    "blank": "◌",
+    SampleRole.FULL_PANEL: "●",  # solid circle   — main tube / full panel
+    SampleRole.FMO_CONTROL: "◉",  # fisheye        — FMO control
+    SampleRole.SINGLE_STAIN: "◐",  # half circle    — single stain / comp control
+    SampleRole.UNSTAINED: "◌",  # dotted circle  — unstained / blank
+    SampleRole.ISOTYPE_CONTROL: "◎",  # bullseye       — isotype control
+    SampleRole.OTHER: "○",  # open circle    — other / unassigned
 }
 
 
-def _get_role_color(role: str) -> str:
+def _get_role_color(role: SampleRole) -> str:
     colors = {
-        "tube": Colors.FG_PRIMARY,
-        "fmo": Colors.ACCENT_PRIMARY,
-        "compensation": "#FFB74D",
-        "blank": Colors.FG_DISABLED,
+        SampleRole.FULL_PANEL: Colors.FG_PRIMARY,
+        SampleRole.FMO_CONTROL: Colors.ACCENT_PRIMARY,
+        SampleRole.SINGLE_STAIN: "#FFB74D",
+        SampleRole.UNSTAINED: Colors.FG_DISABLED,
+        SampleRole.ISOTYPE_CONTROL: "#80CBC4",
+        SampleRole.OTHER: "#B0BEC5",
     }
     return colors.get(role, "#B0BEC5")
 
@@ -62,12 +66,16 @@ class SampleList(QWidget):
     def _setup_events(self) -> None:
         """Subscribe to relevant state events."""
         CentralEventBus.subscribe(events.SAMPLE_LOADED, self._on_sample_loaded)
+        CentralEventBus.subscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+        CentralEventBus.subscribe(events.STATE_RESTORED, self._on_state_restored)
         self.destroyed.connect(self._cleanup)
 
     def _cleanup(self) -> None:
         """Unsubscribe from events when the widget is destroyed."""
         try:
             CentralEventBus.unsubscribe(events.SAMPLE_LOADED, self._on_sample_loaded)
+            CentralEventBus.unsubscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+            CentralEventBus.unsubscribe(events.STATE_RESTORED, self._on_state_restored)
         except Exception:
             pass
 
@@ -78,6 +86,25 @@ class SampleList(QWidget):
         except RuntimeError:
             # Fallback if destroyed signal didn't unregister in time
             CentralEventBus.unsubscribe(events.SAMPLE_LOADED, self._on_sample_loaded)
+            CentralEventBus.unsubscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+
+    def _on_sample_updated(self, data: dict) -> None:
+        """Handle sample role / metadata updates."""
+        try:
+            self.refresh()
+        except RuntimeError:
+            CentralEventBus.unsubscribe(events.SAMPLE_LOADED, self._on_sample_loaded)
+            CentralEventBus.unsubscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+            CentralEventBus.unsubscribe(events.STATE_RESTORED, self._on_state_restored)
+
+    def _on_state_restored(self, data: dict) -> None:
+        """Handle undo/redo restoring the experiment — refreshes badges and names."""
+        try:
+            self.refresh()
+        except RuntimeError:
+            CentralEventBus.unsubscribe(events.SAMPLE_LOADED, self._on_sample_loaded)
+            CentralEventBus.unsubscribe(events.SAMPLE_UPDATED, self._on_sample_updated)
+            CentralEventBus.unsubscribe(events.STATE_RESTORED, self._on_state_restored)
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -199,10 +226,8 @@ class SampleList(QWidget):
 
     def _create_sample_item(self, sample: Sample) -> QTreeWidgetItem:
         badge = _ROLE_BADGES.get(sample.role, "○")  # type: ignore
-        name = f"{badge} {sample.display_name}"
-
-        if sample.fcs_data and sample.fcs_data.is_compensated:
-            name += " [Comp]"
+        comp_prefix = "✦ " if (sample.fcs_data and sample.fcs_data.is_compensated) else ""
+        name = f"{comp_prefix}{badge} {sample.display_name}"
 
         if sample.markers:
             name += f"  [{', '.join(sample.markers)}]"

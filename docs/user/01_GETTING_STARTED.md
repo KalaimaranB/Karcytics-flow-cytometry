@@ -29,7 +29,7 @@ Make sure you're on the **Workspace** tab (the leftmost tab), then click **➕ A
 ![alt text](../images/01_getting_started/file_selection.png)
 
 !!! tip "Compensation might already be done for you"
-    If a file has a `$SPILL` keyword embedded in its header (common for data exported from acquisition software), Karcytics extracts and applies that spillover matrix to every sample automatically the moment they're loaded. Look for a small **[Comp]** tag next to a sample's name in the Sample List — that's your sign it's already compensated. If you don't see it, you'll build a matrix by hand in Step 3.
+    If a file has a `$SPILL` keyword embedded in its header (common for data exported from acquisition software), Karcytics extracts and applies that spillover matrix to every sample automatically the moment they're loaded. Look for a small **✦** tag next to a sample's name in the Sample List — that's your sign it's already compensated. If you don't see it, you'll build a matrix by hand in Step 3.
 
 ## Step 2 — Understand Groups
 
@@ -63,7 +63,7 @@ For multiple samples that share a role (all your FMO controls, for instance), it
 
 Switch to the **Compensation** tab.
 
-If Karcytics already auto-applied an embedded matrix in Step 1, every sample already carries its **[Comp]** tag — you can still walk through this tab to see (and verify) exactly what was applied:
+If Karcytics already auto-applied an embedded matrix in Step 1, every sample already carries its **✦** tag — you can still walk through this tab to see (and verify) exactly what was applied:
 
 1. Click **📄 Extract from FCS** — this reads the `$SPILL` keyword from the first file that has one and opens a dialog showing the extracted matrix values (the diagonal is normally 1.0; off-diagonal values show how much light spills between detectors).
 2. Click **✅ Apply to All** to apply it across every sample. If it's already applied, Karcytics simply tells you the samples were skipped because they're already compensated.

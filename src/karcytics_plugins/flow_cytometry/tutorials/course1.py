@@ -569,7 +569,7 @@ course_1_fundamentals = Course(
                 "Karcytics found a **$SPILL** keyword embedded in your Blank's "
                 "FCS file header and auto-applied the compensation matrix "
                 "to all samples when they were loaded! ✅<br><br>"
-                "Look at the sample tree — every sample now has a **[Comp]** "
+                "Look at the sample tree — every sample now has a **✦** "
                 "tag next to its name. That's how Karcytics marks a sample as "
                 "compensated, so at a glance you always know whether you're "
                 "looking at raw or corrected data.<br><br>"

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from karcytics_sdk.plugin import get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
@@ -48,7 +48,7 @@ def _scrollable(panel: QWidget) -> QScrollArea:
     sa = QScrollArea()
     sa.setWidgetResizable(True)
     sa.setFrameShape(QScrollArea.Shape.NoFrame)
-    sa.setStyleSheet(f"background: {Colors.BG_DARKEST};")
+    theme_manager.apply_style(sa, "background: {BG_DARKEST};")
     sa.setWidget(panel)
     return sa
 
@@ -77,7 +77,7 @@ class RenderSettingsDialog(QDialog):
         self.setMinimumWidth(440)
         self.setMinimumHeight(650)
         self.setModal(False)  # Modeless — user can interact with plot while tweaking
-        self.setStyleSheet(f"background: {Colors.BG_DARKEST}; color: {Colors.FG_PRIMARY};")
+        theme_manager.apply_style(self, "background: {BG_DARKEST}; color: {FG_PRIMARY};")
 
         self._active_panel: Any | None = None
         self._setup_ui()
@@ -102,18 +102,20 @@ class RenderSettingsDialog(QDialog):
 
         # Header
         header = QLabel(f"  {self._active_mode.value} Settings")
-        header.setStyleSheet(
-            f"font-size: 15px; font-weight: 700; color: {Colors.FG_PRIMARY};"
-            f" background: {Colors.BG_DARK}; padding: 14px 16px;"
-            f" border-bottom: 1px solid {Colors.BORDER};"
+        theme_manager.apply_style(
+            header,
+            "font-size: 15px; font-weight: 700; color: {FG_PRIMARY};"
+            " background: {BG_DARK}; padding: 14px 16px;"
+            " border-bottom: 1px solid {BORDER};",
         )
         root.addWidget(header)
 
         sub = QLabel("  Changes apply globally to all open plots")
-        sub.setStyleSheet(
-            f"font-size: 11px; color: {Colors.FG_SECONDARY};"
-            f" background: {Colors.BG_DARK}; padding: 4px 16px 10px 16px;"
-            f" border-bottom: 1px solid {Colors.BORDER};"
+        theme_manager.apply_style(
+            sub,
+            "font-size: 11px; color: {FG_SECONDARY};"
+            " background: {BG_DARK}; padding: 4px 16px 10px 16px;"
+            " border-bottom: 1px solid {BORDER};",
         )
         root.addWidget(sub)
 
@@ -141,22 +143,22 @@ class RenderSettingsDialog(QDialog):
         self._btn_reset = QPushButton("Reset to Defaults")
         self._btn_reset.setToolTip("Reset settings to factory defaults.")
         self._btn_reset.setFixedHeight(30)
-        self._btn_reset.setStyleSheet(self._flat_btn_style())
+        theme_manager.apply_style(self._btn_reset, self._flat_btn_style())
         self._btn_reset.clicked.connect(self._reset_current_panel)
 
         self._btn_apply = QPushButton("Apply")
         self._btn_apply.setFixedHeight(30)
-        self._btn_apply.setStyleSheet(
-            f"QPushButton {{ background: {Colors.ACCENT_PRIMARY}; color: {Colors.BG_DARKEST};"
-            f" border: none; border-radius: 4px; font-size: 12px; font-weight: 700;"
-            f" padding: 2px 20px; }}"
-            f"QPushButton:hover {{ opacity: 0.85; }}"
+        theme_manager.apply_style(
+            self._btn_apply,
+            "QPushButton { background: {ACCENT_PRIMARY}; color: {BG_DARKEST};"
+            " border: none; border-radius: 4px; font-size: 12px; font-weight: 700;"
+            " padding: 2px 20px; }",
         )
         self._btn_apply.clicked.connect(self._apply)
 
         self._btn_close = QPushButton("Close")
         self._btn_close.setFixedHeight(30)
-        self._btn_close.setStyleSheet(self._flat_btn_style())
+        theme_manager.apply_style(self._btn_close, self._flat_btn_style())
         self._btn_close.clicked.connect(self.accept)
 
         btn_row.addWidget(self._btn_reset)
@@ -190,11 +192,12 @@ class RenderSettingsDialog(QDialog):
         return 100_000
 
     def _flat_btn_style(self) -> str:
+        # Return a theme_manager template string, not a pre-baked f-string.
         return (
-            f"QPushButton {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-            f" border: 1px solid {Colors.BORDER}; border-radius: 4px; font-size: 12px;"
-            f" font-weight: 600; padding: 2px 14px; }}"
-            f"QPushButton:hover {{ color: {Colors.ACCENT_PRIMARY}; }}"
+            "QPushButton { background: {BG_MEDIUM}; color: {FG_PRIMARY};"
+            " border: 1px solid {BORDER}; border-radius: 4px; font-size: 12px;"
+            " font-weight: 600; padding: 2px 14px; }"
+            "QPushButton:hover { color: {ACCENT_PRIMARY}; }"
         )
 
     def _reset_current_panel(self) -> None:

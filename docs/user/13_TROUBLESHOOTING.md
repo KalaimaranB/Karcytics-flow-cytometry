@@ -59,7 +59,7 @@ Common issues, error messages, and solutions for Karcytics Flow Cytometry analys
 | Data out of display range | Press **F** with the mouse over the plot to fit the view to your data |
 | Gate too restrictive | Double-click a less-restrictive population (e.g. the root) in the **Gating Hierarchy** panel |
 | Transform mismatch | Open **⚙ Transforms** and try a different scale (Linear, Log, Biexponential) |
-| Compensation not applied | If you expect compensated data, check for the **[Comp]** tag on the sample in the Sample List |
+| Compensation not applied | If you expect compensated data, check for the **✦** tag on the sample in the Sample List |
 
 ---
 
@@ -172,7 +172,7 @@ when a gate edge cuts through a dense population near zero.
 |-------|----------|
 | Spillover matrix computed from a weak/noisy control | Recompute using a cleaner single-stain control |
 | A control is mislabeled | Verify each Single Stain sample actually contains only that one dye |
-| Comparing against already-compensated data | Check the sample's **[Comp]** tag — applying a second matrix on top of an already-compensated file will distort it |
+| Comparing against already-compensated data | Check the sample's **✦** tag — applying a second matrix on top of an already-compensated file will distort it |
 | Overcompensation ("bowing") | Use **🔄 Toggle Compensation** on the [Compensation](./03_COMPENSATION.md) ribbon to compare raw vs. corrected and confirm the correction direction |
 
 ---

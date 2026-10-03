@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.config import DotPlotConfig
 
 from ._utils import (
-    PANEL_STYLE,
     ColorPickerButton,
     make_float_row,
     make_int_row,
@@ -31,7 +30,7 @@ class DotPlotSettingsPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
-        self.setStyleSheet(PANEL_STYLE)
+        theme_manager.apply_style(self, "background: {BG_DARKEST};")
 
         layout.addWidget(section_header("Dot Appearance"))
         form = QFormLayout()
@@ -42,7 +41,7 @@ class DotPlotSettingsPanel(QWidget):
         self._color_btn = ColorPickerButton(cfg.dot_color)
         self._color_btn.color_changed.connect(lambda _: self.changed.emit())
         color_lbl = QLabel("Dot Color:")
-        color_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;")
+        theme_manager.apply_style(color_lbl, "color: {FG_SECONDARY}; font-size: 11px;")
         color_row.addWidget(self._color_btn)
         color_row.addStretch()
         form.addRow(color_lbl, color_row)

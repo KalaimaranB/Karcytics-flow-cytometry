@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis.config import COLORMAPS, ContourConfig
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
-from ._utils import PANEL_STYLE, make_float_row, make_int_row, section_header
+from ._utils import make_float_row, make_int_row, section_header
 
 
 class ContourSettingsPanel(QWidget):
@@ -31,7 +31,7 @@ class ContourSettingsPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
-        self.setStyleSheet(PANEL_STYLE)
+        theme_manager.apply_style(self, "background: {BG_DARKEST};")
 
         layout.addWidget(section_header("Contour Lines"))
         form1 = QFormLayout()
@@ -63,7 +63,7 @@ class ContourSettingsPanel(QWidget):
 
         # Line color mode
         color_lbl = QLabel("Line Color:")
-        color_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;")
+        theme_manager.apply_style(color_lbl, "color: {FG_SECONDARY}; font-size: 11px;")
         self._color_mode_combo = FlowComboBox()
         self._color_mode_combo.addItem("Black", "black")
         self._color_mode_combo.addItem("Blue", "blue")
@@ -77,7 +77,7 @@ class ContourSettingsPanel(QWidget):
 
         # Colormap (only shown when color_mode == "colormap")
         cmap_lbl = QLabel("Colormap:")
-        cmap_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;")
+        theme_manager.apply_style(cmap_lbl, "color: {FG_SECONDARY}; font-size: 11px;")
         self._cmap_combo = FlowComboBox()
         for label, name in COLORMAPS:
             self._cmap_combo.addItem(label, name)
@@ -97,7 +97,7 @@ class ContourSettingsPanel(QWidget):
         layout.addWidget(section_header("Overlays"))
         self._filled_check = QCheckBox("Show filled contours (shaded regions)")
         self._filled_check.setChecked(cfg.show_filled)
-        self._filled_check.setStyleSheet(f"color: {Colors.FG_SECONDARY};")
+        theme_manager.apply_style(self._filled_check, "color: {FG_SECONDARY};")
         self._filled_check.stateChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._filled_check)
 
@@ -107,7 +107,7 @@ class ContourSettingsPanel(QWidget):
             "Draws a faint scatter layer under the contours so individual\n"
             "events outside dense regions remain visible."
         )
-        self._underlay_check.setStyleSheet(f"color: {Colors.FG_SECONDARY};")
+        theme_manager.apply_style(self._underlay_check, "color: {FG_SECONDARY};")
         self._underlay_check.stateChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._underlay_check)
 
