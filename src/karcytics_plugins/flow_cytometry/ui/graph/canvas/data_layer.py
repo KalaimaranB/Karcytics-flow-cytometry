@@ -65,6 +65,9 @@ class FlowRenderState:
     quality_multiplier: float
     max_events: int | None
     render_config: Any | None
+    # 1D modes only: a gate whose events are drawn over the population's
+    # histogram. Must be a private copy — it is read on the compute thread.
+    highlight_gate: Any | None = None
 
 
 @dataclass
@@ -166,7 +169,11 @@ class FlowDataComputeStage(RenderComputeStage):
                         }
                     )
 
-            kwargs_1d = {**render_kwargs_1d, "fmo_data_x": fmo_data_x}
+            kwargs_1d: dict[str, Any] = {
+                **render_kwargs_1d,
+                "fmo_data_x": fmo_data_x,
+                "highlight_x": self._highlight_values(state, x_transformed),
+            }
             strategy_data = strategy.compute(x_transformed, None, **kwargs_1d)
 
             return FlowRenderData(
@@ -180,6 +187,18 @@ class FlowDataComputeStage(RenderComputeStage):
         except Exception as e:
             logger.error(f"1D Strategy compute failed: {e}", exc_info=True)
             return None
+
+    @staticmethod
+    def _highlight_values(state: FlowRenderState, x_transformed: np.ndarray) -> np.ndarray | None:
+        """The transformed x values of the events inside ``state.highlight_gate``."""
+        if state.highlight_gate is None or state.current_data is None:
+            return None
+        try:
+            mask = np.asarray(state.highlight_gate.contains(state.current_data), dtype=bool)
+        except KeyError:
+            # The gate is on a channel this frame doesn't carry.
+            return None
+        return x_transformed[mask]
 
     def _compute_2d(
         self, state: FlowRenderState, df: pd.DataFrame, x_raw: np.ndarray

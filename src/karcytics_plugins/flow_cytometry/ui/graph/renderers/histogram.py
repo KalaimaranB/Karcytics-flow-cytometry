@@ -32,6 +32,13 @@ class HistogramRenderData:
     p_val: float | None
     x_grid: np.ndarray | None
     kde_vals: np.ndarray | None
+    # Events inside a highlighted gate (a subset of ``valid_x``), drawn over
+    # the population on the same bins. None = no gate to highlight.
+    highlight_x: np.ndarray | None = None
+
+
+# The whole population, when it is only the backdrop to a highlighted gate.
+_BACKDROP_COLOR = "#888888"
 
 
 class HistogramStrategy(DisplayStrategy):
@@ -110,7 +117,12 @@ class HistogramStrategy(DisplayStrategy):
                 x_grid = None
                 kde_vals = None  # KDE silently skipped on failure
 
+        highlight_x = kwargs.get("highlight_x")
+        if highlight_x is not None:
+            highlight_x = highlight_x[np.isfinite(highlight_x)]
+
         return HistogramRenderData(
+            highlight_x=highlight_x,
             valid_x=valid_x,
             fmo_valid_x=fmo_valid_x,
             bin_edges=bin_edges,
@@ -161,13 +173,16 @@ class HistogramStrategy(DisplayStrategy):
         ax.hist(
             data.valid_x,
             bins=data.bin_edges,
-            color=color,
+            color=color if data.highlight_x is None else _BACKDROP_COLOR,
             alpha=kwargs.get("alpha", 0.7),
             histtype=histtype,
             density=data.density_mode,
             zorder=kwargs.get("zorder", 1),
         )
         logger.debug("[HIST-DRAW] ax.hist main done")
+
+        if data.highlight_x is not None and len(data.highlight_x) > 0:
+            self._draw_highlight(ax, data, color)
 
         # Draw the threshold line for FMO AFTER both histograms
         if data.p_val is not None:
@@ -201,3 +216,23 @@ class HistogramStrategy(DisplayStrategy):
         y_label = "Frequency (%)" if data.density_mode else "Count"
         ax.set_ylabel(y_label, fontsize=9)
         logger.debug("[HIST-DRAW] draw complete")
+
+    @staticmethod
+    def _draw_highlight(ax, data: HistogramRenderData, color: str) -> None:
+        """Draw the gated subset over the population, on the population's scale."""
+        assert data.highlight_x is not None
+        weights = None
+        if data.density_mode:
+            # Normalising the subset on its own would give it the same area as
+            # the whole population; weight it as a share of the population.
+            bin_width = (data.bin_edges[-1] - data.bin_edges[0]) / data.bins
+            weights = np.full(len(data.highlight_x), 1.0 / (len(data.valid_x) * bin_width))
+        ax.hist(
+            data.highlight_x,
+            bins=data.bin_edges,
+            weights=weights,
+            color=color,
+            alpha=0.85,
+            histtype="stepfilled",
+            zorder=2,
+        )
