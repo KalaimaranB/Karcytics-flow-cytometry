@@ -57,6 +57,15 @@ logger = get_logger(__name__, "flow_cytometry")
 # Main-plot display modes (``DisplayMode`` values) that are already histograms.
 _ONE_D_PLOT_TYPES = ("Histogram", "CDF")
 
+_FMO_MINUS_HELP = (
+    "The one dye this FMO control was <b>not</b> stained with.<br><br>"
+    "<i>Karcytics:</i> the Compensation tab's <b>FMO controls</b> method reads the spill "
+    "into that dye's detector from this tube.<br><br>"
+    "<b>Auto-detect</b> works it out from the sample's name, or else from which channel "
+    "is dim compared with the other FMO controls. Pick the channel yourself if it "
+    "guesses wrong."
+)
+
 
 class PropertiesPanel(QWidget):
     """Right-sidebar panel showing properties of the selected item.
@@ -459,6 +468,8 @@ class PropertiesPanel(QWidget):
                 self._state, [sample_id], role_combo.itemData(idx)
             ):
                 self.roleChanged.emit()
+            if fmo_combo is not None:
+                form.setRowVisible(fmo_combo, role_combo.itemData(idx) == SampleRole.FMO_CONTROL)
 
         role_combo.currentIndexChanged.connect(_on_role_changed)
 
@@ -485,6 +496,11 @@ class PropertiesPanel(QWidget):
 
         form.addRow(_create_label("Role:", role_help_text), role_combo)
 
+        fmo_combo = self._build_fmo_minus_combo(sample)
+        if fmo_combo is not None:
+            form.addRow(_create_label("Missing dye:", _FMO_MINUS_HELP), fmo_combo)
+            form.setRowVisible(fmo_combo, sample.role == SampleRole.FMO_CONTROL)
+
         _add_row("Events:", f"{sample.event_count:,}" if sample.has_data else "Not loaded")
 
         if sample.fcs_data:
@@ -492,7 +508,7 @@ class PropertiesPanel(QWidget):
 
         if sample.markers:
             _add_row("Markers:", ", ".join(sample.markers))
-        if sample.fmo_minus:
+        if sample.fmo_minus and fmo_combo is None:
             _add_row("FMO Minus:", sample.fmo_minus)
         if sample.is_compensated:
             _add_row("Compensated:", "✅ Yes")
@@ -679,6 +695,39 @@ class PropertiesPanel(QWidget):
             self._coordinator.rename_population(
                 self._current_sample_id, self._current_node_id, new_name
             )
+
+    def _build_fmo_minus_combo(self, sample: Sample) -> FlowComboBox | None:
+        """Which dye an FMO control lacks: auto-detect, or one of its channels."""
+        fcs = sample.fcs_data
+        if fcs is None:
+            return None
+        from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
+            get_channel_marker_label,
+            get_fluorescence_channels,
+        )
+        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
+        from .matrix_sources import fmo_missing_channel
+
+        channels = get_fluorescence_channels(fcs)
+        combo = FlowComboBox()
+        combo.setObjectName("FmoMinusCombo")
+        combo.addItem("Auto-detect", None)
+        for channel in channels:
+            combo.addItem(get_channel_marker_label(fcs, channel), channel)
+        if sample.fmo_minus:
+            # A template may have recorded the marker rather than the channel.
+            combo.setCurrentIndex(
+                max(0, combo.findData(fmo_missing_channel(sample, fcs, channels)))
+            )
+
+        sample_id = sample.sample_id
+        combo.currentIndexChanged.connect(
+            lambda index: experiment_edits.set_fmo_minus(
+                self._state, sample_id, combo.itemData(index)
+            )
+        )
+        return combo
 
     def _count_gates(self, node) -> int:
         """Count total gates in a tree (excluding root)."""

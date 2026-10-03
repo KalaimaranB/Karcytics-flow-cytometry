@@ -30,9 +30,12 @@ Assign the roles **Single Stain** (and optionally **Unstained Control**) in the 
 ### FMO controls
 A fluorescence-minus-one control carries every dye except one, so whatever its missing dye's detector records is spill from the other dyes. Karcytics fits that detector against the others for each FMO and solves for the spillover matrix.
 
-- Assign the role **FMO Control** to each sample. The missing dye is taken from the experiment template, or from the sample's name when it contains exactly one marker or channel name (for example `FMO CD4` or `FMO minus PE-A`).
+- Assign the role **FMO Control** to each sample in the Properties Panel. A **Missing dye** choice appears under the role:
+    - **Auto-detect** (default) reads the dye from the sample's name (`FMO APC`, `FMO APCCy7`, `FMO CD4` and `FMO minus PE-A` all work). If the name doesn't say, it picks the channel where the tube is clearly dimmer than the other FMO controls.
+    - Pick the channel yourself when auto-detect is wrong or can't decide. A manual choice always wins.
+- The line under the method selector lists every pairing it will use, for example `FMO e450 → Pacific Blue-A (from its signal)`, and names any tube it can't use. Check it before running.
 - A detector without an FMO gets no estimate: spill into it is left at 0. The status note lists those detectors.
-- The estimate is only as good as the spread of the other dyes in the tube. Markers that are always expressed together can't be told apart, so check the result on the preview and fine-tune.
+- Treat the result as a starting point. Autofluorescence that varies from cell to cell is picked up as spill, which inflates the rows of dim dyes, so check each pair on the preview and fine-tune.
 
 ### Import from a file
 Load a matrix computed elsewhere. Channel names are read from the header row.

@@ -274,12 +274,14 @@ def test_fmo_source_matches_each_control_to_the_dye_it_lacks(state):
         source.obtain(state, None)
 
     # By name ("CD4" must not match inside "CD45"), and by the template's fmo_minus.
-    state.data.experiment.samples["f1"] = _fmo("FMO CD4", 0)
+    state.data.experiment.samples["f1"] = _fmo("Specimen_001_FMO CD4", 0)
     state.data.experiment.samples["f2"] = _fmo("Tube 7", 1, fmo_minus="cd45")
     state.data.experiment.samples["f3"] = _fmo("Mystery FMO", 1)
 
     ready, text = source.readiness(state)
-    assert ready and "2 of 2" in text and "1 couldn't be matched" in text
+    assert ready and "2 of 2" in text
+    assert "Specimen_001_FMO CD4 → FL1-A" in text and "Tube 7 → FL2-A" in text
+    assert "Not used: Mystery FMO" in text
 
     result = source.obtain(state, None)
     np.testing.assert_allclose(result.matrix.matrix, SPILLOVER, atol=1e-8)
@@ -374,3 +376,53 @@ def test_cleanup_unsubscribes(view):
 
     bus.unsubscribe.assert_called_once()
     view._on_state_restored({})  # late delivery is a no-op
+
+
+@pytest.mark.parametrize(
+    "tube, expected",
+    [
+        ("Specimen_001_FMO APC", "APC-A"),
+        ("Specimen_001_FMO APCCy7", "APC-Cy7-A"),
+        ("FMO APC Cy7", "APC-Cy7-A"),
+        ("FMO minus PE-A", "PE-A"),
+        ("FMO Pacific Blue", "Pacific Blue-A"),
+        ("FMO CD3", "Pacific Blue-A"),  # by marker
+        ("Specimen_001_FMO e450", None),  # a dye name the file doesn't use
+        ("FMO", None),
+    ],
+)
+def test_an_fmo_tube_is_placed_by_the_dye_named_in_its_name(tube, expected):
+    channels = ["FITC-A", "PE-A", "Pacific Blue-A", "APC-Cy7-A", "APC-A"]
+    fcs = MagicMock(channels=channels, markers=["B220", "CD4", "CD3", "CD8", "CD45"])
+    sample = Sample(sample_id="s", display_name=tube)
+
+    assert matrix_sources.fmo_missing_channel(sample, fcs, channels) == expected
+
+
+def test_an_fmo_with_an_unrecognised_name_is_placed_by_its_signal(state):
+    """It is clearly dimmer than the other FMOs only in the dye it lacks."""
+    channels = ["FITC-A", "PE-A", "Pacific Blue-A"]
+    spillover = np.array([[1.0, 0.1, 0.0], [0.02, 1.0, 0.05], [0.0, 0.03, 1.0]])
+    for name, missing in (("FMO FITC", 0), ("FMO PE", 1), ("FMO e450", 2), ("FMO ???", 2)):
+        rng = np.random.default_rng(missing)
+        true = np.abs(rng.normal(900, 400, (2000, 3)))
+        true[:, missing] = 0.0
+        sample = Sample(sample_id=name, display_name=name)
+        sample.role = SampleRole.FMO_CONTROL
+        sample.fcs_data = MagicMock(channels=channels, markers=[])
+        sample.fcs_data.raw_events = pd.DataFrame(true @ spillover + 20.0, columns=channels)
+        state.data.experiment.samples[name] = sample
+
+    ready, text = FmoSource().readiness(state)
+
+    assert ready and "3 of 3" in text
+    assert "FMO e450 → Pacific Blue-A (from its signal)" in text
+    # The channel is taken, so a second unnamed tube isn't forced onto it.
+    assert "Not used: FMO ???" in text
+    result = FmoSource().obtain(state, None)
+    np.testing.assert_allclose(result.matrix.matrix, spillover, atol=1e-8)
+
+    # A manual choice beats both the name and the signal.
+    state.data.experiment.samples["FMO PE"].fmo_minus = "FITC-A"
+    text = FmoSource().readiness(state)[1]
+    assert "FMO PE → FITC-A" in text and "Not used: FMO FITC" in text

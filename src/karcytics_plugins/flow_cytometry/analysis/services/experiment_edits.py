@@ -121,6 +121,24 @@ def set_sample_roles(
     return len(changed)
 
 
+def set_fmo_minus(
+    state: FlowState, sample_id: str, missing: str | None, publish: Publish | None = None
+) -> bool:
+    """Record which dye an FMO control lacks (a channel or marker name);
+    None goes back to detecting it.
+    """
+    sample = state.data.experiment.samples.get(sample_id)
+    if sample is None or sample.fmo_minus == missing:
+        return False
+    sample.fmo_minus = missing
+    announce(
+        "Set FMO Missing Dye",
+        (events.SAMPLE_UPDATED, {"sample_id": sample_id, "stats": None, "tree": None}),
+        publish=publish,
+    )
+    return True
+
+
 # ── Groups ────────────────────────────────────────────────────────────
 
 

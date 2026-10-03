@@ -72,6 +72,7 @@ def _assert_one_exact_step(env: Env, edit, label: str):
             "Assign Sample Roles",
             lambda s, p: edits.set_sample_roles(s, ["s0", "s1", "s2"], SampleRole.SINGLE_STAIN, p),
         ),
+        ("Set FMO Missing Dye", lambda s, p: edits.set_fmo_minus(s, "s1", "PE-A", p)),
         ("Create Group", lambda s, p: edits.create_group(s, "New", p)),
         ("Rename Group", lambda s, p: edits.rename_group(s, "g1", "Renamed", p)),
         ("Delete Group", lambda s, p: edits.delete_group(s, "g1", p)),
