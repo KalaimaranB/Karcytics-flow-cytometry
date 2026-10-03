@@ -25,6 +25,9 @@ from karcytics_sdk.plugin.components import repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
+    CELL_DEFAULT,
+    CELL_EDITED,
+    CELL_ESTIMATED,
     CompensationMatrix,
     compensate_events,
 )
@@ -43,6 +46,18 @@ _PREVIEW_MAX_EVENTS = 10_000
 _X_INTO_Y_COLOR = "#2188FF"
 _Y_INTO_X_COLOR = "#FFB74D"
 _PAIR_CELL_ALPHA = 110
+
+# How a cell's origin is shown (see ``CompensationMatrix.origin``).
+_EDITED_COLOR = "#7EE787"
+_ORIGIN_LEGEND = (
+    "<i>Grey italic</i>: not estimated — the method had no control for this cell, so it "
+    f'is left at its default. &nbsp;<b style="color:{_EDITED_COLOR};">Green bold</b>: '
+    "edited by hand. &nbsp;Plain: from the method."
+)
+_ORIGIN_NOTES = {
+    CELL_DEFAULT: "\nNot estimated: the method had no control for this, so it is left at 0.",
+    CELL_EDITED: "\nEdited by hand.",
+}
 
 _MATRIX_CAPTION = (
     "<b>↓ Rows: dye</b> (the signal's source) &nbsp;·&nbsp; "
@@ -124,6 +139,12 @@ class CompensationEditor(QWidget):
         )
         left_layout.addWidget(self._table, stretch=1)
 
+        self._origin_legend = QLabel(_ORIGIN_LEGEND)
+        self._origin_legend.setWordWrap(True)
+        self._origin_legend.setTextFormat(Qt.TextFormat.RichText)
+        self._origin_legend.setStyleSheet(note_style)
+        left_layout.addWidget(self._origin_legend)
+
         # What the two highlighted cells do to the plotted pair.
         self._pair_help = QLabel()
         self._pair_help.setWordWrap(True)
@@ -185,6 +206,7 @@ class CompensationEditor(QWidget):
 
     def _populate_matrix(self) -> None:
         self._table.blockSignals(True)
+        self._refresh_origin_legend()
         if not self._matrix:
             self._table.clear()
             self._table.setRowCount(0)
@@ -217,12 +239,42 @@ class CompensationEditor(QWidget):
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     item.setToolTip(f"{channels[i]} in its own detector — always 1.")
                 else:
-                    item.setToolTip(
-                        f"{channels[i]} → {channels[j]}: share of {channels[i]}'s signal "
-                        f"picked up by the {channels[j]} detector."
-                    )
+                    self._style_by_origin(item, i, j)
                 self._table.setItem(i, j, item)
         self._table.blockSignals(False)
+
+    def _origin(self, row: int, col: int) -> int:
+        origin = self._matrix.origin if self._matrix else None
+        return CELL_ESTIMATED if origin is None else int(origin[row, col])
+
+    def _style_by_origin(self, item: QTableWidgetItem, row: int, col: int) -> None:
+        """Show whether the method produced a cell, skipped it, or the user set it.
+
+        Callers block the table's signals: styling an item fires itemChanged.
+        """
+        assert self._matrix is not None
+        channels = self._matrix.channel_names
+        origin = self._origin(row, col)
+        font = item.font()
+        font.setItalic(origin == CELL_DEFAULT)
+        font.setBold(origin == CELL_EDITED)
+        item.setFont(font)
+        item.setForeground(
+            QColor(
+                {CELL_DEFAULT: Colors.FG_DISABLED, CELL_EDITED: _EDITED_COLOR}.get(
+                    origin, Colors.FG_PRIMARY
+                )
+            )
+        )
+        item.setToolTip(
+            f"{channels[row]} → {channels[col]}: share of {channels[row]}'s signal "
+            f"picked up by the {channels[col]} detector." + _ORIGIN_NOTES.get(origin, "")
+        )
+
+    def _refresh_origin_legend(self) -> None:
+        """The legend only earns its space when some cell isn't from the method."""
+        origin = self._matrix.origin if self._matrix else None
+        self._origin_legend.setVisible(origin is not None and bool(origin.any()))
 
     # ── The plotted pair ──────────────────────────────────────────────
 
@@ -312,8 +364,18 @@ class CompensationEditor(QWidget):
         # Recreate matrix because we can't mutate the cached inverse easily
         m = self._matrix.matrix.copy()
         m[row, col] = val
+        origin = (
+            np.zeros(m.shape, dtype=np.int8)
+            if self._matrix.origin is None
+            else self._matrix.origin.copy()
+        )
+        origin[row, col] = CELL_EDITED
         # Keep where the matrix came from; record that it was adjusted by hand.
-        self._matrix = replace(self._matrix, matrix=m, fine_tuned=True)
+        self._matrix = replace(self._matrix, matrix=m, fine_tuned=True, origin=origin)
+        self._table.blockSignals(True)
+        self._style_by_origin(item, row, col)
+        self._table.blockSignals(False)
+        self._refresh_origin_legend()
         self._refresh_pair_help()
         self._update_plots()
         self.edited.emit()

@@ -33,9 +33,10 @@ A fluorescence-minus-one control carries every dye except one, so whatever its m
 - Assign the role **FMO Control** to each sample in the Properties Panel. A **Missing dye** choice appears under the role:
     - **Auto-detect** (default) reads the dye from the sample's name (`FMO APC`, `FMO APCCy7`, `FMO CD4` and `FMO minus PE-A` all work). If the name doesn't say, it picks the channel where the tube is clearly dimmer than the other FMO controls.
     - Pick the channel yourself when auto-detect is wrong or can't decide. A manual choice always wins.
-- The line under the method selector lists every pairing it will use, for example `FMO e450 → Pacific Blue-A (from its signal)`, and names any tube it can't use. Check it before running.
-- A detector without an FMO gets no estimate: spill into it is left at 0. The status note lists those detectors.
-- Treat the result as a starting point. Autofluorescence that varies from cell to cell is picked up as spill, which inflates the rows of dim dyes, so check each pair on the preview and fine-tune.
+- The line under the method selector says how many channels the controls cover. Hover over it to see which tube covers which dye, and which tubes are not used. Check it before running.
+- A detector without an FMO gets no estimate. Those cells are left at 0 and shown in *grey italic* in the matrix, so you can see what still needs filling in by hand.
+- The fit is robust: events with signal in the missing dye's detector that the other dyes don't explain (dead cells, aggregates) are down-weighted rather than read as spill.
+- Treat the result as a starting point: check each pair on the preview and fine-tune.
 
 ### Import from a file
 Load a matrix computed elsewhere. Channel names are read from the header row.
@@ -51,7 +52,7 @@ Once a matrix is loaded or computed, it is vital to review it for excessive spec
     - **Sample** picks which sample is shown. Judge each cell on the single-stain control for its dye.
     - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes. A correctly compensated single-positive population sits level rather than slanting.
     - **Histogram** overlays before (grey) and after (colour) for each of the two channels, which shows whether a negative population has been pushed below zero.
-5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you click **✅ Apply to All**, which saves the edits and recompensates every loaded sample. From then on the status line marks the matrix as **fine-tuned by hand**. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft.
+5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you click **✅ Apply to All**, which saves the edits and recompensates every loaded sample. From then on the status line marks the matrix as **fine-tuned by hand**. Cells you edited are shown in **green bold**, cells the method could not estimate in *grey italic*; the marks are saved with the matrix. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft.
 
 ![alt text](../images/03_compensation/compensation_editor.png)
 

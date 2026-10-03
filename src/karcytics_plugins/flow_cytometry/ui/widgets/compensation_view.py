@@ -262,7 +262,9 @@ class CompensationView(QWidget):
         self._btn_run.setToolTip(source.tooltip)
         self._btn_run.setObjectName(source.object_name or _RUN_BUTTON_NAME)
         self._method_combo.setToolTip(source.tooltip)
-        self._method_hint.setText(source.readiness(self._state)[1])
+        readiness = source.readiness(self._state)
+        self._method_hint.setText(readiness.text)
+        self._method_hint.setToolTip(readiness.detail)
 
     def _on_run_method(self) -> None:
         source = self._source(self._method_combo.currentData())

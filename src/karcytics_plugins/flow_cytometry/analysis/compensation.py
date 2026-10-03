@@ -33,6 +33,18 @@ from .fcs_io import FCSData, get_fluorescence_channels
 logger = get_logger(__name__, "flow_cytometry")
 
 
+# Where a matrix cell's value came from (``CompensationMatrix.origin``).
+CELL_ESTIMATED = 0  # the method measured it
+CELL_DEFAULT = 1  # the method had no control for it; left at its default
+CELL_EDITED = 2  # set by hand
+
+# FMO fit: events used per control, and the Huber tuning constant (95%
+# efficiency on clean data).
+_FMO_FIT_MAX_EVENTS = 100_000
+_HUBER_K = 1.345
+_ROBUST_FIT_ITERATIONS = 30
+
+
 @dataclass
 class CompensationMatrix:
     """Container for a computed or imported compensation matrix.
@@ -45,12 +57,15 @@ class CompensationMatrix:
         source:       How the matrix was obtained: ``'cytometer'``,
                       ``'computed'``, ``'fmo'``, or ``'imported'``.
         fine_tuned:   Cells were edited by hand since ``source`` produced it.
+        origin:       Per cell, where its value came from (``CELL_*``);
+                      None when the method produced every cell.
     """
 
     matrix: np.ndarray
     channel_names: list[str] = field(default_factory=list)
     source: str = "computed"
     fine_tuned: bool = False
+    origin: np.ndarray | None = None
 
     @property
     def inverse(self) -> np.ndarray:
@@ -68,6 +83,7 @@ class CompensationMatrix:
             "channel_names": self.channel_names,
             "source": self.source,
             "fine_tuned": self.fine_tuned,
+            "origin": None if self.origin is None else self.origin.tolist(),
         }
 
     @classmethod
@@ -78,6 +94,7 @@ class CompensationMatrix:
             channel_names=data.get("channel_names", []),
             source=data.get("source", "imported"),
             fine_tuned=bool(data.get("fine_tuned", False)),
+            origin=None if data.get("origin") is None else np.array(data["origin"], dtype=np.int8),
         )
 
 
@@ -198,10 +215,16 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
         len(single_stains),
     )
 
+    # A dye without a single-stain control keeps its identity row, unmeasured.
+    origin = np.full((n, n), CELL_DEFAULT, dtype=np.int8)
+    origin[sorted(channels_assigned), :] = CELL_ESTIMATED
+    np.fill_diagonal(origin, CELL_ESTIMATED)
+
     return CompensationMatrix(
         matrix=spillover,
         channel_names=fluorescence_channels,
         source="computed",
+        origin=origin,
     )
 
 
@@ -215,14 +238,14 @@ def calculate_spillover_from_fmo(
 
     An FMO control carries every dye but one, so whatever its missing dye's
     detector records is spill from the others. Regressing that detector on
-    the other detectors (raw values, with an intercept for autofluorescence)
-    gives the weights ``c_k`` that cancel it: ``raw_k − raw_others · c_k ≈ 0``.
+    the other detectors (raw values, with an intercept for autofluorescence;
+    a robust fit, see ``_robust_fit``) gives the weights ``c_k`` that cancel it: ``raw_k − raw_others · c_k ≈ 0``.
     Collecting them as the columns of ``C``, ``I − C`` is the compensation
     matrix up to a per-dye scale, so the spillover matrix is its inverse
     with each row normalised to a diagonal of 1.
 
     A detector without an FMO control gets no estimate: nothing is taken
-    to spill into it.
+    to spill into it, and its column is marked ``CELL_DEFAULT``.
 
     Args:
         fmo_controls:          Missing dye's channel → that FMO control.
@@ -233,19 +256,19 @@ def calculate_spillover_from_fmo(
     """
     n = len(fluorescence_channels)
     weights = np.zeros((n, n), dtype=np.float64)  # weights[j, k]: detector j's share in k
-    used = 0
+    covered: list[int] = []
     for k, channel in enumerate(fluorescence_channels):
         control = fmo_controls.get(channel)
         events = None if control is None else _raw_events(control)
         if events is None or any(ch not in events.columns for ch in fluorescence_channels):
             continue
-        values = events[fluorescence_channels].to_numpy(dtype=np.float64)
+        step = max(1, len(events) // _FMO_FIT_MAX_EVENTS)
+        values = events[fluorescence_channels].to_numpy(dtype=np.float64)[::step]
         others = [j for j in range(n) if j != k]
         design = np.column_stack([values[:, others], np.ones(len(values))])
-        solution, *_ = np.linalg.lstsq(design, values[:, k], rcond=None)
-        weights[others, k] = solution[:-1]
-        used += 1
-    if not used:
+        weights[others, k] = _robust_fit(design, values[:, k])[:-1]
+        covered.append(k)
+    if not covered:
         raise ValueError("No FMO control has data for every channel of the matrix.")
 
     try:
@@ -259,10 +282,38 @@ def calculate_spillover_from_fmo(
     spillover = np.clip(unscaled / diagonal[:, None], 0.0, None)
     np.fill_diagonal(spillover, 1.0)
 
-    logger.info("Estimated spillover matrix (%d×%d) from %d FMO controls.", n, n, used)
+    # Spill into a detector without an FMO was never measured.
+    origin = np.full((n, n), CELL_DEFAULT, dtype=np.int8)
+    origin[:, covered] = CELL_ESTIMATED
+    np.fill_diagonal(origin, CELL_ESTIMATED)
+
+    logger.info("Estimated spillover matrix (%d×%d) from %d FMO controls.", n, n, len(covered))
     return CompensationMatrix(
-        matrix=spillover, channel_names=list(fluorescence_channels), source="fmo"
+        matrix=spillover, channel_names=list(fluorescence_channels), source="fmo", origin=origin
     )
+
+
+def _robust_fit(design: np.ndarray, target: np.ndarray) -> np.ndarray:
+    """Least squares that down-weights outlying events (Huber weights).
+
+    Some events carry signal in the missing dye's detector that the other
+    dyes don't explain (dead cells, aggregates); an ordinary fit bends
+    towards them and reads it as spill between unrelated dyes. Events that
+    are extreme in the *other* detectors still pull on the fit.
+    """
+    weights = np.ones(len(target))
+    solution = np.zeros(design.shape[1])
+    for _ in range(_ROBUST_FIT_ITERATIONS):
+        weighted = design * weights[:, None]
+        previous = solution
+        solution, *_ = np.linalg.lstsq(weighted.T @ design, weighted.T @ target, rcond=None)
+        residual = target - design @ solution
+        # Robust spread of the residuals (median absolute deviation as a sigma).
+        scale = 1.4826 * np.median(np.abs(residual - np.median(residual)))
+        if scale <= 0 or np.allclose(solution, previous, rtol=1e-6, atol=1e-9):
+            break
+        weights = np.minimum(1.0, _HUBER_K * scale / np.maximum(np.abs(residual), 1e-12))
+    return solution
 
 
 def _raw_events(data: FCSData) -> pd.DataFrame | None:

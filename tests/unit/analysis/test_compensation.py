@@ -155,6 +155,10 @@ def test_a_detector_without_an_fmo_gets_no_spill_estimate():
     partial = calculate_spillover_from_fmo(_fmo_controls(spillover, channels, [1]), channels)
     assert partial.matrix[0, 1] == pytest.approx(0.15, abs=1e-6)  # FITC → PE, from the PE FMO
     assert partial.matrix[1, 2] == 0.0  # nothing known about spill into APC
+    # ...and the matrix says so, cell by cell.
+    assert partial.origin.tolist() == [[0, 0, 1], [1, 0, 1], [1, 0, 0]]
+    restored = CompensationMatrix.from_dict(partial.to_dict())
+    assert np.array_equal(restored.origin, partial.origin)
 
     with pytest.raises(ValueError, match="No FMO control"):
         calculate_spillover_from_fmo({}, channels)
@@ -166,3 +170,46 @@ def test_fine_tuned_survives_serialisation_and_defaults_off_for_old_files():
     assert CompensationMatrix.from_dict(comp.to_dict()).fine_tuned is True
     old = {"matrix": [[1, 0], [0, 1]], "channel_names": ["A", "B"], "source": "cytometer"}
     assert CompensationMatrix.from_dict(old).fine_tuned is False
+
+
+def test_fmo_fit_ignores_stray_signal_in_the_missing_dyes_detector():
+    """Some events are bright there for reasons other than spill (dead cells,
+    aggregates); an ordinary fit bends towards them.
+    """
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        calculate_spillover_from_fmo,
+    )
+
+    channels = ["FITC-A", "PE-A", "APC-A"]
+    spillover = np.array([[1.0, 0.15, 0.0], [0.02, 1.0, 0.08], [0.0, 0.01, 1.0]])
+    controls = _fmo_controls(spillover, channels, range(3), noise=5.0)
+    rng = np.random.default_rng(3)
+    for channel, control in controls.items():
+        junk = rng.choice(len(control.events), size=len(control.events) // 20, replace=False)
+        column = control.events.columns.get_loc(channel)
+        control.events.iloc[junk, column] += rng.uniform(2_000, 20_000, len(junk))
+
+    estimate = calculate_spillover_from_fmo(controls, channels)
+
+    np.testing.assert_allclose(estimate.matrix, spillover, atol=0.01)
+
+
+def test_single_stain_matrix_marks_dyes_without_a_control():
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        CELL_DEFAULT,
+        calculate_spillover_matrix,
+    )
+
+    channels = ["FITC-A", "PE-A", "APC-A"]
+    stains = [
+        SimpleNamespace(events=pd.DataFrame([row] * 10, columns=channels), file_path=Path("ss.fcs"))
+        for row in ([1000.0, 100.0, 0.0], [20.0, 1000.0, 50.0])
+    ]
+
+    comp = calculate_spillover_matrix(stains, fluorescence_channels=channels)
+
+    assert comp.origin[2].tolist() == [CELL_DEFAULT, CELL_DEFAULT, 0]  # no APC control
+    assert not comp.origin[:2].any()

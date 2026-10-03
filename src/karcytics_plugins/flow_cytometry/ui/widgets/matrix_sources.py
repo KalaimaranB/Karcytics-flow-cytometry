@@ -15,6 +15,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 from PyQt6.QtWidgets import QFileDialog, QWidget
@@ -55,6 +56,14 @@ class MatrixSourceError(Exception):
         self.title = title
 
 
+class Readiness(NamedTuple):
+    """Whether a method can run on the loaded data, and what it found."""
+
+    ready: bool
+    text: str  # one short line
+    detail: str = ""  # the specifics, shown on hover
+
+
 class MatrixSource(ABC):
     """One way to obtain a spillover matrix."""
 
@@ -66,8 +75,8 @@ class MatrixSource(ABC):
     advanced: bool = False  # listed under "Advanced algorithms"
 
     @abstractmethod
-    def readiness(self, state: FlowState) -> tuple[bool, str]:
-        """Whether ``state`` has what the method needs, and one line saying so."""
+    def readiness(self, state: FlowState) -> Readiness:
+        """Whether ``state`` has what the method needs, and what it found."""
 
     @abstractmethod
     def obtain(self, state: FlowState, parent: QWidget) -> SourceResult | None:
@@ -93,9 +102,9 @@ class SingleStainSource(MatrixSource):
         "Requires samples tagged with role 'Single Stain'."
     )
 
-    def readiness(self, state: FlowState) -> tuple[bool, str]:
+    def readiness(self, state: FlowState) -> Readiness:
         found = len(_loaded(state, SampleRole.SINGLE_STAIN))
-        return (
+        return Readiness(
             found >= _MIN_SINGLE_STAINS,
             f"{found} single-stain control(s) loaded (needs at least {_MIN_SINGLE_STAINS}; "
             "set a sample's role in the Properties panel).",
@@ -146,11 +155,13 @@ class FcsMetadataSource(MatrixSource):
                 return sample, matrix
         return None
 
-    def readiness(self, state: FlowState) -> tuple[bool, str]:
+    def readiness(self, state: FlowState) -> Readiness:
         found = self._embedded(state)
         if found is None:
-            return False, "None of the loaded FCS files carries a matrix ($SPILL / $SPILLOVER)."
-        return True, f"The cytometer's own matrix, recorded in {found[0].display_name}."
+            return Readiness(
+                False, "None of the loaded FCS files carries a matrix ($SPILL / $SPILLOVER)."
+            )
+        return Readiness(True, f"The cytometer's own matrix, recorded in {found[0].display_name}.")
 
     def obtain(self, state: FlowState, parent: QWidget) -> SourceResult | None:
         found = self._embedded(state)
@@ -219,24 +230,41 @@ class FmoSource(MatrixSource):
                 placed[channels[channel_index]] = _Fmo(sample.display_name, fcs, "signal")
         return channels, placed, unplaced
 
-    def readiness(self, state: FlowState) -> tuple[bool, str]:
+    def readiness(self, state: FlowState) -> Readiness:
         channels, placed, unplaced = self._controls(state)
         if not placed and not unplaced:
-            return False, (
+            return Readiness(
+                False,
                 "No FMO controls loaded (set a sample's role to FMO Control, and its "
-                "Missing dye, in the Properties panel)."
+                "Missing dye, in the Properties panel).",
             )
-        text = f"FMO controls cover {len(placed)} of {len(channels)} fluorescence channels"
-        text += f": {_pairings(placed)}." if placed else "."
+        text = f"{len(placed)} FMO control(s) cover {len(placed)} of {len(channels)} channels."
+        uncovered = [ch for ch in channels if ch not in placed]
+        if uncovered:
+            text += f" No FMO for {', '.join(uncovered)}."
+        guessed = sum(1 for fmo in placed.values() if fmo.placed_by == "signal")
+        if guessed:
+            text += f" {guessed} matched by signal, not by name."
         if unplaced:
-            text += (
-                f" Not used: {', '.join(unplaced)} (its missing dye is unclear, or another "
-                "tube covers it). Set each tube's Missing dye in the Properties panel."
+            text += f" {len(unplaced)} not used."
+        text += " Hover to see which tube covers which dye."
+
+        detail = "\n".join(
+            f"{channel}: {fmo.name}"
+            + (" (matched by its signal, not its name)" if fmo.placed_by == "signal" else "")
+            for channel, fmo in placed.items()
+        )
+        detail += "".join(f"\n{channel}: no FMO control" for channel in uncovered)
+        if unplaced:
+            detail += (
+                f"\n\nNot used: {', '.join(unplaced)} — the missing dye is unclear, or another "
+                "tube already covers it."
             )
-        return bool(placed), text
+        detail += "\n\nTo change a pairing, set the tube's Missing dye in the Properties panel."
+        return Readiness(bool(placed), text, detail)
 
     def obtain(self, state: FlowState, parent: QWidget) -> SourceResult | None:
-        channels, placed, unplaced = self._controls(state)
+        channels, placed, _unplaced = self._controls(state)
         if not placed:
             raise MatrixSourceError(
                 "No Usable FMO Controls",
@@ -254,13 +282,14 @@ class FmoSource(MatrixSource):
 
         summary = (
             f"Estimated a {matrix.n_channels}×{matrix.n_channels} matrix from "
-            f"{len(placed)} FMO control(s) ({_pairings(placed)})."
+            f"{len(placed)} FMO control(s)."
         )
         uncovered = [ch for ch in channels if ch not in placed]
         if uncovered:
-            summary += f" No FMO for {', '.join(uncovered)}: spill into those is left at 0."
-        if unplaced:
-            summary += f" Skipped {', '.join(unplaced)}."
+            summary += (
+                f" Spill into {', '.join(uncovered)} is not estimated (no FMO): those cells "
+                "are greyed out and left at 0."
+            )
         return SourceResult(matrix, "Estimate Compensation Matrix", summary)
 
 
@@ -271,14 +300,6 @@ class _Fmo:
     name: str
     data: FCSData
     placed_by: str  # "name" | "signal"
-
-
-def _pairings(placed: dict[str, _Fmo]) -> str:
-    """'tube → missing channel' for each control, flagging the ones guessed from signal."""
-    return ", ".join(
-        f"{fmo.name} → {channel}" + (" (from its signal)" if fmo.placed_by == "signal" else "")
-        for channel, fmo in placed.items()
-    )
 
 
 def _normalise(name: str) -> str:
@@ -352,8 +373,10 @@ class CsvImportSource(MatrixSource):
     action = "📥 Import CSV"
     tooltip = "Import a spillover matrix from a CSV or TSV file."
 
-    def readiness(self, state: FlowState) -> tuple[bool, str]:
-        return True, "A matrix saved as CSV/TSV, e.g. exported from other analysis software."
+    def readiness(self, state: FlowState) -> Readiness:
+        return Readiness(
+            True, "A matrix saved as CSV/TSV, e.g. exported from other analysis software."
+        )
 
     def obtain(self, state: FlowState, parent: QWidget) -> SourceResult | None:
         path, _ = QFileDialog.getOpenFileName(

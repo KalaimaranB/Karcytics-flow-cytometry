@@ -19,6 +19,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     FmoSource,
     MatrixSource,
     MatrixSourceError,
+    Readiness,
     SingleStainSource,
     SourceResult,
 )
@@ -83,7 +84,7 @@ class _FixedSource(MatrixSource):
         self._ready = ready
 
     def readiness(self, state):
-        return self._ready, "what the estimator needs"
+        return Readiness(self._ready, "what the estimator needs", "the specifics")
 
     def obtain(self, state, parent):
         if isinstance(self._outcome, Exception):
@@ -149,6 +150,7 @@ def test_picking_a_method_retargets_the_run_button_and_sticks(make_view, state):
 
     assert view._btn_run.text() == "🧮 Estimate from FMOs"
     assert "No FMO controls loaded" in view._method_hint.text()
+    assert view._method_hint.toolTip() == ""
     view.refresh()  # coming back to the tab keeps the user's choice
     assert view._method_combo.currentData() == "fmo"
 
@@ -278,15 +280,15 @@ def test_fmo_source_matches_each_control_to_the_dye_it_lacks(state):
     state.data.experiment.samples["f2"] = _fmo("Tube 7", 1, fmo_minus="cd45")
     state.data.experiment.samples["f3"] = _fmo("Mystery FMO", 1)
 
-    ready, text = source.readiness(state)
-    assert ready and "2 of 2" in text
-    assert "Specimen_001_FMO CD4 → FL1-A" in text and "Tube 7 → FL2-A" in text
-    assert "Not used: Mystery FMO" in text
+    ready, text, detail = source.readiness(state)
+    assert ready and "2 of 2" in text and "1 not used" in text
+    assert "FL1-A: Specimen_001_FMO CD4" in detail and "FL2-A: Tube 7" in detail
+    assert "Not used: Mystery FMO" in detail
 
     result = source.obtain(state, None)
     np.testing.assert_allclose(result.matrix.matrix, SPILLOVER, atol=1e-8)
     assert result.matrix.source == "fmo"
-    assert "Skipped Mystery FMO" in result.summary
+    assert result.summary == "Estimated a 2×2 matrix from 2 FMO control(s)."
 
 
 # ── The edit draft ────────────────────────────────────────────────────
@@ -413,16 +415,48 @@ def test_an_fmo_with_an_unrecognised_name_is_placed_by_its_signal(state):
         sample.fcs_data.raw_events = pd.DataFrame(true @ spillover + 20.0, columns=channels)
         state.data.experiment.samples[name] = sample
 
-    ready, text = FmoSource().readiness(state)
+    ready, text, detail = FmoSource().readiness(state)
 
-    assert ready and "3 of 3" in text
-    assert "FMO e450 → Pacific Blue-A (from its signal)" in text
+    assert ready and "3 of 3" in text and "1 matched by signal" in text
+    assert "Pacific Blue-A: FMO e450 (matched by its signal" in detail
     # The channel is taken, so a second unnamed tube isn't forced onto it.
-    assert "Not used: FMO ???" in text
+    assert "Not used: FMO ???" in detail
     result = FmoSource().obtain(state, None)
     np.testing.assert_allclose(result.matrix.matrix, spillover, atol=1e-8)
 
     # A manual choice beats both the name and the signal.
     state.data.experiment.samples["FMO PE"].fmo_minus = "FITC-A"
-    text = FmoSource().readiness(state)[1]
-    assert "FMO PE → FITC-A" in text and "Not used: FMO FITC" in text
+    detail = FmoSource().readiness(state).detail
+    assert "FITC-A: FMO PE" in detail and "Not used: FMO FITC" in detail
+
+
+def test_cells_show_whether_the_method_produced_them(make_view, state):
+    """Greyed: the method had no control for the cell. Green bold: edited by hand."""
+    from karcytics_plugins.flow_cytometry.analysis.compensation import CELL_DEFAULT, CELL_EDITED
+
+    matrix = _matrix()
+    matrix.origin = np.array([[0, CELL_DEFAULT], [0, 0]], dtype=np.int8)
+    state.data.compensation = matrix
+    view = make_view(state)
+    view.show()
+    table = view._editor._table
+
+    assert table.item(0, 1).font().italic() and "Not estimated" in table.item(0, 1).toolTip()
+    assert not table.item(1, 0).font().italic() and not table.item(1, 0).font().bold()
+    assert view._editor._origin_legend.isVisible()
+
+    table.item(1, 0).setText("0.3")
+    assert table.item(1, 0).font().bold() and "Edited by hand" in table.item(1, 0).toolTip()
+    assert view._editor.matrix.origin[1, 0] == CELL_EDITED
+
+    view._btn_apply.click()  # the marks are part of the matrix: saved and reloaded with it
+    assert state.data.compensation.origin[1, 0] == CELL_EDITED
+    assert table.item(1, 0).font().bold() and table.item(0, 1).font().italic()
+
+
+def test_the_legend_is_hidden_when_every_cell_is_from_the_method(make_view, state):
+    state.data.compensation = _matrix()
+    view = make_view(state)
+    view.show()
+
+    assert not view._editor._origin_legend.isVisible()
