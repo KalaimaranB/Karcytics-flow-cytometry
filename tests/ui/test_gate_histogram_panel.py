@@ -168,13 +168,18 @@ def test_population_is_capped_and_reused_across_preview_frames(panel, flow_state
     assert panel._population_service.get_gated_events.call_count == 2
 
 
-def test_no_sample_renders_an_empty_state(panel):
+def test_no_sample_shows_a_placeholder_instead_of_the_plots(panel):
+    assert panel._placeholder.isHidden()
+    assert not panel._x_canvas.isHidden() and not panel._y_canvas.isHidden()
+
+    panel._x_canvas.show_histogram.reset_mock()
     panel.set_context(None, None, None)
+    panel._render()
 
-    (x_state, x_boundary), _ = _rendered(panel)
-
-    assert x_state.current_data is None
-    assert x_boundary is None
+    assert not panel._placeholder.isHidden()
+    assert "Select a sample" in panel._placeholder.text()
+    assert panel._x_canvas.isHidden() and panel._y_canvas.isHidden()
+    panel._x_canvas.show_histogram.assert_not_called()
 
 
 def test_hidden_panel_defers_rendering_until_shown(panel):

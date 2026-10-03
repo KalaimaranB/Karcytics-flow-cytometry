@@ -13,6 +13,11 @@ PREVIEW_THUMBNAIL_SIZE = (160, 160)
 PREVIEW_BG_COLOR = "#FFFFFF"
 PREVIEW_THROTTLE_MS = 300  # Throttle real-time previews to ~3 FPS for stability
 
+# ── Properties Panel ─────────────────────────────────────────────────
+# What the properties panel's top pane is showing (``ViewState.properties_view``).
+PROPERTIES_VIEW_PROPERTIES = "properties"
+PROPERTIES_VIEW_HISTOGRAM = "histogram"
+
 # ── Rendering Constraints ────────────────────────────────────────────
 DEFAULT_NBINS_MIN = 512
 DEFAULT_NBINS_MAX = 8192

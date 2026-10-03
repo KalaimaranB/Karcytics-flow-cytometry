@@ -72,6 +72,24 @@ class TabActiveValidator(FlowValidator):
         return True
 
 
+class PropertiesViewValidator(FlowValidator):
+    """Verifies which view the properties panel's top pane is showing.
+
+    ``expected_view`` is one of the ``PROPERTIES_VIEW_*`` constants.
+    """
+
+    def __init__(self, expected_view: str) -> None:
+        self.expected = expected_view
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        current = app_state.view.properties_view
+        if current != self.expected:
+            return self.log_failure(
+                f"Properties panel is showing '{current}', expected '{self.expected}'."
+            )
+        return True
+
+
 class TutorialFilesProvisionedValidator(FlowValidator):
     """Polls the background tutorial-file provisioning job.
 

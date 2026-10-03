@@ -27,6 +27,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
+from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
 from .tutorial_assets import start_provisioning
 from .validators import (
     AxisChannelValidator,
@@ -35,6 +36,7 @@ from .validators import (
     FlowImportValidator,
     FmoRoleValidator,
     GateShapeValidator,
+    PropertiesViewValidator,
     RoleAssignmentValidator,
     SampleOpenValidator,
     SingleStainRoleValidator,
@@ -133,6 +135,20 @@ def route_import_failure(
     elif current_step:
         current_step.next_step_id = default_next_id
         current_step.text = "Analyzing sample count..."
+
+
+def route_by_properties_view(panel, step_id, switch_step_id, ready_step_id):
+    """Skip the "switch back to Properties" step when the panel is already there.
+
+    The Properties Panel's top pane can be left on its Histogram view (the
+    choice is remembered between sessions), which hides the Role dropdown the
+    role-assignment steps need.
+    """
+    step = next((s for s in course_1_fundamentals.steps if s.id == step_id), None)
+    if step is None:
+        return
+    on_properties = panel.state.view.properties_view == PROPERTIES_VIEW_PROPERTIES
+    step.next_step_id = ready_step_id if on_properties else switch_step_id
 
 
 # ==============================================================================
@@ -416,7 +432,35 @@ course_1_fundamentals = Course(
                 "channel is background, so that's where CD45-negative ends."
             ),
             cyto_emotion="thinking",
-            next_step_id="c1_s5_blank_role",
+            next_step_id="c1_s5_check_properties_view",
+        ),
+        # The Role dropdown lives on the panel's Properties view — get the
+        # user back there first if they left it on Histogram.
+        ActionStep(
+            id="c1_s5_check_properties_view",
+            text="Checking the Properties Panel...",
+            action=lambda panel: route_by_properties_view(
+                panel,
+                "c1_s5_check_properties_view",
+                "c1_s5_switch_to_properties",
+                "c1_s5_blank_role",
+            ),
+            next_step_id="c1_s5_switch_to_properties",
+        ),
+        VerificationStep(
+            id="c1_s5_switch_to_properties",
+            text=(
+                "One thing first: the **Properties Panel** (right) is showing its "
+                "**Histogram** view, and we need the sample details instead.<br><br>"
+                "Click **Properties** at the top of the panel (highlighted) to switch back."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["PropertiesViewToggle"],
+            validator=PropertiesViewValidator(PROPERTIES_VIEW_PROPERTIES),
+            on_success_step_id="c1_s5_blank_role",
+            failure_hint="Click **Properties** at the top of the Properties Panel on the right.",
         ),
         # Blank → Unstained
         VerificationStep(
@@ -749,7 +793,27 @@ course_1_fundamentals = Course(
                 "When you draw the gate in the next step, a popup will ask you for its name. Be sure to call it **Cells**!"
             ),
             cyto_emotion="talking",
-            next_step_id="c1_s24_cells_gate",
+            next_step_id="c1_s23b_open_histogram",
+        ),
+        # First gate only: draw it with the gate histograms open, so the user
+        # sees what the gate keeps on each channel. Switched back right after
+        # (c1_s24a_back_to_properties) — later steps read the Properties view.
+        VerificationStep(
+            id="c1_s23b_open_histogram",
+            text=(
+                "Before you draw, let's open a second view of the gate.<br><br>"
+                "At the top of the **Properties Panel** (right), click **Histogram** "
+                "(highlighted).<br><br>"
+                "It shows the same cells as two histograms — **FSC-A** on top, "
+                "**SSC-A** below — and updates live while you draw."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["PropertiesViewToggle"],
+            validator=PropertiesViewValidator(PROPERTIES_VIEW_HISTOGRAM),
+            on_success_step_id="c1_s24_cells_gate",
+            failure_hint="Click **Histogram** at the top of the Properties Panel on the right.",
         ),
         InteractionStep(
             id="c1_s24_cells_gate",
@@ -759,12 +823,14 @@ course_1_fundamentals = Course(
                 "2. Click each vertex around the oval cell cloud on the plot (highlighted)<br>"
                 "3. Double-click to close the polygon<br>"
                 "4. Type **Cells** in the popup and hit Enter!<br><br>"
+                "As you click, watch the **histograms** on the right (highlighted): "
+                "the coloured part is what your gate keeps, the grey is what it leaves out.<br><br>"
                 "Your gate will be evaluated automatically once you finish drawing."
             ),
             cyto_emotion="pointing",
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
-            target_widget_names=["Tool_polygon", "FlowCanvas"],
+            target_widget_names=["Tool_polygon", "FlowCanvas", "GateHistogramPanel"],
             metadata={
                 "guide_data_poly": [(8000, 38000), (248000, 34000), (248000, 500), (8000, 1000)]
             },
@@ -786,14 +852,14 @@ course_1_fundamentals = Course(
                 "guide_data_poly": [(8000, 38000), (248000, 34000), (248000, 500), (8000, 1000)]
             },
             validator=c1_cells_validator,
-            on_success_step_id="c1_s24b_cells_hierarchy_intro",
+            on_success_step_id="c1_s24a_back_to_properties",
             on_fail_step_id="c1_s24_cells_gate_retry",
         ),
         InfoStep(
             id="c1_s24_cells_gate_misnamed",
             text="I renamed the gate to **Cells** for you. Let's proceed!",
             cyto_emotion="happy",
-            next_step_id="c1_s24b_cells_hierarchy_intro",
+            next_step_id="c1_s24a_back_to_properties",
         ),
         InfoStep(
             id="c1_s24_cells_gate_retry",
@@ -808,6 +874,22 @@ course_1_fundamentals = Course(
                 "guide_data_poly": [(8000, 38000), (248000, 34000), (248000, 500), (8000, 1000)]
             },
             next_step_id="c1_s24_cells_gate",
+        ),
+        VerificationStep(
+            id="c1_s24a_back_to_properties",
+            text=(
+                "Gate drawn. ✅<br><br>"
+                "The **Histogram** view is there whenever you want a second look at "
+                "a gate. The steps ahead read the gate's statistics, so click "
+                "**Properties** (highlighted) to switch the panel back."
+            ),
+            cyto_emotion="happy",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["PropertiesViewToggle"],
+            validator=PropertiesViewValidator(PROPERTIES_VIEW_PROPERTIES),
+            on_success_step_id="c1_s24b_cells_hierarchy_intro",
+            failure_hint="Click **Properties** at the top of the Properties Panel on the right.",
         ),
         InfoStep(
             id="c1_s24b_cells_hierarchy_intro",

@@ -55,16 +55,21 @@ def test_starts_on_properties_without_building_the_histogram(make_panel):
     assert panel._top_stack.currentWidget() is panel._scroll
 
 
-def test_toggle_switches_the_top_pane_and_remembers_the_choice(make_panel, remembered_choice):
+def test_toggle_switches_the_top_pane_and_remembers_the_choice(
+    make_panel, remembered_choice, flow_state
+):
     panel = make_panel()
+    assert flow_state.view.properties_view == "properties"
 
     panel._btn_histogram.click()
     assert _showing_histogram(panel)
     assert remembered_choice["histogram"] is True
+    assert flow_state.view.properties_view == "histogram"  # what tutorials read
 
     panel._btn_properties.click()
     assert panel._top_stack.currentWidget() is panel._scroll
     assert remembered_choice["histogram"] is False
+    assert flow_state.view.properties_view == "properties"
 
 
 def test_remembered_choice_waits_for_a_displayed_population(make_panel, remembered_choice):

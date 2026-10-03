@@ -21,6 +21,7 @@ from karcytics_sdk.plugin import CentralEventBus, PluginState, get_logger
 from . import events
 from .compensation import CompensationMatrix
 from .config import FlowConfig, RenderConfig
+from .constants import PROPERTIES_VIEW_PROPERTIES
 from .experiment import Experiment
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -47,6 +48,9 @@ class ViewState:
     active_transform_y: str = "linear"
     active_main_tab_index: int = 0
     active_plot_type: str = "pseudocolor"
+    # Mirrors the properties panel's top pane so tutorial validators can
+    # read it; the panel owns it. Not saved with the workflow.
+    properties_view: str = PROPERTIES_VIEW_PROPERTIES
     active_group_filter: str = "__all__"
     active_fmo_sample_id: str | None = None
     auto_range_on_quality: bool = field(default_factory=FlowConfig.get_auto_range)

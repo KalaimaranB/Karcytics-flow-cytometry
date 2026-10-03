@@ -18,9 +18,10 @@ import pandas as pd
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.rendering.mpl_canvas import LayeredMatplotlibCanvas
 from karcytics_sdk.plugin.rendering.pipeline import RasterizeStage
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from matplotlib.figure import Figure
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.constants import (
@@ -206,6 +207,20 @@ class GateHistogramPanel(QWidget):
         layout.addWidget(self._x_canvas, stretch=1)
         layout.addWidget(self._y_canvas, stretch=1)
 
+        # Shown in place of the plots while there is no sample to histogram.
+        self._placeholder = QLabel("Select a sample to view\nits gate histograms.")
+        self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._placeholder.setWordWrap(True)
+        layout.addWidget(self._placeholder, stretch=1)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        theme_manager.apply_style(
+            self,
+            "#GateHistogramPanel { background: {BG_DARKEST}; }"
+            f" QLabel {{ color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " background: transparent; padding: 24px; }",
+        )
+        self._sync_placeholder()
+
         self._refresh_timer = QTimer(self)
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.setInterval(_REFRESH_INTERVAL_MS)
@@ -236,7 +251,14 @@ class GateHistogramPanel(QWidget):
         self._sample_id = sample_id
         self._node_id = node_id
         self._selected_node_id = selected_node_id
+        self._sync_placeholder()
         self.refresh()
+
+    def _sync_placeholder(self) -> None:
+        has_sample = bool(self._sample_id)
+        self._placeholder.setVisible(not has_sample)
+        self._x_canvas.setVisible(has_sample)
+        self._y_canvas.setVisible(has_sample)
 
     def refresh(self) -> None:
         """Re-read the population and re-render (throttled)."""
@@ -287,6 +309,8 @@ class GateHistogramPanel(QWidget):
             self._stale = True  # showEvent picks it up
             return
         self._stale = False
+        if not self._sample_id:
+            return  # the placeholder is showing
 
         x_param = self._state.view.active_x_param
         y_param = self._state.view.active_y_param

@@ -36,6 +36,10 @@ from PyQt6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.config import FlowConfig
+from karcytics_plugins.flow_cytometry.analysis.constants import (
+    PROPERTIES_VIEW_HISTOGRAM,
+    PROPERTIES_VIEW_PROPERTIES,
+)
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import derived_labels_of
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
@@ -179,6 +183,7 @@ class PropertiesPanel(QWidget):
     def _build_view_toggle(self) -> QWidget:
         """The Properties | Histogram switch for the top pane."""
         row = QWidget()
+        row.setObjectName("PropertiesViewToggle")
         row_layout = QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(0)
@@ -242,6 +247,9 @@ class PropertiesPanel(QWidget):
             )
         show = wanted and self._histogram_panel is not None
         self._top_stack.setCurrentIndex(1 if show else 0)
+        self._state.view.properties_view = (
+            PROPERTIES_VIEW_HISTOGRAM if show else PROPERTIES_VIEW_PROPERTIES
+        )
 
         self._btn_histogram.setEnabled(available)
         self._btn_histogram.setToolTip(
