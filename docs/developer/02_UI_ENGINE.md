@@ -55,8 +55,15 @@ doesn't touch the other two:
   spillover matrix: `obtain(state, parent)` returns a `SourceResult`
   (matrix, undo label, one-line summary), `None` if the user cancelled, or
   raises `MatrixSourceError`. A source never changes state. The view builds
-  one button per entry in `MATRIX_SOURCES`, so an estimator ("smart
-  compensate") is a new subclass plus one line in that tuple.
+  its **Method** selector from `MATRIX_SOURCES` (one run button, retargeted
+  at the selected method), so an estimator ("smart compensate") is a new
+  subclass plus one line in that tuple; `advanced = True` lists it under
+  the selector's "Advanced algorithms" slot. `key` is the
+  `CompensationMatrix.source` the method's matrices carry — the view maps
+  it back to `label` to say which method produced the current numbers, and
+  selects that method by default (with no matrix: the first whose
+  `readiness(state)` is true, in tuple order). Hand edits don't change
+  `source`; they set `CompensationMatrix.fine_tuned`.
 - **`CompensationEditor`** (`ui/widgets/compensation_editor.py`) — the matrix
   table and `CompensationPreview`, editing a private working copy handed in
   by `load()`. It never writes to the workspace.

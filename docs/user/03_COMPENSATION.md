@@ -4,39 +4,51 @@ Spectral compensation computationally isolates target fluorophore emissions by m
 
 ![alt text](../images/03_compensation/compensation_tab.png)
 
-## 1. Matrix Computation & Extraction
+## 1. Getting a Matrix: Choose a Method
 
-Karcytics provides multiple avenues to obtain a compensation matrix for your dataset:
+Every matrix is obtained in two steps, shown as the two rows at the top of the **Compensation** tab:
 
-### Calculate from Controls
-Before computation, strict taxonomic roles must be assigned to your control samples within the Workspace Properties Panel (**Unstained Control** and **Single Stain**). The computational engine automatically scans all designated `Single Stain` samples and maps the primary emission channel exhibiting the highest intensity variance.
+1. **Get a matrix** — pick a **Method**, then click the button beside it. The line under the selector says what the method needs and what it found in your loaded samples.
+2. **Fine-tune & apply** — adjust any cell by hand (section 2), then apply.
 
-1. Navigate to the **Compensation** tab.
-2. Click **🔬 Calculate Matrix**.
-3. The module computes the orthogonal $N \times N$ spillover matrix via linear algebra.
+The status line always names the method behind the current numbers, for example *method: **Embedded in the FCS files**, then **fine-tuned by hand***. Running a method again replaces the matrix with that method's own numbers and clears the fine-tuned mark.
 
-### Extract from FCS Metadata
-Many modern acquisition cytometers embed the acquisition-time compensation matrix directly within the FCS file's metadata.
+| Method | Button | Needs |
+| --- | --- | --- |
+| **Embedded in the FCS files** (default) | **📄 Extract from FCS** | A `$SPILL` / `$SPILLOVER` keyword in a loaded file |
+| **Single-stain controls** | **🔬 Calculate Matrix** | At least two samples with role **Single Stain** (an **Unstained Control** is optional) |
+| **FMO controls** | **🧮 Estimate from FMOs** | Samples with role **FMO Control** |
+| **Import from a file** | **📥 Import CSV** | A `.csv`, `.tsv` or `.txt` matrix, e.g. from FlowJo or R |
+| **Advanced algorithms** | — | None available yet |
 
-- Click **📄 Extract from FCS** to scan loaded samples for the `$SPILL` or `$SPILLOVER` keyword and automatically load the embedded matrix into your workspace.
+### Embedded in the FCS files (default)
+Many acquisition cytometers record the acquisition-time matrix in the FCS metadata. When your files carry one, Karcytics loads and applies it as soon as the samples are loaded, and this method is the one selected when you open the tab. **📄 Extract from FCS** re-reads it, which is also how you go back to the cytometer's numbers after editing.
 
-### Import from File
-If you have computed your matrix using external tools (like FlowJo or R):
+### Single-stain controls
+Assign the roles **Single Stain** (and optionally **Unstained Control**) in the Properties Panel first. Each control's primary channel is the one with the highest median; spill into every other detector is the ratio of medians, after subtracting the unstained background.
 
-- Click **📥 Import CSV** to load a matrix from standard `.csv`, `.tsv`, or `.txt` formats.
+### FMO controls
+A fluorescence-minus-one control carries every dye except one, so whatever its missing dye's detector records is spill from the other dyes. Karcytics fits that detector against the others for each FMO and solves for the spillover matrix.
 
-## 2. Reviewing the Matrix
+- Assign the role **FMO Control** to each sample. The missing dye is taken from the experiment template, or from the sample's name when it contains exactly one marker or channel name (for example `FMO CD4` or `FMO minus PE-A`).
+- A detector without an FMO gets no estimate: spill into it is left at 0. The status note lists those detectors.
+- The estimate is only as good as the spread of the other dyes in the tube. Markers that are always expressed together can't be told apart, so check the result on the preview and fine-tune.
+
+### Import from a file
+Load a matrix computed elsewhere. Channel names are read from the header row.
+
+## 2. Reviewing and Fine-Tuning the Matrix
 
 Once a matrix is loaded or computed, it is vital to review it for excessive spectral overlap.
 
-1. Open the **Compensation** tab. The matrix editor fills the tab; the buttons at the top get a matrix (**Calculate Matrix**, **Extract from FCS**, **Import CSV**) and act on it (**Export CSV**, **Toggle Compensation**, **Apply to All**). The status line under them shows the matrix's size and source and how many samples it is applied to.
+1. Open the **Compensation** tab. The matrix editor fills the tab below the two header rows. The status line shows the matrix's size, the method that produced it, and how many samples it is applied to; **Export CSV** and **Toggle Compensation** sit at the top right.
 2. Inspect the off-diagonal coefficients. Each **row is a dye** and each **column is a detector**: a cell is the share of the row dye's signal picked up by the column detector. The two cells of a pair (for example FITC → PE and PE → FITC) are separate numbers and are edited independently.
 3. Click a cell to plot its pair — its dye on X, its detector on Y. The two cells behind the plotted pair are highlighted, and the note under the matrix says which way each one moves the events.
 4. Check the result in the preview on the right, which redraws as you type:
     - **Sample** picks which sample is shown. Judge each cell on the single-stain control for its dye.
     - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes. A correctly compensated single-positive population sits level rather than slanting.
     - **Histogram** overlays before (grey) and after (colour) for each of the two channels, which shows whether a negative population has been pushed below zero.
-5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you click **✅ Apply to All**, which saves the edits and recompensates every loaded sample. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft.
+5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you click **✅ Apply to All**, which saves the edits and recompensates every loaded sample. From then on the status line marks the matrix as **fine-tuned by hand**. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft.
 
 ![alt text](../images/03_compensation/compensation_editor.png)
 

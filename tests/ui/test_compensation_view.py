@@ -16,6 +16,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import Compen
 from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     MATRIX_SOURCES,
     FcsMetadataSource,
+    FmoSource,
     MatrixSource,
     MatrixSourceError,
     SingleStainSource,
@@ -71,12 +72,18 @@ def make_view(qtbot):
 class _FixedSource(MatrixSource):
     """A stand-in for any way of obtaining a matrix — e.g. a future estimator."""
 
-    label = "🧪 Estimate"
+    key = "estimated"
+    label = "Test estimator"
+    action = "🧪 Estimate"
     tooltip = "test source"
     object_name = "EstimateButton"
 
-    def __init__(self, outcome) -> None:
+    def __init__(self, outcome, ready: bool = True) -> None:
         self._outcome = outcome
+        self._ready = ready
+
+    def readiness(self, state):
+        return self._ready, "what the estimator needs"
 
     def obtain(self, state, parent):
         if isinstance(self._outcome, Exception):
@@ -100,10 +107,89 @@ def test_no_matrix_shows_the_empty_state_with_actions_disabled(make_view, state)
 
 
 def test_tutorial_spotlight_names_survive_the_move_out_of_the_ribbon(make_view, state):
+    state.data.compensation = _matrix()
+    state.data.compensation.source = "cytometer"
     view = make_view(state)
 
-    assert _button(view, "ExtractFCSButton") is not None
+    assert _button(view, "ExtractFCSButton") is view._btn_run
+    assert view._btn_run.text() == "📄 Extract from FCS"
     assert _button(view, "ApplyAllButton") is view._btn_apply
+
+
+# ── Choosing a method ─────────────────────────────────────────────────
+
+
+def test_the_method_behind_the_current_matrix_is_selected_and_named(make_view, state):
+    state.data.compensation = _matrix()
+    state.data.compensation.source = "imported"
+    view = make_view(state)
+
+    assert view._method_combo.currentData() == "imported"
+    assert "method: <b>Import from a file</b>" in view._status.text()
+    assert "fine-tuned" not in view._status.text()
+
+
+def test_without_a_matrix_the_first_method_that_can_run_is_the_default(make_view, state):
+    sources = (
+        _FixedSource(None, ready=False),
+        *(s for s in MATRIX_SOURCES if s.key == "imported"),
+    )
+    view = make_view(state, sources=sources)
+
+    assert view._method_combo.currentData() == "imported"
+    assert view._btn_run.text() == "📥 Import CSV"
+
+
+def test_picking_a_method_retargets_the_run_button_and_sticks(make_view, state):
+    view = make_view(state)
+    index = view._method_combo.findData("fmo")
+
+    view._method_combo.setCurrentIndex(index)
+    view._method_combo.activated.emit(index)
+
+    assert view._btn_run.text() == "🧮 Estimate from FMOs"
+    assert "No FMO controls loaded" in view._method_hint.text()
+    view.refresh()  # coming back to the tab keeps the user's choice
+    assert view._method_combo.currentData() == "fmo"
+
+
+def test_advanced_algorithms_have_a_slot_in_the_selector(make_view, state):
+    view = make_view(state)
+    combo = view._method_combo
+    placeholder = combo.count() - 1
+
+    assert "Advanced algorithms" in combo.itemText(placeholder)
+    assert not combo.model().item(placeholder).isEnabled()
+
+    class _Advanced(_FixedSource):
+        key = "advanced"
+        advanced = True
+
+    combo = make_view(state, sources=(*MATRIX_SOURCES, _Advanced(None)))._method_combo
+    assert combo.itemData(combo.count() - 1) == "advanced"
+    assert combo.model().item(combo.count() - 1).isEnabled()
+
+
+def test_fine_tuning_is_recorded_on_top_of_the_method(make_view, state):
+    state.data.compensation = _matrix()
+    state.data.compensation.source = "cytometer"
+    view = make_view(state)
+
+    view._editor._table.item(0, 1).setText("0.5")
+    view._btn_apply.click()
+
+    assert state.data.compensation.source == "cytometer"
+    assert state.data.compensation.fine_tuned
+    assert "method: <b>Embedded in the FCS files</b>, then <b>fine-tuned by hand</b>" in (
+        view._status.text()
+    )
+
+    # Running a method again starts over from its own numbers.
+    result = SourceResult(_matrix(), "Estimate", "Estimated.")
+    view = make_view(state, sources=(_FixedSource(result),))
+    view._btn_run.click()
+    assert not state.data.compensation.fine_tuned
+    assert "Fine-tune any cell below" in view._note.text()
 
 
 def test_a_new_source_gets_a_button_without_changing_the_view(make_view, state):
@@ -162,8 +248,43 @@ def test_fcs_source_reports_which_file_the_matrix_came_from(state, monkeypatch):
 
 
 def test_single_stain_source_needs_two_controls(state):
+    assert SingleStainSource().readiness(state)[0] is False
     with pytest.raises(MatrixSourceError, match="Found 0 single-stain controls"):
         SingleStainSource().obtain(state, None)
+
+
+def _fmo(name: str, missing: int, fmo_minus: str | None = None) -> Sample:
+    """An FMO control: both dyes spill per SPILLOVER, but dye ``missing`` is absent."""
+    rng = np.random.default_rng(missing + 1)
+    true = np.abs(rng.normal(800, 400, (500, 2)))
+    true[:, missing] = 0.0
+    sample = Sample(sample_id=name, display_name=name, fmo_minus=fmo_minus)
+    sample.role = SampleRole.FMO_CONTROL
+    sample.fcs_data = MagicMock()
+    sample.fcs_data.channels = list(CHANNELS)
+    sample.fcs_data.markers = ["CD4", "CD45"]
+    sample.fcs_data.raw_events = pd.DataFrame(true @ SPILLOVER, columns=CHANNELS)
+    return sample
+
+
+def test_fmo_source_matches_each_control_to_the_dye_it_lacks(state):
+    source = FmoSource()
+    assert source.readiness(state)[0] is False
+    with pytest.raises(MatrixSourceError, match="could be matched"):
+        source.obtain(state, None)
+
+    # By name ("CD4" must not match inside "CD45"), and by the template's fmo_minus.
+    state.data.experiment.samples["f1"] = _fmo("FMO CD4", 0)
+    state.data.experiment.samples["f2"] = _fmo("Tube 7", 1, fmo_minus="cd45")
+    state.data.experiment.samples["f3"] = _fmo("Mystery FMO", 1)
+
+    ready, text = source.readiness(state)
+    assert ready and "2 of 2" in text and "1 couldn't be matched" in text
+
+    result = source.obtain(state, None)
+    np.testing.assert_allclose(result.matrix.matrix, SPILLOVER, atol=1e-8)
+    assert result.matrix.source == "fmo"
+    assert "Skipped Mystery FMO" in result.summary
 
 
 # ── The edit draft ────────────────────────────────────────────────────

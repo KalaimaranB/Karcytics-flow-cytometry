@@ -107,3 +107,62 @@ def test_compensation_to_dict():
     comp2 = CompensationMatrix.from_dict(d)
     assert comp2.channel_names == comp.channel_names
     assert np.allclose(comp2.matrix, comp.matrix)
+
+
+def _fmo_controls(spillover, channels, missing, noise=0.0):
+    from types import SimpleNamespace
+
+    rng = np.random.default_rng(7)
+    controls = {}
+    for k in missing:
+        true = np.abs(rng.normal(1000, 600, (4000, len(channels))))
+        true[:, k] = 0.0
+        raw = true @ spillover + 50.0 + rng.normal(0, noise, true.shape)  # + autofluorescence
+        controls[channels[k]] = SimpleNamespace(
+            events=pd.DataFrame(raw, columns=channels), raw_events=None
+        )
+    return controls
+
+
+def test_fmo_controls_recover_the_spillover_matrix():
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        calculate_spillover_from_fmo,
+    )
+
+    channels = ["FITC-A", "PE-A", "APC-A"]
+    spillover = np.array([[1.0, 0.15, 0.0], [0.02, 1.0, 0.08], [0.0, 0.01, 1.0]])
+
+    exact = calculate_spillover_from_fmo(_fmo_controls(spillover, channels, range(3)), channels)
+    np.testing.assert_allclose(exact.matrix, spillover, atol=1e-8)
+    assert exact.source == "fmo" and not exact.fine_tuned
+
+    noisy = calculate_spillover_from_fmo(
+        _fmo_controls(spillover, channels, range(3), noise=5.0), channels
+    )
+    np.testing.assert_allclose(noisy.matrix, spillover, atol=0.01)
+
+
+def test_a_detector_without_an_fmo_gets_no_spill_estimate():
+    import pytest
+
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        calculate_spillover_from_fmo,
+    )
+
+    channels = ["FITC-A", "PE-A", "APC-A"]
+    spillover = np.array([[1.0, 0.15, 0.0], [0.02, 1.0, 0.08], [0.0, 0.01, 1.0]])
+
+    partial = calculate_spillover_from_fmo(_fmo_controls(spillover, channels, [1]), channels)
+    assert partial.matrix[0, 1] == pytest.approx(0.15, abs=1e-6)  # FITC → PE, from the PE FMO
+    assert partial.matrix[1, 2] == 0.0  # nothing known about spill into APC
+
+    with pytest.raises(ValueError, match="No FMO control"):
+        calculate_spillover_from_fmo({}, channels)
+
+
+def test_fine_tuned_survives_serialisation_and_defaults_off_for_old_files():
+    comp = CompensationMatrix(np.eye(2), ["A", "B"], source="cytometer", fine_tuned=True)
+
+    assert CompensationMatrix.from_dict(comp.to_dict()).fine_tuned is True
+    old = {"matrix": [[1, 0], [0, 1]], "channel_names": ["A", "B"], "source": "cytometer"}
+    assert CompensationMatrix.from_dict(old).fine_tuned is False

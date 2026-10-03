@@ -4,10 +4,13 @@ Spectral overlap between fluorophores is corrected by computing a
 spillover matrix from single-stain controls and applying the inverse
 to multi-stain data.
 
-Supports three sources:
-1. **Computed** from single-stain controls (median-ratio algorithm).
-2. **Imported** from external CSV/TSV or other analysis software files.
-3. **Cytometer-embedded** $SPILL / $SPILLOVER from FCS metadata.
+Supports four sources:
+1. **Cytometer-embedded** $SPILL / $SPILLOVER from FCS metadata.
+2. **Computed** from single-stain controls (median-ratio algorithm).
+3. **Estimated** from FMO controls (regression on the missing dye's detector).
+4. **Imported** from external CSV/TSV or other analysis software files.
+
+Any of them can then be fine-tuned by hand (``fine_tuned``).
 
 Reference:
     Roederer, M. (2001). Spectral compensation for flow cytometry.
@@ -39,13 +42,15 @@ class CompensationMatrix:
                       columns = detector): ``matrix[i, j]`` is the share
                       of fluorophore ``i``'s signal seen in detector ``j``.
         channel_names: Ordered channel names corresponding to rows/columns.
-        source:       How the matrix was obtained: ``'computed'``,
-                      ``'imported'``, or ``'cytometer'``.
+        source:       How the matrix was obtained: ``'cytometer'``,
+                      ``'computed'``, ``'fmo'``, or ``'imported'``.
+        fine_tuned:   Cells were edited by hand since ``source`` produced it.
     """
 
     matrix: np.ndarray
     channel_names: list[str] = field(default_factory=list)
     source: str = "computed"
+    fine_tuned: bool = False
 
     @property
     def inverse(self) -> np.ndarray:
@@ -62,6 +67,7 @@ class CompensationMatrix:
             "matrix": self.matrix.tolist(),
             "channel_names": self.channel_names,
             "source": self.source,
+            "fine_tuned": self.fine_tuned,
         }
 
     @classmethod
@@ -71,6 +77,7 @@ class CompensationMatrix:
             matrix=np.array(data["matrix"]),
             channel_names=data.get("channel_names", []),
             source=data.get("source", "imported"),
+            fine_tuned=bool(data.get("fine_tuned", False)),
         )
 
 
@@ -196,6 +203,72 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
         channel_names=fluorescence_channels,
         source="computed",
     )
+
+
+# ── Estimation from FMO controls ─────────────────────────────────────────────
+
+
+def calculate_spillover_from_fmo(
+    fmo_controls: dict[str, FCSData], fluorescence_channels: list[str]
+) -> CompensationMatrix:
+    """Estimate the spillover matrix from fluorescence-minus-one controls.
+
+    An FMO control carries every dye but one, so whatever its missing dye's
+    detector records is spill from the others. Regressing that detector on
+    the other detectors (raw values, with an intercept for autofluorescence)
+    gives the weights ``c_k`` that cancel it: ``raw_k − raw_others · c_k ≈ 0``.
+    Collecting them as the columns of ``C``, ``I − C`` is the compensation
+    matrix up to a per-dye scale, so the spillover matrix is its inverse
+    with each row normalised to a diagonal of 1.
+
+    A detector without an FMO control gets no estimate: nothing is taken
+    to spill into it.
+
+    Args:
+        fmo_controls:          Missing dye's channel → that FMO control.
+        fluorescence_channels: The matrix's channels, in order.
+
+    Raises:
+        ValueError: No usable control, or the estimate can't be inverted.
+    """
+    n = len(fluorescence_channels)
+    weights = np.zeros((n, n), dtype=np.float64)  # weights[j, k]: detector j's share in k
+    used = 0
+    for k, channel in enumerate(fluorescence_channels):
+        control = fmo_controls.get(channel)
+        events = None if control is None else _raw_events(control)
+        if events is None or any(ch not in events.columns for ch in fluorescence_channels):
+            continue
+        values = events[fluorescence_channels].to_numpy(dtype=np.float64)
+        others = [j for j in range(n) if j != k]
+        design = np.column_stack([values[:, others], np.ones(len(values))])
+        solution, *_ = np.linalg.lstsq(design, values[:, k], rcond=None)
+        weights[others, k] = solution[:-1]
+        used += 1
+    if not used:
+        raise ValueError("No FMO control has data for every channel of the matrix.")
+
+    try:
+        unscaled = np.linalg.inv(np.eye(n) - weights)
+    except np.linalg.LinAlgError as exc:
+        raise ValueError("The FMO controls don't determine a matrix (singular fit).") from exc
+    diagonal = np.diag(unscaled)
+    if np.any(diagonal <= 0):
+        raise ValueError("The FMO controls don't determine a matrix (unstable fit).")
+    # Noise can push a near-zero spill slightly negative, which is unphysical.
+    spillover = np.clip(unscaled / diagonal[:, None], 0.0, None)
+    np.fill_diagonal(spillover, 1.0)
+
+    logger.info("Estimated spillover matrix (%d×%d) from %d FMO controls.", n, n, used)
+    return CompensationMatrix(
+        matrix=spillover, channel_names=list(fluorescence_channels), source="fmo"
+    )
+
+
+def _raw_events(data: FCSData) -> pd.DataFrame | None:
+    """Uncompensated events: the raw backup if compensation replaced them."""
+    raw = getattr(data, "raw_events", None)
+    return raw if raw is not None else data.events
 
 
 # ── Import from FCS metadata ─────────────────────────────────────────────────

@@ -1,7 +1,8 @@
 """Compensation view — the Compensation tab's full-window workspace.
 
-Top: where the matrix comes from (one button per ``MatrixSource``) and what
-to do with it. Below: the matrix editor with its before/after preview, or an
+The header walks the two steps every matrix goes through: pick a method and
+run it (one ``MatrixSource`` per method), then fine-tune the result by hand
+and apply it. Below: the matrix editor with its before/after preview, or an
 empty state until there is a matrix.
 
 Edits are a draft: they change the workspace only when the user applies
@@ -40,14 +41,24 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     MatrixSource,
     MatrixSourceError,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 logger = get_logger(__name__, "flow_cytometry")
 
 _NO_MATRIX_TEXT = (
     "No compensation matrix yet.\n\n"
-    "Get one from a source above: read it from your FCS files, calculate it from\n"
-    "single-stain controls, or import a CSV."
+    "Pick a method above and run it: read the matrix from your FCS files, calculate it\n"
+    "from single-stain or FMO controls, or import a CSV. Then fine-tune it here."
 )
+_NO_ADVANCED_TEXT = "Advanced algorithms — none available yet"
+_RUN_BUTTON_NAME = "RunMethodButton"
+_FINE_TUNE_HINT = " Fine-tune any cell below, then Apply to All."
+
+
+def _step_label(text: str) -> QLabel:
+    label = QLabel(f"<b>{text}</b>")
+    label.setTextFormat(Qt.TextFormat.RichText)
+    return label
 
 
 def _same_matrix(a: CompensationMatrix | None, b: CompensationMatrix | None) -> bool:
@@ -79,6 +90,8 @@ class CompensationView(QWidget):
         self._data_stale = False
         # The workspace matrix the editor's working copy was taken from.
         self._draft_base: CompensationMatrix | None = None
+        # The user picked a method themselves; stop following the default.
+        self._method_picked = False
         self._is_alive = True
         self.setObjectName("CompensationView")
         self._setup_ui()
@@ -101,7 +114,10 @@ class CompensationView(QWidget):
         header_layout = QVBoxLayout(header)
         header_layout.setContentsMargins(16, 10, 16, 10)
         header_layout.setSpacing(8)
-        header_layout.addLayout(self._build_source_row())
+        header_layout.addLayout(self._build_method_row())
+        self._method_hint = QLabel()  # what the selected method needs / found
+        self._method_hint.setWordWrap(True)
+        header_layout.addWidget(self._method_hint)
         header_layout.addLayout(self._build_status_row())
         theme_manager.apply_style(
             header,
@@ -124,18 +140,35 @@ class CompensationView(QWidget):
         self._body.addWidget(self._editor)
         layout.addWidget(self._body, stretch=1)
 
-    def _build_source_row(self) -> QHBoxLayout:
-        """One button per matrix source, then the actions on the current matrix."""
+    def _build_method_row(self) -> QHBoxLayout:
+        """Step 1: the method selector and its run button, then the matrix actions."""
         row = QHBoxLayout()
         row.setSpacing(8)
-        row.addWidget(QLabel("Get a matrix:"))
-        for source in self._sources:
-            button = (PrimaryButton if source.primary else SecondaryButton)(source.label)
-            button.setToolTip(source.tooltip)
-            if source.object_name:
-                button.setObjectName(source.object_name)
-            button.clicked.connect(lambda _checked=False, s=source: self._on_source(s))
-            row.addWidget(button)
+        row.addWidget(_step_label("1 · Get a matrix"))
+        row.addWidget(QLabel("Method:"))
+
+        self._method_combo = FlowComboBox()
+        self._method_combo.setObjectName("CompensationMethodCombo")
+        for source in (s for s in self._sources if not s.advanced):
+            self._method_combo.addItem(source.label, source.key)
+        self._method_combo.insertSeparator(self._method_combo.count())
+        advanced = [s for s in self._sources if s.advanced]
+        for source in advanced:
+            self._method_combo.addItem(source.label, source.key)
+        if not advanced:
+            # The slot stays visible so the techniques read as one list.
+            self._method_combo.addItem(_NO_ADVANCED_TEXT, None)
+            # Qt's own role for an item's flags: 0 makes it unselectable.
+            self._method_combo.setItemData(
+                self._method_combo.count() - 1, 0, Qt.ItemDataRole.UserRole - 1
+            )
+        self._method_combo.activated.connect(self._on_method_picked)
+        self._method_combo.currentIndexChanged.connect(self._refresh_method)
+        row.addWidget(self._method_combo)
+
+        self._btn_run = PrimaryButton("")
+        self._btn_run.clicked.connect(self._on_run_method)
+        row.addWidget(self._btn_run)
         row.addStretch()
 
         self._btn_export = SecondaryButton("📤 Export CSV")
@@ -152,8 +185,10 @@ class CompensationView(QWidget):
         return row
 
     def _build_status_row(self) -> QHBoxLayout:
+        """Step 2: what the matrix is and where it came from, then revert/apply."""
         row = QHBoxLayout()
         row.setSpacing(8)
+        row.addWidget(_step_label("2 · Fine-tune & apply"), alignment=Qt.AlignmentFlag.AlignTop)
         status = QVBoxLayout()
         status.setSpacing(2)
         self._status = QLabel()
@@ -192,7 +227,52 @@ class CompensationView(QWidget):
         if not self.has_unapplied_edits or not _same_matrix(self._draft_base, workspace):
             self._load(workspace)
         self._editor.refresh_samples()
+        if not self._method_picked:
+            self._select_method(self._default_source())
+        self._refresh_method()
         self._refresh_status()
+
+    # ── Method selection ──────────────────────────────────────────────
+
+    def _source(self, key: str | None) -> MatrixSource | None:
+        return next((s for s in self._sources if s.key == key), None)
+
+    def _default_source(self) -> MatrixSource | None:
+        """The method behind the current matrix; with none, the first that can run."""
+        matrix = self._state.data.compensation
+        used = self._source(matrix.source) if matrix is not None else None
+        ready = (s for s in self._sources if s.readiness(self._state)[0])
+        return used or next(ready, None) or next(iter(self._sources), None)
+
+    def _select_method(self, source: MatrixSource | None) -> None:
+        index = self._method_combo.findData(source.key) if source is not None else -1
+        if index >= 0:
+            self._method_combo.setCurrentIndex(index)
+
+    def _on_method_picked(self, _index: int) -> None:
+        self._method_picked = True
+
+    def _refresh_method(self) -> None:
+        """Point the run button and the hint at the selected method."""
+        source = self._source(self._method_combo.currentData())
+        self._btn_run.setEnabled(source is not None)
+        if source is None:
+            return
+        self._btn_run.setText(source.action)
+        self._btn_run.setToolTip(source.tooltip)
+        self._btn_run.setObjectName(source.object_name or _RUN_BUTTON_NAME)
+        self._method_combo.setToolTip(source.tooltip)
+        self._method_hint.setText(source.readiness(self._state)[1])
+
+    def _on_run_method(self) -> None:
+        source = self._source(self._method_combo.currentData())
+        if source is not None:
+            self._on_source(source)
+
+    def _describe_method(self, matrix: CompensationMatrix) -> str:
+        source = self._source(matrix.source)
+        text = f"method: <b>{source.label if source else matrix.source}</b>"
+        return text + (", then <b>fine-tuned by hand</b>" if matrix.fine_tuned else "")
 
     def _load(self, matrix: CompensationMatrix | None) -> None:
         self._draft_base = matrix
@@ -213,7 +293,8 @@ class CompensationView(QWidget):
         samples = [s for s in self._state.data.experiment.samples.values() if s.fcs_data]
         applied = sum(1 for s in samples if s.is_compensated)
         text = (
-            f"<b>{matrix.n_channels}×{matrix.n_channels} matrix</b> · source: {matrix.source}"
+            f"<b>{matrix.n_channels}×{matrix.n_channels} matrix</b>"
+            f" · {self._describe_method(matrix)}"
             f" · applied to {applied} of {len(samples)} loaded samples"
         )
         if dirty:
@@ -253,7 +334,7 @@ class CompensationView(QWidget):
         if result is None:
             return  # cancelled
         self._set_workspace_matrix(result.matrix, result.undo_label)
-        self._note.setText(result.summary + " Review it, then Apply to All.")
+        self._note.setText(result.summary + _FINE_TUNE_HINT)
         self._refresh_status()
         self.compensation_changed.emit()
         logger.info("Compensation matrix from %s: %s", type(source).__name__, result.summary)

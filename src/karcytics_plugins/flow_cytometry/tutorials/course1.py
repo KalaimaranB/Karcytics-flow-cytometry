@@ -645,7 +645,9 @@ course_1_fundamentals = Course(
         InteractionStep(
             id="c1_s14_extract_matrix",
             text=(
-                "Click **📄 Extract from FCS** (highlighted) at the top of the tab.<br><br>"
+                "The **Method** is already set to *Embedded in the FCS files* — the "
+                "default whenever your files carry a matrix.<br><br>"
+                "Click **📄 Extract from FCS** (highlighted) beside it. "
                 "This reads the $SPILL keyword from the first file that has it."
             ),
             target_widget_name="ExtractFCSButton",
@@ -660,7 +662,9 @@ course_1_fundamentals = Course(
                 "Take a moment to look at it. The diagonal is always 1.0, and "
                 "other numbers show how much light spills into adjacent detectors. "
                 "Each row is a dye; each column is the detector it spills into.<br><br>"
-                "The plots on the right show the same cells before and after this matrix."
+                "The status line at the top names the method the numbers came from, "
+                "and the plots on the right show the same cells before and after "
+                "this matrix."
             ),
             cyto_emotion="talking",
             target_widget_names=["CompensationView"],

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing
+from dataclasses import replace
 
 import numpy as np
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -47,7 +48,8 @@ _MATRIX_CAPTION = (
     "<b>↓ Rows: dye</b> (the signal's source) &nbsp;·&nbsp; "
     "<b>→ Columns: detector</b> (where it spills into)<br>"
     "A cell is the share of the row dye's signal picked up by the column detector, so "
-    "the two cells of a pair are separate numbers. Click a cell to plot its pair."
+    "the two cells of a pair are separate numbers. Click a cell to plot its pair; "
+    "double-click to fine-tune its value."
 )
 
 
@@ -310,7 +312,8 @@ class CompensationEditor(QWidget):
         # Recreate matrix because we can't mutate the cached inverse easily
         m = self._matrix.matrix.copy()
         m[row, col] = val
-        self._matrix = CompensationMatrix(matrix=m, channel_names=self._matrix.channel_names)
+        # Keep where the matrix came from; record that it was adjusted by hand.
+        self._matrix = replace(self._matrix, matrix=m, fine_tuned=True)
         self._refresh_pair_help()
         self._update_plots()
         self.edited.emit()
