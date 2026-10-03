@@ -35,8 +35,9 @@ class CompensationMatrix:
     """Container for a computed or imported compensation matrix.
 
     Attributes:
-        matrix:       The N×N spillover matrix (rows = detector,
-                      columns = fluorophore).
+        matrix:       The N×N spillover matrix (rows = fluorophore,
+                      columns = detector): ``matrix[i, j]`` is the share
+                      of fluorophore ``i``'s signal seen in detector ``j``.
         channel_names: Ordered channel names corresponding to rows/columns.
         source:       How the matrix was obtained: ``'computed'``,
                       ``'imported'``, or ``'cytometer'``.
@@ -336,6 +337,11 @@ def apply_compensation(data: FCSData, comp: CompensationMatrix | None) -> pd.Dat
         logger.debug("apply_compensation called with None, returning uncompensated events.")
         return df
 
+    return compensate_events(df, comp)
+
+
+def compensate_events(df: pd.DataFrame, comp: CompensationMatrix) -> pd.DataFrame:
+    """Compensate ``df``'s matrix channels in place (raw values in) and return it."""
     channels = comp.channel_names
 
     # Only compensate channels that exist in the data

@@ -30,7 +30,12 @@ If you have computed your matrix using external tools (like FlowJo or R):
 Once a matrix is loaded or computed, it is vital to review it for excessive spectral overlap.
 
 1. Click **⚙️ View/Edit Matrix** to open the **Spillover Matrix Editor**.
-2. Inspect the off-diagonal coefficients. You can also view side-by-side scatter plots to fine-tune specific channel interactions manually.
+2. Inspect the off-diagonal coefficients. Each **row is a dye** and each **column is a detector**: a cell is the share of the row dye's signal picked up by the column detector. The two cells of a pair (for example FITC → PE and PE → FITC) are separate numbers and are edited independently.
+3. Click a cell to plot its pair — its dye on X, its detector on Y. The two cells behind the plotted pair are highlighted, and the note under the matrix says which way each one moves the events.
+4. Check the result in the preview on the right, which redraws as you type:
+    - **Sample** picks which sample is shown. Judge each cell on the single-stain control for its dye.
+    - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes. A correctly compensated single-positive population sits level rather than slanting.
+    - **Histogram** overlays before (grey) and after (colour) for each of the two channels, which shows whether a negative population has been pushed below zero.
 
 ![alt text](../images/03_compensation/compensation_editor.png)
 

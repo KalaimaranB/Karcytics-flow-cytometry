@@ -3,9 +3,8 @@ from __future__ import annotations
 import typing
 
 import numpy as np
-from matplotlib.figure import Figure
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QBrush, QColor
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -15,20 +14,41 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
-)
-
-from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
-    LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
+    QWidget,
 )
 
 if typing.TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from karcytics_sdk.plugin.components import repopulate_combo
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 
-from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
+from karcytics_plugins.flow_cytometry.analysis.compensation import (
+    CompensationMatrix,
+    compensate_events,
+)
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
+    VIEW_HISTOGRAM,
+    VIEW_SCATTER,
+    CompensationPreview,
+    PreviewRequest,
+)
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
+
+# Events drawn in the preview.
+_PREVIEW_MAX_EVENTS = 10_000
+
+# The two cells behind the plotted channel pair: X dye → Y detector, and back.
+_X_INTO_Y_COLOR = "#2188FF"
+_Y_INTO_X_COLOR = "#FFB74D"
+_PAIR_CELL_ALPHA = 110
+
+_MATRIX_CAPTION = (
+    "<b>↓ Rows: dye</b> (the signal's source) &nbsp;·&nbsp; "
+    "<b>→ Columns: detector</b> (where it spills into)<br>"
+    "A cell is the share of the row dye's signal picked up by the column detector, so "
+    "the two cells of a pair are separate numbers. Click a cell to plot its pair."
+)
 
 
 class CompensationEditorDialog(QDialog):
@@ -46,15 +66,17 @@ class CompensationEditorDialog(QDialog):
             d = self._state.data.compensation.to_dict()
             self._temp_matrix = CompensationMatrix.from_dict(d)
 
-        self._active_sample_id: str | None = None
-        for s_id, s in self._state.data.experiment.samples.items():
-            if s.fcs_data is not None:
-                self._active_sample_id = s_id
-                break
+        if self._state.axis_manager is not None:
+            self._axis_manager = self._state.axis_manager
+        else:
+            from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
+
+            self._axis_manager = AxisManager(self._state)
 
         self._setup_ui()
+        self._populate_samples()
         self._populate_matrix()
-        self._update_plots()
+        self._on_pair_changed()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -62,45 +84,47 @@ class CompensationEditorDialog(QDialog):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)
 
-        # ── Left side: Matrix Editor ──
-        left_widget = QSplitter(Qt.Orientation.Vertical)
+        note_style = (
+            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
+            " background: transparent;"
+        )
 
-        # Matrix Table
+        # ── Left side: Matrix Editor ──
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+
+        caption = QLabel(_MATRIX_CAPTION)
+        caption.setWordWrap(True)
+        caption.setStyleSheet(note_style)
+        left_layout.addWidget(caption)
+
         self._table = QTableWidget()
         self._table.itemChanged.connect(self._on_cell_changed)
+        self._table.currentCellChanged.connect(self._on_current_cell_changed)
         self._table.setStyleSheet(
             f"background-color: {Colors.BG_DARKEST}; color: {Colors.FG_PRIMARY};"
         )
-        left_widget.addWidget(self._table)
+        left_layout.addWidget(self._table, stretch=1)
+
+        # What the two highlighted cells do to the plotted pair.
+        self._pair_help = QLabel()
+        self._pair_help.setWordWrap(True)
+        self._pair_help.setTextFormat(Qt.TextFormat.RichText)
+        self._pair_help.setStyleSheet(note_style)
+        left_layout.addWidget(self._pair_help)
 
         splitter.addWidget(left_widget)
 
         # ── Right side: Visualization ──
-        right_widget = QSplitter(Qt.Orientation.Vertical)
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Controls
-        controls_layout = QHBoxLayout()
-        controls_layout.addWidget(QLabel("X Channel:"))
-        self._x_combo = FlowComboBox()
-        self._x_combo.currentIndexChanged.connect(self._update_plots)
-        controls_layout.addWidget(self._x_combo)
+        right_layout.addLayout(self._build_controls())
 
-        controls_layout.addWidget(QLabel("Y Channel:"))
-        self._y_combo = FlowComboBox()
-        self._y_combo.currentIndexChanged.connect(self._update_plots)
-        controls_layout.addWidget(self._y_combo)
-        controls_layout.addStretch()
-
-        controls_widget = QSplitter(Qt.Orientation.Horizontal)
-        controls_widget.setLayout(controls_layout)
-        right_widget.addWidget(controls_widget)
-
-        # Plot Canvas
-        self._fig = Figure(figsize=(8, 4), facecolor=Colors.BG_DARKEST)
-        self._canvas = FigureCanvasQTAgg(self._fig)
-        self._ax_uncomp = self._fig.add_subplot(121)
-        self._ax_comp = self._fig.add_subplot(122)
-        right_widget.addWidget(self._canvas)
+        self._preview = CompensationPreview()
+        right_layout.addWidget(self._preview.canvas, stretch=1)
 
         splitter.addWidget(right_widget)
         splitter.setSizes([450, 650])
@@ -122,6 +146,38 @@ class CompensationEditorDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
+    def _build_controls(self) -> QHBoxLayout:
+        controls_layout = QHBoxLayout()
+        self._sample_combo = FlowComboBox()
+        self._x_combo = FlowComboBox()
+        self._y_combo = FlowComboBox()
+        self._view_combo = FlowComboBox()
+        self._view_combo.addItem("Scatter (X vs Y)", VIEW_SCATTER)
+        self._view_combo.addItem("Histogram (before vs after)", VIEW_HISTOGRAM)
+        for text, combo, slot in (
+            ("Sample:", self._sample_combo, self._update_plots),
+            ("X (dye):", self._x_combo, self._on_pair_changed),
+            ("Y (detector):", self._y_combo, self._on_pair_changed),
+            ("View:", self._view_combo, self._update_plots),
+        ):
+            controls_layout.addWidget(QLabel(text))
+            combo.currentIndexChanged.connect(slot)
+            controls_layout.addWidget(combo)
+        controls_layout.addStretch()
+        return controls_layout
+
+    def _populate_samples(self) -> None:
+        """List the samples that have data; start on the one open in the workspace."""
+        samples = self._state.data.experiment.samples
+        items = [
+            (f"{s.display_name} · {s.role.value.replace('_', ' ').title()}", s_id)
+            for s_id, s in samples.items()
+            if s.fcs_data is not None
+        ]
+        self._sample_combo.blockSignals(True)
+        repopulate_combo(self._sample_combo, items, restore_data=self._state.view.current_sample_id)
+        self._sample_combo.blockSignals(False)
+
     def _populate_matrix(self) -> None:
         self._table.blockSignals(True)
         if not self._temp_matrix:
@@ -140,12 +196,13 @@ class CompensationEditorDialog(QDialog):
 
         items = [(ch, ch) for ch in channels]
         first = channels[0] if channels else None
-        repopulate_combo(self._x_combo, items, restore_data=first)
-        repopulate_combo(
-            self._y_combo,
-            items,
-            restore_data=channels[1] if n >= 2 else first,  # noqa: PLR2004
-        )
+        for combo, default in (
+            (self._x_combo, first),
+            (self._y_combo, channels[1] if n >= 2 else first),  # noqa: PLR2004
+        ):
+            combo.blockSignals(True)
+            repopulate_combo(combo, items, restore_data=default)
+            combo.blockSignals(False)
 
         for i in range(n):
             for j in range(n):
@@ -153,9 +210,89 @@ class CompensationEditorDialog(QDialog):
                 item = QTableWidgetItem(f"{val:.4f}")
                 if i == j:
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-                    item.setBackground(QColor(Colors.BG_DARK))
+                    item.setToolTip(f"{channels[i]} in its own detector — always 1.")
+                else:
+                    item.setToolTip(
+                        f"{channels[i]} → {channels[j]}: share of {channels[i]}'s signal "
+                        f"picked up by the {channels[j]} detector."
+                    )
                 self._table.setItem(i, j, item)
         self._table.blockSignals(False)
+
+    # ── The plotted pair ──────────────────────────────────────────────
+
+    def _on_current_cell_changed(self, row: int, col: int, *_previous: int) -> None:
+        """Plot the pair behind the cell being edited: its dye on X, its detector on Y."""
+        if row < 0 or col < 0 or row == col:
+            return
+        for combo, index in ((self._x_combo, row), (self._y_combo, col)):
+            combo.blockSignals(True)
+            combo.setCurrentIndex(index)
+            combo.blockSignals(False)
+        self._on_pair_changed()
+
+    def _on_pair_changed(self) -> None:
+        self._highlight_pair()
+        self._refresh_pair_help()
+        self._update_plots()
+
+    def _pair_indices(self) -> tuple[int, int] | None:
+        """Matrix indices of the plotted (X, Y) channels, if they are a real pair."""
+        if not self._temp_matrix:
+            return None
+        channels = self._temp_matrix.channel_names
+        x_ch, y_ch = self._x_combo.currentText(), self._y_combo.currentText()
+        if x_ch not in channels or y_ch not in channels or x_ch == y_ch:
+            return None
+        return channels.index(x_ch), channels.index(y_ch)
+
+    def _highlight_pair(self) -> None:
+        """Tint the two cells that move the plotted pair; reset every other cell."""
+        pair = self._pair_indices()
+        tints = {}
+        if pair is not None:
+            x, y = pair
+            tints = {(x, y): _X_INTO_Y_COLOR, (y, x): _Y_INTO_X_COLOR}
+
+        self._table.blockSignals(True)  # setBackground fires itemChanged
+        for i in range(self._table.rowCount()):
+            for j in range(self._table.columnCount()):
+                item = self._table.item(i, j)
+                if item is None:
+                    continue
+                if (i, j) in tints:
+                    color = QColor(tints[(i, j)])
+                    color.setAlpha(_PAIR_CELL_ALPHA)
+                    item.setBackground(color)
+                elif i == j:
+                    item.setBackground(QColor(Colors.BG_DARK))
+                else:
+                    item.setBackground(QBrush())
+        self._table.blockSignals(False)
+
+    def _refresh_pair_help(self) -> None:
+        pair = self._pair_indices()
+        if pair is None or self._temp_matrix is None:
+            self._pair_help.setText("Pick two different channels to see which cells correct them.")
+            return
+        x, y = pair
+        channels, matrix = self._temp_matrix.channel_names, self._temp_matrix.matrix
+
+        def _line(color: str, dye: int, detector: int, low: str, high: str) -> str:
+            return (
+                f'<span style="color:{color};">■</span> '
+                f"<b>{channels[dye]} → {channels[detector]}</b> = {matrix[dye, detector]:.4f}: "
+                f"{channels[dye]} signal spilling into the {channels[detector]} detector. "
+                f"Too low and {channels[dye]}-positive events drift <b>{low}</b> on the After "
+                f"plot; too high and they dip <b>{high}</b>."
+            )
+
+        self._pair_help.setText(
+            _line(_X_INTO_Y_COLOR, x, y, "up", "down")
+            + "<br>"
+            + _line(_Y_INTO_X_COLOR, y, x, "right", "left")
+            + "<br>Tip: judge each cell on the single-stain control for its dye."
+        )
 
     def _on_cell_changed(self, item: QTableWidgetItem) -> None:
         if not self._temp_matrix:
@@ -165,96 +302,66 @@ class CompensationEditorDialog(QDialog):
         col = item.column()
         try:
             val = float(item.text())
-            # Recreate matrix because we can't mutate the cached inverse easily
-            m = self._temp_matrix.matrix.copy()
-            m[row, col] = val
-            self._temp_matrix = CompensationMatrix(
-                matrix=m, channel_names=self._temp_matrix.channel_names
-            )
-            self._update_plots()
         except ValueError:
-            pass  # Ignore invalid input
+            return  # Ignore invalid input
+        # Recreate matrix because we can't mutate the cached inverse easily
+        m = self._temp_matrix.matrix.copy()
+        m[row, col] = val
+        self._temp_matrix = CompensationMatrix(
+            matrix=m, channel_names=self._temp_matrix.channel_names
+        )
+        self._refresh_pair_help()
+        self._update_plots()
+
+    # ── Preview ───────────────────────────────────────────────────────
 
     def _update_plots(self) -> None:
-        if not self._temp_matrix or not self._active_sample_id:
-            return
-
-        sample = self._state.data.experiment.samples.get(self._active_sample_id)
-        if not sample or sample.fcs_data is None:
+        sample_id = self._sample_combo.currentData()
+        sample = self._state.data.experiment.samples.get(sample_id) if sample_id else None
+        if not self._temp_matrix or sample is None or sample.fcs_data is None:
+            self._preview.show_message("Load a sample to preview the matrix.")
             return
 
         x_ch = self._x_combo.currentText()
         y_ch = self._y_combo.currentText()
 
-        if not x_ch or not y_ch:
-            return
-
-        # Get raw data
         raw_events = getattr(sample.fcs_data, "raw_events", sample.fcs_data.events)
         if raw_events is None or x_ch not in raw_events.columns or y_ch not in raw_events.columns:
+            self._preview.show_message(f"{sample.display_name} has no {x_ch} / {y_ch} data.")
             return
 
         # Downsample for preview performance
         n_events = len(raw_events)
-        if n_events > 10000:  # noqa: PLR2004
+        if n_events > _PREVIEW_MAX_EVENTS:
             # stable_subsample_mask, not Generator.choice — stable under
             # small population-size differences (see its docstring).
             from karcytics_plugins.flow_cytometry.analysis.rendering import stable_subsample_mask
 
-            mask = stable_subsample_mask(n_events, 10000)
-            df_raw = raw_events[mask].copy()
+            before = raw_events[stable_subsample_mask(n_events, _PREVIEW_MAX_EVENTS)].copy()
         else:
-            df_raw = raw_events.copy()
+            before = raw_events.copy()
 
-        # Apply temporary compensation
-        # To avoid altering the global state, we do it inline here for the sample data
-        channels = self._temp_matrix.channel_names
-        present = [ch for ch in channels if ch in df_raw.columns]
-        if present:
-            c_idx = [channels.index(ch) for ch in present]
-            sub_matrix = self._temp_matrix.inverse[np.ix_(c_idx, c_idx)]
-            raw_vals = df_raw[present].values
-            comp_vals = raw_vals @ sub_matrix
-            df_comp = df_raw.copy()
-            df_comp[present] = comp_vals
-        else:
-            df_comp = df_raw
+        try:
+            after = compensate_events(before.copy(), self._temp_matrix)
+        except np.linalg.LinAlgError:
+            self._preview.show_message(
+                "This matrix can't be inverted — check the value you just entered."
+            )
+            return
 
-        self._ax_uncomp.clear()
-        self._ax_comp.clear()
-
-        # Plot uncompensated
-        x_raw = df_raw[x_ch].values
-        y_raw = df_raw[y_ch].values
-        self._ax_uncomp.scatter(
-            x_raw, y_raw, s=3, alpha=0.4, c=Colors.ACCENT_PRIMARY, edgecolors="none"
+        self._preview.render(
+            PreviewRequest(
+                before=before,
+                after=after,
+                x_param=x_ch,
+                y_param=y_ch,
+                x_scale=self._axis_manager.get_scale(x_ch, sample_id),
+                y_scale=self._axis_manager.get_scale(y_ch, sample_id),
+                view=self._view_combo.currentData(),
+                caption=f"{sample.display_name} · {len(before):,} of {n_events:,} events",
+                render_config=self._state.view.render_config,
+            )
         )
-        self._ax_uncomp.set_title("Uncompensated")
-        self._ax_uncomp.set_xlabel(x_ch)
-        self._ax_uncomp.set_ylabel(y_ch)
-
-        # Plot compensated
-        x_comp = df_comp[x_ch].values
-        y_comp = df_comp[y_ch].values
-        self._ax_comp.scatter(
-            x_comp, y_comp, s=3, alpha=0.4, c=Colors.ACCENT_PRIMARY, edgecolors="none"
-        )
-        self._ax_comp.set_title("Compensated")
-        self._ax_comp.set_xlabel(x_ch)
-
-        # Apply symlog scale to better view flow data
-        for ax in (self._ax_uncomp, self._ax_comp):
-            ax.set_xscale("symlog", linthresh=100)
-            ax.set_yscale("symlog", linthresh=100)
-            ax.tick_params(colors=Colors.FG_PRIMARY)
-            ax.xaxis.label.set_color(Colors.FG_PRIMARY)
-            ax.yaxis.label.set_color(Colors.FG_PRIMARY)
-            ax.title.set_color(Colors.FG_PRIMARY)
-            for spine in ax.spines.values():
-                spine.set_color(Colors.BORDER)
-
-        self._fig.tight_layout()
-        self._canvas.draw_idle()
 
     def _on_apply(self) -> None:
         if self._temp_matrix:
