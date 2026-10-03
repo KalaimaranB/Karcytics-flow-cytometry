@@ -28,6 +28,7 @@ from karcytics_sdk.plugin.tutorial_models import (
 )
 
 from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
+from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
 from .tutorial_assets import start_provisioning
 from .validators import (
     AxisChannelValidator,
@@ -1050,10 +1051,10 @@ course_1_fundamentals = Course(
                 "box to the right edge to capture the live cells.<br><br>"
                 "1. Click the **Range** tool (highlighted in the ribbon)<br>"
                 "2. Drag horizontally across the left cluster. Start from the far left edge (around -10³) and end just past the dense red center (around 5000).<br>"
-                "3. Type **Live Cells** in the naming popup!<br><br>"
+                "3. Type **Live Cells** in the naming popup!<br><br>" + RIGHT_PANEL_HINT
             ),
             cyto_emotion="pointing",
-            target_widget_names=["Tool_range", "FlowCanvas"],
+            target_widget_names=["Tool_range", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
             metadata={"guide_range": (-1000.0, 10000.0)},
@@ -1276,10 +1277,10 @@ course_1_fundamentals = Course(
                 "all the way to the right edge, covering the full height of the **SSC-A** axis.<br>"
                 "3. Type **Leukocytes** in the naming popup!<br><br>"
                 "Watch the **Group Preview** thumbnails as you drag — you'll see this exact "
-                "boundary appear on Samples A, B, and C instantly.<br><br>"
+                "boundary appear on Samples A, B, and C instantly.<br><br>" + RIGHT_PANEL_HINT
             ),
             cyto_emotion="pointing",
-            target_widget_names=["Tool_rectangle", "FlowCanvas"],
+            target_widget_names=["Tool_rectangle", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
             metadata={"guide_rect": (2000.0, 200000.0, 500.0, 37000.0)},

@@ -30,3 +30,14 @@ AXIS_BOUNDS_TOLERANCE = 0.10
 # ── Validation Polling ───────────────────────────────────────────────
 # Time (in seconds) between log emission when polling for a long-running step.
 POLL_LOG_INTERVAL = 5.0
+
+# ── Gate-drawing steps ───────────────────────────────────────────────
+# Spotlit alongside the tool and the plot on gate-drawing steps, so the
+# right panel (Properties | Histogram switch, Group Preview) stays usable
+# while the user draws. Must stay a literal objectName — see
+# tests/unit/tutorials/test_target_names.py.
+RIGHT_PANEL_TARGET = "PropertiesPanel"
+RIGHT_PANEL_HINT = (
+    "The panel on the right (highlighted) stays usable while you draw: scroll its "
+    "**Group Preview**, or switch it to **Histogram** when the main plot isn't one already."
+)

@@ -101,3 +101,29 @@ def test_only_the_first_gate_uses_the_histogram_view():
     ]
 
     assert spotlit == ["c1_s24_cells_gate"]
+
+
+def _gate_drawing_steps():
+    from karcytics_plugins.flow_cytometry.tutorials.courses import course_2_gating
+
+    return [
+        step
+        for course in (course_1_fundamentals, course_2_gating)
+        for step in course.steps
+        if getattr(step, "event_trigger", "") == "gate_added_to_tree"
+    ]
+
+
+def test_every_gate_drawing_step_keeps_the_right_panel_usable():
+    """A spotlit widget stays clickable and scrollable; anything else is dimmed
+    and locked. Every gate is drawn with the right panel in the spotlight, so
+    the user can switch it to Histogram or scroll the Group Preview meanwhile.
+    """
+    steps = _gate_drawing_steps()
+    assert len(steps) == 6  # 3 per course
+
+    for step in steps:
+        if step.id == "c1_s24_cells_gate":
+            continue  # the first gate spotlights the histogram itself
+        assert "PropertiesPanel" in step.target_widget_names, step.id
+        assert "Group Preview" in step.text and "Histogram" in step.text, step.id

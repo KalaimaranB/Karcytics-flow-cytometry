@@ -32,6 +32,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
+from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
 from .validators import (
     AxisChannelValidator,
     AxisYChannelValidator,
@@ -265,10 +266,10 @@ course_2_gating = Course(
                 "1. Select the **Rect** tool.<br>"
                 "2. Draw a rectangle around the upper-left cluster — high CD3 "
                 "(Y), low B220 (X).<br>"
-                "3. Name it **T-cells**.<br><br>"
+                "3. Name it **T-cells**.<br><br>" + RIGHT_PANEL_HINT
             ),
             cyto_emotion="pointing",
-            target_widget_names=["Tool_rectangle", "FlowCanvas", "GroupPreviewPanel"],
+            target_widget_names=["Tool_rectangle", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
             metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
@@ -498,10 +499,10 @@ course_2_gating = Course(
                 "to select the right-hand (positive) population:<br><br>"
                 "Click and drag horizontally starting at (or just past) the red "
                 "threshold line, capturing the bright B220+ peak.<br><br>"
-                "Name the gate **B-cells**."
+                "Name the gate **B-cells**.<br><br>" + RIGHT_PANEL_HINT
             ),
             cyto_emotion="pointing",
-            target_widget_names=["Tool_range", "FlowCanvas"],
+            target_widget_names=["Tool_range", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
             metadata={"guide_range": (4000.0, 100000.0)},
@@ -763,9 +764,10 @@ course_2_gating = Course(
             text=(
                 "Click the **Quadrant** tool (highlighted), then click once on the "
                 "plot where the CD4−/CD8− and CD4+/CD8+ boundaries should sit.<br><br>"
+                + RIGHT_PANEL_HINT
             ),
             cyto_emotion="thinking",
-            target_widget_names=["Tool_quadrant", "FlowCanvas"],
+            target_widget_names=["Tool_quadrant", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
             metadata={"guide_quadrant": (5000.0, 5000.0)},
