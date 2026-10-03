@@ -18,6 +18,17 @@ class FlowConfig:
     AUTO_RANGE = "auto_range_on_quality"
     LAST_X_PARAM = "last_x_param"
     LAST_Y_PARAM = "last_y_param"
+    PROPERTIES_HISTOGRAM_VIEW = "properties_histogram_view"
+
+    @classmethod
+    def get_properties_histogram_view(cls) -> bool:
+        """Whether the properties panel was last left on its histogram view."""
+        return cls._config.get(cls.PROPERTIES_HISTOGRAM_VIEW, False) is True
+
+    @classmethod
+    def set_properties_histogram_view(cls, value: bool):
+        cls._config.set(cls.PROPERTIES_HISTOGRAM_VIEW, value)
+        cls._config.save()
 
     @classmethod
     def get_auto_range(cls) -> bool:

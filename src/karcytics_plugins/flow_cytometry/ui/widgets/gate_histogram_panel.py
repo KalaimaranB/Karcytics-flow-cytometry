@@ -95,6 +95,7 @@ class _HistogramRasterizeStage(RasterizeStage):
         ax.set_xlabel(render_data.x_label, fontsize=8, color=_TEXT_COLOR)
         ax.yaxis.label.set_fontsize(8)
         ax.tick_params(colors=_TEXT_COLOR, labelsize=7)
+        ax.locator_params(nbins=5)  # the plot is narrow; default ticks crowd
         AxisFormatter(self._canvas).apply_formatting()
         self._draw_boundary(ax)
 
@@ -225,6 +226,12 @@ class GateHistogramPanel(QWidget):
         self, sample_id: str | None, node_id: str | None, selected_node_id: str | None
     ) -> None:
         """Set the displayed population and the currently selected node."""
+        if (sample_id, node_id, selected_node_id) == (
+            self._sample_id,
+            self._node_id,
+            self._selected_node_id,
+        ):
+            return
         self._sample_id = sample_id
         self._node_id = node_id
         self._selected_node_id = selected_node_id

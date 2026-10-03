@@ -14,23 +14,28 @@ or ``GatePropagator``.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QButtonGroup,
     QFormLayout,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QSplitter,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
+from karcytics_plugins.flow_cytometry.analysis.config import FlowConfig
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import derived_labels_of
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
@@ -40,7 +45,13 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from .group_preview import GroupPreviewPanel
 from .styled_combo import FlowComboBox
 
+if TYPE_CHECKING:
+    from .gate_histogram_panel import GateHistogramPanel
+
 logger = get_logger(__name__, "flow_cytometry")
+
+# Main-plot display modes (``DisplayMode`` values) that are already histograms.
+_ONE_D_PLOT_TYPES = ("Histogram", "CDF")
 
 
 class PropertiesPanel(QWidget):
@@ -68,6 +79,14 @@ class PropertiesPanel(QWidget):
         self._coordinator = coordinator
         self._current_sample_id: str | None = None
         self._current_node_id: str | None = None
+        # The population the main plot shows — not always the selection above,
+        # which may be one of the gates drawn on it.
+        self._displayed_sample_id: str | None = None
+        self._displayed_node_id: str | None = None
+        # Built on first use: it imports matplotlib, and this panel is built
+        # in the startup skeleton, which must not.
+        self._histogram_panel: GateHistogramPanel | None = None
+        self._histogram_wanted = FlowConfig.get_properties_histogram_view()
         self._is_alive = True  # must be set before _setup_ui() calls _clear_content()
         self.setObjectName("PropertiesPanel")
         self._setup_ui()
@@ -83,10 +102,16 @@ class PropertiesPanel(QWidget):
             if self._is_alive:
                 self.refresh_gate_stats(data.get("sample_id"), data.get("node_id"))  # type: ignore
 
+        def _on_display_mode(_):
+            if self._is_alive:
+                self._sync_histogram()
+
         self._on_axis_params_changed = _on_axis_changed
         self._on_stats_computed_cb = _on_stats
+        self._on_display_mode_changed = _on_display_mode
         CentralEventBus.subscribe(events.AXIS_PARAMS_CHANGED, self._on_axis_params_changed)
         CentralEventBus.subscribe(events.STATS_COMPUTED, self._on_stats_computed_cb)
+        CentralEventBus.subscribe(events.DISPLAY_MODE_CHANGED, self._on_display_mode_changed)
 
     def cleanup(self) -> None:
         """Unsubscribe from CentralEventBus to prevent zombie callbacks after deletion.
@@ -94,12 +119,7 @@ class PropertiesPanel(QWidget):
         Must be called before the widget is destroyed (typically from
         ``FlowCytometryPanel.cleanup()``).
         """
-        self._is_alive = False
-        try:
-            CentralEventBus.unsubscribe(events.AXIS_PARAMS_CHANGED, self._on_axis_params_changed)
-            CentralEventBus.unsubscribe(events.STATS_COMPUTED, self._on_stats_computed_cb)
-        except Exception:
-            pass
+        self._cleanup()
 
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -118,6 +138,7 @@ class PropertiesPanel(QWidget):
             " border-bottom: 1px solid {BORDER};",
         )
         layout.addWidget(self._header)
+        layout.addWidget(self._build_view_toggle())
 
         # Splitter to allow user to resize the two panels
         self._splitter = QSplitter(Qt.Orientation.Vertical)
@@ -135,7 +156,11 @@ class PropertiesPanel(QWidget):
         self._content_layout.setSpacing(8)
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self._scroll.setWidget(self._content)
-        self._splitter.addWidget(self._scroll)
+
+        # Top pane: the properties above, or the gate histograms (added lazily).
+        self._top_stack = QStackedWidget()
+        self._top_stack.addWidget(self._scroll)
+        self._splitter.addWidget(self._top_stack)
 
         # Group Preview section (Bottom)
         self._group_preview = GroupPreviewPanel(
@@ -150,6 +175,82 @@ class PropertiesPanel(QWidget):
 
         # Initial state
         self._show_empty()
+
+    def _build_view_toggle(self) -> QWidget:
+        """The Properties | Histogram switch for the top pane."""
+        row = QWidget()
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(0)
+
+        self._btn_properties = QPushButton("Properties")
+        self._btn_histogram = QPushButton("Histogram")
+        self._view_buttons = QButtonGroup(self)
+        for button in (self._btn_properties, self._btn_histogram):
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._view_buttons.addButton(button)
+            row_layout.addWidget(button)
+        self._btn_properties.setChecked(True)
+        self._btn_histogram.toggled.connect(self._on_histogram_toggled)
+
+        theme_manager.apply_style(
+            row,
+            f"QPushButton {{ color: {{FG_SECONDARY}}; background: {{BG_DARK}};"
+            f" font-size: {Fonts.SIZE_SMALL}px; padding: 5px 0; border: none;"
+            " border-bottom: 2px solid {BORDER}; }"
+            " QPushButton:checked { color: {FG_PRIMARY};"
+            " border-bottom: 2px solid {ACCENT_PRIMARY}; }"
+            " QPushButton:disabled { color: {FG_DISABLED}; }",
+        )
+        return row
+
+    def set_displayed_population(self, sample_id: str | None, node_id: str | None) -> None:
+        """Set the population the main plot is showing (its gate histograms' subject)."""
+        self._displayed_sample_id = sample_id
+        self._displayed_node_id = node_id
+        self._sync_histogram()
+
+    def _on_histogram_toggled(self, checked: bool) -> None:
+        self._histogram_wanted = checked
+        FlowConfig.set_properties_histogram_view(checked)
+        self._sync_histogram(may_build=True)
+
+    def _sync_histogram(self, may_build: bool = False) -> None:
+        """Show the view the user chose, where the main plot allows it.
+
+        The histograms would only repeat a main plot that is already 1D, so
+        the switch is disabled there and the user's choice kept for later.
+
+        A remembered choice alone doesn't build the histogram panel: that
+        waits for a population to show (or an explicit click, ``may_build``),
+        which keeps its matplotlib import out of the startup skeleton.
+        """
+        available = self._state.view.active_plot_type not in _ONE_D_PLOT_TYPES
+        wanted = available and self._histogram_wanted
+
+        if wanted and self._histogram_panel is None and (may_build or self._displayed_sample_id):
+            from .gate_histogram_panel import GateHistogramPanel
+
+            self._histogram_panel = GateHistogramPanel(
+                self._state, self._axis_manager, self._population_service
+            )
+            self._top_stack.addWidget(self._histogram_panel)
+        if self._histogram_panel is not None:
+            self._histogram_panel.set_context(
+                self._displayed_sample_id, self._displayed_node_id, self._current_node_id
+            )
+        show = wanted and self._histogram_panel is not None
+        self._top_stack.setCurrentIndex(1 if show else 0)
+
+        self._btn_histogram.setEnabled(available)
+        self._btn_histogram.setToolTip(
+            "" if available else "The main plot is already showing a histogram."
+        )
+        # Reflect what is shown without recording it as the user's choice.
+        self._btn_histogram.blockSignals(True)
+        (self._btn_histogram if show else self._btn_properties).setChecked(True)
+        self._btn_histogram.blockSignals(False)
 
     def _apply_theme_styles(self) -> None:
         """Re-render the currently-displayed sample/group properties (their
@@ -174,6 +275,7 @@ class PropertiesPanel(QWidget):
 
         # Update preview context
         self._group_preview.update_context(sample_id, gate_id)
+        self._sync_histogram()
 
         sample = self._state.data.experiment.samples.get(sample_id)
         if sample is None:
@@ -215,11 +317,12 @@ class PropertiesPanel(QWidget):
         if not self._is_alive:
             return
         self._is_alive = False
+        if self._histogram_panel is not None:
+            self._histogram_panel.cleanup()
         try:
             CentralEventBus.unsubscribe(events.AXIS_PARAMS_CHANGED, self._on_axis_params_changed)
-            cb = getattr(self, "_on_stats_computed_cb", None)
-            if cb:
-                CentralEventBus.unsubscribe(events.STATS_COMPUTED, cb)
+            CentralEventBus.unsubscribe(events.STATS_COMPUTED, self._on_stats_computed_cb)
+            CentralEventBus.unsubscribe(events.DISPLAY_MODE_CHANGED, self._on_display_mode_changed)
         except Exception:
             pass
 
@@ -254,6 +357,7 @@ class PropertiesPanel(QWidget):
 
         if hasattr(self, "_group_preview"):
             self._group_preview.update_context(None, None)
+            self._sync_histogram()
 
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -286,7 +390,6 @@ class PropertiesPanel(QWidget):
         )
 
         from karcytics_sdk.plugin.components import BioHelpButton
-        from PyQt6.QtWidgets import QHBoxLayout
 
         def _create_label(label_text: str, help_text: str | None = None) -> QWidget:
             w = QWidget()

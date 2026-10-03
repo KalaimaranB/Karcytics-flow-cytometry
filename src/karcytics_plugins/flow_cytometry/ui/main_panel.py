@@ -982,6 +982,7 @@ class FlowCytometryPanel(PluginBase):
     def _on_active_graph_changed(self, sample_id: str | None, node_id: str | None) -> None:
         """When the user switches tabs in the GraphManager."""
         self.state.view.current_sample_id = sample_id or None
+        self._properties_panel.set_displayed_population(sample_id or None, node_id)
 
         if sample_id:
             # Keep the global selected-gate state in sync with whatever tab is actually
