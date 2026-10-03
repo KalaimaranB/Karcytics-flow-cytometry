@@ -48,6 +48,7 @@ A fluorescence-minus-one control carries every dye except one, so whatever its m
 - Only one tube is used per dye. A tube that can't be placed, or that duplicates another, is listed as *not used* with the reason.
 - A detector without an FMO gets no estimate. Those cells are left at 0 and shown in *grey italic* in the matrix, so you can see what still needs filling in by hand.
 - The fit is robust: events with signal in the missing dye's detector that the other dyes don't explain (dead cells, aggregates) are down-weighted rather than read as spill.
+- **See it step by step** in Method setup draws the fit on one of your own tubes (pick the tube above the plot; with no FMO controls loaded it uses made-up example data). **Next** and **Play** walk through four steps: what the tube recorded, an ordinary fit, the robust fit with the down-weighted events greyed, and the spill removed, with the cloud sliding flat. It follows the **Fit on** gate, so it shows the same events the calculation uses.
 - After a run, the **fit report** in Method setup lists, per detector: the tube used, the events fitted, the share set aside as outliers, how much of the detector's signal the fit attributes to spill (R²; near 0 simply means little spills into it), and the largest spill found.
 - Treat the result as a starting point: check each pair on the preview and fine-tune.
 

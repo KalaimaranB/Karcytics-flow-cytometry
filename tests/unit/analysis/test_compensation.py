@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
 
@@ -214,3 +215,32 @@ def test_single_stain_matrix_marks_dyes_without_a_control():
 
     assert comp.origin[2].tolist() == [CELL_DEFAULT, CELL_DEFAULT, 0]  # no APC control
     assert not comp.origin[:2].any()
+
+
+def test_fmo_fit_detail_is_the_same_fit_the_estimate_runs():
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        calculate_spillover_from_fmo,
+        fmo_fit_detail,
+    )
+
+    channels = ["FITC-A", "PE-A", "APC-A"]
+    spillover = np.array([[1.0, 0.15, 0.0], [0.02, 1.0, 0.08], [0.0, 0.01, 1.0]])
+    controls = _fmo_controls(spillover, channels, range(3), noise=5.0)
+    rng = np.random.default_rng(3)
+    junk = rng.choice(4000, size=200, replace=False)
+    controls["PE-A"].iloc[junk, 1] += rng.uniform(2_000, 20_000, 200)
+
+    detail = fmo_fit_detail(controls["PE-A"], channels, "PE-A")
+
+    assert detail.others == ["FITC-A", "APC-A"]
+    assert detail.signals.shape == (4000, 2) and detail.target.shape == (4000,)
+    # FITC leaks 15% into PE; the junk drags the ordinary fit away from that.
+    assert detail.weights[0] == pytest.approx(0.15, abs=0.01)
+    assert abs(detail.plain_weights[0] - 0.15) > abs(detail.weights[0] - 0.15)
+    assert detail.largely_ignored[junk].mean() > 0.9
+    assert 40.0 < detail.intercept < 60.0  # the autofluorescence constant
+
+    # ...and its weights are what the full estimate inverts.
+    fits = []
+    calculate_spillover_from_fmo(controls, channels, fits)
+    assert fits[1].down_weighted == pytest.approx(detail.largely_ignored.mean())

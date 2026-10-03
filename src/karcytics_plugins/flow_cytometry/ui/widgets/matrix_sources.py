@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
+import pandas as pd
 from PyQt6.QtWidgets import QFileDialog, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
@@ -32,6 +33,7 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
     calculate_spillover_from_fmo,
     calculate_spillover_matrix,
     extract_spill_from_fcs,
+    fmo_fit_detail,
     import_matrix_from_csv,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
@@ -57,6 +59,9 @@ _SIGNAL_SAMPLE_EVENTS = 20_000
 
 _SAME_MATRIX_TOLERANCE = 5e-5
 _SETUP_HINT = " See Method setup."
+_ILLUSTRATION_EVENTS = 3000  # points drawn; the fit itself uses far more
+_EXAMPLE_KEY = ""
+_EXAMPLE_LABEL = "Example data (load FMO controls to see your own)"
 
 
 # ── What a method tells the view ──────────────────────────────────────
@@ -94,6 +99,24 @@ class Inputs:
     headers: tuple[str, ...]  # one per ``InputRow.cells`` entry
     rows: tuple[InputRow, ...]
     choice_header: str = ""  # the column of per-sample choices, shown second
+
+
+@dataclass(frozen=True)
+class FitIllustration:
+    """One fit of a method, reduced to a picture: how the reading in one
+    detector (``y``) rises with the signal in another (``x``).
+    """
+
+    tube: str  # the control the events come from
+    missing: str  # the detector on Y — the dye the tube lacks
+    other: str  # the detector on X — the dye leaking in
+    x: np.ndarray
+    y: np.ndarray  # the Y detector with every other dye's share already removed
+    ignored: np.ndarray  # events the robust fit largely ignored
+    slope: float  # the robust fit
+    plain_slope: float  # an ordinary fit through every event
+    events: int  # events the fit used (``x``/``y`` are a sample of them)
+    example: bool = False  # made-up data, not the user's
 
 
 class Readiness(NamedTuple):
@@ -160,6 +183,16 @@ class MatrixSource(ABC):
 
     def gate_choices(self, state: FlowState) -> list[str] | None:
         """Scatter gates to offer as ``MethodOptions.gate``; None if the method doesn't fit."""
+        return None
+
+    def illustration_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
+        """(label, key) of the fits ``illustration()`` can draw; None if it draws none."""
+        return None
+
+    def illustration(
+        self, state: FlowState, options: MethodOptions, key: str
+    ) -> FitIllustration | None:
+        """The fit behind ``key``, as the method would run it now."""
         return None
 
 
@@ -579,6 +612,72 @@ class FmoSource(MatrixSource):
 
     def set_choice(self, state: FlowState, sample_id: str, value: str | None) -> None:
         experiment_edits.set_fmo_minus(state, sample_id, value)
+
+    def illustration_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
+        _channels, placements = self._placements(state)
+        tubes = [
+            (f"{p.sample.display_name} (no {p.channel})", p.channel)
+            for p in placements
+            if p.used and p.channel is not None
+        ]
+        return tubes or [(_EXAMPLE_LABEL, _EXAMPLE_KEY)]
+
+    def illustration(
+        self, state: FlowState, options: MethodOptions, key: str
+    ) -> FitIllustration | None:
+        if key == _EXAMPLE_KEY:
+            return _example_illustration()
+        channels, placements = self._placements(state)
+        placement = next((p for p in placements if p.used and p.channel == key), None)
+        fit = fit_events(placement.sample, options.gate) if placement else None
+        if placement is None or fit is None or any(c not in fit.events.columns for c in channels):
+            return None
+        detail = fmo_fit_detail(fit.events, channels, key)
+        # Show the dye that leaks in the most: largest weight × how much it varies.
+        leak = int(np.argmax(np.abs(detail.weights) * detail.signals.std(axis=0)))
+        rest = np.delete(np.arange(len(detail.others)), leak)
+        shown = slice(None, None, max(1, len(detail.target) // _ILLUSTRATION_EVENTS))
+        return FitIllustration(
+            tube=placement.sample.display_name,
+            missing=key,
+            other=detail.others[leak],
+            x=detail.signals[shown, leak],
+            y=(detail.target - detail.signals[:, rest] @ detail.weights[rest] - detail.intercept)[
+                shown
+            ],
+            ignored=detail.largely_ignored[shown],
+            slope=float(detail.weights[leak]),
+            plain_slope=float(detail.plain_weights[leak]),
+            events=len(detail.target),
+        )
+
+
+def _example_illustration() -> FitIllustration:
+    """A made-up tube lacking PE, where FITC leaks 12% into the PE detector
+    and a few events are bright there for no good reason.
+    """
+    rng = np.random.default_rng(0)
+    events = _ILLUSTRATION_EVENTS
+    dim_share, junk_share = 0.5, 0.05
+    fitc = np.where(rng.random(events) < dim_share, 400.0, 6000.0)
+    fitc = fitc * rng.lognormal(0, 0.5, events)
+    pe = 0.12 * fitc + rng.normal(0, 60, events)
+    junk = rng.random(events) < junk_share
+    pe[junk] += rng.uniform(400, 2500, int(junk.sum()))
+    frame = pd.DataFrame({"FITC-A": fitc, "PE-A": pe})
+    detail = fmo_fit_detail(frame, ["FITC-A", "PE-A"], "PE-A")
+    return FitIllustration(
+        tube="Example tube",
+        missing="PE-A",
+        other="FITC-A",
+        x=fitc,
+        y=pe - detail.intercept,
+        ignored=detail.largely_ignored,
+        slope=float(detail.weights[0]),
+        plain_slope=float(detail.plain_weights[0]),
+        events=events,
+        example=True,
+    )
 
 
 def _fmo_report(

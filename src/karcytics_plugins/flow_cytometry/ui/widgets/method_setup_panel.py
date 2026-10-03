@@ -29,6 +29,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     MethodOptions,
     Table,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.method_illustration import FitIllustrationView
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 _ALL_EVENTS = "All events"
@@ -81,6 +82,8 @@ class MethodSetupPanel(QWidget):
         self._explanation = _note("")
         layout.addWidget(self._explanation)
 
+        self._build_illustration(layout)
+
         self._options_form = QFormLayout()
         self._options_form.setContentsMargins(0, 0, 0, 0)
         self._sample_combo = FlowComboBox()
@@ -119,6 +122,21 @@ class MethodSetupPanel(QWidget):
             " border: none; padding: 4px 8px; }",
         )
 
+    def _build_illustration(self, layout: QVBoxLayout) -> None:
+        """The method's mechanism, drawn on the user's own events. The plot is
+        built on first use: most methods have nothing to draw.
+        """
+        self._illustration_title = _heading("See it step by step")
+        layout.addWidget(self._illustration_title)
+        self._illustration_combo = FlowComboBox()
+        self._illustration_combo.setObjectName("MethodIllustrationCombo")
+        self._illustration_combo.currentIndexChanged.connect(lambda _i: self._load_illustration())
+        layout.addWidget(self._illustration_combo, alignment=Qt.AlignmentFlag.AlignLeft)
+        self._illustration_slot = QVBoxLayout()
+        layout.addLayout(self._illustration_slot)
+        self._illustration: FitIllustrationView | None = None
+        self._illustration_shown: tuple | None = None
+
     # ── Public API ────────────────────────────────────────────────────
 
     def show_method(
@@ -130,6 +148,7 @@ class MethodSetupPanel(QWidget):
         self._title.setText(f"<b>{source.label}</b>")
         self._explanation.setText(source.explanation)
         self._fill_options(source)
+        self._fill_illustration(source)
         self._fill_inputs(source.inputs(self._state, options))
         self._fill_report(report, expected=source.reports)
 
@@ -167,6 +186,42 @@ class MethodSetupPanel(QWidget):
     def _on_gate_picked(self, index: int) -> None:
         self._options.gate = self._gate_combo.itemData(index)
         self.changed.emit()
+
+    # ── Illustration ──────────────────────────────────────────────────
+
+    def _fill_illustration(self, source: MatrixSource) -> None:
+        choices = source.illustration_choices(self._state)
+        visible = bool(choices)
+        self._illustration_title.setVisible(visible)
+        self._illustration_combo.setVisible(visible)
+        if self._illustration is not None:
+            self._illustration.setVisible(visible)
+        if not choices:
+            self._illustration_shown = None
+            return
+        _repopulate(self._illustration_combo, choices, self._illustration_combo.currentData())
+        self._load_illustration()
+
+    def _load_illustration(self) -> None:
+        """Draw the chosen fit, unless that exact fit is already on show
+        (a refresh must not restart the steps under the user).
+        """
+        source = self._source
+        if source is None:
+            return
+        key = self._illustration_combo.currentData()
+        labels = tuple(
+            self._illustration_combo.itemText(i) for i in range(self._illustration_combo.count())
+        )
+        wanted = (source.key, key, self._options.gate, labels)
+        if wanted == self._illustration_shown or key is None:
+            return
+        if self._illustration is None:
+            self._illustration = FitIllustrationView()
+            self._illustration_slot.addWidget(self._illustration)
+            self._illustration.show()  # a child added to a visible page isn't shown for us
+        self._illustration_shown = wanted
+        self._illustration.show_fit(source.illustration(self._state, self._options, key))
 
     # ── Tables ────────────────────────────────────────────────────────
 

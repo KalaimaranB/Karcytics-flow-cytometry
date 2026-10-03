@@ -289,15 +289,12 @@ def calculate_spillover_from_fmo(
         events = fmo_controls.get(channel)
         if events is None or any(ch not in events.columns for ch in fluorescence_channels):
             continue
-        step = max(1, len(events) // _FMO_FIT_MAX_EVENTS)
-        values = events[fluorescence_channels].to_numpy(dtype=np.float64)[::step]
-        others = [j for j in range(n) if j != k]
-        design = np.column_stack([values[:, others], np.ones(len(values))])
-        solution, fit = _robust_fit(design, values[:, k], channel)
-        weights[others, k] = solution[:-1]
+        design, target = _fmo_design(events, fluorescence_channels, k)
+        solution, event_weights = _robust_fit(design, target)
+        weights[[j for j in range(n) if j != k], k] = solution[:-1]
         covered.append(k)
         if fits is not None:
-            fits.append(fit)
+            fits.append(_summarise_fit(channel, design, target, solution, event_weights))
     if not covered:
         raise ValueError("No FMO control has data for every channel of the matrix.")
 
@@ -323,19 +320,31 @@ def calculate_spillover_from_fmo(
     )
 
 
-def _robust_fit(
-    design: np.ndarray, target: np.ndarray, channel: str = ""
-) -> tuple[np.ndarray, DetectorFit]:
+def _fmo_design(
+    events: pd.DataFrame, fluorescence_channels: list[str], missing: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """One FMO control's fit: the other detectors (plus a constant) as the
+    design, the missing dye's detector as the target; at most
+    ``_FMO_FIT_MAX_EVENTS`` events, taken evenly.
+    """
+    step = max(1, len(events) // _FMO_FIT_MAX_EVENTS)
+    values = events[fluorescence_channels].to_numpy(dtype=np.float64)[::step]
+    others = [j for j in range(len(fluorescence_channels)) if j != missing]
+    return np.column_stack([values[:, others], np.ones(len(values))]), values[:, missing]
+
+
+def _robust_fit(design: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Least squares that down-weights outlying events (Huber weights).
 
     Some events carry signal in the missing dye's detector that the other
     dyes don't explain (dead cells, aggregates); an ordinary fit bends
     towards them and reads it as spill between unrelated dyes. Events that
     are extreme in the *other* detectors still pull on the fit.
+
+    Returns the solution and each event's final weight (1 = fully counted).
     """
     weights = np.ones(len(target))
     solution = np.zeros(design.shape[1])
-    residual = target.copy()
     for _ in range(_ROBUST_FIT_ITERATIONS):
         weighted = design * weights[:, None]
         previous = solution
@@ -346,15 +355,63 @@ def _robust_fit(
         if scale <= 0 or np.allclose(solution, previous, rtol=1e-6, atol=1e-9):
             break
         weights = np.minimum(1.0, _HUBER_K * scale / np.maximum(np.abs(residual), 1e-12))
+    return solution, weights
 
+
+def _summarise_fit(
+    channel: str,
+    design: np.ndarray,
+    target: np.ndarray,
+    solution: np.ndarray,
+    weights: np.ndarray,
+) -> DetectorFit:
+    residual = target - design @ solution
     centred = target - np.average(target, weights=weights)
     spread = float(np.sum(weights * centred**2))
     explained = 1.0 - float(np.sum(weights * residual**2)) / spread if spread > 0 else 1.0
-    return solution, DetectorFit(
+    return DetectorFit(
         channel=channel,
         events=len(target),
         down_weighted=float(np.mean(weights < _LARGELY_IGNORED_WEIGHT)),
         r_squared=explained,
+    )
+
+
+@dataclass(frozen=True)
+class FmoFitDetail:
+    """One FMO control's fit, event by event — for showing how it works."""
+
+    others: list[str]  # the detectors the fit used, in ``signals`` column order
+    signals: np.ndarray  # events × others
+    target: np.ndarray  # the missing dye's detector
+    weights: np.ndarray  # robust fit: one per other detector
+    intercept: float
+    plain_weights: np.ndarray  # the same fit without the robust weighting
+    event_weights: np.ndarray  # how much each event counted (1 = fully)
+
+    @property
+    def largely_ignored(self) -> np.ndarray:
+        return self.event_weights < _LARGELY_IGNORED_WEIGHT
+
+
+def fmo_fit_detail(
+    events: pd.DataFrame, fluorescence_channels: list[str], channel: str
+) -> FmoFitDetail:
+    """Redo the fit ``calculate_spillover_from_fmo`` runs for one control,
+    keeping what it normally throws away.
+    """
+    missing = fluorescence_channels.index(channel)
+    design, target = _fmo_design(events, fluorescence_channels, missing)
+    solution, event_weights = _robust_fit(design, target)
+    plain, *_ = np.linalg.lstsq(design, target, rcond=None)
+    return FmoFitDetail(
+        others=[ch for ch in fluorescence_channels if ch != channel],
+        signals=design[:, :-1],
+        target=target,
+        weights=solution[:-1],
+        intercept=float(solution[-1]),
+        plain_weights=plain[:-1],
+        event_weights=event_weights,
     )
 
 

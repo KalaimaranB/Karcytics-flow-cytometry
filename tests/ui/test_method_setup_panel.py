@@ -234,3 +234,68 @@ def test_the_setup_page_follows_the_selected_method_and_keeps_its_options(view, 
     assert view._setup._gate_combo.currentData() == "Cells"
     view._btn_run.click()
     assert "fitted on 'Cells'" in view._note.text()
+
+
+# ── The illustrated fit ───────────────────────────────────────────────
+
+
+def test_fmo_method_can_draw_the_fit_of_each_tube_it_uses(state):
+    source = FmoSource()
+
+    assert source.illustration_choices(state) == [
+        ("FMO FITC (no FITC-A)", "FITC-A"),
+        ("FMO PE (no PE-A)", "PE-A"),
+        ("FMO APC (no APC-A)", "APC-A"),
+    ]
+    fit = source.illustration(state, MethodOptions(), "PE-A")
+
+    # FITC is what leaks into PE here (15%); the picture shows that pair.
+    assert (fit.tube, fit.missing, fit.other) == ("FMO PE", "PE-A", "FITC-A")
+    assert fit.slope == pytest.approx(0.15, abs=0.02)
+    assert len(fit.x) == len(fit.y) == len(fit.ignored) == 600 and fit.events == 600
+    # With the other dyes' share and the constant removed, y is just the leak.
+    assert np.polyfit(fit.x[~fit.ignored], fit.y[~fit.ignored], 1)[0] == pytest.approx(
+        fit.slope, abs=0.02
+    )
+
+
+def test_the_illustration_follows_the_fit_on_gate(state):
+    _add_cells_gate(state, "FMO PE")
+
+    fit = FmoSource().illustration(state, MethodOptions(gate="Cells"), "PE-A")
+
+    assert fit.events == 450
+
+
+def test_without_fmo_controls_the_method_is_shown_on_example_data():
+    source, empty = FmoSource(), FlowState()
+
+    [(label, key)] = source.illustration_choices(empty)
+    fit = source.illustration(empty, MethodOptions(), key)
+
+    assert "Example data" in label and fit.example
+    assert fit.slope == pytest.approx(0.12, abs=0.01) and fit.ignored.any()
+
+
+def test_the_page_draws_the_selected_tube_and_keeps_its_place_on_refresh(panel, state):
+    source, options = FmoSource(), MethodOptions()
+    panel.show_method(source, options, None)
+    view = panel._illustration
+
+    assert view is not None and view.isVisible()
+    assert "FMO FITC has no FITC-A dye" in view._caption.text()
+
+    view.go_to(2)
+    panel.show_method(source, options, None)  # e.g. coming back to the tab
+    assert view.step == 2
+
+    panel._illustration_combo.setCurrentIndex(panel._illustration_combo.findData("PE-A"))
+    assert view.step == 0 and "FMO PE has no PE-A dye" in view._caption.text()
+
+
+def test_methods_with_nothing_to_draw_show_no_illustration(panel, state):
+    panel.show_method(FmoSource(), MethodOptions(), None)
+    panel.show_method(FcsMetadataSource(), MethodOptions(), None)
+
+    assert not panel._illustration.isVisible()
+    assert not panel._illustration_combo.isVisible()

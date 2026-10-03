@@ -69,7 +69,10 @@ doesn't touch the other two:
   options it takes, stored per method in a `MethodOptions` the view passes
   back to `readiness`/`obtain`/`inputs`), `inputs()` (the samples it would
   use now, optionally with one per-sample choice written back through
-  `set_choice()`), and `SourceResult.report` (what the run rested on; set
+  `set_choice()`), `illustration_choices()` / `illustration()` (a
+  `FitIllustration` — one fit as x/y events, slopes and ignored events —
+  that `ui/widgets/method_illustration.py` animates in four steps), and
+  `SourceResult.report` (what the run rested on; set
   `reports = True`). Fits restricted to a gate get their events from
   `analysis/fit_population.py` (`fit_events`), which only offers scatter
   gates and always returns uncompensated events.
