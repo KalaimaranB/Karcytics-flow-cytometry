@@ -19,7 +19,6 @@ The status line always names the method behind the current numbers, for example 
 | **Single-stain controls** | **🔬 Calculate Matrix** | At least two samples with role **Single Stain** (an **Unstained Control** is optional) |
 | **FMO controls** | **🧮 Estimate from FMOs** | Samples with role **FMO Control** |
 | **Import from a file** | **📥 Import CSV** | A `.csv`, `.tsv` or `.txt` matrix, e.g. from FlowJo or R |
-| **Advanced algorithms** | — | None available yet |
 
 ### Embedded in the FCS files (default)
 Many acquisition cytometers record the acquisition-time matrix in the FCS metadata. When your files carry one, Karcytics loads and applies it as soon as the samples are loaded, and this method is the one selected when you open the tab. **📄 Extract from FCS** re-reads it, which is also how you go back to the cytometer's numbers after editing.

@@ -155,21 +155,10 @@ def test_picking_a_method_retargets_the_run_button_and_sticks(make_view, state):
     assert view._method_combo.currentData() == "fmo"
 
 
-def test_advanced_algorithms_have_a_slot_in_the_selector(make_view, state):
-    view = make_view(state)
-    combo = view._method_combo
-    placeholder = combo.count() - 1
+def test_the_selector_lists_exactly_the_registered_methods(make_view, state):
+    combo = make_view(state)._method_combo
 
-    assert "Advanced algorithms" in combo.itemText(placeholder)
-    assert not combo.model().item(placeholder).isEnabled()
-
-    class _Advanced(_FixedSource):
-        key = "advanced"
-        advanced = True
-
-    combo = make_view(state, sources=(*MATRIX_SOURCES, _Advanced(None)))._method_combo
-    assert combo.itemData(combo.count() - 1) == "advanced"
-    assert combo.model().item(combo.count() - 1).isEnabled()
+    assert [combo.itemData(i) for i in range(combo.count())] == [s.key for s in MATRIX_SOURCES]
 
 
 def test_fine_tuning_is_recorded_on_top_of_the_method(make_view, state):

@@ -50,7 +50,6 @@ _NO_MATRIX_TEXT = (
     "Pick a method above and run it: read the matrix from your FCS files, calculate it\n"
     "from single-stain or FMO controls, or import a CSV. Then fine-tune it here."
 )
-_NO_ADVANCED_TEXT = "Advanced algorithms — none available yet"
 _RUN_BUTTON_NAME = "RunMethodButton"
 _FINE_TUNE_HINT = " Fine-tune any cell below, then Apply to All."
 
@@ -149,19 +148,8 @@ class CompensationView(QWidget):
 
         self._method_combo = FlowComboBox()
         self._method_combo.setObjectName("CompensationMethodCombo")
-        for source in (s for s in self._sources if not s.advanced):
+        for source in self._sources:
             self._method_combo.addItem(source.label, source.key)
-        self._method_combo.insertSeparator(self._method_combo.count())
-        advanced = [s for s in self._sources if s.advanced]
-        for source in advanced:
-            self._method_combo.addItem(source.label, source.key)
-        if not advanced:
-            # The slot stays visible so the techniques read as one list.
-            self._method_combo.addItem(_NO_ADVANCED_TEXT, None)
-            # Qt's own role for an item's flags: 0 makes it unselectable.
-            self._method_combo.setItemData(
-                self._method_combo.count() - 1, 0, Qt.ItemDataRole.UserRole - 1
-            )
         self._method_combo.activated.connect(self._on_method_picked)
         self._method_combo.currentIndexChanged.connect(self._refresh_method)
         row.addWidget(self._method_combo)

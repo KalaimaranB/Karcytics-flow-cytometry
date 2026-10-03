@@ -72,7 +72,6 @@ class MatrixSource(ABC):
     action: str  # the button that runs it
     tooltip: str
     object_name: str = ""  # the run button's objectName, for tutorial spotlights
-    advanced: bool = False  # listed under "Advanced algorithms"
 
     @abstractmethod
     def readiness(self, state: FlowState) -> Readiness:

@@ -57,8 +57,7 @@ doesn't touch the other two:
   raises `MatrixSourceError`. A source never changes state. The view builds
   its **Method** selector from `MATRIX_SOURCES` (one run button, retargeted
   at the selected method), so an estimator ("smart compensate") is a new
-  subclass plus one line in that tuple; `advanced = True` lists it under
-  the selector's "Advanced algorithms" slot. `key` is the
+  subclass plus one line in that tuple. `key` is the
   `CompensationMatrix.source` the method's matrices carry — the view maps
   it back to `label` to say which method produced the current numbers, and
   selects that method by default (with no matrix: the first whose
