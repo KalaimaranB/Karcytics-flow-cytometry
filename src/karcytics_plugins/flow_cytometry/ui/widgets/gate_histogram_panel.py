@@ -131,7 +131,9 @@ class GateHistogramCanvas(LayeredMatplotlibCanvas):
     """A small histogram canvas on the main plot's async render pipeline."""
 
     def __init__(self, parent: QWidget | None = None, task_scheduler: Any | None = None) -> None:
-        self._fig = Figure(figsize=(3, 2), dpi=100)
+        # Constrained layout sizes the margins from the labels' real extents on
+        # every draw; fixed fractions clip the x label once the plot gets short.
+        self._fig = Figure(figsize=(3, 2), dpi=100, layout="constrained")
         self._fig.set_facecolor(_PLOT_BG)
         super().__init__(
             self._fig, task_scheduler=task_scheduler, parent=parent, plugin_id="flow_cytometry"
@@ -141,7 +143,6 @@ class GateHistogramCanvas(LayeredMatplotlibCanvas):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         self._ax = self._fig.add_subplot(111)
-        self._fig.subplots_adjust(left=0.2, bottom=0.26, right=0.96, top=0.94)
 
         # What AxisFormatter reads off a canvas. A histogram has one data
         # axis, so the same scale stands in for both.

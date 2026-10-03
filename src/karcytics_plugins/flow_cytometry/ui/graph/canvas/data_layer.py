@@ -174,7 +174,7 @@ class FlowDataComputeStage(RenderComputeStage):
                 "fmo_data_x": fmo_data_x,
                 "highlight_x": self._highlight_values(state, x_transformed),
             }
-            strategy_data = strategy.compute(x_transformed, None, **kwargs_1d)
+            strategy_data = strategy.compute(x_transformed, None, xlim=xlim, **kwargs_1d)
 
             return FlowRenderData(
                 mode="1d",

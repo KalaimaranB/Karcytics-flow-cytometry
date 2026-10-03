@@ -75,6 +75,23 @@ def test_histogram_strategy_render(mock_ax, dummy_data):
     assert mock_ax.hist.called
 
 
+def test_histogram_bins_span_the_visible_range_not_the_outliers():
+    strategy = HistogramStrategy()
+    x = np.append(np.linspace(0, 100, 1000), [1e6])  # one far outlier
+
+    unbounded = strategy.compute(x, None, bins=10)
+    assert unbounded.bin_edges[-1] == 1e6  # no axis range given: the data's extent
+
+    data = strategy.compute(x, None, xlim=(0, 100), bins=10)
+    assert (data.bin_edges[0], data.bin_edges[-1]) == (0, 100)
+    assert len(data.valid_x) == 1000  # the off-screen outlier isn't counted
+
+    # An unusable range falls back to the data's extent.
+    assert strategy.compute(x, None, xlim=(5, 5), bins=10).bin_edges[-1] == 1e6
+    # Nothing in view: nothing to draw.
+    assert strategy.compute(x, None, xlim=(2e6, 3e6), bins=10) is None
+
+
 def test_histogram_without_highlight_draws_one_series_in_bar_color(mock_ax, dummy_data):
     x, _ = dummy_data
     strategy = HistogramStrategy()

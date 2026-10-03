@@ -49,6 +49,12 @@ class HistogramStrategy(DisplayStrategy):
     ) -> HistogramRenderData | None:
         """Compute bin edges, FMO threshold, and KDE curve for the histogram."""
         valid_x = x[np.isfinite(x)]
+        # Bin what the axis shows, not the data's full extent: a few far
+        # outliers would otherwise stretch the bins until only a handful of
+        # them land inside the view.
+        view = self._view_range(xlim)
+        if view is not None:
+            valid_x = valid_x[(valid_x >= view[0]) & (valid_x <= view[1])]
         if len(valid_x) == 0:
             return None
 
@@ -69,7 +75,9 @@ class HistogramStrategy(DisplayStrategy):
             fmo_valid_x = np.array([])
 
         # Calculate common bin edges so bars align perfectly
-        if len(fmo_valid_x) > 0:
+        if view is not None:
+            min_val, max_val = view
+        elif len(fmo_valid_x) > 0:
             min_val = min(valid_x.min(), fmo_valid_x.min())
             max_val = max(valid_x.max(), fmo_valid_x.max())
         else:
@@ -216,6 +224,14 @@ class HistogramStrategy(DisplayStrategy):
         y_label = "Frequency (%)" if data.density_mode else "Count"
         ax.set_ylabel(y_label, fontsize=9)
         logger.debug("[HIST-DRAW] draw complete")
+
+    @staticmethod
+    def _view_range(xlim) -> tuple[float, float] | None:
+        """``xlim`` as an ordered, finite, non-empty ``(low, high)`` — else None."""
+        if xlim is None:
+            return None
+        low, high = sorted(float(v) for v in xlim)
+        return (low, high) if np.isfinite(low) and np.isfinite(high) and low < high else None
 
     @staticmethod
     def _draw_highlight(ax, data: HistogramRenderData, color: str) -> None:
