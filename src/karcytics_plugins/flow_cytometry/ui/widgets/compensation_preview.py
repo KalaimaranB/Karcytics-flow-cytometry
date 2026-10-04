@@ -158,6 +158,9 @@ def draw_preview(fig: Figure, plan: PreviewPlan, single_row: bool = False) -> li
     axes = [fig.add_subplot(rows, count // rows, index + 1) for index in range(count)]
     for ax in axes:
         ax.set_facecolor(_PLOT_BG)
+        # Square plots whatever the window's shape: a stretched scatter
+        # misrepresents how level a population sits.
+        ax.set_box_aspect(1)
 
     remaining = iter(axes)
     request = plan.request

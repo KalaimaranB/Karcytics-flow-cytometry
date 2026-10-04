@@ -70,7 +70,7 @@ Once a matrix is loaded or computed, it is vital to review it for excessive spec
 2. Inspect the off-diagonal coefficients. Each **row is a dye** and each **column is a detector**: a cell is the share of the row dye's signal picked up by the column detector. The two cells of a pair (for example FITC → PE and PE → FITC) are separate numbers and are edited independently.
 3. Click a cell to plot its pair — its dye on X, its detector on Y. The two cells behind the plotted pair are highlighted, and the note under the matrix says which way each one moves the events.
 4. Check the result in the preview on the right, which redraws as you type:
-    - **Sample** picks which sample is shown. **All samples (one row each)** shows every loaded sample at once, one row per sample; the rows are drawn in the background, so each shows a placeholder until its plots arrive.
+    - **Sample** picks which sample is shown. **All samples (one row each)** shows every loaded sample at once, one row per sample; the rows are drawn in the background, so each shows a placeholder until its plots arrive. Plots are always square, and the rows are redrawn to fit when you resize the window.
     - **Population** previews only the events inside a gate, for example **Cells**. Any gate of the loaded samples can be chosen; a sample without it is shown whole, and its caption says so. This only changes what the preview draws, not the matrix.
     - **View** chooses the plots:
         - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes.

@@ -13,9 +13,9 @@ from typing import Any
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.managed_task import FunctionalTask
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtWidgets import QLabel, QScrollArea, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
     VIEW_BOTH,
@@ -25,10 +25,17 @@ from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
 
 logger = get_logger(__name__, "flow_cytometry")
 
-_ROW_HEIGHT = 250
-_MIN_ROW_WIDTH = 560
-# All four plots side by side need more room than a pair.
-_MIN_ROW_WIDTH_BOTH = 760
+# A row is as tall as its (square) plots are wide, plus what their titles and
+# x labels need beyond what the y labels take off the width — within limits,
+# so a pair on a wide window doesn't fill the screen.
+_PLOT_CHROME_HEIGHT = 30
+_MIN_ROW_HEIGHT = 220
+_MAX_ROW_HEIGHT = 420
+_MIN_PLOT_WIDTH = 190
+_PLOTS_PER_VIEW = {VIEW_BOTH: 4}
+_DEFAULT_PLOTS = 2
+# Re-render at the new width once the window has stopped being dragged.
+_RESIZE_DEBOUNCE_MS = 200
 _SCROLLBAR_ALLOWANCE = 24  # so a row never needs a horizontal scrollbar
 _STALE = {"stale": True}
 
@@ -48,7 +55,14 @@ class CompensationPreviewGrid(QScrollArea):
         # Bumped on every request, so renders already queued for an older
         # one give up instead of drawing what nobody will see.
         self._generation = 0
+        self._requests: list[tuple[str, str, PreviewRequest | str]] = []
+        self._rendered_width = 0
         self._is_alive = True
+
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(_RESIZE_DEBOUNCE_MS)
+        self._resize_timer.timeout.connect(self._on_resize_settled)
 
         self.setWidgetResizable(True)
         self.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -83,6 +97,8 @@ class CompensationPreviewGrid(QScrollArea):
         """
         self._generation += 1
         self._pending.clear()
+        self._requests = requests
+        self._rendered_width = self._row_width()
         self._message.setVisible(not requests)
         wanted = {sample_id for sample_id, _, _ in requests}
         for sample_id in [s for s in self._rows if s not in wanted]:
@@ -92,16 +108,34 @@ class CompensationPreviewGrid(QScrollArea):
         for position, (sample_id, name, request) in enumerate(requests):
             row = self._row(sample_id, position)
             if isinstance(request, str):
+                row.setFixedHeight(_MIN_ROW_HEIGHT)
                 row.setPixmap(QPixmap())
                 row.setText(request)
                 continue
+            width, height = self._row_size(request)
+            row.setFixedHeight(height)
             if row.pixmap().isNull():
                 row.setText(f"Rendering {name}…")  # placeholder until the first image
-            wide = request.view == VIEW_BOTH
-            width = max(
-                self.width() - _SCROLLBAR_ALLOWANCE, _MIN_ROW_WIDTH_BOTH if wide else _MIN_ROW_WIDTH
-            )
-            self._submit(sample_id, request, width, ratio)
+            self._submit(sample_id, request, width, height, ratio)
+
+    def _row_width(self) -> int:
+        return self.width() - _SCROLLBAR_ALLOWANCE
+
+    def _row_size(self, request: PreviewRequest) -> tuple[int, int]:
+        """A row's size for the space there is: its plots square, side by side."""
+        plots = _PLOTS_PER_VIEW.get(request.view, _DEFAULT_PLOTS)
+        width = max(self._row_width(), plots * _MIN_PLOT_WIDTH)
+        height = width // plots + _PLOT_CHROME_HEIGHT
+        return width, int(min(max(height, _MIN_ROW_HEIGHT), _MAX_ROW_HEIGHT))
+
+    def resizeEvent(self, event) -> None:  # noqa: N802
+        super().resizeEvent(event)
+        if self._requests and self._row_width() != self._rendered_width:
+            self._resize_timer.start()
+
+    def _on_resize_settled(self) -> None:
+        if self._is_alive and self._requests and self._row_width() != self._rendered_width:
+            self.show_requests(self._requests)
 
     def show_message(self, message: str) -> None:
         self.show_requests([])
@@ -112,6 +146,7 @@ class CompensationPreviewGrid(QScrollArea):
             return
         self._is_alive = False
         self._generation += 1
+        self._resize_timer.stop()
         for signal, slot in (
             (self._scheduler.task_finished, self._on_task_finished),
             (self._scheduler.task_error, self._on_task_error),
@@ -128,20 +163,24 @@ class CompensationPreviewGrid(QScrollArea):
         if row is None:
             row = QLabel()
             row.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            row.setFixedHeight(_ROW_HEIGHT)
+            # A label is at least as wide as its image; left at that, the rows
+            # would stop the window from being made narrower than they are.
+            row.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Fixed)
             self._rows[sample_id] = row
         # Row 0 of the layout is the message label.
         if self._layout.indexOf(row) != position + 1:
             self._layout.insertWidget(position + 1, row)
         return row
 
-    def _submit(self, sample_id: str, request: PreviewRequest, width: int, ratio: float) -> None:
+    def _submit(
+        self, sample_id: str, request: PreviewRequest, width: int, height: int, ratio: float
+    ) -> None:
         generation = self._generation
 
         def _render() -> dict:
             if generation != self._generation:
                 return _STALE
-            result = render_preview_image(request, width, _ROW_HEIGHT, ratio)
+            result = render_preview_image(request, width, height, ratio)
             result["pixel_ratio"] = ratio
             return result
 

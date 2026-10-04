@@ -267,8 +267,14 @@ class CompensationEditor(QWidget):
 
         return right_widget
 
-    def _build_controls(self) -> QHBoxLayout:
-        controls_layout = QHBoxLayout()
+    def _build_controls(self) -> QVBoxLayout:
+        """The preview's selectors, on two rows: what to look at, then how.
+
+        One row of five was wider than a laptop-sized window could give the
+        preview, which then couldn't be made any narrower.
+        """
+        controls_layout = QVBoxLayout()
+        what_row, how_row = QHBoxLayout(), QHBoxLayout()
         self._sample_combo = FlowComboBox()
         self._population_combo = FlowComboBox()
         self._population_combo.setObjectName("PreviewPopulationCombo")
@@ -282,17 +288,19 @@ class CompensationEditor(QWidget):
         self._view_combo.addItem("Scatter (X vs Y)", VIEW_SCATTER)
         self._view_combo.addItem("Histogram (before vs after)", VIEW_HISTOGRAM)
         self._view_combo.addItem("Scatter + histograms", VIEW_BOTH)
-        for text, combo, slot in (
-            ("Sample:", self._sample_combo, self._update_plots),
-            ("Population:", self._population_combo, self._update_plots),
-            ("X (dye):", self._x_combo, self._on_pair_changed),
-            ("Y (detector):", self._y_combo, self._on_pair_changed),
-            ("View:", self._view_combo, self._update_plots),
+        for row, text, combo, slot in (
+            (what_row, "Sample:", self._sample_combo, self._update_plots),
+            (what_row, "Population:", self._population_combo, self._update_plots),
+            (how_row, "X (dye):", self._x_combo, self._on_pair_changed),
+            (how_row, "Y (detector):", self._y_combo, self._on_pair_changed),
+            (how_row, "View:", self._view_combo, self._update_plots),
         ):
-            controls_layout.addWidget(QLabel(text))
+            row.addWidget(QLabel(text))
             combo.currentIndexChanged.connect(slot)
-            controls_layout.addWidget(combo)
-        controls_layout.addStretch()
+            row.addWidget(combo)
+        for row in (what_row, how_row):
+            row.addStretch()
+            controls_layout.addLayout(row)
         return controls_layout
 
     def set_matrix_choices(self, choices: list[tuple[str, str]], current: str | None) -> None:

@@ -435,3 +435,58 @@ def test_an_empty_population_shows_a_message(dialog, state):
     assert dialog._preview.show_message.call_args.args[0] == (
         "FL1 stain has no events in 'Nothing'."
     )
+
+
+# ── Plot shape and size ───────────────────────────────────────────────
+
+
+def test_every_preview_plot_is_square(dialog):
+    dialog._view_combo.setCurrentIndex(dialog._view_combo.findData(VIEW_BOTH))
+
+    assert len(dialog._preview.axes) == 4
+    assert all(ax.get_box_aspect() == 1 for ax in dialog._preview.axes)
+
+
+def test_all_samples_rows_are_sized_for_square_plots(all_samples):
+    editor, scheduler = all_samples
+    grid = editor._all_preview
+    grid.resize(600, 600)
+    grid._on_resize_settled()
+
+    # Two plots side by side: each about half the width, the row as tall as that
+    # plus titles and labels — not a fixed strip the plots get stretched across.
+    assert {row.height() for row in grid._rows.values()} == {(600 - 24) // 2 + 30}
+
+    editor._view_combo.setCurrentIndex(editor._view_combo.findData(VIEW_BOTH))
+    editor._all_timer.stop()
+    editor._render_all_samples()
+    # Four plots need more than this width: they keep a minimum size and the row scrolls.
+    assert {row.height() for row in grid._rows.values()} == {190 + 30}
+
+
+def test_all_samples_rows_re_render_when_the_window_is_resized(all_samples):
+    editor, scheduler = all_samples
+    grid = editor._all_preview
+    scheduler.run()
+    before = {key: row.pixmap().width() for key, row in grid._rows.items()}
+
+    grid.resize(grid.width() + 300, grid.height())
+    assert grid._resize_timer.isActive()  # waits for the drag to settle
+    grid._resize_timer.stop()
+    grid._on_resize_settled()
+    assert len(scheduler.queue) == 2
+    scheduler.run()
+
+    after = {key: row.pixmap().width() for key, row in grid._rows.items()}
+    assert all(after[key] > before[key] for key in before)
+
+    grid._on_resize_settled()  # same width again: nothing to redo
+    assert scheduler.queue == []
+
+
+def test_the_matrix_page_fits_a_laptop_sized_window(all_samples):
+    """Neither the selectors nor the rendered rows may pin the page wider than this."""
+    editor, scheduler = all_samples
+    scheduler.run()
+
+    assert editor.minimumSizeHint().width() < 1000
