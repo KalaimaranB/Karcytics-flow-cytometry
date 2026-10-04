@@ -6,12 +6,13 @@ import typing
 from dataclasses import replace
 
 import numpy as np
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QBrush, QColor
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -21,7 +22,7 @@ from PyQt6.QtWidgets import (
 if typing.TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-from karcytics_sdk.plugin.components import repopulate_combo
+from karcytics_sdk.plugin.components import BioHelpButton, repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
@@ -32,15 +33,63 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
     compensate_events,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
+    VIEW_BOTH,
     VIEW_HISTOGRAM,
     VIEW_SCATTER,
     CompensationPreview,
     PreviewRequest,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview_grid import (
+    CompensationPreviewGrid,
+)
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 # Events drawn in the preview.
 _PREVIEW_MAX_EVENTS = 10_000
+# The sample selector's entry for every sample at once, one row each.
+ALL_SAMPLES = "__all__"
+_MIN_SAMPLES_FOR_ALL = 2
+# Typing in a cell re-renders every row; wait for a pause first.
+_ALL_SAMPLES_DEBOUNCE_MS = 250
+
+_GOAL_LINE = (
+    "<b>Aim:</b> on the After side, events positive for one dye sit level with the "
+    "negatives in the other detector — not tilted up, not pushed below."
+)
+_GUIDE_TITLE = "What a good matrix looks like"
+_GUIDE = (
+    "<b>The goal.</b> A dye should only be seen by its own detector. After compensation, "
+    "cells that carry dye A but not dye B must read the same in B's detector as cells "
+    "that carry neither. Each cell of the matrix is the one number that makes that true "
+    "for one dye and one detector.<br><br>"
+    "<b>On the scatter plots.</b> Look at the population that is bright on X only. "
+    "Before, it climbs diagonally: the brighter the dye, the more leaks into Y. After, "
+    "it should lie <b>level</b>, its centre at the same height as the negative "
+    "population's centre.<br>"
+    "• Still tilted upwards → the cell is too low (under-compensated).<br>"
+    "• Bent downwards, below the negatives → the cell is too high (over-compensated).<br>"
+    "• Bright events fan out wider than dim ones. That spread is measurement noise and "
+    "no value removes it: judge the <b>centre</b> of the cloud, not its edges.<br><br>"
+    "<b>On the histograms.</b> In a sample without dye B, the After curve of B's "
+    "detector should be one peak centred on the unstained level (around zero), roughly "
+    "symmetric. A tail or shoulder left on the right means under-compensated; a peak "
+    "pushed left of zero means over-compensated.<br><br>"
+    "<b>What the values should be.</b> There is no target number: a value is right when "
+    "the plots are. As a sanity check, the diagonal is 1, most cells are between 0 and "
+    "about 0.3, neighbouring dyes off the same laser are the large ones, and a value "
+    "near or above 1 usually means the wrong pairing or a bad control.<br><br>"
+    "<b>Which sample to judge on.</b> Judge a cell on a sample where its row dye is "
+    "bright and its column dye is absent: the single-stain control for the row dye is "
+    "ideal, an FMO lacking the column dye also works. Don't tune on fully stained "
+    "samples alone: cells that really carry both markers look like spill, and "
+    "compensating them away removes real biology.<br><br>"
+    "<b>Why look across samples.</b> Spill is a property of the dyes and the instrument "
+    "settings, not of a tube, so one matrix has to work for every sample of the run. "
+    "<i>All samples</i> shows whether a value that fixes one tube tilts another: if it "
+    "does, it was fitted to that tube's quirk, not to the spill. Samples that disagree "
+    "consistently (tandem dyes that degraded, a tube acquired with other settings) "
+    "need their own matrix."
+)
 
 # The two cells behind the plotted channel pair: X dye → Y detector, and back.
 _X_INTO_Y_COLOR = "#2188FF"
@@ -80,9 +129,10 @@ class CompensationEditor(QWidget):
 
     edited = pyqtSignal()
 
-    def __init__(self, state: FlowState, parent=None):
+    def __init__(self, state: FlowState, parent=None, scheduler=None):
         super().__init__(parent)
         self._state = state
+        self._scheduler = scheduler  # renders the all-samples rows; None = the app's
         self._matrix: CompensationMatrix | None = None
 
         if self._state.axis_manager is not None:
@@ -115,13 +165,16 @@ class CompensationEditor(QWidget):
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)
+        splitter.addWidget(self._build_matrix_side())
+        splitter.addWidget(self._build_preview_side())
+        splitter.setSizes([450, 650])
 
+    def _build_matrix_side(self) -> QWidget:
+        """The matrix table, with what its cells mean underneath."""
         note_style = (
             f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
             " background: transparent;"
         )
-
-        # ── Left side: Matrix Editor ──
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -152,20 +205,42 @@ class CompensationEditor(QWidget):
         self._pair_help.setStyleSheet(note_style)
         left_layout.addWidget(self._pair_help)
 
-        splitter.addWidget(left_widget)
+        goal_row = QHBoxLayout()
+        goal = QLabel(_GOAL_LINE)
+        goal.setWordWrap(True)
+        goal.setTextFormat(Qt.TextFormat.RichText)
+        goal.setStyleSheet(note_style)
+        goal_row.addWidget(goal, stretch=1)
+        self._guide_button = BioHelpButton()
+        self._guide_button.setObjectName("CompensationGuideButton")
+        self._guide_button.setHelpText(_GUIDE, title=_GUIDE_TITLE)
+        goal_row.addWidget(self._guide_button)
+        left_layout.addLayout(goal_row)
 
-        # ── Right side: Visualization ──
+        return left_widget
+
+    def _build_preview_side(self) -> QWidget:
+        """The preview's selectors and the before/after plots."""
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(0, 0, 0, 0)
 
         right_layout.addLayout(self._build_controls())
 
+        # One sample on a live canvas, or every sample as background-rendered rows.
         self._preview = CompensationPreview()
-        right_layout.addWidget(self._preview.canvas, stretch=1)
+        self._all_preview = CompensationPreviewGrid(self._scheduler)
+        self._preview_stack = QStackedWidget()
+        self._preview_stack.addWidget(self._preview.canvas)
+        self._preview_stack.addWidget(self._all_preview)
+        right_layout.addWidget(self._preview_stack, stretch=1)
 
-        splitter.addWidget(right_widget)
-        splitter.setSizes([450, 650])
+        self._all_timer = QTimer(self)
+        self._all_timer.setSingleShot(True)
+        self._all_timer.setInterval(_ALL_SAMPLES_DEBOUNCE_MS)
+        self._all_timer.timeout.connect(self._render_all_samples)
+
+        return right_widget
 
     def _build_controls(self) -> QHBoxLayout:
         controls_layout = QHBoxLayout()
@@ -175,6 +250,7 @@ class CompensationEditor(QWidget):
         self._view_combo = FlowComboBox()
         self._view_combo.addItem("Scatter (X vs Y)", VIEW_SCATTER)
         self._view_combo.addItem("Histogram (before vs after)", VIEW_HISTOGRAM)
+        self._view_combo.addItem("Scatter + histograms", VIEW_BOTH)
         for text, combo, slot in (
             ("Sample:", self._sample_combo, self._update_plots),
             ("X (dye):", self._x_combo, self._on_pair_changed),
@@ -198,6 +274,8 @@ class CompensationEditor(QWidget):
             for s_id, s in samples.items()
             if s.fcs_data is not None
         ]
+        if len(items) >= _MIN_SAMPLES_FOR_ALL:
+            items.append(("All samples (one row each)", ALL_SAMPLES))
         keep = self._sample_combo.currentData() or self._state.view.current_sample_id
         self._sample_combo.blockSignals(True)
         repopulate_combo(self._sample_combo, items, restore_data=keep)
@@ -348,7 +426,6 @@ class CompensationEditor(QWidget):
             _line(_X_INTO_Y_COLOR, x, y, "up", "down")
             + "<br>"
             + _line(_Y_INTO_X_COLOR, y, x, "right", "left")
-            + "<br>Tip: judge each cell on the single-stain control for its dye."
         )
 
     def _on_cell_changed(self, item: QTableWidgetItem) -> None:
@@ -383,19 +460,50 @@ class CompensationEditor(QWidget):
     # ── Preview ───────────────────────────────────────────────────────
 
     def _update_plots(self) -> None:
-        sample_id = self._sample_combo.currentData()
-        sample = self._state.data.experiment.samples.get(sample_id) if sample_id else None
-        if not self._matrix or sample is None or sample.fcs_data is None:
-            self._preview.show_message("Load a sample to preview the matrix.")
+        if self._sample_combo.currentData() == ALL_SAMPLES:
+            self._preview_stack.setCurrentWidget(self._all_preview)
+            if not self._all_preview.isVisible():
+                return  # rendered when the page is shown
+            self._all_timer.start()
             return
+        self._all_timer.stop()
+        self._preview_stack.setCurrentWidget(self._preview.canvas)
+        sample_id = self._sample_combo.currentData()
+        request = (
+            self._request_for(sample_id) if sample_id else "Load a sample to preview the matrix."
+        )
+        if isinstance(request, str):
+            self._preview.show_message(request)
+        else:
+            self._preview.render(request)
+
+    def _render_all_samples(self) -> None:
+        samples = self._state.data.experiment.samples
+        self._all_preview.show_requests(
+            [
+                (sample_id, sample.display_name, self._request_for(sample_id))
+                for sample_id, sample in samples.items()
+                if sample.fcs_data is not None
+            ]
+        )
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        if self._sample_combo.currentData() == ALL_SAMPLES:
+            self._all_timer.start()
+
+    def _request_for(self, sample_id: str) -> PreviewRequest | str:
+        """The preview of one sample with the matrix as edited — or why there is none."""
+        sample = self._state.data.experiment.samples.get(sample_id)
+        if not self._matrix or sample is None or sample.fcs_data is None:
+            return "Load a sample to preview the matrix."
 
         x_ch = self._x_combo.currentText()
         y_ch = self._y_combo.currentText()
 
         raw_events = getattr(sample.fcs_data, "raw_events", sample.fcs_data.events)
         if raw_events is None or x_ch not in raw_events.columns or y_ch not in raw_events.columns:
-            self._preview.show_message(f"{sample.display_name} has no {x_ch} / {y_ch} data.")
-            return
+            return f"{sample.display_name} has no {x_ch} / {y_ch} data."
 
         # Downsample for preview performance
         n_events = len(raw_events)
@@ -411,21 +519,16 @@ class CompensationEditor(QWidget):
         try:
             after = compensate_events(before.copy(), self._matrix)
         except np.linalg.LinAlgError:
-            self._preview.show_message(
-                "This matrix can't be inverted — check the value you just entered."
-            )
-            return
+            return "This matrix can't be inverted — check the value you just entered."
 
-        self._preview.render(
-            PreviewRequest(
-                before=before,
-                after=after,
-                x_param=x_ch,
-                y_param=y_ch,
-                x_scale=self._axis_manager.get_scale(x_ch, sample_id),
-                y_scale=self._axis_manager.get_scale(y_ch, sample_id),
-                view=self._view_combo.currentData(),
-                caption=f"{sample.display_name} · {len(before):,} of {n_events:,} events",
-                render_config=self._state.view.render_config,
-            )
+        return PreviewRequest(
+            before=before,
+            after=after,
+            x_param=x_ch,
+            y_param=y_ch,
+            x_scale=self._axis_manager.get_scale(x_ch, sample_id),
+            y_scale=self._axis_manager.get_scale(y_ch, sample_id),
+            view=self._view_combo.currentData(),
+            caption=f"{sample.display_name} · {len(before):,} of {n_events:,} events",
+            render_config=self._state.view.render_config,
         )

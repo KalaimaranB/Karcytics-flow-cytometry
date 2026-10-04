@@ -63,9 +63,22 @@ Once a matrix is loaded or computed, it is vital to review it for excessive spec
 2. Inspect the off-diagonal coefficients. Each **row is a dye** and each **column is a detector**: a cell is the share of the row dye's signal picked up by the column detector. The two cells of a pair (for example FITC → PE and PE → FITC) are separate numbers and are edited independently.
 3. Click a cell to plot its pair — its dye on X, its detector on Y. The two cells behind the plotted pair are highlighted, and the note under the matrix says which way each one moves the events.
 4. Check the result in the preview on the right, which redraws as you type:
-    - **Sample** picks which sample is shown. Judge each cell on the single-stain control for its dye.
-    - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes. A correctly compensated single-positive population sits level rather than slanting.
-    - **Histogram** overlays before (grey) and after (colour) for each of the two channels, which shows whether a negative population has been pushed below zero.
+    - **Sample** picks which sample is shown. **All samples (one row each)** shows every loaded sample at once, one row per sample; the rows are drawn in the background, so each shows a placeholder until its plots arrive.
+    - **View** chooses the plots:
+        - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes.
+        - **Histogram** overlays before (grey) and after (colour) for each of the two channels.
+        - **Scatter + histograms** shows all four.
+    - The **?** button under the matrix opens *What a good matrix looks like*.
+
+    !!! tip "What to aim for"
+        A dye should only be seen by its own detector. After compensation, cells that carry dye A but not dye B must read the same in B's detector as cells that carry neither.
+
+        - **Scatter:** the population that is bright on X only should lie level, its centre at the same height as the negative population's centre. Still tilted upwards means the cell is too low; bent below the negatives means it is too high. Bright events fan out wider than dim ones: that spread is measurement noise no value removes, so judge the centre of the cloud, not its edges.
+        - **Histogram:** in a sample without dye B, the After curve of B's detector should be a single, roughly symmetric peak at the unstained level. A tail left on the right means under-compensated; a peak pushed left of zero means over-compensated.
+        - **Values:** there is no target number; a value is right when the plots are. As a sanity check, most cells are between 0 and about 0.3, and a value near or above 1 usually means a wrong pairing or a bad control.
+        - **Which sample:** judge a cell where its row dye is bright and its column dye is absent (the single-stain control for the row dye, or an FMO lacking the column dye). On fully stained samples alone, cells that really carry both markers look like spill.
+        - **Across samples:** spill belongs to the dyes and the instrument settings, not to a tube, so one matrix has to work for the whole run. If a value fixes one sample but tilts another, it was fitted to that sample's quirk.
+
 5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you apply the matrix from the **Matrices** page. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft. Cells you edited are shown in **green bold**, cells the method could not estimate in *grey italic*; the marks are saved with the matrix.
 
 ![alt text](../images/03_compensation/compensation_editor.png)
