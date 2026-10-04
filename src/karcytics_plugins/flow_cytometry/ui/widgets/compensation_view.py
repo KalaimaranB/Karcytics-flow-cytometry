@@ -59,6 +59,7 @@ _RUN_BUTTON_NAME = "RunMethodButton"
 _WORKSPACE_KEY = "workspace"
 _UNSAVED_KEY = "unsaved"
 _FINE_TUNE_HINT = " Fine-tune any cell, then apply it from the Matrices page."
+_FILL_IN_HINT = " Double-click a cell to enter its value, then apply it from the Matrices page."
 
 
 class CompensationView(QWidget):
@@ -285,7 +286,8 @@ class CompensationView(QWidget):
         source = self._source(matrix.source)
         method = source.label if source else matrix.source
         text = f"{matrix.n_channels}×{matrix.n_channels} · {method}"
-        return text + (", fine-tuned by hand" if matrix.fine_tuned else "")
+        hand_tuned = matrix.fine_tuned and not (source is not None and source.by_hand)
+        return text + (", fine-tuned by hand" if hand_tuned else "")
 
     # ── Pages ─────────────────────────────────────────────────────────
 
@@ -409,7 +411,7 @@ class CompensationView(QWidget):
             self._reports[source.key] = result.report
         self._set_workspace_matrix(result.matrix, result.undo_label)
         self._keep_run(source, options, result.matrix)
-        self._note.setText(result.summary + _FINE_TUNE_HINT)
+        self._note.setText(result.summary + (_FILL_IN_HINT if source.by_hand else _FINE_TUNE_HINT))
         self._btn_matrix_page.setChecked(True)  # look at what the method produced
         self._refresh_status()
         self.compensation_changed.emit()

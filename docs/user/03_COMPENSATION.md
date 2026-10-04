@@ -24,6 +24,7 @@ Every matrix goes through the same steps: get it with a method, fine-tune it on 
 | **Single-stain controls** | **🔬 Calculate Matrix** | At least two samples with role **Single Stain** (an **Unstained Control** is optional) |
 | **FMO controls** | **🧮 Estimate from FMOs** | Samples with role **FMO Control** |
 | **Import from a file** | **📥 Import CSV** | A `.csv`, `.tsv` or `.txt` matrix, e.g. from FlowJo or R |
+| **Manual entry** | **✍ Start a blank matrix** | A loaded sample (its fluorescence channels define the matrix) |
 
 ### Fitting on a gated population
 Single-stain and FMO calculations use every recorded event by default. To calculate on the real cells only, draw a scatter gate (for example **Cells** on FSC/SSC) on the control samples in the Workspace tab, then pick it under **Fit on** in Method setup.
@@ -54,6 +55,12 @@ A fluorescence-minus-one control carries every dye except one, so whatever its m
 
 ### Import from a file
 Load a matrix computed elsewhere. Channel names are read from the header row.
+
+### Manual entry
+Starts from a matrix with 1 on the diagonal and 0 everywhere else, which compensates nothing, for you to fill in by hand on the Matrix page. Use it when you have no controls and no embedded matrix, or to type in values from a lab notebook or a publication.
+
+- The matrix covers the fluorescence channels of the sample chosen under **Read from** in Method setup (by default the first loaded sample); the page lists them.
+- On the Matrix page, cells you haven't set yet are shown in *grey italic* and the ones you have typed turn **green bold**, so you can see what is left to do.
 
 ## 2. Reviewing and Fine-Tuning the Matrix
 

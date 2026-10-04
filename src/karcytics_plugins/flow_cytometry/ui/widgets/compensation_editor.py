@@ -104,12 +104,12 @@ _PAIR_CELL_ALPHA = 110
 # How a cell's origin is shown (see ``CompensationMatrix.origin``).
 _EDITED_COLOR = "#7EE787"
 _ORIGIN_LEGEND = (
-    "<i>Grey italic</i>: not estimated — the method had no control for this cell, so it "
+    "<i>Grey italic</i>: not set — nothing measured or entered for this cell, so it "
     f'is left at its default. &nbsp;<b style="color:{_EDITED_COLOR};">Green bold</b>: '
     "edited by hand. &nbsp;Plain: from the method."
 )
 _ORIGIN_NOTES = {
-    CELL_DEFAULT: "\nNot estimated: the method had no control for this, so it is left at 0.",
+    CELL_DEFAULT: "\nNot set: nothing measured or entered for this cell, so it is left at 0.",
     CELL_EDITED: "\nEdited by hand.",
 }
 

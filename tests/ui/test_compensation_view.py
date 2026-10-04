@@ -448,7 +448,7 @@ def test_cells_show_whether_the_method_produced_them(make_view, state):
     view._btn_matrix_page.click()
     table = view._editor._table
 
-    assert table.item(0, 1).font().italic() and "Not estimated" in table.item(0, 1).toolTip()
+    assert table.item(0, 1).font().italic() and "Not set" in table.item(0, 1).toolTip()
     assert not table.item(1, 0).font().italic() and not table.item(1, 0).font().bold()
     assert view._editor._origin_legend.isVisible()
 
@@ -468,3 +468,77 @@ def test_the_legend_is_hidden_when_every_cell_is_from_the_method(make_view, stat
     view._btn_matrix_page.click()
 
     assert not view._editor._origin_legend.isVisible()
+
+
+# ── Manual entry ──────────────────────────────────────────────────────
+
+
+def _three_colour_sample() -> Sample:
+    from pathlib import Path
+
+    from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
+
+    channels = ["FSC-A", "SSC-A", "FITC-A", "PE-A", "APC-A", "Time"]
+    rng = np.random.default_rng(5)
+    events = pd.DataFrame(np.abs(rng.normal(500, 200, (300, 6))), columns=channels)
+    sample = Sample(sample_id="tube", display_name="Tube 1")
+    sample.role = SampleRole.FULL_PANEL
+    sample.fcs_data = FCSData(
+        file_path=Path("tube.fcs"),
+        channels=channels,
+        markers=["", "", "CD4", "", "CD8", ""],
+        events=events,
+        raw_events=events.copy(),
+    )
+    return sample
+
+
+def test_manual_entry_starts_from_a_matrix_with_no_spill(make_view):
+    from karcytics_plugins.flow_cytometry.analysis.compensation import CELL_DEFAULT
+    from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import ManualSource
+
+    state = FlowState()
+    source = ManualSource()
+    assert not source.readiness(state, MethodOptions()).ready
+    with pytest.raises(MatrixSourceError, match="at least two fluorescence channels"):
+        source.obtain(state, None, MethodOptions())
+
+    state.data.experiment.samples["tube"] = _three_colour_sample()
+    assert "blank 3×3 matrix over Tube 1" in source.readiness(state, MethodOptions()).text
+    inputs = source.inputs(state, MethodOptions())
+    assert [row.cells for row in inputs.rows] == [
+        ("FITC-A", "CD4"),
+        ("PE-A", "—"),
+        ("APC-A", "CD8"),
+    ]
+
+    matrix = source.obtain(state, None, MethodOptions()).matrix
+
+    assert matrix.channel_names == ["FITC-A", "PE-A", "APC-A"]  # no scatter, no time
+    np.testing.assert_array_equal(matrix.matrix, np.eye(3))
+    assert matrix.source == "manual"
+    assert (matrix.origin == CELL_DEFAULT).sum() == 6  # every spill value still to enter
+
+
+def test_typed_values_are_marked_and_the_method_is_named_plainly(make_view):
+    state = FlowState()
+    state.data.experiment.samples["tube"] = _three_colour_sample()
+    view = make_view(state)
+    view.show()
+    view._method_combo.setCurrentIndex(view._method_combo.findData("manual"))
+
+    view._btn_run.click()
+
+    table = view._editor._table
+    assert view._body.currentWidget() is view._editor
+    assert "Double-click a cell to enter its value" in view._note.text()
+    assert table.item(0, 1).text() == "0.0000" and table.item(0, 1).font().italic()
+
+    table.item(0, 1).setText("0.12")
+    assert table.item(0, 1).font().bold() and not table.item(0, 1).font().italic()
+    assert table.item(1, 0).font().italic()  # still to do
+
+    view._library._btn_apply.click()
+    assert state.data.compensation.matrix[0, 1] == 0.12
+    # Entirely by hand: "fine-tuned by hand" would say nothing.
+    assert "<b>3×3 · Manual entry</b>" in view._status.text()
