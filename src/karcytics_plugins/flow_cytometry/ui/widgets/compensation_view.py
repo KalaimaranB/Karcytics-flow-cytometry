@@ -55,6 +55,9 @@ from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBo
 logger = get_logger(__name__, "flow_cytometry")
 
 _RUN_BUTTON_NAME = "RunMethodButton"
+# Keys of the editor's matrix selector that aren't a saved matrix's id.
+_WORKSPACE_KEY = "workspace"
+_UNSAVED_KEY = "unsaved"
 _FINE_TUNE_HINT = " Fine-tune any cell, then apply it from the Matrices page."
 
 
@@ -86,6 +89,9 @@ class CompensationView(QWidget):
         # Per method (by key): the user's setup choices, and its last run's report.
         self._options: dict[str, MethodOptions] = {}
         self._reports: dict[str, Table] = {}
+        # Edits the user switched away from in the editor's matrix selector,
+        # kept so switching back doesn't lose them.
+        self._set_aside: CompensationMatrix | None = None
         self._is_alive = True
         self.setObjectName("CompensationView")
         self._setup_ui()
@@ -122,6 +128,7 @@ class CompensationView(QWidget):
         self._body = QStackedWidget()
         self._editor = CompensationEditor(self._state)
         self._editor.edited.connect(self._refresh_status)
+        self._editor.matrix_chosen.connect(self._on_matrix_chosen)
         self._setup = MethodSetupPanel(self._state)
         self._setup.changed.connect(self._refresh_method)
         self._library = MatrixLibraryPanel(self._state, self._describe_matrix)
@@ -300,7 +307,47 @@ class CompensationView(QWidget):
 
     def _load(self, matrix: CompensationMatrix | None) -> None:
         self._draft_base = matrix
+        self._set_aside = None
         self._editor.load(matrix)
+
+    def _sync_matrix_choices(self) -> None:
+        """Fill the editor's matrix selector: the one in use, the saved ones,
+        and any unsaved edits.
+        """
+        in_editor = self._editor.matrix
+        workspace = self._state.data.compensation
+        choices: list[tuple[str, str]] = []
+        current: str | None = None
+        if workspace is not None:
+            choices.append((f"In use · {self._describe_matrix(workspace)}", _WORKSPACE_KEY))
+            if same_values(in_editor, workspace):
+                current = _WORKSPACE_KEY
+        for saved in self._state.data.matrix_library:
+            choices.append((saved.name, saved.saved_id))
+            if current is None and same_values(in_editor, saved.matrix):
+                current = saved.saved_id
+        if in_editor is not None and current is None:
+            self._set_aside = in_editor  # edits that exist nowhere else
+            current = _UNSAVED_KEY
+        if self._set_aside is not None:
+            choices.insert(0, ("Unsaved edits", _UNSAVED_KEY))
+        self._editor.set_matrix_choices(choices, current)
+
+    def _on_matrix_chosen(self, key: str | None) -> None:
+        """Put another matrix in the editor as a draft; the samples keep theirs."""
+        workspace = self._state.data.compensation
+        if key == _UNSAVED_KEY:
+            matrix = self._set_aside
+        elif key == _WORKSPACE_KEY:
+            matrix = workspace
+        else:
+            saved = next((s for s in self._state.data.matrix_library if s.saved_id == key), None)
+            matrix = saved.matrix if saved is not None else None
+        if matrix is None:
+            return
+        self._draft_base = workspace
+        self._editor.load(matrix)
+        self._refresh_status()
 
     def _refresh_status(self) -> None:
         matrix = self._state.data.compensation
@@ -308,6 +355,7 @@ class CompensationView(QWidget):
         self._sync_page()
         self._btn_revert.setVisible(dirty)
         self._library.refresh(self._editor.matrix)
+        self._sync_matrix_choices()
 
         if matrix is None and self._editor.matrix is None:
             self._status.setText("No compensation matrix.")

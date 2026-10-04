@@ -32,6 +32,10 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
     CompensationMatrix,
     compensate_events,
 )
+from karcytics_plugins.flow_cytometry.analysis.fit_population import (
+    population_gates,
+    population_rows,
+)
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
     VIEW_BOTH,
     VIEW_HISTOGRAM,
@@ -48,6 +52,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBo
 _PREVIEW_MAX_EVENTS = 10_000
 # The sample selector's entry for every sample at once, one row each.
 ALL_SAMPLES = "__all__"
+_ALL_EVENTS = "All events"
 _MIN_SAMPLES_FOR_ALL = 2
 # Typing in a cell re-renders every row; wait for a pause first.
 _ALL_SAMPLES_DEBOUNCE_MS = 250
@@ -125,9 +130,12 @@ class CompensationEditor(QWidget):
 
     Signals:
         edited: a cell of the working copy changed.
+        matrix_chosen: the user picked another matrix (its key from
+            ``set_matrix_choices``) to edit instead.
     """
 
     edited = pyqtSignal()
+    matrix_chosen = pyqtSignal(object)
 
     def __init__(self, state: FlowState, parent=None, scheduler=None):
         super().__init__(parent)
@@ -178,6 +186,23 @@ class CompensationEditor(QWidget):
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Which matrix is in the editor; the owner knows what there is to pick from.
+        matrix_row = QHBoxLayout()
+        matrix_label = QLabel("Matrix:")
+        matrix_label.setStyleSheet(note_style)
+        matrix_row.addWidget(matrix_label)
+        self._matrix_combo = FlowComboBox()
+        self._matrix_combo.setObjectName("EditorMatrixCombo")
+        self._matrix_combo.setToolTip(
+            "Switch the editor to another matrix kept in this workspace. Nothing is "
+            "applied to the samples until you apply it from the Matrices page."
+        )
+        self._matrix_combo.activated.connect(
+            lambda index: self.matrix_chosen.emit(self._matrix_combo.itemData(index))
+        )
+        matrix_row.addWidget(self._matrix_combo, stretch=1)
+        left_layout.addLayout(matrix_row)
 
         caption = QLabel(_MATRIX_CAPTION)
         caption.setWordWrap(True)
@@ -245,6 +270,12 @@ class CompensationEditor(QWidget):
     def _build_controls(self) -> QHBoxLayout:
         controls_layout = QHBoxLayout()
         self._sample_combo = FlowComboBox()
+        self._population_combo = FlowComboBox()
+        self._population_combo.setObjectName("PreviewPopulationCombo")
+        self._population_combo.setToolTip(
+            "Preview only the events inside a gate (for example Cells). A sample "
+            "without that gate is shown whole."
+        )
         self._x_combo = FlowComboBox()
         self._y_combo = FlowComboBox()
         self._view_combo = FlowComboBox()
@@ -253,6 +284,7 @@ class CompensationEditor(QWidget):
         self._view_combo.addItem("Scatter + histograms", VIEW_BOTH)
         for text, combo, slot in (
             ("Sample:", self._sample_combo, self._update_plots),
+            ("Population:", self._population_combo, self._update_plots),
             ("X (dye):", self._x_combo, self._on_pair_changed),
             ("Y (detector):", self._y_combo, self._on_pair_changed),
             ("View:", self._view_combo, self._update_plots),
@@ -262,6 +294,16 @@ class CompensationEditor(QWidget):
             controls_layout.addWidget(combo)
         controls_layout.addStretch()
         return controls_layout
+
+    def set_matrix_choices(self, choices: list[tuple[str, str]], current: str | None) -> None:
+        """The matrices the editor can switch to, as (label, key), and the one it holds."""
+        self._matrix_combo.blockSignals(True)
+        self._matrix_combo.clear()
+        for label, key in choices:
+            self._matrix_combo.addItem(label, key)
+        self._matrix_combo.setCurrentIndex(max(0, self._matrix_combo.findData(current)))
+        self._matrix_combo.blockSignals(False)
+        self._matrix_combo.setEnabled(len(choices) > 1)
 
     def refresh_samples(self) -> None:
         """List the samples that have data, keeping the one on show if it still does.
@@ -280,6 +322,21 @@ class CompensationEditor(QWidget):
         self._sample_combo.blockSignals(True)
         repopulate_combo(self._sample_combo, items, restore_data=keep)
         self._sample_combo.blockSignals(False)
+
+        # Every population any loaded sample has, in first-seen order.
+        populations = dict.fromkeys(
+            path
+            for sample in samples.values()
+            if sample.fcs_data is not None
+            for path in population_gates(sample)
+        )
+        self._population_combo.blockSignals(True)
+        repopulate_combo(
+            self._population_combo,
+            [(_ALL_EVENTS, None), *((path, path) for path in populations)],
+            restore_data=self._population_combo.currentData(),
+        )
+        self._population_combo.blockSignals(False)
         self._update_plots()
 
     def _populate_matrix(self) -> None:
@@ -505,6 +562,18 @@ class CompensationEditor(QWidget):
         if raw_events is None or x_ch not in raw_events.columns or y_ch not in raw_events.columns:
             return f"{sample.display_name} has no {x_ch} / {y_ch} data."
 
+        population = self._population_combo.currentData()
+        where = ""
+        if population is not None:
+            rows = population_rows(sample, population)
+            if rows is None:
+                where = f" (no '{population}' gate: all events)"
+            elif len(rows) == 0:
+                return f"{sample.display_name} has no events in '{population}'."
+            else:
+                raw_events = raw_events.loc[rows]
+                where = f" in '{population}'"
+
         # Downsample for preview performance
         n_events = len(raw_events)
         if n_events > _PREVIEW_MAX_EVENTS:
@@ -529,6 +598,6 @@ class CompensationEditor(QWidget):
             x_scale=self._axis_manager.get_scale(x_ch, sample_id),
             y_scale=self._axis_manager.get_scale(y_ch, sample_id),
             view=self._view_combo.currentData(),
-            caption=f"{sample.display_name} · {len(before):,} of {n_events:,} events",
+            caption=f"{sample.display_name} · {len(before):,} of {n_events:,} events{where}",
             render_config=self._state.view.render_config,
         )

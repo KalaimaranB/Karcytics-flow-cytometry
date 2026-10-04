@@ -298,3 +298,53 @@ def test_the_wheel_scrolls_the_setup_page_past_its_plot_tables_and_combos(qtbot)
         assert not event.isAccepted(), type(widget).__name__
     assert combo.currentIndex() == 0
     assert QApplication.instance() is not None
+
+
+# ── Switching matrices from the Matrix page ───────────────────────────
+
+
+def _choices(view) -> list[str]:
+    combo = view._editor._matrix_combo
+    return [combo.itemText(i) for i in range(combo.count())]
+
+
+def _choose(view, label: str) -> None:
+    combo = view._editor._matrix_combo
+    index = next(i for i, text in enumerate(_choices(view)) if text.startswith(label))
+    combo.setCurrentIndex(index)
+    combo.activated.emit(index)
+
+
+def test_the_editor_can_switch_between_the_matrix_in_use_and_saved_ones(view, state):
+    experiment_edits.save_matrix(state, "FMO estimate", _matrix(ESTIMATE, "fmo"))
+    view.refresh()
+    assert _choices(view) == ["In use · 2×2 · cytometer", "FMO estimate"]
+    assert view._editor._matrix_combo.currentText().startswith("In use")
+
+    _choose(view, "FMO estimate")
+
+    assert view._editor.matrix.matrix[0, 1] == 0.26
+    assert view._editor._matrix_combo.currentText() == "FMO estimate"
+    # Looking at another matrix doesn't apply it.
+    assert state.data.compensation.matrix[0, 1] == 0.2 and view.has_unapplied_edits
+
+    _choose(view, "In use")
+    assert view._editor.matrix.matrix[0, 1] == 0.2 and not view.has_unapplied_edits
+
+
+def test_switching_away_from_unsaved_edits_keeps_them_to_come_back_to(view, state):
+    experiment_edits.save_matrix(state, "FMO estimate", _matrix(ESTIMATE, "fmo"))
+    view.refresh()
+    view._editor._table.item(0, 1).setText("0.33")
+    assert _choices(view)[0] == "Unsaved edits"
+    assert view._editor._matrix_combo.currentText() == "Unsaved edits"
+
+    _choose(view, "FMO estimate")
+    assert view._editor.matrix.matrix[0, 1] == 0.26
+    assert "Unsaved edits" in _choices(view)
+
+    _choose(view, "Unsaved edits")
+    assert view._editor.matrix.matrix[0, 1] == 0.33
+
+    view._btn_revert.click()  # discarding is explicit
+    assert "Unsaved edits" not in _choices(view)

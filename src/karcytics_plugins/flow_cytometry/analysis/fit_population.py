@@ -36,23 +36,45 @@ class FitEvents:
         return f"{self.total:,} — all events"
 
 
-def scatter_gates(sample: Sample) -> dict[str, GateNode]:
-    """The sample's gates that only use scatter, by path (``Cells › Singlets``).
+def population_gates(sample: Sample, scatter_only: bool = False) -> dict[str, GateNode]:
+    """The sample's populations by path (``Cells › Singlets``), in tree order.
 
-    A gate qualifies only if every gate above it does too.
+    With ``scatter_only``, just the gates that use scatter all the way up:
+    a gate qualifies only if every gate above it does too.
     """
     found: dict[str, GateNode] = {}
+    seen: set[str] = set()
 
     def _walk(node: GateNode, prefix: str) -> None:
         for child in node.children:
-            if child.gate is None or child.is_logic_node or not _on_scatter(child):
+            if child.node_id in seen or child.is_incomplete:
                 continue
+            if scatter_only and (child.is_logic_node or not _on_scatter(child)):
+                continue
+            seen.add(child.node_id)
             path = prefix + child.name
             found.setdefault(path, child)
             _walk(child, path + _PATH_SEPARATOR)
 
     _walk(sample.gate_tree, "")
     return found
+
+
+def scatter_gates(sample: Sample) -> dict[str, GateNode]:
+    """The populations a spillover fit may be restricted to (see the module docstring)."""
+    return population_gates(sample, scatter_only=True)
+
+
+def population_rows(sample: Sample, population: str | None) -> pd.Index | None:
+    """Row labels of the events in ``population``; None if the sample has no
+    data or no such population (or ``population`` is None: everything).
+    """
+    fcs = sample.fcs_data
+    node = population_gates(sample).get(population) if population is not None else None
+    if fcs is None or fcs.events is None or node is None:
+        return None
+    # Gates are evaluated on the working events; row labels match the raw ones.
+    return node.apply_hierarchy(fcs.events).index
 
 
 def fit_events(sample: Sample, gate: str | None = None) -> FitEvents | None:
@@ -69,8 +91,7 @@ def fit_events(sample: Sample, gate: str | None = None) -> FitEvents | None:
     if node is None:
         return FitEvents(raw, len(raw), gated=False)
     # The gate is evaluated on the working events; scatter is the same in both.
-    inside = node.apply_hierarchy(fcs.events).index
-    return FitEvents(raw.loc[inside], len(raw), gated=True)
+    return FitEvents(raw.loc[node.apply_hierarchy(fcs.events).index], len(raw), gated=True)
 
 
 def _on_scatter(node: GateNode) -> bool:

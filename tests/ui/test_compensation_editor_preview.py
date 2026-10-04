@@ -381,3 +381,57 @@ def test_the_editor_states_the_goal_and_offers_the_full_guide(dialog):
         "Why look across samples",
     ):
         assert topic in compensation_editor._GUIDE
+
+
+# ── Previewing one population ─────────────────────────────────────────
+
+
+def _gate_fl1_high(sample) -> None:
+    from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
+
+    median = float(sample.fcs_data.events["FL1-A"].median())
+    sample.gate_tree.add_child(RectangleGate("FL1-A", x_min=median), "FL1 high")
+
+
+def test_population_selector_previews_only_the_events_in_that_gate(dialog, state):
+    sample = state.data.experiment.samples["fl1"]
+    _gate_fl1_high(sample)
+    dialog.refresh_samples()
+    combo = dialog._population_combo
+    assert [combo.itemData(i) for i in range(combo.count())] == [None, "FL1 high"]
+    dialog._preview.render = MagicMock()
+
+    combo.setCurrentIndex(combo.findData("FL1 high"))
+
+    request = dialog._preview.render.call_args.args[0]
+    raw = sample.fcs_data.raw_events
+    assert len(request.before) == 200  # the upper half of 400 events
+    assert request.before["FL1-A"].min() >= raw["FL1-A"].median()
+    assert request.caption == "FL1 stain · 200 of 200 events in 'FL1 high'"
+
+
+def test_a_sample_without_the_population_is_previewed_whole_and_says_so(dialog, state):
+    _gate_fl1_high(state.data.experiment.samples["fl1"])
+    dialog.refresh_samples()
+    dialog._population_combo.setCurrentIndex(dialog._population_combo.findData("FL1 high"))
+    dialog._preview.render = MagicMock()
+
+    dialog._sample_combo.setCurrentIndex(dialog._sample_combo.findData("blank"))
+
+    caption = dialog._preview.render.call_args.args[0].caption
+    assert caption == "Blank · 400 of 400 events (no 'FL1 high' gate: all events)"
+
+
+def test_an_empty_population_shows_a_message(dialog, state):
+    from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
+
+    sample = state.data.experiment.samples["fl1"]
+    sample.gate_tree.add_child(RectangleGate("FL1-A", x_min=1e12), "Nothing")
+    dialog.refresh_samples()
+    dialog._preview.show_message = MagicMock()
+
+    dialog._population_combo.setCurrentIndex(dialog._population_combo.findData("Nothing"))
+
+    assert dialog._preview.show_message.call_args.args[0] == (
+        "FL1 stain has no events in 'Nothing'."
+    )

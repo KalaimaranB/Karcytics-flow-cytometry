@@ -10,7 +10,12 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
-from karcytics_plugins.flow_cytometry.analysis.fit_population import fit_events, scatter_gates
+from karcytics_plugins.flow_cytometry.analysis.fit_population import (
+    fit_events,
+    population_gates,
+    population_rows,
+    scatter_gates,
+)
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
 
 pytestmark = pytest.mark.unit
@@ -79,3 +84,17 @@ def test_fit_events_keep_their_row_alignment_after_compensation(sample):
     fit = fit_events(sample, "Cells")
 
     np.testing.assert_array_equal(fit.events.index, [1, 2])
+
+
+def test_any_gate_can_be_looked_at_as_a_population(sample):
+    assert list(population_gates(sample)) == [
+        "Cells",
+        "Cells › Low SSC",
+        "Cells › FITC low",
+        "FITC+",
+        "FITC+ › Scatter under fluorescence",
+    ]
+    # FITC+ is judged on the working (compensated) events: 150 and 200 pass, of 50/100/150/200.
+    assert population_rows(sample, "FITC+").tolist() == [2, 3]
+    assert population_rows(sample, "No such gate") is None
+    assert population_rows(sample, None) is None
