@@ -260,6 +260,14 @@ def test_the_header_is_two_rows_without_export_toggle_or_apply(view):
     assert not hasattr(view, "_btn_export") and not hasattr(view, "_btn_toggle")
     assert view.findChild(compensation_view.QWidget, "ApplyAllButton") is view._library._btn_apply
 
+    # Set the method up first: the tab opens on Method setup, the first of the three.
+    toggle = view.findChild(compensation_view.QWidget, "CompensationPageToggle")
+    assert [b.text() for b in toggle.findChildren(compensation_view.QPushButton)] == [
+        "⚙ Method setup",
+        "Matrix",
+        "🗂 Matrices",
+    ]
+    assert view._body.currentWidget() is view._setup
     view._btn_library_page.click()
     assert view._body.currentWidget() is view._library
     view._btn_matrix_page.click()

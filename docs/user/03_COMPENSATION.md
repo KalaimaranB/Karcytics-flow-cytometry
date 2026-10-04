@@ -12,8 +12,8 @@ The tab has a slim header and three pages.
 
 **Pages.**
 
+- **⚙ Method setup** — for the selected method: how it works and its limits, its options, the samples it will use right now, and (for calculated methods) a report of what the last run rested on. The tab opens on this page.
 - **Matrix** — the matrix editor and its before/after preview (section 2).
-- **⚙ Method setup** — for the selected method: how it works and its limits, its options, the samples it will use right now, and (for calculated methods) a report of what the last run rested on. With no matrix yet, this page is shown.
 - **🗂 Matrices** — every matrix kept in this workspace: compare them, name them, export one, and apply one to your samples (section 3).
 
 Every matrix goes through the same steps: get it with a method, fine-tune it on the Matrix page, then apply it from the Matrices page. Running a method again replaces the matrix in the editor with that method's own numbers and clears the fine-tuned mark; the earlier result stays on the Matrices page.

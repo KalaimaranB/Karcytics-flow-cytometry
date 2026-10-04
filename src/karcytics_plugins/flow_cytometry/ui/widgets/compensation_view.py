@@ -3,9 +3,9 @@
 A slim header picks a method and runs it (one ``MatrixSource`` per method)
 and says what the current matrix is. Below, three pages:
 
-* **Matrix** — the matrix editor with its before/after preview.
 * **Method setup** — how the selected method works, its options, what it
-  will use, what its last run rested on.
+  will use, what its last run rested on. The page the tab opens on.
+* **Matrix** — the matrix editor with its before/after preview.
 * **Matrices** — every matrix kept in the workspace: compare them, name
   them, export one, apply one to the samples.
 
@@ -128,7 +128,7 @@ class CompensationView(QWidget):
         self._library.apply_requested.connect(self._on_apply)
         self._library.open_requested.connect(self._on_open_saved)
         self._library.note.connect(self._note.setText)
-        for page in (self._editor, self._setup, self._library):
+        for page in (self._setup, self._editor, self._library):
             self._body.addWidget(page)
         layout.addWidget(self._body, stretch=1)
 
@@ -173,7 +173,7 @@ class CompensationView(QWidget):
         return row
 
     def _build_page_toggle(self) -> QWidget:
-        """The Matrix | Method setup | Matrices switch for the body."""
+        """The Method setup | Matrix | Matrices switch for the body."""
         row = QWidget()
         row.setObjectName("CompensationPageToggle")
         row_layout = QHBoxLayout(row)
@@ -191,12 +191,12 @@ class CompensationView(QWidget):
             "Every matrix kept in this workspace: compare, name, export and apply them."
         )
         self._page_buttons = QButtonGroup(self)
-        for button in (self._btn_matrix_page, self._btn_setup_page, self._btn_library_page):
+        for button in (self._btn_setup_page, self._btn_matrix_page, self._btn_library_page):
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             self._page_buttons.addButton(button)
             row_layout.addWidget(button)
-        self._btn_matrix_page.setChecked(True)
+        self._btn_setup_page.setChecked(True)  # set the method up first
         self._page_buttons.buttonToggled.connect(lambda *_: self._sync_page())
 
         theme_manager.apply_style(

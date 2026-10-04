@@ -266,7 +266,7 @@
         "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons_viewer.py": "097348c381188d4f3f20848efa9243f4034da477ff03cf2c95e83e9bb4c1afe0",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_editor.py": "b36bb552642bf0f9e2ed18c31693504936a6f4a0caec5e81e0fa1eb84b21d7e0",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_preview.py": "57a864c6d4c8ededebe2ee0cf07e9a85ac856de6ddb8d30dd1156fa1c8265cba",
-        "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_view.py": "636b77c0920a923df6b139eef7ebdfe4dce6ae27e4a157cf458a9470d496491b",
+        "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_view.py": "d34c393c420c63d3ad648ed4ec7ed392df1f54649095a8e776ac89937c2fdaaf",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/derived_formula_editor.py": "a8c1f01e9a57e800faf0d79aa0f6782a8b3c011ef4a5291d2571f9bfc427544b",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_hierarchy/__init__.py": "4bdcbc11981b84d3593a2bc5907a0b2939166d70281c972a43eeb008a7359335",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_hierarchy/all_samples_model.py": "e16338e934c886c376da55b4427932396942ae63437d3c9a5c8e0637c1509f81",

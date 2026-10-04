@@ -445,6 +445,7 @@ def test_cells_show_whether_the_method_produced_them(make_view, state):
     state.data.compensation = matrix
     view = make_view(state)
     view.show()
+    view._btn_matrix_page.click()
     table = view._editor._table
 
     assert table.item(0, 1).font().italic() and "Not estimated" in table.item(0, 1).toolTip()
@@ -464,5 +465,6 @@ def test_the_legend_is_hidden_when_every_cell_is_from_the_method(make_view, stat
     state.data.compensation = _matrix()
     view = make_view(state)
     view.show()
+    view._btn_matrix_page.click()
 
     assert not view._editor._origin_legend.isVisible()
