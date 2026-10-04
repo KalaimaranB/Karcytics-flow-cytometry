@@ -56,7 +56,7 @@ def test_state_serialization_avoids_recursive_objects(flow_state):
     """
     data = flow_state.to_dict()
     assert isinstance(data, dict)
-    assert set(data) == {"experiment", "compensation", "view"}
+    assert set(data) == {"experiment", "compensation", "matrix_library", "view"}
     assert "axis_manager" not in data and "population_service" not in data
     assert not any(key.startswith("_") for key in data["view"])
 

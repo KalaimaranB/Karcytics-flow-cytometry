@@ -19,7 +19,7 @@ from typing import Any
 from karcytics_sdk.plugin import CentralEventBus, PluginState, get_logger
 
 from . import events
-from .compensation import CompensationMatrix
+from .compensation import CompensationMatrix, SavedMatrix
 from .config import FlowConfig, RenderConfig
 from .constants import PROPERTIES_VIEW_PROPERTIES
 from .experiment import Experiment
@@ -33,6 +33,8 @@ class ExperimentState:
 
     experiment: Experiment = field(default_factory=Experiment)
     compensation: CompensationMatrix | None = None
+    # Matrices the user kept by name, to compare and switch between.
+    matrix_library: list[SavedMatrix] = field(default_factory=list)
     umap_results: dict[str, list[dict]] = field(default_factory=dict)
 
 

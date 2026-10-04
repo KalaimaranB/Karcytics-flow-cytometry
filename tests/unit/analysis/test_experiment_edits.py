@@ -73,6 +73,12 @@ def _assert_one_exact_step(env: Env, edit, label: str):
             lambda s, p: edits.set_sample_roles(s, ["s0", "s1", "s2"], SampleRole.SINGLE_STAIN, p),
         ),
         ("Set FMO Missing Dye", lambda s, p: edits.set_fmo_minus(s, "s1", "PE-A", p)),
+        (
+            "Save Matrix 'Mine'",
+            lambda s, p: edits.save_matrix(
+                s, "Mine", CompensationMatrix(np.eye(2), ["FITC-A", "APC-A"]), p
+            ),
+        ),
         ("Create Group", lambda s, p: edits.create_group(s, "New", p)),
         ("Rename Group", lambda s, p: edits.rename_group(s, "g1", "Renamed", p)),
         ("Delete Group", lambda s, p: edits.delete_group(s, "g1", p)),
@@ -270,3 +276,53 @@ def test_reapply_recompensates_already_compensated_samples_with_the_new_matrix(e
     assert (result.changed, result.already_compensated) == (3, 0)
     assert not _events_equal(sample.fcs_data.events, with_old)
     assert sample.is_compensated
+
+
+def test_the_matrix_library_is_saved_renamed_deleted_and_undone(env):
+    matrix = CompensationMatrix(np.array([[1.0, 0.2], [0.0, 1.0]]), ["FITC-A", "APC-A"])
+    publish = env.bus.publish
+
+    first = edits.save_matrix(env.state, " Run 1 ", matrix, publish)
+    second = edits.save_matrix(env.state, "Run 1", matrix, publish)
+    env.end_turn()
+
+    assert [s.name for s in env.state.data.matrix_library] == ["Run 1", "Run 1 (2)"]
+    # A copy: later edits to the live matrix don't change what was saved.
+    matrix.matrix[0, 1] = 0.9
+    assert first.matrix.matrix[0, 1] == 0.2
+
+    assert edits.rename_matrix(env.state, second.saved_id, "Run 1", publish)  # taken → numbered
+    assert env.state.data.matrix_library[1].name == "Run 1 (2)"
+    assert edits.rename_matrix(env.state, second.saved_id, "Tuned", publish)
+    assert not edits.rename_matrix(env.state, second.saved_id, "  ", publish)
+    assert edits.delete_matrix(env.state, first.saved_id, publish)
+    assert not edits.delete_matrix(env.state, "nope", publish)
+    env.end_turn()
+    assert [s.name for s in env.state.data.matrix_library] == ["Tuned"]
+
+    env.undo()
+    assert [s.name for s in env.state.data.matrix_library] == ["Run 1", "Run 1 (2)"]
+    assert env.state.data.matrix_library[0].matrix.matrix[0, 1] == 0.2
+
+
+def test_the_matrix_library_is_part_of_the_saved_workspace(env):
+    from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+    from karcytics_plugins.flow_cytometry.analysis.workspace_document import (
+        apply_workspace,
+        serialize_workspace,
+    )
+
+    matrix = CompensationMatrix(np.array([[1.0, 0.2], [0.0, 1.0]]), ["FITC-A", "APC-A"], "fmo")
+    saved = edits.save_matrix(env.state, "FMO on Cells", matrix, env.bus.publish)
+
+    reopened = FlowState()
+    apply_workspace(reopened, serialize_workspace(env.state))
+    [restored] = reopened.data.matrix_library
+
+    assert (restored.name, restored.saved_id) == ("FMO on Cells", saved.saved_id)
+    assert restored.matrix.source == "fmo" and restored.matrix.matrix[0, 1] == 0.2
+    # Workspaces saved before the library existed open with an empty one.
+    old = serialize_workspace(env.state)
+    del old["matrix_library"]
+    apply_workspace(reopened, old)
+    assert reopened.data.matrix_library == []

@@ -79,6 +79,12 @@ doesn't touch the other two:
 - **`CompensationEditor`** (`ui/widgets/compensation_editor.py`) — the matrix
   table and `CompensationPreview`, editing a private working copy handed in
   by `load()`. It never writes to the workspace.
+- **`MatrixLibraryPanel`** (`ui/widgets/matrix_library_panel.py`) — the
+  Matrices page: lists the editor's matrix and `state.data.matrix_library`
+  (`SavedMatrix`, edited only through `experiment_edits.save_matrix` /
+  `rename_matrix` / `delete_matrix`, so it is undoable and saved with the
+  workspace), compares two matrices cell by cell, exports one, and asks the
+  view to apply or open one (`apply_requested` / `open_requested`).
 - **`CompensationView`** — decides when things reach the workspace. A
   source's matrix becomes the workspace matrix at once (it does not touch
   sample data). Table edits are a *draft* until **Apply to All**, which

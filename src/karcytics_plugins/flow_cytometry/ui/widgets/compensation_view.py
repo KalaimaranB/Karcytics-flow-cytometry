@@ -1,28 +1,27 @@
 """Compensation view — the Compensation tab's full-window workspace.
 
-The header walks the two steps every matrix goes through: pick a method and
-run it (one ``MatrixSource`` per method), then fine-tune the result by hand
-and apply it. Below, a switch between the matrix editor with its
-before/after preview and the selected method's setup page (how it works,
-its options, what it will use, what its last run rested on).
+A slim header picks a method and runs it (one ``MatrixSource`` per method)
+and says what the current matrix is. Below, three pages:
 
-Edits are a draft: they change the workspace only when the user applies
-them, so every keystroke doesn't recompensate every sample.
+* **Matrix** — the matrix editor with its before/after preview.
+* **Method setup** — how the selected method works, its options, what it
+  will use, what its last run rested on.
+* **Matrices** — every matrix kept in the workspace: compare them, name
+  them, export one, apply one to the samples.
+
+Edits are a draft: they change the workspace only when a matrix is applied
+from the Matrices page, so every keystroke doesn't recompensate every sample.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
-import numpy as np
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
-from karcytics_sdk.plugin.dialogs import show_error, show_warning
+from karcytics_sdk.plugin.dialogs import show_warning
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QButtonGroup,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -34,11 +33,15 @@ from PyQt6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
     CompensationMatrix,
-    export_matrix_to_csv,
+    SavedMatrix,
 )
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import CompensationEditor
+from karcytics_plugins.flow_cytometry.ui.widgets.matrix_library_panel import (
+    MatrixLibraryPanel,
+    same_values,
+)
 from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     MATRIX_SOURCES,
     MatrixSource,
@@ -52,19 +55,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBo
 logger = get_logger(__name__, "flow_cytometry")
 
 _RUN_BUTTON_NAME = "RunMethodButton"
-_FINE_TUNE_HINT = " Fine-tune any cell below, then Apply to All."
-
-
-def _step_label(text: str) -> QLabel:
-    label = QLabel(f"<b>{text}</b>")
-    label.setTextFormat(Qt.TextFormat.RichText)
-    return label
-
-
-def _same_matrix(a: CompensationMatrix | None, b: CompensationMatrix | None) -> bool:
-    if a is None or b is None:
-        return a is b
-    return a.channel_names == b.channel_names and np.array_equal(a.matrix, b.matrix)
+_FINE_TUNE_HINT = " Fine-tune any cell, then apply it from the Matrices page."
 
 
 class CompensationView(QWidget):
@@ -115,12 +106,9 @@ class CompensationView(QWidget):
         header.setObjectName("CompensationHeader")
         header.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         header_layout = QVBoxLayout(header)
-        header_layout.setContentsMargins(16, 10, 16, 10)
-        header_layout.setSpacing(8)
+        header_layout.setContentsMargins(12, 6, 12, 6)
+        header_layout.setSpacing(4)
         header_layout.addLayout(self._build_method_row())
-        self._method_hint = QLabel()  # what the selected method needs / found
-        self._method_hint.setWordWrap(True)
-        header_layout.addWidget(self._method_hint)
         header_layout.addLayout(self._build_status_row())
         theme_manager.apply_style(
             header,
@@ -129,7 +117,6 @@ class CompensationView(QWidget):
             " background: transparent; }",
         )
         layout.addWidget(header)
-
         layout.addWidget(self._build_page_toggle())
 
         self._body = QStackedWidget()
@@ -137,49 +124,18 @@ class CompensationView(QWidget):
         self._editor.edited.connect(self._refresh_status)
         self._setup = MethodSetupPanel(self._state)
         self._setup.changed.connect(self._refresh_method)
-        self._body.addWidget(self._editor)
-        self._body.addWidget(self._setup)
+        self._library = MatrixLibraryPanel(self._state, self._describe_matrix)
+        self._library.apply_requested.connect(self._on_apply)
+        self._library.open_requested.connect(self._on_open_saved)
+        self._library.note.connect(self._note.setText)
+        for page in (self._editor, self._setup, self._library):
+            self._body.addWidget(page)
         layout.addWidget(self._body, stretch=1)
 
-    def _build_page_toggle(self) -> QWidget:
-        """The Matrix | Method setup switch for the body."""
-        row = QWidget()
-        row.setObjectName("CompensationPageToggle")
-        row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(0)
-
-        self._btn_matrix_page = QPushButton("Matrix")
-        self._btn_setup_page = QPushButton("⚙ Method setup")
-        self._page_buttons = QButtonGroup(self)
-        for button in (self._btn_matrix_page, self._btn_setup_page):
-            button.setCheckable(True)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            self._page_buttons.addButton(button)
-            row_layout.addWidget(button)
-        self._btn_matrix_page.setChecked(True)
-        self._btn_matrix_page.setToolTip("The spillover matrix and its before/after preview.")
-        self._btn_setup_page.setToolTip(
-            "How the selected method works, its options, and what it uses."
-        )
-        self._page_buttons.buttonToggled.connect(lambda *_: self._sync_page())
-
-        theme_manager.apply_style(
-            row,
-            f"QPushButton {{ color: {{FG_SECONDARY}}; background: {{BG_DARK}};"
-            f" font-size: {Fonts.SIZE_SMALL}px; padding: 5px 0; border: none;"
-            " border-bottom: 2px solid {BORDER}; }"
-            " QPushButton:checked { color: {FG_PRIMARY};"
-            " border-bottom: 2px solid {ACCENT_PRIMARY}; }"
-            " QPushButton:disabled { color: {FG_DISABLED}; }",
-        )
-        return row
-
     def _build_method_row(self) -> QHBoxLayout:
-        """Step 1: the method selector and its run button, then the matrix actions."""
+        """The method selector, its run button, and what the method found."""
         row = QHBoxLayout()
         row.setSpacing(8)
-        row.addWidget(_step_label("1 · Get a matrix"))
         row.addWidget(QLabel("Method:"))
 
         self._method_combo = FlowComboBox()
@@ -193,62 +149,79 @@ class CompensationView(QWidget):
         self._btn_run = PrimaryButton("")
         self._btn_run.clicked.connect(self._on_run_method)
         row.addWidget(self._btn_run)
-        row.addStretch()
 
-        self._btn_export = SecondaryButton("📤 Export CSV")
-        self._btn_export.setToolTip("Export the current spillover matrix to CSV.")
-        self._btn_export.clicked.connect(self._on_export_csv)
-        row.addWidget(self._btn_export)
-
-        self._btn_toggle = SecondaryButton("🔄 Toggle Compensation")
-        self._btn_toggle.setToolTip(
-            "Toggle compensation on/off for all loaded samples to verify raw vs compensated states."
-        )
-        self._btn_toggle.clicked.connect(self._on_toggle_compensation)
-        row.addWidget(self._btn_toggle)
+        self._method_hint = QLabel()  # what the selected method needs / found
+        self._method_hint.setWordWrap(True)
+        row.addWidget(self._method_hint, stretch=1)
         return row
 
     def _build_status_row(self) -> QHBoxLayout:
-        """Step 2: what the matrix is and where it came from, then revert/apply."""
+        """What the current matrix is, the last action's outcome, and Revert."""
         row = QHBoxLayout()
-        row.setSpacing(8)
-        row.addWidget(_step_label("2 · Fine-tune & apply"), alignment=Qt.AlignmentFlag.AlignTop)
-        status = QVBoxLayout()
-        status.setSpacing(2)
+        row.setSpacing(12)
         self._status = QLabel()
         self._status.setTextFormat(Qt.TextFormat.RichText)
+        row.addWidget(self._status)
         self._note = QLabel()  # outcome of the last action
         self._note.setWordWrap(True)
-        status.addWidget(self._status)
-        status.addWidget(self._note)
-        row.addLayout(status, stretch=1)
+        row.addWidget(self._note, stretch=1)
 
         self._btn_revert = SecondaryButton("↩ Revert Edits")
         self._btn_revert.setToolTip("Discard your edits and go back to the workspace's matrix.")
         self._btn_revert.clicked.connect(self._on_revert)
         row.addWidget(self._btn_revert)
+        return row
 
-        self._btn_apply = PrimaryButton("✅ Apply to All")
-        self._btn_apply.setObjectName("ApplyAllButton")
-        self._btn_apply.setToolTip(
-            "Save any edits and apply the compensation matrix to all loaded samples."
+    def _build_page_toggle(self) -> QWidget:
+        """The Matrix | Method setup | Matrices switch for the body."""
+        row = QWidget()
+        row.setObjectName("CompensationPageToggle")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(0)
+
+        self._btn_matrix_page = QPushButton("Matrix")
+        self._btn_matrix_page.setToolTip("The spillover matrix and its before/after preview.")
+        self._btn_setup_page = QPushButton("⚙ Method setup")
+        self._btn_setup_page.setToolTip(
+            "How the selected method works, its options, and what it uses."
         )
-        self._btn_apply.clicked.connect(self._on_apply_all)
-        row.addWidget(self._btn_apply)
+        self._btn_library_page = QPushButton("🗂 Matrices")
+        self._btn_library_page.setToolTip(
+            "Every matrix kept in this workspace: compare, name, export and apply them."
+        )
+        self._page_buttons = QButtonGroup(self)
+        for button in (self._btn_matrix_page, self._btn_setup_page, self._btn_library_page):
+            button.setCheckable(True)
+            button.setCursor(Qt.CursorShape.PointingHandCursor)
+            self._page_buttons.addButton(button)
+            row_layout.addWidget(button)
+        self._btn_matrix_page.setChecked(True)
+        self._page_buttons.buttonToggled.connect(lambda *_: self._sync_page())
+
+        theme_manager.apply_style(
+            row,
+            f"QPushButton {{ color: {{FG_SECONDARY}}; background: {{BG_DARK}};"
+            f" font-size: {Fonts.SIZE_SMALL}px; padding: 5px 0; border: none;"
+            " border-bottom: 2px solid {BORDER}; }"
+            " QPushButton:checked { color: {FG_PRIMARY};"
+            " border-bottom: 2px solid {ACCENT_PRIMARY}; }"
+            " QPushButton:disabled { color: {FG_DISABLED}; }",
+        )
         return row
 
     # ── State sync ────────────────────────────────────────────────────
 
     @property
     def has_unapplied_edits(self) -> bool:
-        return not _same_matrix(self._editor.matrix, self._state.data.compensation)
+        return not same_values(self._editor.matrix, self._state.data.compensation)
 
     def refresh(self) -> None:
         """Re-read the workspace. Unapplied edits survive (the tab can be left
         and come back to) unless the workspace's matrix was replaced under them.
         """
         workspace = self._state.data.compensation
-        if not self.has_unapplied_edits or not _same_matrix(self._draft_base, workspace):
+        if not self.has_unapplied_edits or not same_values(self._draft_base, workspace):
             self._load(workspace)
         self._editor.refresh_samples()
         if not self._method_picked:
@@ -295,26 +268,35 @@ class CompensationView(QWidget):
             self._setup.show_method(source, options, self._reports.get(source.key))
         self._method_hint.setText(source.readiness(self._state, options).text)
 
-    def _sync_page(self) -> None:
-        """Show the page the user chose; without a matrix there is only the setup."""
-        has_matrix = self._editor.matrix is not None
-        self._btn_matrix_page.setEnabled(has_matrix)
-        show_setup = self._btn_setup_page.isChecked() or not has_matrix
-        page = self._setup if show_setup else self._editor
-        if self._body.currentWidget() is not page:
-            self._body.setCurrentWidget(page)
-            if show_setup:
-                self._refresh_method()
-
     def _on_run_method(self) -> None:
         source = self._source(self._method_combo.currentData())
         if source is not None:
             self._on_source(source)
 
-    def _describe_method(self, matrix: CompensationMatrix) -> str:
+    def _describe_matrix(self, matrix: CompensationMatrix) -> str:
+        """A matrix's size and the method behind it, in plain words."""
         source = self._source(matrix.source)
-        text = f"method: <b>{source.label if source else matrix.source}</b>"
-        return text + (", then <b>fine-tuned by hand</b>" if matrix.fine_tuned else "")
+        method = source.label if source else matrix.source
+        text = f"{matrix.n_channels}×{matrix.n_channels} · {method}"
+        return text + (", fine-tuned by hand" if matrix.fine_tuned else "")
+
+    # ── Pages ─────────────────────────────────────────────────────────
+
+    def _sync_page(self) -> None:
+        """Show the page the user chose; with no matrix to edit, the method's setup."""
+        has_matrix = self._editor.matrix is not None
+        self._btn_matrix_page.setEnabled(has_matrix)
+        page: QWidget
+        if self._btn_library_page.isChecked():
+            page = self._library
+        elif self._btn_setup_page.isChecked() or not has_matrix:
+            page = self._setup
+        else:
+            page = self._editor
+        if self._body.currentWidget() is not page:
+            self._body.setCurrentWidget(page)
+            if page is self._setup:
+                self._refresh_method()
 
     def _load(self, matrix: CompensationMatrix | None) -> None:
         self._draft_base = matrix
@@ -322,23 +304,22 @@ class CompensationView(QWidget):
 
     def _refresh_status(self) -> None:
         matrix = self._state.data.compensation
-        has_matrix = self._editor.matrix is not None
         dirty = self.has_unapplied_edits
         self._sync_page()
         self._btn_revert.setVisible(dirty)
-        for button in (self._btn_apply, self._btn_export, self._btn_toggle):
-            button.setEnabled(has_matrix)
+        self._library.refresh(self._editor.matrix)
 
-        if matrix is None:
+        if matrix is None and self._editor.matrix is None:
             self._status.setText("No compensation matrix.")
             return
         samples = [s for s in self._state.data.experiment.samples.values() if s.fcs_data]
         applied = sum(1 for s in samples if s.is_compensated)
-        text = (
-            f"<b>{matrix.n_channels}×{matrix.n_channels} matrix</b>"
-            f" · {self._describe_method(matrix)}"
-            f" · applied to {applied} of {len(samples)} loaded samples"
-        )
+        text = "<b>No matrix in use</b>"
+        if matrix is not None:
+            text = (
+                f"<b>{self._describe_matrix(matrix)}</b>"
+                f" · applied to {applied} of {len(samples)} loaded samples"
+            )
         if dirty:
             text += " · <b>unapplied edits</b>"
         elif self._data_stale and applied:
@@ -362,14 +343,15 @@ class CompensationView(QWidget):
     # ── Actions ───────────────────────────────────────────────────────
 
     def _set_workspace_matrix(self, matrix: CompensationMatrix, undo_label: str) -> None:
-        if not _same_matrix(matrix, self._state.data.compensation):
+        if not same_values(matrix, self._state.data.compensation):
             self._data_stale = True
         experiment_edits.set_compensation(self._state, matrix, undo_label)
         self._load(matrix)
 
     def _on_source(self, source: MatrixSource) -> None:
+        options = self._options_for(source)
         try:
-            result = source.obtain(self._state, self, self._options_for(source))
+            result = source.obtain(self._state, self, options)
         except MatrixSourceError as exc:
             show_warning(self, exc.title, str(exc))
             return
@@ -378,11 +360,34 @@ class CompensationView(QWidget):
         if result.report is not None:
             self._reports[source.key] = result.report
         self._set_workspace_matrix(result.matrix, result.undo_label)
+        self._keep_run(source, options, result.matrix)
         self._note.setText(result.summary + _FINE_TUNE_HINT)
         self._btn_matrix_page.setChecked(True)  # look at what the method produced
         self._refresh_status()
         self.compensation_changed.emit()
         logger.info("Compensation matrix from %s: %s", type(source).__name__, result.summary)
+
+    def _keep_run(
+        self, source: MatrixSource, options: MethodOptions, matrix: CompensationMatrix
+    ) -> None:
+        """Keep a method's result in the library, so the next run doesn't lose it.
+
+        Not when that exact result is already there (e.g. re-reading the FCS files).
+        """
+        if any(
+            saved.matrix.source == matrix.source and same_values(saved.matrix, matrix)
+            for saved in self._state.data.matrix_library
+        ):
+            return
+        name = source.label + (f" · {options.gate}" if options.gate else "")
+        experiment_edits.save_matrix(self._state, name, matrix)
+
+    def _on_apply(self, saved: SavedMatrix | None) -> None:
+        """Apply a saved matrix — or, for None, the one in the editor — to the samples."""
+        if saved is not None:
+            copy = CompensationMatrix.from_dict(saved.matrix.to_dict())
+            self._set_workspace_matrix(copy, f"Apply Matrix '{saved.name}'")
+        self._on_apply_all()
 
     def _on_apply_all(self) -> None:
         """Commit any edits, then compensate the loaded samples."""
@@ -406,42 +411,19 @@ class CompensationView(QWidget):
         self.compensation_changed.emit()
         logger.info("Compensation applied: %s", result)
 
+    def _on_open_saved(self, saved: SavedMatrix) -> None:
+        """Put a saved matrix in the editor as a draft; the samples keep theirs."""
+        self._draft_base = self._state.data.compensation
+        self._editor.load(saved.matrix)
+        self._note.setText(
+            f"'{saved.name}' is open in the editor. The samples are unchanged until you "
+            "apply it from the Matrices page."
+        )
+        self._btn_matrix_page.setEnabled(True)
+        self._btn_matrix_page.setChecked(True)
+        self._refresh_status()
+
     def _on_revert(self) -> None:
         self._load(self._state.data.compensation)
         self._note.setText("Edits discarded.")
         self._refresh_status()
-
-    def _on_export_csv(self) -> None:
-        """Export the matrix as shown, including unapplied edits."""
-        matrix = self._editor.matrix
-        if matrix is None:
-            return
-        path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Export Spillover Matrix",
-            "spillover_matrix.csv",
-            "CSV Files (*.csv);;TSV Files (*.tsv)",
-        )
-        if not path:
-            return
-        try:
-            export_matrix_to_csv(matrix, Path(path))
-        except Exception as exc:
-            logger.error("Matrix export failed: %s", exc)
-            show_error(self, "Export Error", f"Failed to export matrix:\n{exc}")
-            return
-        self._note.setText(f"Matrix saved to {Path(path).name}.")
-
-    def _on_toggle_compensation(self) -> None:
-        toggled, new_state = experiment_edits.toggle_compensation(self._state)
-        if not toggled:
-            self._note.setText(
-                "Could not toggle compensation: samples need a raw-data backup and a matrix."
-            )
-            return
-        self._note.setText(
-            f"Compensation turned {'ON' if new_state else 'OFF'} for {toggled} sample(s)."
-        )
-        self._refresh_status()
-        self._editor.refresh_samples()
-        self.compensation_changed.emit()

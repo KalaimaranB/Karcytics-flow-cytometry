@@ -12,6 +12,7 @@ from karcytics_sdk.plugin.components import SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.figure import Figure
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QWheelEvent
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import LockedFigureCanvas
@@ -32,6 +33,21 @@ _PLOT_BG = "#FFFFFF"
 _CANVAS_HEIGHT = 320
 # The view is clipped here so a handful of extreme events don't flatten the rest.
 _VIEW_PERCENTILE = 99.0
+
+
+def pass_wheel_to_page(widget: QWidget) -> None:
+    """Let the wheel scroll the page ``widget`` sits in, instead of ``widget``.
+
+    Otherwise the page can't be scrolled with the pointer over a plot, a
+    table that shows all its rows, or a combo (which would also change its
+    selection — a setting — as the page went by).
+    """
+
+    def _ignore(event: QWheelEvent | None) -> None:
+        if event is not None:
+            event.ignore()
+
+    widget.wheelEvent = _ignore  # type: ignore[method-assign, assignment]
 
 
 class FitIllustrationView(QWidget):
@@ -58,6 +74,7 @@ class FitIllustrationView(QWidget):
         self._figure = Figure(figsize=(6, 3.2), facecolor=Colors.BG_DARKEST, layout="constrained")
         self.canvas = LockedFigureCanvas(self._figure)
         self.canvas.setFixedHeight(_CANVAS_HEIGHT)
+        pass_wheel_to_page(self.canvas)  # nothing to zoom here
         self._ax = self._figure.add_subplot(111)
         layout.addWidget(self.canvas)
 

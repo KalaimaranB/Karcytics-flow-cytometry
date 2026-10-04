@@ -106,7 +106,8 @@ def test_no_matrix_shows_the_empty_state_with_actions_disabled(make_view, state)
     # Nothing to edit yet: the body is the method's setup, and Matrix is unavailable.
     assert view._body.currentWidget() is view._setup
     assert not view._btn_matrix_page.isEnabled()
-    assert not view._btn_apply.isEnabled() and not view._btn_export.isEnabled()
+    assert not view._library._btn_apply.isEnabled()
+    assert not view._library._btn_export.isEnabled()
     assert view._btn_revert.isHidden()
 
 
@@ -117,7 +118,7 @@ def test_tutorial_spotlight_names_survive_the_move_out_of_the_ribbon(make_view, 
 
     assert _button(view, "ExtractFCSButton") is view._btn_run
     assert view._btn_run.text() == "📄 Extract from FCS"
-    assert _button(view, "ApplyAllButton") is view._btn_apply
+    assert _button(view, "ApplyAllButton") is view._library._btn_apply
 
 
 # ── Choosing a method ─────────────────────────────────────────────────
@@ -129,7 +130,7 @@ def test_the_method_behind_the_current_matrix_is_selected_and_named(make_view, s
     view = make_view(state)
 
     assert view._method_combo.currentData() == "imported"
-    assert "method: <b>Import from a file</b>" in view._status.text()
+    assert "<b>2×2 · Import from a file</b>" in view._status.text()
     assert "fine-tuned" not in view._status.text()
 
 
@@ -169,20 +170,18 @@ def test_fine_tuning_is_recorded_on_top_of_the_method(make_view, state):
     view = make_view(state)
 
     view._editor._table.item(0, 1).setText("0.5")
-    view._btn_apply.click()
+    view._library._btn_apply.click()
 
     assert state.data.compensation.source == "cytometer"
     assert state.data.compensation.fine_tuned
-    assert "method: <b>Embedded in the FCS files</b>, then <b>fine-tuned by hand</b>" in (
-        view._status.text()
-    )
+    assert "<b>2×2 · Embedded in the FCS files, fine-tuned by hand</b>" in view._status.text()
 
     # Running a method again starts over from its own numbers.
     result = SourceResult(_matrix(), "Estimate", "Estimated.")
     view = make_view(state, sources=(_FixedSource(result),))
     view._btn_run.click()
     assert not state.data.compensation.fine_tuned
-    assert "Fine-tune any cell below" in view._note.text()
+    assert "Fine-tune any cell" in view._note.text()
 
 
 def test_a_new_source_gets_a_button_without_changing_the_view(make_view, state):
@@ -340,7 +339,7 @@ def test_apply_commits_the_draft_and_compensates_the_samples(view, state):
     view.compensation_changed.connect(changed)
     view._editor._table.item(0, 1).setText("0.5")
 
-    view._btn_apply.click()
+    view._library._btn_apply.click()
 
     assert state.data.compensation.matrix[0, 1] == 0.5
     assert not view.has_unapplied_edits
@@ -354,20 +353,20 @@ def test_apply_commits_the_draft_and_compensates_the_samples(view, state):
 
 def test_an_edited_matrix_replaces_values_from_the_old_one(view, state):
     """Samples compensated with the old matrix must not be skipped as 'already done'."""
-    view._btn_apply.click()
+    view._library._btn_apply.click()
     sample = state.data.experiment.samples["a"]
     with_old = sample.fcs_data.events.copy()
 
     view._editor._table.item(0, 1).setText("0.5")
-    view._btn_apply.click()
+    view._library._btn_apply.click()
 
     assert not np.allclose(sample.fcs_data.events.to_numpy(), with_old.to_numpy())
     assert "applied to 2 sample(s)" in view._note.text()
 
 
 def test_applying_an_unchanged_matrix_again_skips_compensated_samples(view, state):
-    view._btn_apply.click()
-    view._btn_apply.click()
+    view._library._btn_apply.click()
+    view._library._btn_apply.click()
 
     assert "applied to 0 sample(s)" in view._note.text()
     assert "2 skipped (already compensated)" in view._note.text()
@@ -456,7 +455,7 @@ def test_cells_show_whether_the_method_produced_them(make_view, state):
     assert table.item(1, 0).font().bold() and "Edited by hand" in table.item(1, 0).toolTip()
     assert view._editor.matrix.origin[1, 0] == CELL_EDITED
 
-    view._btn_apply.click()  # the marks are part of the matrix: saved and reloaded with it
+    view._library._btn_apply.click()  # the marks are part of the matrix: saved and reloaded with it
     assert state.data.compensation.origin[1, 0] == CELL_EDITED
     assert table.item(1, 0).font().bold() and table.item(0, 1).font().italic()
 

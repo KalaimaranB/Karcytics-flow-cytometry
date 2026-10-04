@@ -29,7 +29,10 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     MethodOptions,
     Table,
 )
-from karcytics_plugins.flow_cytometry.ui.widgets.method_illustration import FitIllustrationView
+from karcytics_plugins.flow_cytometry.ui.widgets.method_illustration import (
+    FitIllustrationView,
+    pass_wheel_to_page,
+)
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 _ALL_EVENTS = "All events"
@@ -92,6 +95,8 @@ class MethodSetupPanel(QWidget):
         self._gate_combo = FlowComboBox()
         self._gate_combo.setObjectName("MethodGateCombo")
         self._gate_combo.currentIndexChanged.connect(self._on_gate_picked)
+        for combo in (self._sample_combo, self._gate_combo):
+            pass_wheel_to_page(combo)
         self._options_form.addRow("Read from:", self._sample_combo)
         self._options_form.addRow("Fit on:", self._gate_combo)
         layout.addLayout(self._options_form)
@@ -131,6 +136,7 @@ class MethodSetupPanel(QWidget):
         self._illustration_combo = FlowComboBox()
         self._illustration_combo.setObjectName("MethodIllustrationCombo")
         self._illustration_combo.currentIndexChanged.connect(lambda _i: self._load_illustration())
+        pass_wheel_to_page(self._illustration_combo)
         layout.addWidget(self._illustration_combo, alignment=Qt.AlignmentFlag.AlignLeft)
         self._illustration_slot = QVBoxLayout()
         layout.addLayout(self._illustration_slot)
@@ -252,6 +258,7 @@ class MethodSetupPanel(QWidget):
                 continue
             combo = FlowComboBox()
             _repopulate(combo, list(row.choices), row.choice)
+            pass_wheel_to_page(combo)
             combo.currentIndexChanged.connect(
                 lambda _i, c=combo, sample_id=row.sample_id: self._on_choice(sample_id, c)
             )
@@ -295,6 +302,7 @@ def _table() -> QTableWidget:
     columns.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
     columns.setStretchLastSection(True)
     table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    pass_wheel_to_page(table)
     return table
 
 

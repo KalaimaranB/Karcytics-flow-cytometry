@@ -25,7 +25,7 @@ from typing import TYPE_CHECKING, Any
 from karcytics_sdk.plugin import get_logger
 
 from .. import events
-from ..compensation import CompensationMatrix, apply_compensation
+from ..compensation import CompensationMatrix, SavedMatrix, apply_compensation
 from ..derived import sync_experiment
 from ..experiment import Group, GroupRole, SampleRole, WorkflowTemplate
 
@@ -266,6 +266,55 @@ def set_compensation(
     """Replace the compensation matrix (doesn't touch loaded event data)."""
     state.data.compensation = matrix
     announce(label, (events.COMPENSATION_APPLIED, {}), publish=publish)
+
+
+def unique_matrix_name(state: FlowState, wanted: str, keep: SavedMatrix | None = None) -> str:
+    """``wanted``, numbered if another saved matrix (other than ``keep``) has it."""
+    taken = {saved.name for saved in state.data.matrix_library if saved is not keep}
+    name, number = wanted, 2
+    while name in taken:
+        name, number = f"{wanted} ({number})", number + 1
+    return name
+
+
+def save_matrix(
+    state: FlowState, name: str, matrix: CompensationMatrix, publish: Publish | None = None
+) -> SavedMatrix | None:
+    """Keep a copy of ``matrix`` in the library under ``name`` (made unique)."""
+    clean = name.strip()
+    if not clean:
+        return None
+    saved = SavedMatrix(
+        unique_matrix_name(state, clean), CompensationMatrix.from_dict(matrix.to_dict())
+    )
+    state.data.matrix_library.append(saved)
+    announce(f"Save Matrix '{saved.name}'", publish=publish)
+    return saved
+
+
+def rename_matrix(
+    state: FlowState, saved_id: str, name: str, publish: Publish | None = None
+) -> bool:
+    saved = _saved_matrix(state, saved_id)
+    clean = name.strip()
+    if saved is None or not clean or clean == saved.name:
+        return False
+    saved.name = unique_matrix_name(state, clean, keep=saved)
+    announce("Rename Matrix", publish=publish)
+    return True
+
+
+def delete_matrix(state: FlowState, saved_id: str, publish: Publish | None = None) -> bool:
+    saved = _saved_matrix(state, saved_id)
+    if saved is None:
+        return False
+    state.data.matrix_library.remove(saved)
+    announce(f"Delete Matrix '{saved.name}'", publish=publish)
+    return True
+
+
+def _saved_matrix(state: FlowState, saved_id: str) -> SavedMatrix | None:
+    return next((s for s in state.data.matrix_library if s.saved_id == saved_id), None)
 
 
 @dataclass(frozen=True)

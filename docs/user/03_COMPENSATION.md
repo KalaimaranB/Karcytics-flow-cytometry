@@ -6,17 +6,17 @@ Spectral compensation computationally isolates target fluorophore emissions by m
 
 ## 1. Getting a Matrix: Choose a Method
 
-Every matrix is obtained in two steps, shown as the two rows at the top of the **Compensation** tab:
+The tab has a slim header and three pages.
 
-1. **Get a matrix** — pick a **Method**, then click the button beside it. The line under the selector says what the method needs and what it found in your loaded samples.
-2. **Fine-tune & apply** — adjust any cell by hand (section 2), then apply.
+**Header.** Pick a **Method** and click the button beside it; the text next to it says what the method needs and what it found in your loaded samples. The line underneath names the matrix in use, the method behind it (for example *6×6 · Embedded in the FCS files, fine-tuned by hand*), how many samples it is applied to, and the outcome of your last action. **↩ Revert Edits** appears there while you have unapplied edits.
 
-Below the header, a switch chooses what fills the tab:
+**Pages.**
 
 - **Matrix** — the matrix editor and its before/after preview (section 2).
 - **⚙ Method setup** — for the selected method: how it works and its limits, its options, the samples it will use right now, and (for calculated methods) a report of what the last run rested on. With no matrix yet, this page is shown.
+- **🗂 Matrices** — every matrix kept in this workspace: compare them, name them, export one, and apply one to your samples (section 3).
 
-The status line always names the method behind the current numbers, for example *method: **Embedded in the FCS files**, then **fine-tuned by hand***. Running a method again replaces the matrix with that method's own numbers and clears the fine-tuned mark.
+Every matrix goes through the same steps: get it with a method, fine-tune it on the Matrix page, then apply it from the Matrices page. Running a method again replaces the matrix in the editor with that method's own numbers and clears the fine-tuned mark; the earlier result stays on the Matrices page.
 
 | Method | Button | Needs |
 | --- | --- | --- |
@@ -59,26 +59,39 @@ Load a matrix computed elsewhere. Channel names are read from the header row.
 
 Once a matrix is loaded or computed, it is vital to review it for excessive spectral overlap.
 
-1. Open the **Compensation** tab. The matrix editor fills the tab below the two header rows. The status line shows the matrix's size, the method that produced it, and how many samples it is applied to; **Export CSV** and **Toggle Compensation** sit at the top right.
+1. Open the **Compensation** tab and its **Matrix** page.
 2. Inspect the off-diagonal coefficients. Each **row is a dye** and each **column is a detector**: a cell is the share of the row dye's signal picked up by the column detector. The two cells of a pair (for example FITC → PE and PE → FITC) are separate numbers and are edited independently.
 3. Click a cell to plot its pair — its dye on X, its detector on Y. The two cells behind the plotted pair are highlighted, and the note under the matrix says which way each one moves the events.
 4. Check the result in the preview on the right, which redraws as you type:
     - **Sample** picks which sample is shown. Judge each cell on the single-stain control for its dye.
     - **Scatter** shows the same events **Before** (raw signal) and **After** (with the matrix as edited), on identical axes. A correctly compensated single-positive population sits level rather than slanting.
     - **Histogram** overlays before (grey) and after (colour) for each of the two channels, which shows whether a negative population has been pushed below zero.
-5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you click **✅ Apply to All**, which saves the edits and recompensates every loaded sample. From then on the status line marks the matrix as **fine-tuned by hand**. Cells you edited are shown in **green bold**, cells the method could not estimate in *grey italic*; the marks are saved with the matrix. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft.
+5. Edits are a draft: the status line shows **unapplied edits** and nothing in the workspace changes until you apply the matrix from the **Matrices** page. **↩ Revert Edits** discards them. You can leave the tab and come back without losing a draft. Cells you edited are shown in **green bold**, cells the method could not estimate in *grey italic*; the marks are saved with the matrix.
 
 ![alt text](../images/03_compensation/compensation_editor.png)
 
 !!! warning
     High spillover values (typically $>50\%$) indicate severe spectral overlap, which may compromise population resolution. If you observe excessive values, consider redesigning your panel or referencing the **Spectral Ribbon** to analyze the physical overlaps.
 
+## 3. Matrices: Compare, Keep, Export, Apply
+
+The **🗂 Matrices** page lists the matrix in the editor (**Current matrix**) and every saved matrix, each with its size and method. The one your samples are using is marked **✓ in use**.
+
+- **Kept automatically:** each method run is saved under the method's name (and the gate it was fitted on, if any), so trying another method never loses the previous result. Re-running a method that gives the same numbers adds nothing.
+- **💾 Save current as…** keeps the matrix in the editor, including your fine-tuning, under a name you choose. **Rename** and **Delete** manage saved matrices; Undo restores a deleted one.
+- **Compare with:** select a matrix, then pick another to compare against. Cells that differ show this matrix's value and the difference in brackets, tinted orange where it is higher and blue where it is lower; the line under the table counts the differing cells and names the largest. Matrices with different channels can't be compared cell by cell.
+- **✏ Open in editor** loads a saved matrix into the Matrix page as a draft to fine-tune. Your samples are unchanged until you apply.
+- **📤 Export CSV** writes the selected matrix to a file.
+- **✅ Apply to all samples** makes the selected matrix the workspace's matrix and compensates every loaded sample with it, replacing the values an earlier matrix produced. Applying **Current matrix** also saves your unapplied edits.
+
+Saved matrices are stored with the workspace.
+
 ## 3. Matrix Application
 
 Matrix computation does not destructively alter the raw `.fcs` event data. 
 
 - **Apply to All**: Click **✅ Apply to All** to project the inverted compensation matrix onto your biological datasets. All active visualizations will synchronously refresh to reflect the compensated geometry.
-- **Toggle Compensation**: Use the **🔄 Toggle Compensation** button to quickly flip back and forth between raw and compensated states across all samples. This is highly useful for verifying that your matrix has resolved the spectral overlaps without overcompensating (resulting in "bowing" populations).
+- **Before and after**: the preview on the **Matrix** page shows the same events raw and compensated side by side, which is how to check that the matrix has resolved the overlaps without overcompensating ("bowing" populations).
 
 ## 4. Matrix Export
 

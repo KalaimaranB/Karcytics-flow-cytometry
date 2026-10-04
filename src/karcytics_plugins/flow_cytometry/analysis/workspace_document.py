@@ -28,7 +28,7 @@ from __future__ import annotations
 import copy
 from typing import TYPE_CHECKING, Any
 
-from .compensation import CompensationMatrix
+from .compensation import CompensationMatrix, SavedMatrix
 from .config import RenderConfig
 from .experiment import Experiment
 from .experiment_io import ExperimentSerializer
@@ -108,11 +108,20 @@ def deserialize_compensation(data: dict[str, Any] | None) -> CompensationMatrix 
     return CompensationMatrix.from_dict(data) if data else None
 
 
+def serialize_matrix_library(library: list[SavedMatrix]) -> list[dict[str, Any]]:
+    return [saved.to_dict() for saved in library]
+
+
+def deserialize_matrix_library(data: list[dict[str, Any]] | None) -> list[SavedMatrix]:
+    return [SavedMatrix.from_dict(item) for item in data or []]
+
+
 def serialize_workspace(state: FlowState) -> dict[str, Any]:
     """The workflow document for `state` (no event data, no attachments)."""
     return {
         "experiment": ExperimentSerializer.serialize_experiment(state.data.experiment),
         "compensation": serialize_compensation(state.data.compensation),
+        "matrix_library": serialize_matrix_library(state.data.matrix_library),
         "view": serialize_view(state.view),
     }
 
@@ -132,6 +141,7 @@ def apply_workspace(state: FlowState, document: dict[str, Any]) -> None:
         else Experiment()
     )
     state.data.compensation = deserialize_compensation(document.get("compensation"))
+    state.data.matrix_library = deserialize_matrix_library(document.get("matrix_library"))
     state.data.umap_results = {}
     apply_view(state.view, document.get("view") or {})
 
@@ -165,6 +175,7 @@ def capture_model(state: FlowState, umap_run_ids: dict[str, list[str]]) -> dict[
         {
             "experiment": experiment,
             "compensation": serialize_compensation(state.data.compensation),
+            "matrix_library": serialize_matrix_library(state.data.matrix_library),
             "umap_runs": {key: list(ids) for key, ids in umap_run_ids.items()},
         }
     )

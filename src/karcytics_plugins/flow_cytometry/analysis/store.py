@@ -37,6 +37,7 @@ from .derived import sync_experiment
 from .workspace_document import (
     capture_model,
     deserialize_compensation,
+    deserialize_matrix_library,
     model_experiment,
     serialize_compensation,
 )
@@ -254,6 +255,7 @@ class FlowStore:
         try:
             state.data.experiment = experiment
             state.data.compensation = deserialize_compensation(snapshot["compensation"])
+            state.data.matrix_library = deserialize_matrix_library(snapshot.get("matrix_library"))
             _reconcile_compensated_events(
                 experiment,
                 state.data.compensation,

@@ -19,6 +19,7 @@ Reference:
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -115,6 +116,26 @@ class CompensationMatrix:
             source=data.get("source", "imported"),
             fine_tuned=bool(data.get("fine_tuned", False)),
             origin=None if data.get("origin") is None else np.array(data["origin"], dtype=np.int8),
+        )
+
+
+@dataclass
+class SavedMatrix:
+    """A matrix kept under a name in the workspace's matrix library."""
+
+    name: str
+    matrix: CompensationMatrix
+    saved_id: str = field(default_factory=lambda: uuid.uuid4().hex)
+
+    def to_dict(self) -> dict:
+        return {"name": self.name, "saved_id": self.saved_id, "matrix": self.matrix.to_dict()}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> SavedMatrix:
+        return cls(
+            name=data["name"],
+            matrix=CompensationMatrix.from_dict(data["matrix"]),
+            saved_id=data.get("saved_id") or uuid.uuid4().hex,
         )
 
 
