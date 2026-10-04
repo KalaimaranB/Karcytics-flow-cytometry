@@ -86,13 +86,5 @@ The **🗂 Matrices** page lists the matrix in the editor (**Current matrix**) a
 
 Saved matrices are stored with the workspace.
 
-## 3. Matrix Application
+Applying a matrix never alters the raw `.fcs` event data: compensated values are computed from the raw events each time, so a different matrix can be applied later. All open plots refresh to show the compensated data.
 
-Matrix computation does not destructively alter the raw `.fcs` event data. 
-
-- **Apply to All**: Click **✅ Apply to All** to project the inverted compensation matrix onto your biological datasets. All active visualizations will synchronously refresh to reflect the compensated geometry.
-- **Before and after**: the preview on the **Matrix** page shows the same events raw and compensated side by side, which is how to check that the matrix has resolved the overlaps without overcompensating ("bowing" populations).
-
-## 4. Matrix Export
-
-Once verified, the active compensation matrix can be exported by clicking **📤 Export CSV**. This allows you to standardize the matrix for downstream computational pipelines or documentation in publications.
