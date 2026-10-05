@@ -30,7 +30,7 @@ Every screen in the module shares the same skeleton:
 - **Right sidebar** — the **Properties Panel**, showing live statistics and settings for whatever sample or gate is currently selected.
 - **Footer** — a thin status bar across the very bottom that quietly reports what just happened ("Samples loaded," "Gate created," "Compensation applied," …).
 
-Four tabs — **Workspace**, **Compensation**, **Gating**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other four — **Statistics**, **Spectral**, **Population Analysis**, and **Comparisons** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
+Four tabs — **Workspace**, **Gating**, **Compensation**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other four — **Statistics**, **Spectral**, **Population Analysis**, and **Comparisons** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
 
 ![alt text](../images/00_overview/tabs.png)
 

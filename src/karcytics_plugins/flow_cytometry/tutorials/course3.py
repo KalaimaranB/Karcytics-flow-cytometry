@@ -100,21 +100,21 @@ c3_quadrant_validator = GateShapeValidator(
 
 
 # ==============================================================================
-# Course 3 — Immunophenotyping, Pipeline & Spectral Mastery
+# Course 3 — Immunophenotyping & the Pipeline
 # Finale of the intro content: gate T-cells and B-cells out of Leukocytes,
-# split T-cells into CD4/CD8 subsets, navigate the Pipeline view, and cover
-# spectral/compensation theory.
+# split T-cells into CD4/CD8 subsets, navigate the Pipeline view, and solve
+# the tissue-ID mystery.
 # ==============================================================================
 
 course_3_gating = Course(
     id="flow_course_3_gating",
-    title="Immunophenotyping, Pipeline & Spectral Mastery",
+    title="Immunophenotyping & the Pipeline",
     description=(
         "Identify T-cells and B-cells inside your Leukocytes, split T-cells into "
-        "CD4/CD8 subsets, master the Pipeline view, and understand spillover and "
-        "compensation theory."
+        "CD4/CD8 subsets, master the Pipeline view, and work out which organ each "
+        "mystery sample came from."
     ),
-    estimated_minutes=45,
+    estimated_minutes=40,
     badge_reward="Immunophenotyper",
     badge_icon="🧬",
     prerequisite_course_ids=["flow_course_2_compensation"],
@@ -161,8 +161,8 @@ course_3_gating = Course(
                 "• Split a population 4 ways at once with a **Quadrant** gate<br>"
                 "• Read the **Pipeline** view the way a real gating strategy "
                 "gets documented<br>"
-                "• Explain spectral overlap, and when it actually needs "
-                "careful compensation<br><br>"
+                "• Turn gated populations into evidence, and name each "
+                "sample's organ from it<br><br>"
                 "And by the end, you'll have a confident, evidence-backed "
                 "answer to the sample-ID mystery."
             ),
@@ -909,8 +909,7 @@ course_3_gating = Course(
             text=(
                 "Welcome back! Incredible job. 🎉<br><br>"
                 "You've gated **T-cells** and **B-cells** with two different techniques, "
-                "split T-cells by CD4/CD8, mastered the **Pipeline** view, and "
-                "understand exactly why and when spillover matters.<br><br>"
+                "split T-cells by CD4/CD8, and mastered the **Pipeline** view.<br><br>"
                 "Before we call it: remember the opening mystery? Three "
                 "unidentified samples — one **Thymus**, one **Bone Marrow**, one **Spleen**. "
                 "You've actually already gathered enough evidence to form a real "

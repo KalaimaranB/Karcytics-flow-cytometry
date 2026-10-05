@@ -3,7 +3,7 @@
 !!! tip "The fastest way to learn: the Academy"
     Before reading any further, consider clicking the **🎓 Cyto Academy** button in the top-right of the tab bar. It opens **Flow Cytometry Fundamentals**, a guided, hands-on course that walks you through everything on this page — loading files, compensation, and your first gating hierarchy — using its own demo data, with Karcytics checking your actual work at every step. See **[Academy & Guided Tutorials](./10_ACADEMY_TUTORIALS.md)** for details on what each course covers.
 
-If you'd rather read through the workflow first (or you're working with your own data right away), this guide walks the same path in writing — the same sequence Course 1 of the Academy teaches, minus the spotlighting and automatic checks.
+If you'd rather read through the workflow first (or you're working with your own data right away), this guide walks the same path in writing — the same ground Courses 1 and 2 of the Academy cover, minus the spotlighting and automatic checks.
 
 ![alt text](../images/01_getting_started/workspace.png)
 
@@ -138,4 +138,4 @@ Your saved workflow — every sample, group, role, compensation matrix, and gate
 - **[Workspace](./02_WORKSPACE.md)**, **[Compensation](./03_COMPENSATION.md)**, and **[Gating](./04_GATING.md)** — deeper detail on each tab you just used.
 - **[Pipeline](./05_PIPELINE.md)** — see your gating strategy as a flowchart instead of a tree.
 - **[Statistics](./06_STATISTICS.md)** and **[Comparisons](./09_COMPARISONS.md)** — once you have more than one gate, these are where the real analysis happens.
-- **[Academy & Guided Tutorials](./10_ACADEMY_TUTORIALS.md)** — Course 2 and Course 3 pick up exactly where this guide leaves off, building immunophenotyping, Pipeline mastery, statistics, and unsupervised population analysis on top of the workflow you just saved.
+- **[Academy & Guided Tutorials](./10_ACADEMY_TUTORIALS.md)** — Courses 3 to 5 pick up exactly where this guide leaves off, building immunophenotyping, Pipeline mastery, statistics, and unsupervised population analysis on top of the workflow you just saved.

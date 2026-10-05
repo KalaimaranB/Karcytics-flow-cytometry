@@ -73,4 +73,4 @@ Up to 20 derived parameters can be defined per workspace. A derived parameter ca
 | UMAP / Population Analysis, compensation | No — they're computed from detectors, not formulas |
 
 !!! tip "Try it in the Academy"
-    Course 4 walks through building **B220 ÷ CD45** on the demo data, plotting it, and using it as the Statistics channel.
+    Course 5 walks through building **B220 ÷ CD45** on the demo data, plotting it, and using it as the Statistics channel.

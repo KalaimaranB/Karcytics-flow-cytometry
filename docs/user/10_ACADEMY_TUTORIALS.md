@@ -13,7 +13,7 @@ Best of all, it provisions its own demo data: **you don't need any FCS files of 
 
 Click **🎓 Cyto Academy**, next to the Save Workspace button in the tab bar. This opens the **Academy course catalog** — a set of course cards showing your progress and any badges you've already earned.
 
-<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing four course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis: Run & Validate, Derived Parameters, Statistics & Comparisons) with progress indicators -->
+<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing five course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis: Run & Validate, Derived Parameters, Statistics & Comparisons) with progress indicators -->
 
 Pick a course and it starts immediately: a floating tutor overlay appears on top of your workspace, with a speech-bubble guide (nicknamed **Cyto**) and a soft spotlight highlighting whichever button, panel, or plot region you need to interact with next.
 
@@ -35,70 +35,85 @@ Course 1 provisions ten realistic tutorial FCS files (a Blank, a PI viability si
 
 <!-- SCREENSHOT: docs/images/user/academy/file-provisioning.png — the provisioning step showing live download progress ("6/10 files done") -->
 
-## The four courses
+## The five courses
 
-The courses build on each other in order — Course 2 requires Course 1's saved workflow, Course 3 requires Course 2's, and Course 4 requires Course 3's.
+The courses build on each other in order: each one after the first opens the workflow you saved at the end of the one before, and checks it is loaded before starting.
 
 ### Course 1 — Flow Cytometry Fundamentals
 
 **~50 minutes · no prerequisites · badge: 🔬 Flow Fundamentalist**
 
-The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus, one Bone Marrow — and told you'll have an evidence-based answer for which is which by the end of Course 2. You start by predicting which cells the thymus will barely have; Course 2 tells you if you were right. Along the way you:
+The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus, one Bone Marrow — and told you'll have an evidence-based answer for which is which by the end of Course 3. You start by predicting which cells the thymus will barely have; Course 3 tells you if you were right. Along the way you:
 
 - Import all ten tutorial files and learn what a **Group** is and why it controls gate propagation.
 - Tag every file with its **Role** (Unstained, Single Stain, FMO Control, Full Panel), one at a time and then in bulk.
-- Learn *why* spillover happens — dyes emit across broad, overlapping wavelength ranges, not single clean peaks — then watch Karcytics auto-detect and apply an embedded compensation matrix, and manually extract and apply one yourself so you know exactly what happened under the hood.
-- Build a real three-level gating hierarchy — **Cells → Live Cells → Leukocytes** — reading Forward/Side Scatter physics, using a viability control with a Biexponential axis, and anchoring a CD45 gate to an FMO control's true background before confirming it against a real stained sample.
-- Learn the "No-Jump" axis-locking rule and watch Auto-Propagation copy your gates to every sample in the group in real time via the **Group Preview** panel.
+- Draw your first gate, **Cells**, from Forward/Side Scatter alone, and learn what a singlet gate is for. It comes before compensation because it uses no dyes.
+- Learn *why* spillover happens: explore the **Spectral Viewer**'s real, FPbase-sourced dye curves and work through the interactive **Learning Compensation** masterclass built from your own panel's numbers.
+- Open the **Compensation** tab and judge the matrix the cytometer saved in your files: which method produced it, how to read a row and a column, what a well-compensated pair looks like on the before/after scatter and histograms, and why you check it across every sample.
 - Save your workspace — required to continue into Course 2.
 
-Short questions check the key ideas as you go: which control marks where CD45-negative ends, what spillover does to an uncompensated cell, where debris sits on a scatter plot, which PI cluster is dead, and how % Parent becomes % Total. Pick the right answer to continue.
+Short questions check the key ideas as you go: which control marks where CD45-negative ends, what spillover does to an uncompensated cell, where debris sits on a scatter plot, which cell of the matrix answers a given question, how a compensated population should sit, and why one tube isn't enough. It ends on a prediction about the matrix you'll build next.
 
-<!-- SCREENSHOT: docs/images/user/academy/course1-gating-hierarchy.png — the Gating Hierarchy panel showing the completed Cells → Live Cells → Leukocytes tree at the end of Course 1 -->
+### Course 2 — Compensation & Clean-up Gates
 
-### Course 2 — Immunophenotyping, Pipeline & Spectral Mastery
+**~50 minutes · requires Course 1 · badge: ⚖️ Signal Cleaner**
 
-**~45 minutes · requires Course 1 · badge: 🧬 Immunophenotyper**
+You build a spillover matrix of your own, then draw the gates that depend on it. You:
 
-Picks up exactly where Course 1 left off (it checks that your saved workflow is actually loaded before starting). You:
+- Estimate a matrix from your **FMO controls**: see which dye each tube lacks and how Karcytics worked that out, restrict the fit to your **Cells** gate, and watch the fit drawn step by step on one of your own tubes.
+- Find the method's blind spot (a detector with no FMO tube gets no estimate) and see whether your Course 1 prediction held.
+- **Compare** your matrix with the cytometer's on the Matrices page, pick out the one difference that matters for the next gate, and **fine-tune** that value by hand while watching the plot level out.
+- Save your matrix by name, then put the cytometer's matrix back in use, knowing why.
+- Gate **Live Cells** on a viability dye with a Biexponential axis, and **Leukocytes** on CD45, anchored to an FMO control's true background and confirmed on a real stained sample.
+- Learn the "No-Jump" axis-locking rule and watch Auto-Propagation copy your gates to every sample in the group.
+- Save your workspace again — required to continue into Course 3.
+
+Questions along the way: how a tube with an unhelpful name was matched to its missing dye, why the fit uses only your Cells, what the greyed points in the fit are, which matrix difference matters for a viability gate, which PI cluster is dead, and how % Parent becomes % Total.
+
+<!-- SCREENSHOT: docs/images/user/academy/course1-gating-hierarchy.png — the Gating Hierarchy panel showing the completed Cells → Live Cells → Leukocytes tree at the end of Course 2 -->
+
+### Course 3 — Immunophenotyping & the Pipeline
+
+**~40 minutes · requires Course 2 · badge: 🧬 Immunophenotyper**
+
+Picks up exactly where Course 2 left off. You:
 
 - Gate **T-cells** and **B-cells** out of your Leukocytes population two different ways — a two-marker scatter rectangle for one, a histogram-plus-live-FMO-overlay range gate for the other — and learn when each technique is the better call.
 - Split T-cells four ways at once with a single **Quadrant** gate (CD4+, CD8+, double-positive, double-negative), then rename all four resulting leaves.
 - Learn to read and reorient the **Pipeline** flowchart view, including the boolean **AND/OR/NOT** logic nodes you'll put to real use in a later course.
-- Explore the **Spectral Viewer**'s real, FPbase-sourced dye curves, work through an interactive **Learning Compensation** masterclass slideshow built from your own panel's real numbers, and learn when overlapping spectra actually matter biologically versus when they don't.
 - Use the **Quick-Stats** grid to read hard numbers across every sample and decide, from the evidence, which mystery sample is Thymus, Bone Marrow, and Spleen.
-- Save your workspace again — required to continue into Course 3.
+- Save your workspace again — required to continue into Course 4.
 
-Questions along the way: where the T cells sit on a B220 vs CD3 plot, why the B220 threshold comes from the FMO (select all that apply), when a histogram beats a scatter plot, and which quadrant holds the helper T cells. To crack the mystery, you name each sample's organ yourself from the Quick-Stats grid, and Course 2 shows how your Course 1 prediction held up.
+Questions along the way: where the T cells sit on a B220 vs CD3 plot, why the B220 threshold comes from the FMO (select all that apply), when a histogram beats a scatter plot, and which quadrant holds the helper T cells. To crack the mystery, you name each sample's organ yourself from the Quick-Stats grid, and Course 3 shows how your Course 1 prediction held up.
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
-### Course 3 — Population Analysis: Run & Validate
+### Course 4 — Population Analysis: Run & Validate
 
-**~55 minutes · requires Course 2 · badge: 🧠 Population Analyst**
+**~55 minutes · requires Course 3 · badge: 🧠 Population Analyst**
 
 No new manual gating anywhere in it — instead, you hand your existing gated data to an algorithm that has never seen your gates, then prove its result out against your own hand-gating. You:
 
-- Validate that your Course 2 gating tree (Leukocytes, T-cells, B-cells) is actually in place before continuing.
+- Validate that your Course 3 gating tree (Leukocytes, T-cells, B-cells) is actually in place before continuing.
 - Get a real explanation of what UMAP's axes do and don't mean, with a recommended external video for a deeper dive.
 - Select Sample C (the confirmed Spleen) and the Leukocytes gate, and exclude the PI and CD45 channels — each choice explained, not just instructed.
 - Walk every run parameter — Neighbors, Min Distance, Subsample %, Distance Metric, Seed, and HDBSCAN's Minimum Cluster Size — with a real justification for each.
 - Run the analysis and watch the real, data-driven UMAP animation play out live, built from your own Sample C data.
 - Explore the results in the **Plot Gallery** and the **Interactive Map** — hovering over populations to read their marker expression, and switching the map's marker dropdown to watch different lineages light up.
 - Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
-- Save your workspace again — required to continue into Course 4.
+- Save your workspace again — required to continue into Course 5.
 
 Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you.
 
-<!-- SCREENSHOT: docs/images/user/academy/course3-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
+<!-- SCREENSHOT: docs/images/user/academy/course4-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
-### Course 4 — Derived Parameters, Statistics & Comparisons
+### Course 5 — Derived Parameters, Statistics & Comparisons
 
-**~35 minutes · requires Course 3 · badge: 📊 Insight Reporter**
+**~35 minutes · requires Course 4 · badge: 📊 Insight Reporter**
 
-Course 3 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 4 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
+Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 5 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
 
-- Confirm your Course 3 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
+- Confirm your Course 4 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
 - Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — predict where T cells land in its live preview, then plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
 - Learn the rules of thumb for ratios: compensate first, watch the denominator, and treat the result as relative units.
 - Choose a fair statistic in the **Statistics** tab (% Parent rather than % Total when samples carry different amounts of debris), read the table, and pick a chart that keeps long population names readable.
@@ -106,7 +121,7 @@ Course 3 showed that your hand-gated **B-cells** and the unsupervised **UMAP B C
 
 Along the way, short questions check each idea before you move on: pick the right answer to continue, and after two tries the correct one is outlined. Your answers stay on your computer.
 
-<!-- SCREENSHOT: docs/images/user/academy/course4-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
+<!-- SCREENSHOT: docs/images/user/academy/course5-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
 
 ## After you finish
 
@@ -116,6 +131,6 @@ Each course awards a badge on completion, tracked on the course catalog card so 
 
 ## Where to go next
 
-- **[Getting Started](./01_GETTING_STARTED.md)** — the same core workflow as Course 1, written out for readers who'd rather read than click through a tutorial.
+- **[Getting Started](./01_GETTING_STARTED.md)** — the same core workflow as Courses 1 and 2, written out for readers who'd rather read than click through a tutorial.
 - **[Overview](./00_OVERVIEW.md)** — the full map of all eight tabs.
-- Once you've completed all four courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Comparisons](./09_COMPARISONS.md)**) are the best reference for details a guided course necessarily moves past quickly.
+- Once you've completed all five courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Comparisons](./09_COMPARISONS.md)**) are the best reference for details a guided course necessarily moves past quickly.

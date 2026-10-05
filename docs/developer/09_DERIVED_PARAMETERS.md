@@ -78,7 +78,7 @@ Channel consumers intentionally differ: `get_fluorescence_channels()` excludes d
 
 ## Academy
 
-Course 4's derived-parameter block (`c5_d01`–`c5_d13`, plus `c5_s06a_ratio_channel`) uses `DerivedRatioExistsValidator`, `DerivedEditorClosedValidator`, `ActiveGraphDerivedAxisValidator` and `StatsDerivedChannelValidator`. They match on the saved canonical formula, not the name the learner chose. Steps inside the dialog use plain `target_widget_names`: the dialog is its own window, and since SDK 2.4.0 the Academy driver frames targets in other windows inside that window. `tests/unit/tutorials/test_course_step_graph.py` checks every course for dangling or unreachable steps.
+Course 5's derived-parameter block (`c5_d01`–`c5_d13`, plus `c5_s06a_ratio_channel`) uses `DerivedRatioExistsValidator`, `DerivedEditorClosedValidator`, `ActiveGraphDerivedAxisValidator` and `StatsDerivedChannelValidator`. They match on the saved canonical formula, not the name the learner chose. Steps inside the dialog use plain `target_widget_names`: the dialog is its own window, and since SDK 2.4.0 the Academy driver frames targets in other windows inside that window. `tests/unit/tutorials/test_course_step_graph.py` checks every course for dangling or unreachable steps.
 
 ## Tests
 
