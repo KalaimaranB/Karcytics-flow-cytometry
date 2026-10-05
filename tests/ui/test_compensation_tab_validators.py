@@ -169,3 +169,18 @@ def test_only_the_files_matrix_applied_to_every_sample_passes_the_handover(view,
     saved = next(s for s in state.data.matrix_library if s.matrix.source == "cytometer")
     view._on_apply(saved)
     assert handover.validate(state)
+
+
+def test_the_course_constants_match_the_widgets():
+    from karcytics_plugins.flow_cytometry.tutorials import constants
+
+    assert constants.PREVIEW_ALL_SAMPLES == ALL_SAMPLES
+    assert constants.PREVIEW_VIEW_BOTH == VIEW_BOTH
+
+
+def test_the_preview_sample_can_be_named(view, state):
+    view._btn_run.click()
+    _pick(view.editor._sample_combo, "FMO PE")
+
+    assert PreviewShowsValidator(sample_name="fmo pe").validate(state)
+    assert not PreviewShowsValidator(sample_name="FMO APC").validate(state)

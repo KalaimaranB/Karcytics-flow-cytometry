@@ -95,7 +95,9 @@ course_2_compensation = Course(
                 "the one before:<br>"
                 "**All Events → Cells → Live → Leukocytes**<br><br>"
                 "Both sit on fluorescence channels, which is why compensation "
-                "had to come first."
+                "had to come first.<br><br>"
+                "Last time you predicted what an FMO-based matrix would say about "
+                "the PI detector: *{answer:c1_fmo_blind_spot}*. Keep that in mind."
             ),
             cyto_emotion="happy",
             cyto_animation="cheering",

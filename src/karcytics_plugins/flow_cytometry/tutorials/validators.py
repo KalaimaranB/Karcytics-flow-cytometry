@@ -2106,14 +2106,20 @@ class PreviewShowsValidator(_CompensationTabValidator):
         y: str | None = None,
         view: str | None = None,
         sample: str | None = None,
+        sample_name: str | None = None,
     ) -> None:
         self.expected = {"x": x, "y": y, "view": view, "sample": sample}
+        self.sample_name = sample_name  # part of the sample's display name
 
-    def problem(self, view: Any, _app_state: FlowState) -> str | None:
+    def problem(self, view: Any, app_state: FlowState) -> str | None:
         selection = view.editor.preview_selection._asdict()
         for name, wanted in self.expected.items():
             if wanted is not None and selection[name] != wanted:
                 return f"Preview {name} is '{selection[name]}', expected '{wanted}'."
+        if self.sample_name is not None:
+            shown = app_state.data.experiment.samples.get(selection["sample"])
+            if shown is None or self.sample_name.casefold() not in shown.display_name.casefold():
+                return f"Preview isn't showing '{self.sample_name}'."
         return None
 
 

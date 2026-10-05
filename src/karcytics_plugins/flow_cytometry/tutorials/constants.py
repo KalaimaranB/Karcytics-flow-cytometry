@@ -41,3 +41,9 @@ RIGHT_PANEL_HINT = (
     "The panel on the right (highlighted) stays usable while you draw: scroll its "
     "**Group Preview**, or switch it to **Histogram** when the main plot isn't one already."
 )
+
+# The Compensation tab's preview choices, as the widgets store them
+# (`compensation_editor.ALL_SAMPLES`, `compensation_preview.VIEW_BOTH`). Kept
+# here so course modules don't import widget code; a test holds them equal.
+PREVIEW_ALL_SAMPLES = "__all__"
+PREVIEW_VIEW_BOTH = "both"
