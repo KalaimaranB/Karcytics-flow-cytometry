@@ -33,10 +33,14 @@ def test_sample_serialization_round_trip():
         markers=["CD4"],
         keywords={"note": "test"},
         is_compensated=True,
+        fmo_minus="PE-A",
+        fmo_minus_detected=True,
     )
 
     data = ExperimentSerializer.serialize_sample(sample)
     restored = ExperimentSerializer.deserialize_sample(data)
+
+    assert (restored.fmo_minus, restored.fmo_minus_detected) == ("PE-A", True)
 
     assert restored.sample_id == sample.sample_id
     assert restored.display_name == sample.display_name

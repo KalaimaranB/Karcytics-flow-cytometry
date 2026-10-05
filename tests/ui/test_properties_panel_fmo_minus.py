@@ -75,6 +75,16 @@ def test_a_templates_marker_name_is_shown_as_its_channel(panel, state):
     assert _combo(panel).currentData() == "PE-A"
 
 
+def test_a_dye_found_from_the_data_is_shown_as_the_choice(panel, state):
+    sample = state.data.experiment.samples["fmo"]
+    sample.fmo_minus, sample.fmo_minus_detected = "FITC-A", True
+
+    panel._show_sample_details(sample)
+
+    assert _combo(panel).currentData() == "FITC-A"
+    assert _combo(panel).itemText(0) == "Detect again"
+
+
 def test_the_choice_is_only_offered_for_fmo_controls(panel, state):
     sample = state.data.experiment.samples["fmo"]
     sample.role = SampleRole.FULL_PANEL

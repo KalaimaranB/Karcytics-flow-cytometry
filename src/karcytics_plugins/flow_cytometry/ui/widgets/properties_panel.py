@@ -61,9 +61,9 @@ _FMO_MINUS_HELP = (
     "The one dye this FMO control was <b>not</b> stained with.<br><br>"
     "<i>Karcytics:</i> the Compensation tab's <b>FMO controls</b> method reads the spill "
     "into that dye's detector from this tube.<br><br>"
-    "<b>Auto-detect</b> works it out from the sample's name, or else from which channel "
-    "is dim compared with the other FMO controls. Pick the channel yourself if it "
-    "guesses wrong."
+    "It is worked out once from the data (the channel where this tube is dim compared "
+    "with the other FMO controls) and kept. Pick the channel yourself if that is wrong, "
+    "or <b>Detect again</b> to work it out afresh."
 )
 
 
@@ -707,19 +707,20 @@ class PropertiesPanel(QWidget):
         )
         from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
-        from .matrix_sources import fmo_missing_channel
+        from ...analysis.experiment import SampleRole
+        from .matrix_sources import placed_fmo_channel
 
         channels = get_fluorescence_channels(fcs)
         combo = FlowComboBox()
         combo.setObjectName("FmoMinusCombo")
-        combo.addItem("Auto-detect", None)
+        combo.addItem("Detect again", None)
         for channel in channels:
             combo.addItem(get_channel_marker_label(fcs, channel), channel)
-        if sample.fmo_minus:
-            # A template may have recorded the marker rather than the channel.
-            combo.setCurrentIndex(
-                max(0, combo.findData(fmo_missing_channel(sample, fcs, channels)))
-            )
+        # What the FMO method will use: set here, or worked out from the data.
+        is_fmo = sample.role == SampleRole.FMO_CONTROL
+        placed = placed_fmo_channel(self._state, sample.sample_id) if is_fmo else None
+        if placed is not None:
+            combo.setCurrentIndex(max(0, combo.findData(placed)))
 
         sample_id = sample.sample_id
         combo.currentIndexChanged.connect(

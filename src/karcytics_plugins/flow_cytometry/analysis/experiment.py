@@ -82,6 +82,8 @@ class Sample:
         role:          The role this sample plays (unstained, FMO, etc.).
         markers:       Which markers are present on this sample.
         fmo_minus:     If this is an FMO control, which marker is excluded.
+        fmo_minus_detected: True if ``fmo_minus`` was worked out from the data
+                       rather than set by the user or a template.
         group_ids:     Groups this sample belongs to.
         gate_tree:     Hierarchical gating tree rooted at this sample.
         keywords:      Annotation keywords (from FCS metadata or user).
@@ -99,6 +101,7 @@ class Sample:
     keywords: dict[str, str] = field(default_factory=dict)
     is_compensated: bool = False
     last_viewed_axes: dict[str, dict] = field(default_factory=dict)
+    fmo_minus_detected: bool = False
 
     @property
     def has_data(self) -> bool:

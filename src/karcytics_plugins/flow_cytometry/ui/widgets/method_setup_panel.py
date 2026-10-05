@@ -259,7 +259,8 @@ class MethodSetupPanel(QWidget):
             combo = FlowComboBox()
             _repopulate(combo, list(row.choices), row.choice)
             pass_wheel_to_page(combo)
-            combo.currentIndexChanged.connect(
+            # ``activated``, so picking the dye already shown confirms it.
+            combo.activated.connect(
                 lambda _i, c=combo, sample_id=row.sample_id: self._on_choice(sample_id, c)
             )
             self._inputs_table.setCellWidget(index, choice_column, combo)

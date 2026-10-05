@@ -123,6 +123,7 @@ class ExperimentSerializer:
             "role": sample.role.value,
             "markers": sample.markers,
             "fmo_minus": sample.fmo_minus,
+            "fmo_minus_detected": sample.fmo_minus_detected,
             "group_ids": sample.group_ids,
             "keywords": sample.keywords,
             "is_compensated": sample.is_compensated,
@@ -144,6 +145,7 @@ class ExperimentSerializer:
             is_compensated=data.get("is_compensated", False),
         )
         sample.last_viewed_axes = data.get("last_viewed_axes", {})
+        sample.fmo_minus_detected = bool(sample.fmo_minus) and data.get("fmo_minus_detected", False)
         if "gate_tree" in data:
             parsed_tree = GateNode.from_dict(data["gate_tree"])
             if parsed_tree is None:

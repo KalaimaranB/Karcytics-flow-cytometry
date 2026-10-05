@@ -45,7 +45,9 @@ Assign the roles **Single Stain** (and optionally **Unstained Control**) in the 
 A fluorescence-minus-one control carries every dye except one, so whatever its missing dye's detector records is spill from the other dyes. Karcytics fits that detector against the others for each FMO and solves for the spillover matrix. Method setup spells out each step.
 
 - Assign the role **FMO Control** to each sample in the Properties Panel.
-- **Which dye each tube lacks** is shown in the Method setup table, with how it was worked out: *set by you*, *from its name* (`FMO APC`, `FMO APCCy7`, `FMO CD4` and `FMO minus PE-A` all work), or *from its data* (the channel where the tube is clearly dimmer than the other FMO controls). Change it in the **Missing dye** column of that table, or in the Properties Panel; a manual choice always wins.
+- **Which dye each tube lacks** is worked out from the tube's data: the channel where it is clearly dimmer than the other FMO controls. This is done once and kept with the workspace, so the **Missing dye** dropdown shows that dye rather than a generic "auto" entry. The Method setup table says how each tube was placed: *from its data*, *set by you*, or *guessed from its name*.
+- A tube's name is only used when the data can't settle it (it needs at least three FMO controls to compare). A name guess is flagged for you to check and is not kept; pick the dye in the dropdown to confirm it.
+- Change the dye in the **Missing dye** column of that table, or in the Properties Panel; your choice always wins. **Detect again** forgets it and works it out afresh.
 - Only one tube is used per dye. A tube that can't be placed, or that duplicates another, is listed as *not used* with the reason.
 - A detector without an FMO gets no estimate. Those cells are left at 0 and shown in *grey italic* in the matrix, so you can see what still needs filling in by hand.
 - The fit is robust: events with signal in the missing dye's detector that the other dyes don't explain (dead cells, aggregates) are down-weighted rather than read as spill.

@@ -439,6 +439,11 @@ class _Placement:
 
 
 _FMO_INPUT_HEADERS = ("FMO tube", "Lacks", "How we know", "Events used")
+_SET_BY_YOU = "set by you"
+_FROM_DATA = "from its data (dim in this channel)"
+_FROM_NAME = "guessed from its name (its data didn't settle it) — please check"
+_UNKNOWN = "not used — couldn't tell which dye it lacks"
+_DETECT_AGAIN = "Detect again"
 
 
 class FmoSource(MatrixSource):
@@ -454,9 +459,10 @@ class FmoSource(MatrixSource):
     explanation = (
         "<b>How it works.</b> An FMO control is stained with every dye but one, so "
         "whatever its missing dye's detector records has leaked in from the other dyes.<br>"
-        "1. <b>Which dye each tube lacks</b> is taken from your choice in the table below, "
-        "else from the dye or marker named in the tube's name, else from its data (the "
-        "channel where it is under half as bright as the other FMO tubes).<br>"
+        "1. <b>Which dye each tube lacks</b> is read from its data: the channel where it is "
+        "under half as bright as the other FMO tubes. That is worked out once and kept, and "
+        "shown in the table below, where you can change it. Only when the data doesn't "
+        "settle it (fewer than three FMO tubes, say) is the tube's name used as a guess.<br>"
         "2. <b>One fit per tube:</b> the missing dye's detector is written as a weighted "
         "sum of the other detectors, plus a constant for autofluorescence, across the "
         "tube's uncompensated events (at most 100,000).<br>"
@@ -480,44 +486,59 @@ class FmoSource(MatrixSource):
     def _placements(state: FlowState) -> tuple[list[str], list[_Placement]]:
         """The matrix channels, and each FMO control with the dye it lacks.
 
-        A tube is placed by the dye set on it, else by its name; one whose
-        name doesn't say is placed by its signal, among the channels no other
-        tube claimed. Only one tube is used per channel.
+        A tube is placed by the dye recorded on it (set by the user first,
+        then found earlier from its data). Any other tube is placed by its
+        data, which is recorded on it so this is done once, and failing that
+        by its name. Only one tube is used per channel.
         """
-        # Tubes with the dye set by hand claim their channel first.
-        fmos = sorted(
-            _loaded(state, SampleRole.FMO_CONTROL), key=lambda pair: pair[0].fmo_minus is None
-        )
+        fmos = _loaded(state, SampleRole.FMO_CONTROL)
         if not fmos:
             return [], []
         channels = get_fluorescence_channels(fmos[0][1])
         placements: dict[int, _Placement] = {}
         taken: dict[str, str] = {}  # channel → the tube that covers it
-        unnamed: list[int] = []
-        for index, (sample, fcs) in enumerate(fmos):
-            channel = fmo_missing_channel(sample, fcs, channels)
-            if channel is None:
-                unnamed.append(index)
-            elif channel in taken:
-                reason = f"not used — {taken[channel]} already covers it"
-                placements[index] = _Placement(sample, fcs, channel, reason, used=False)
-            else:
-                taken[channel] = sample.display_name
-                reason = "set by you" if sample.fmo_minus else "from its name"
-                placements[index] = _Placement(sample, fcs, channel, reason, used=True)
 
-        levels = _signal_levels([fcs for _, fcs in fmos], channels) if unnamed else None
-        for index in unnamed:
+        def place(index: int, channel: str, reason: str) -> bool:
             sample, fcs = fmos[index]
-            free = [c for c, ch in enumerate(channels) if ch not in taken]
-            dimmest = None if levels is None else _dimmest_channel(levels, index, free)
-            if dimmest is None:
-                reason = "not used — couldn't tell which dye it lacks"
-                placements[index] = _Placement(sample, fcs, None, reason, used=False)
+            used = channel not in taken
+            if used:
+                taken[channel] = sample.display_name
             else:
-                taken[channels[dimmest]] = sample.display_name
-                reason = "from its data (dim in this channel)"
-                placements[index] = _Placement(sample, fcs, channels[dimmest], reason, used=True)
+                reason = f"not used — {taken[channel]} already covers it"
+            placements[index] = _Placement(sample, fcs, channel, reason, used)
+            return used
+
+        recorded = [index for index, (sample, _) in enumerate(fmos) if sample.fmo_minus]
+        open_ = [index for index in range(len(fmos)) if index not in recorded]
+        for index in sorted(recorded, key=lambda i: fmos[i][0].fmo_minus_detected):
+            sample, fcs = fmos[index]
+            channel = fmo_missing_channel(sample, fcs, channels)
+            if channel is None:  # recorded as something this panel doesn't have
+                open_.append(index)
+            else:
+                place(index, channel, _FROM_DATA if sample.fmo_minus_detected else _SET_BY_YOU)
+
+        levels = _signal_levels([fcs for _, fcs in fmos], channels) if open_ else None
+        dimmest = {
+            index: found
+            for index in open_
+            if levels is not None and (found := _dimmest_channel(levels, index)) is not None
+        }
+        # The clearest cases claim their channel first.
+        for index in sorted(dimmest, key=lambda i: dimmest[i][1]):
+            channel = channels[dimmest[index][0]]
+            if place(index, channel, _FROM_DATA):
+                experiment_edits.record_detected_fmo_minus(state, fmos[index][0].sample_id, channel)
+
+        for index in open_:
+            if index in placements:
+                continue
+            sample, fcs = fmos[index]
+            named = _named_channel(sample.display_name, fcs, channels)
+            if named is None:
+                placements[index] = _Placement(sample, fcs, None, _UNKNOWN, used=False)
+            else:
+                place(index, named, _FROM_NAME)
         return channels, [placements[index] for index in sorted(placements)]
 
     def readiness(self, state: FlowState, options: MethodOptions) -> Readiness:
@@ -588,7 +609,7 @@ class FmoSource(MatrixSource):
             return Inputs(_FMO_INPUT_HEADERS, ())
         fcs = placements[0].fcs
         choices: tuple[tuple[str, str | None], ...] = (
-            ("Auto-detect", None),
+            (_DETECT_AGAIN, None),
             *((get_channel_marker_label(fcs, channel), channel) for channel in channels),
         )
         rows = [
@@ -601,8 +622,8 @@ class FmoSource(MatrixSource):
                     _events_used(p.sample, options.gate) if p.used else "—",
                 ),
                 choices,
-                # A template may have recorded a marker; show it as its channel.
-                p.channel if p.sample.fmo_minus else None,
+                # What will be used, however it was found.
+                p.channel,
             )
             for p in placements
         ]
@@ -740,34 +761,45 @@ def _normalise(name: str) -> str:
 
 
 def fmo_missing_channel(sample: Sample, fcs: FCSData, channels: list[str]) -> str | None:
-    """The channel of the dye an FMO control lacks, read from its labels.
-
-    From ``fmo_minus`` when the user or the experiment template set it,
-    else from the marker or channel named in the sample's name.
+    """The channel of the dye recorded on an FMO control (``fmo_minus``, which
+    a template may hold as a marker name), or None if nothing usable is.
     """
+    if not sample.fmo_minus:
+        return None
+    return _matching_channel({_normalise(sample.fmo_minus)}, fcs, channels)
+
+
+def _named_channel(name: str, fcs: FCSData, channels: list[str]) -> str | None:
+    """The channel whose dye or marker a tube's name mentions, if exactly one."""
+    # Runs of whole words, so "CD4" doesn't match inside "CD45" but
+    # "Pacific Blue" still matches as one name.
+    words = re.split(r"[\s_]+", name)
+    candidates = {
+        _normalise(" ".join(words[i:j]))
+        for i in range(len(words))
+        for j in range(i + 1, len(words) + 1)
+    }
+    return _matching_channel(candidates, fcs, channels)
+
+
+def _matching_channel(candidates: set[str], fcs: FCSData, channels: list[str]) -> str | None:
     names: dict[str, set[str]] = {}
     for channel in channels:
         index = fcs.channels.index(channel) if channel in fcs.channels else -1
         marker = fcs.markers[index] if 0 <= index < len(fcs.markers) else ""
         names[channel] = {_normalise(n) for n in (channel, marker) if n} - {""}
-
-    if sample.fmo_minus:
-        candidates = {_normalise(sample.fmo_minus)}
-    else:
-        # Runs of whole words, so "CD4" doesn't match inside "CD45" but
-        # "Pacific Blue" still matches as one name.
-        words = re.split(r"[\s_]+", sample.display_name)
-        candidates = {
-            _normalise(" ".join(words[i:j]))
-            for i in range(len(words))
-            for j in range(i + 1, len(words) + 1)
-        }
     # The longest name wins: "APC Cy7" names APC-Cy7, not APC.
     hits = {
         ch: max(map(len, known & candidates)) for ch, known in names.items() if known & candidates
     }
     best = [ch for ch, length in hits.items() if length == max(hits.values())]
     return best[0] if len(best) == 1 else None
+
+
+def placed_fmo_channel(state: FlowState, sample_id: str) -> str | None:
+    """The dye the FMO method takes ``sample_id`` to lack, however it was found."""
+    _channels, placements = FmoSource._placements(state)
+    return next((p.channel for p in placements if p.sample.sample_id == sample_id), None)
 
 
 def _signal_levels(controls: list[FCSData], channels: list[str]) -> np.ndarray | None:
@@ -784,16 +816,17 @@ def _signal_levels(controls: list[FCSData], channels: list[str]) -> np.ndarray |
     return np.maximum(np.array(levels, dtype=np.float64), 1.0)
 
 
-def _dimmest_channel(levels: np.ndarray, control: int, free: list[int]) -> int | None:
-    """The channel (among ``free``) where ``control`` is clearly dimmer than
-    the other FMOs — the dye it lacks. None if nothing stands out.
+def _dimmest_channel(levels: np.ndarray, control: int) -> tuple[int, float] | None:
+    """The channel where ``control`` is clearly dimmer than the other FMOs —
+    the dye it lacks — and how dim (its level over theirs). None if nothing
+    stands out.
     """
     others = np.delete(levels, control, axis=0)
-    if len(others) < _MIN_OTHER_FMOS or not free:
+    if len(others) < _MIN_OTHER_FMOS:
         return None
-    ratios = levels[control, free] / np.median(others[:, free], axis=0)
+    ratios = levels[control] / np.median(others, axis=0)
     dimmest = int(np.argmin(ratios))
-    return free[dimmest] if ratios[dimmest] < _MISSING_DYE_RATIO else None
+    return (dimmest, float(ratios[dimmest])) if ratios[dimmest] < _MISSING_DYE_RATIO else None
 
 
 # ── Import from a file ────────────────────────────────────────────────

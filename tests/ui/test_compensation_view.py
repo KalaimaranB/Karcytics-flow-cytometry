@@ -259,6 +259,11 @@ def _fmo(name: str, missing: int, fmo_minus: str | None = None) -> Sample:
     return sample
 
 
+def _fmo_inputs(state) -> dict:
+    """The FMO method's input rows, by tube name."""
+    return {row.cells[0]: row for row in FmoSource().inputs(state, MethodOptions()).rows}
+
+
 def _fmo_rows(state) -> dict[str, tuple[str, ...]]:
     """The FMO method's inputs table, by tube name: (lacks, how we know, events used)."""
     inputs = FmoSource().inputs(state, MethodOptions())
@@ -271,17 +276,17 @@ def test_fmo_source_matches_each_control_to_the_dye_it_lacks(state):
     with pytest.raises(MatrixSourceError, match="could be matched"):
         source.obtain(state, None, MethodOptions())
 
-    # By name ("CD4" must not match inside "CD45"), and by the template's fmo_minus.
-    state.data.experiment.samples["f1"] = _fmo("Specimen_001_FMO CD4", 0)
+    # By its data, whatever its name says, and by the template's fmo_minus.
+    state.data.experiment.samples["f1"] = _fmo("Specimen_001_FMO CD45", 0)
     state.data.experiment.samples["f2"] = _fmo("Tube 7", 1, fmo_minus="cd45")
     state.data.experiment.samples["f3"] = _fmo("Mystery FMO", 1)
 
     ready, text = source.readiness(state, MethodOptions())
     assert ready and "2 of 2" in text and "1 not used" in text
     rows = _fmo_rows(state)
-    assert rows["Specimen_001_FMO CD4"][:2] == ("FL1-A", "from its name")
+    assert rows["Specimen_001_FMO CD45"][:2] == ("FL1-A", "from its data (dim in this channel)")
     assert rows["Tube 7"][:2] == ("FL2-A", "set by you")
-    assert rows["Mystery FMO"][:2] == ("unknown", "not used — couldn't tell which dye it lacks")
+    assert rows["Mystery FMO"][:2] == ("FL2-A", "not used — Tube 7 already covers it")
 
     result = source.obtain(state, None, MethodOptions())
     np.testing.assert_allclose(result.matrix.matrix, SPILLOVER, atol=1e-8)
@@ -289,9 +294,55 @@ def test_fmo_source_matches_each_control_to_the_dye_it_lacks(state):
     assert result.summary == "Estimated a 2×2 matrix from 2 FMO control(s)."
     # The run says what it rested on: one fit per detector, with its tube.
     assert [row[:2] for row in result.report.rows] == [
-        ("FL1-A", "Specimen_001_FMO CD4"),
+        ("FL1-A", "Specimen_001_FMO CD45"),
         ("FL2-A", "Tube 7"),
     ]
+
+
+def test_a_missing_dye_found_from_the_data_is_kept_on_the_tube(state, monkeypatch):
+    for name, missing in (("a", 0), ("b", 1), ("c", 1)):
+        state.data.experiment.samples[name] = _fmo(name, missing)
+
+    rows = _fmo_inputs(state)
+
+    # Kept as found, not as the user's choice, and offered in the dropdown.
+    tube = state.data.experiment.samples["a"]
+    assert (tube.fmo_minus, tube.fmo_minus_detected) == ("FL1-A", True)
+    assert (rows["a"].choice, rows["a"].cells[2]) == (
+        "FL1-A",
+        "from its data (dim in this channel)",
+    )
+    assert rows["a"].choices[0] == ("Detect again", None)
+    # A tube that isn't used keeps nothing: it may be placed differently later.
+    assert state.data.experiment.samples["c"].fmo_minus is None
+
+    # From then on the data isn't read again.
+    monkeypatch.setattr(matrix_sources, "_signal_levels", lambda *_: pytest.fail("re-detected"))
+    del state.data.experiment.samples["c"]
+    assert _fmo_inputs(state)["a"].cells[2] == "from its data (dim in this channel)"
+
+    # Confirming the found dye makes it the user's; clearing it detects again.
+    FmoSource().set_choice(state, "a", "FL1-A")
+    assert (tube.fmo_minus, tube.fmo_minus_detected) == ("FL1-A", False)
+    assert _fmo_inputs(state)["a"].cells[2] == "set by you"
+    FmoSource().set_choice(state, "a", None)
+    assert tube.fmo_minus is None
+
+
+def test_a_tube_name_is_only_a_guess_when_the_data_cannot_tell(state):
+    """Two FMO tubes are too few to compare signal levels."""
+    state.data.experiment.samples["f1"] = _fmo("FMO CD4", 0)
+    state.data.experiment.samples["f2"] = _fmo("FMO", 1)
+
+    rows = _fmo_inputs(state)
+
+    assert (
+        rows["FMO CD4"].cells[1] == "FL1-A" and "guessed from its name" in rows["FMO CD4"].cells[2]
+    )
+    assert rows["FMO CD4"].choice == "FL1-A"
+    assert rows["FMO"].cells[1:3] == ("unknown", "not used — couldn't tell which dye it lacks")
+    # A guess isn't kept: the data gets another try once more tubes are loaded.
+    assert state.data.experiment.samples["f1"].fmo_minus is None
 
 
 # ── The edit draft ────────────────────────────────────────────────────
@@ -396,15 +447,14 @@ def test_cleanup_unsubscribes(view):
         ("FMO", None),
     ],
 )
-def test_an_fmo_tube_is_placed_by_the_dye_named_in_its_name(tube, expected):
+def test_the_dye_named_in_a_tube_name_is_recognised(tube, expected):
     channels = ["FITC-A", "PE-A", "Pacific Blue-A", "APC-Cy7-A", "APC-A"]
     fcs = MagicMock(channels=channels, markers=["B220", "CD4", "CD3", "CD8", "CD45"])
-    sample = Sample(sample_id="s", display_name=tube)
 
-    assert matrix_sources.fmo_missing_channel(sample, fcs, channels) == expected
+    assert matrix_sources._named_channel(tube, fcs, channels) == expected
 
 
-def test_an_fmo_with_an_unrecognised_name_is_placed_by_its_signal(state):
+def test_fmo_tubes_are_placed_by_their_signal(state):
     """It is clearly dimmer than the other FMOs only in the dye it lacks."""
     channels = ["FITC-A", "PE-A", "Pacific Blue-A"]
     spillover = np.array([[1.0, 0.1, 0.0], [0.02, 1.0, 0.05], [0.0, 0.03, 1.0]])
@@ -423,13 +473,14 @@ def test_an_fmo_with_an_unrecognised_name_is_placed_by_its_signal(state):
     assert ready and "3 of 3" in text and "1 not used" in text
     rows = _fmo_rows(state)
     assert rows["FMO e450"][:2] == ("Pacific Blue-A", "from its data (dim in this channel)")
-    # The channel is taken, so a second unnamed tube isn't forced onto it.
-    assert rows["FMO ???"][0] == "unknown"
+    assert rows["FMO PE"][:2] == ("PE-A", "from its data (dim in this channel)")
+    # Only one tube is used per channel.
+    assert rows["FMO ???"][:2] == ("Pacific Blue-A", "not used — FMO e450 already covers it")
     result = FmoSource().obtain(state, None, MethodOptions())
     np.testing.assert_allclose(result.matrix.matrix, spillover, atol=1e-8)
 
-    # A manual choice beats both the name and the signal.
-    state.data.experiment.samples["FMO PE"].fmo_minus = "FITC-A"
+    # A manual choice beats the signal.
+    FmoSource().set_choice(state, "FMO PE", "FITC-A")
     rows = _fmo_rows(state)
     assert rows["FMO PE"][:2] == ("FITC-A", "set by you")
     assert rows["FMO FITC"][1] == "not used — FMO PE already covers it"

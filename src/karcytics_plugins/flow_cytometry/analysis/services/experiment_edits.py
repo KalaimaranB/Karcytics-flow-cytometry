@@ -124,19 +124,33 @@ def set_sample_roles(
 def set_fmo_minus(
     state: FlowState, sample_id: str, missing: str | None, publish: Publish | None = None
 ) -> bool:
-    """Record which dye an FMO control lacks (a channel or marker name);
-    None goes back to detecting it.
+    """Record the user's choice of which dye an FMO control lacks (a channel
+    or marker name); None forgets it, so it is detected again.
     """
     sample = state.data.experiment.samples.get(sample_id)
-    if sample is None or sample.fmo_minus == missing:
+    if sample is None or (sample.fmo_minus == missing and not sample.fmo_minus_detected):
         return False
     sample.fmo_minus = missing
+    sample.fmo_minus_detected = False
     announce(
         "Set FMO Missing Dye",
         (events.SAMPLE_UPDATED, {"sample_id": sample_id, "stats": None, "tree": None}),
         publish=publish,
     )
     return True
+
+
+def record_detected_fmo_minus(state: FlowState, sample_id: str, channel: str) -> None:
+    """Keep the missing dye worked out from an FMO control's data, so it is
+    detected once rather than on every look.
+
+    Not an edit: nothing is announced and no undo step is made. If it is
+    lost (an undo, an unsaved session) it is simply detected again.
+    """
+    sample = state.data.experiment.samples.get(sample_id)
+    if sample is not None and (not sample.fmo_minus or sample.fmo_minus_detected):
+        sample.fmo_minus = channel
+        sample.fmo_minus_detected = True
 
 
 # ── Groups ────────────────────────────────────────────────────────────

@@ -104,7 +104,7 @@ def test_the_page_explains_the_method_and_lists_what_it_will_use(panel, state):
     assert headers == ["FMO tube", "Missing dye", "Lacks", "How we know", "Events used"]
     assert _column(table, 0) == ["FMO FITC", "FMO PE", "FMO APC"]
     assert _column(table, 2) == ["FITC-A", "PE-A", "APC-A"]
-    assert set(_column(table, 3)) == {"from its name"}
+    assert all("from its" in how for how in _column(table, 3))
     assert panel._report_note.isVisible() and not panel._report_table.isVisible()
 
 
@@ -113,13 +113,24 @@ def test_setting_a_tubes_missing_dye_here_is_stored_and_shown(panel, state):
     panel.changed.connect(lambda: panel.show_method(source, MethodOptions(), None))
     panel.show_method(source, MethodOptions(), None)
 
+    # The dropdown starts on the dye that was found for the tube.
     combo = panel._inputs_table.cellWidget(2, 1)
-    assert isinstance(combo, FlowComboBox) and combo.currentText() == "Auto-detect"
-    combo.setCurrentIndex(combo.findData("APC-A"))
+    assert isinstance(combo, FlowComboBox) and combo.currentData() == "APC-A"
+    assert combo.itemText(0) == "Detect again"
+    combo.setCurrentIndex(combo.findData("PE-A"))
+    combo.activated.emit(combo.currentIndex())
 
-    assert state.data.experiment.samples["FMO APC"].fmo_minus == "APC-A"
-    assert _column(panel._inputs_table, 3)[0] == "set by you"  # manual choices come first
-    assert panel._inputs_table.cellWidget(0, 1).currentData() == "APC-A"
+    assert state.data.experiment.samples["FMO APC"].fmo_minus == "PE-A"
+    assert _column(panel._inputs_table, 3)[1:3] == [
+        "not used — FMO APC already covers it",
+        "set by you",
+    ]
+    assert panel._inputs_table.cellWidget(2, 1).currentData() == "PE-A"
+
+    # Picking the dye already shown confirms it as the user's choice.
+    combo = panel._inputs_table.cellWidget(0, 1)
+    combo.activated.emit(combo.currentIndex())
+    assert _column(panel._inputs_table, 3)[0] == "set by you"
 
 
 def test_fit_on_offers_the_controls_scatter_gates_and_reports_events_used(panel, state):
