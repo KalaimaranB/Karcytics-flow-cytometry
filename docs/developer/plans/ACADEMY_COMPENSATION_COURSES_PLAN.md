@@ -155,7 +155,11 @@ Work continues on `main`, one commit per phase, unpushed until the user says oth
     - The preview opens on whichever sample is open in the workspace (the Blank, after the Cells gate), so the step also asks for Sample A and checks it by name.
     - Course 2's intro shows the prediction back for now; Phase 4 adds the real reveal.
     - *Checkpoint status:* each new step's validator was driven false-then-true on the real tab with the tutorial files, and the scatter and histogram claims were checked against the rendered plots. **Not yet played through with the overlay.**
-- [ ] **Phase 4: Course 2 part B** (§4), including the prediction reveal and the Step 21 gate. *Checkpoint: play Course 2, then the first gate of Course 3 on the saved workspace.*
+- [x] **Phase 4: Course 2 part B** (§4). Done 2026-10-04: Course 2 is 60 steps (23 new, `c2_b01`–`c2_b23`, five of them questions). All five courses are within 55–70: 65, 60, 63, 62, 58.
+    - Changes from the §4 draft, after checking the app: running a method already puts its matrix in the editor and marks it "in use, changed since it was applied", so there is no "Open in editor" step, and the handover step (re-apply the file's matrix) is genuinely needed. The prediction is revealed at the setup table's last row (`c2_b06_reveal`), before the run, because the table already says "not estimated — left at 0". The fit-report step was dropped to stay in budget.
+    - `MatricesComparedValidator` and `CompensationView.library_comparison` were added for the comparison step.
+    - `test_tutorial_numbers.py` now checks the matrix values the steps quote (0.30, 0.04, "the largest value", the empty PerCP-Cy5.5 column, agreement "within a few hundredths" elsewhere).
+    - *Checkpoint status:* every validator step was driven false-then-true, in order, on the real Compensation view with the tutorial files and a Cells gate; the handover leaves the samples within float rounding of their imported values. **Not yet played through with the overlay**, so spotlight placement (especially targets inside the scrolling Method setup page and the Save-name dialog) is unchecked.
 - [ ] **Phase 5: wording pass on Courses 3–5.** Course numbers in text, Course 3's intro, objectives and recap now that Spectral has left it. *Checkpoint: skim each course's first and last five steps.*
 - [ ] **Phase 6: numbers test, user docs, version bump and release.**
 

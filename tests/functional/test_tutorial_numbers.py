@@ -186,3 +186,59 @@ def test_quote_matches_the_data(measured, quote):
         f"{quote.step_id} says {quote.text!r}, but {quote.sample}'s "
         f"{quote.measure} is {actual:.4g} with the guide gates"
     )
+
+
+# ── The matrices Courses 1–2 compare ──────────────────────────────────
+
+
+def test_the_matrix_values_the_compensation_steps_quote(fcs_test_data_dir):
+    """Course 1 reads 0.30 and 0.04 off the file's matrix; Course 2 says the
+    FMO estimate leaves the PerCP-Cy5-5 column empty and otherwise agrees
+    with the file "to within a few hundredths".
+    """
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        calculate_spillover_from_fmo,
+        extract_spill_from_fcs,
+    )
+
+    files = {
+        p.stem.replace("Specimen_001_", ""): load_fcs(str(p))
+        for p in fcs_test_data_dir.glob("*FMO*.fcs")
+    }
+    embedded = extract_spill_from_fcs(next(iter(files.values())))
+    channels = embedded.channel_names
+    pe, percp = channels.index("PE-A"), channels.index("PerCP-Cy5-5-A")
+    off_diagonal = embedded.matrix - np.eye(len(channels))
+
+    assert embedded.matrix[pe, percp] == pytest.approx(0.30, abs=5e-4)
+    assert embedded.matrix[percp, pe] == pytest.approx(0.04, abs=5e-4)
+    assert off_diagonal.argmax() == pe * len(channels) + percp  # "the largest value"
+    for step_id, quoted in (
+        ("c1_m03_read_matrix", "0.30"),
+        ("c1_m05_plot_pair", "0.3000"),
+        ("c2_b15_which_matters", "0.30"),
+        ("c2_b18_fine_tune", "0.30"),
+    ):
+        step = STEPS[step_id]
+        shown = [step.text, getattr(step, "explanation", "")]
+        shown += [choice.text for choice in getattr(step, "choices", [])]
+        assert quoted in "".join(shown), step_id
+
+    cells = PolygonGate("FSC-A", "SSC-A", list(_guide("c1_s24_cells_gate", "guide_data_poly")))
+    lacks = {
+        "APC": "APC-A",
+        "APCCy7": "APC-Cy7-A",
+        "FITC": "FITC-A",
+        "PE": "PE-A",
+        "e450": "Pacific Blue-A",
+    }
+    controls = {}
+    for name, fcs in files.items():
+        raw = fcs.raw_events if fcs.raw_events is not None else fcs.events
+        controls[lacks[name.replace("FMO ", "")]] = raw[cells.contains(fcs.events)]
+    estimate = calculate_spillover_from_fmo(controls, channels)
+
+    assert np.all(np.delete(estimate.matrix[:, percp], percp) == 0)  # the blind spot
+    measured_columns = [c for c in range(len(channels)) if c != percp]
+    difference = np.abs(estimate.matrix - embedded.matrix)[:, measured_columns]
+    assert difference.max() < 0.04

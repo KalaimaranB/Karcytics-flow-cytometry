@@ -232,6 +232,13 @@ class MatrixLibraryPanel(QWidget):
 
     # ── Selection ─────────────────────────────────────────────────────
 
+    @property
+    def comparison(self) -> tuple[CompensationMatrix | None, CompensationMatrix | None]:
+        """The matrix on show and the one it is compared with."""
+        shown = self._entry(self._selected_key())
+        other = self._entry(self._compare_combo.currentData())
+        return (shown.matrix if shown else None, other.matrix if other else None)
+
     def _selected_key(self) -> str | None:
         item = self._list.currentItem()
         return item.data(Qt.ItemDataRole.UserRole) if item is not None else None

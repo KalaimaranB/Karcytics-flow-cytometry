@@ -2123,6 +2123,21 @@ class PreviewShowsValidator(_CompensationTabValidator):
         return None
 
 
+class MatricesComparedValidator(_CompensationTabValidator):
+    """The Matrices page is comparing a matrix from one method with one from another."""
+
+    def __init__(self, source: str, other_source: str) -> None:
+        self.expected = {source, other_source}
+
+    def problem(self, view: Any, _app_state: FlowState) -> str | None:
+        shown, other = view.library_comparison
+        if shown is None or other is None:
+            return "No two matrices are being compared."
+        if {shown.source, other.source} != self.expected:
+            return f"Comparing '{shown.source}' with '{other.source}', expected {self.expected}."
+        return None
+
+
 class SavedMatrixValidator(FlowValidator):
     """The workspace keeps a matrix from this method, optionally a hand-tuned one."""
 

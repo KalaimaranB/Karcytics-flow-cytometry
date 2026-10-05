@@ -256,6 +256,11 @@ class CompensationView(QWidget):
         return self._setup.illustration_step
 
     @property
+    def library_comparison(self) -> tuple[CompensationMatrix | None, CompensationMatrix | None]:
+        """On the Matrices page: the matrix on show and the one it is compared with."""
+        return self._library.comparison
+
+    @property
     def samples_match_matrix(self) -> bool:
         """False while the workspace matrix has changed since samples were compensated."""
         return not self._data_stale
