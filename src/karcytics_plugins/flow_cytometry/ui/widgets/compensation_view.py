@@ -198,6 +198,9 @@ class CompensationView(QWidget):
         self._btn_library_page.setToolTip(
             "Every matrix kept in this workspace: compare, name, export and apply them."
         )
+        self._btn_setup_page.setObjectName("CompensationSetupPageButton")
+        self._btn_matrix_page.setObjectName("CompensationMatrixPageButton")
+        self._btn_library_page.setObjectName("CompensationMatricesPageButton")
         self._page_buttons = QButtonGroup(self)
         for button in (self._btn_setup_page, self._btn_matrix_page, self._btn_library_page):
             button.setCheckable(True)

@@ -11,1072 +11,1092 @@ Spotlight convention:
   target_widget_name  — single objectName for InteractionStep highlight.
   target_widget_names — list of objectNames for multi-target InfoStep spotlights.
 
-Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
-Statistics, Spectral, Population Analysis, Comparisons.
+Panel reference (confirmed from the tutorial FCS file headers, $PnN/$PnS):
+  CD45 = APC-A          | FMO APC
+  CD3  = Pacific Blue-A | FMO e450 (this dataset names the Pacific-Blue FMO control "e450")
+  CD4  = PE-A           | FMO PE
+  CD8  = APC-Cy7-A      | FMO APCCy7
+  B220 = FITC-A         | FMO FITC
+  PI   = PerCP-Cy5-5-A  | (viability, single stain)
 
-Panel reference (confirmed from the tutorial FCS file headers, $PnN/$PnS —
-see course2.py's header for the full table):
-  CD45 = APC-A          | pan-leukocyte gating channel
-  PI   = PerCP-Cy5-5-A   | viability dye
-
-Course 3 does no new gating. It validates the gating tree Course 2 built,
-then hands the user to unsupervised Population Analysis (UMAP + HDBSCAN)
-on Sample C (the confirmed Spleen), walking every run parameter with real
-justification, the live animation, the Plot Gallery, and the Interactive
-Map — then proves that result out: export the real B-cell HDBSCAN cluster
-as a gate-tree population and cross-check it against the manual "B-cells"
-gate via a Pipeline AND node. That's a complete arc (run an unsupervised
-analysis AND validate it), so Course 3 ends for real here — save workspace,
-badge, the works — handing off to Course 4 for the Statistics/Comparisons
-reporting half of what used to be one oversized course.
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
-    QUESTION_PREDICT,
     AnswerChoice,
     Course,
+    ForcedInteractionStep,
     InfoStep,
     InteractionStep,
     QuestionStep,
+    SubTask,
     VerificationStep,
 )
 
+from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
 from .validators import (
-    ClusterResultsTabActiveValidator,
-    Course2GatingCompleteValidator,
+    AxisChannelValidator,
+    AxisYChannelValidator,
+    BaseGatesStateValidator,
     ExactSampleOpenValidator,
-    GateExistsValidator,
-    LogicGateExistsValidator,
-    LogicNodeStatsReadyValidator,
+    FmoOverlayValidator,
+    GateActiveValidator,
+    GateShapeValidator,
     PipelineOrientationValidator,
+    PlotTypeValidator,
+    PopupClosedValidator,
+    QuadrantPositionNamedValidator,
+    SampleAndGateOpenValidator,
     TabActiveValidator,
-    UmapBestBCellClusterValidator,
-    UmapChannelExcludedValidator,
-    UmapGateSelectedValidator,
-    UmapHdbscanEnabledValidator,
-    UmapMarkerColoredValidator,
-    UmapResultsReadyValidator,
-    UmapRunNameProvidedValidator,
-    UmapSampleSelectedValidator,
-    UmapSubsampleValueValidator,
     WorkflowSavedValidator,
 )
 
 # ==============================================================================
-# Course 3 — Run & Validate
-# No new gating. Validates Course 2's tree, walks unsupervised UMAP + HDBSCAN
-# clustering on Sample C end to end, then exports the real B-cell cluster and
-# cross-checks it against the manual gate via a Pipeline AND node. Ends for
-# real — save workspace, badge, handoff to Course 4.
+# Course 3 Gate Quality Validators & Routers
 # ==============================================================================
 
-# Held as a module-level variable for the same reason course1.py's
-# _provisioning_step is: its validator calls back into
-# _best_bcell_step.text = ... on every poll, so the bubble names the real,
-# freshly-computed cluster ID for THIS run instead of a hardcoded guess —
-# cluster ID numbering isn't stable run-to-run even though the clustering
-# itself is (fixed seed/params).
-_best_bcell_step: VerificationStep = VerificationStep(
-    id="c3_s42_select_bcell_cluster",
-    text="Scanning your run's real numbers...",
-    cyto_emotion="scanning",
-    hide_next_button=True,
-    allow_interaction=True,
-    target_widget_names=["UmapExportPopulationsPanel"],
-    validator=UmapBestBCellClusterValidator(
-        on_progress=lambda text: setattr(_best_bcell_step, "text", text),
-        marker_label_substr="b220",
-        expected_name="UMAP B Cells",
-    ),
-    on_success_step_id="c3_s43_create_populations",
+c3_tcells_validator = GateShapeValidator(
+    # Matches the on-canvas guide_rect=(-400.0, 2000.0, 300.0, 2000.0) drawn
+    # for c3_s07_draw_tcell below. The old (-1000, 5000, 100, 10000) target
+    # didn't match that guide box, though the ±10%-of-axis-range tolerance
+    # happened to be wide enough that it never actually rejected a correctly
+    # drawn gate here — realigned anyway so the guide box shown is always
+    # exactly what gets validated (see c1_live_validator in course1.py for a
+    # case where this same kind of mismatch WAS wide enough to matter).
+    target_bounds=(-400.0, 2000.0, 300.0, 2000.0),
+    target_name="T-cells",
+    misnamed_retry_step_id="c3_s07_tcell_gate_misnamed",
+    shape_retry_step_id="c3_s07_tcell_gate_retry",
 )
 
-course_3_analysis = Course(
-    id="flow_course_3_analysis",
-    title="Population Analysis: Run & Validate",
+c3_bcells_validator = GateShapeValidator(
+    # Must match the on-canvas guide_range=(4000.0, 100000.0) drawn for
+    # c3_s18_draw_bcell below — it previously said 262144.0 (the raw axis's
+    # absolute max) here, so a gate drawn to trace the visible guide box
+    # (topping out at 100000) fell far short of the required tolerance
+    # window around 262144 and was wrongly rejected as a bad shape.
+    target_bounds=(3000.0, 100000.0, 0.0, 0.0),
+    target_name="B-cells",
+    misnamed_retry_step_id="c3_s18_bcell_gate_misnamed",
+    shape_retry_step_id="c3_s18_bcell_gate_retry",
+)
+
+c3_quadrant_validator = GateShapeValidator(
+    target_bounds=(3000.0, 7000.0, 3000.0, 7000.0),
+    target_name=None,
+    # No naming step for a QuadrantGate (it auto-names Q1-Q4), so
+    # misnamed_retry_step_id is never reached — GateShapeValidator only
+    # diagnoses a name mismatch when target_name is set.
+    shape_retry_step_id="c3_s37_quadrant_gate_retry",
+)
+
+# Gate-drawing steps (T-cells / B-cells / Quadrant below) no longer wire
+# their own ActionStep-based failure routing: the validators above
+# implement `GateShapeValidator.describe_failure()` (see validators.py),
+# and `AcademyStepDriver` (SDK) calls it automatically on a failed
+# VerificationStep — showing the explanation banner, auto-renaming/deleting
+# the gate, and routing to the validator's own retry step in one generic
+# path shared by every course that uses `GateShapeValidator` (see course1.py
+# for the first migration of this pattern).
+
+
+# ==============================================================================
+# Course 3 — Immunophenotyping, Pipeline & Spectral Mastery
+# Finale of the intro content: gate T-cells and B-cells out of Leukocytes,
+# split T-cells into CD4/CD8 subsets, navigate the Pipeline view, and cover
+# spectral/compensation theory.
+# ==============================================================================
+
+course_3_gating = Course(
+    id="flow_course_3_gating",
+    title="Immunophenotyping, Pipeline & Spectral Mastery",
     description=(
-        "Let UMAP and HDBSCAN independently cluster Sample C with zero "
-        "manual gates, then prove the result out — export the real B-cell "
-        "cluster and cross-check it against your own hand-gating with a "
-        "Pipeline AND node."
+        "Identify T-cells and B-cells inside your Leukocytes, split T-cells into "
+        "CD4/CD8 subsets, master the Pipeline view, and understand spillover and "
+        "compensation theory."
     ),
-    estimated_minutes=55,
-    badge_reward="Population Analyst",
-    badge_icon="🧠",
-    prerequisite_course_ids=["flow_course_2_gating"],
+    estimated_minutes=45,
+    badge_reward="Immunophenotyper",
+    badge_icon="🧬",
+    prerequisite_course_ids=["flow_course_2_compensation"],
     steps=[
-        InfoStep(
-            id="c3_s00_intro",
+        # ── Checkpoint ───────────────────────────────────────────────────────
+        VerificationStep(
+            id="c3_s00_verify",
+            validator=BaseGatesStateValidator(),
             text=(
-                "Welcome to Course 3! 🧠<br><br>"
-                "Course 2 left you with a hand-drawn hierarchy — Leukocytes, "
-                "T-cells, B-cells, and the CD4/CD8 subsets — across all three "
-                "samples.<br><br>"
-                "This course hands that same data to an algorithm that has "
-                "never seen your gates, and lets it draw its own conclusions."
+                "Checking your workspace...<br><br>"
+                "Making sure all 10 samples are loaded, roles are assigned, and the "
+                "base gates (**Cells** → **Live Cells** → **Leukocytes**) exist — confirming "
+                "the Course 2 workflow was opened correctly."
+            ),
+            allow_interaction=False,
+            cyto_emotion="thinking",
+            next_step_id="c3_s01_intro",
+            failure_hint=(
+                "This course picks up where Course 2 left off — make sure you opened the "
+                "workspace you saved at the end of Course 2, with all samples, roles, and "
+                "the Cells → Live Cells → Leukocytes gates already built."
+            ),
+        ),
+        InfoStep(
+            id="c3_s01_intro",
+            text=(
+                "Welcome to Course 3! 🎯<br><br>"
+                "Our **Leukocytes** are gated. Now let's identify who's actually inside "
+                "that population: **T-cells** and **B-cells**, using two different gating "
+                "techniques."
             ),
             cyto_emotion="happy",
-            next_step_id="c3_s01_validate_gating",
-        ),
-        # ── Validate Course 2's gating tree ─────────────────────────────────────
-        VerificationStep(
-            id="c3_s01_validate_gating",
-            text="Checking your gating tree from Course 2...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=Course2GatingCompleteValidator(),
-            on_success_step_id="c3_s02_pop_analysis_switch",
-            on_fail_step_id="c3_s01b_incomplete_gating",
+            cyto_animation="cheering",
+            next_step_id="c3_s01a_objectives",
         ),
         InfoStep(
-            # Exits the tutorial (no badge, no completion) rather than
-            # looping the user against a dead end — this step's
-            # allow_interaction is unset (defaults False), so there's no way
-            # to actually leave and go finish Course 2 without abandoning
-            # first. See Course 4's identical c4_s01b_incomplete_analysis
-            # and AcademyManager.abandon_course() for the full explanation.
-            id="c3_s01b_incomplete_gating",
+            id="c3_s01a_objectives",
             text=(
-                "Missing a gate 🔍<br><br>"
-                "Every sample needs **Leukocytes**, **T-cells**, and **B-cells** "
-                "gated before Course 3 can continue — that's the foundation "
-                "Course 2 built. Head back and finish that course first, then "
-                "relaunch Course 3."
+                "What you'll walk away with 🎯<br><br>"
+                "By the end of this course, you'll be able to:<br>"
+                "• Gate the same population two different ways (2-marker "
+                "scatter vs. histogram + FMO overlay) and know when to "
+                "reach for each<br>"
+                "• Split a population 4 ways at once with a **Quadrant** gate<br>"
+                "• Read the **Pipeline** view the way a real gating strategy "
+                "gets documented<br>"
+                "• Explain spectral overlap, and when it actually needs "
+                "careful compensation<br><br>"
+                "And by the end, you'll have a confident, evidence-backed "
+                "answer to the sample-ID mystery."
             ),
-            cyto_emotion="thinking",
-            next_step_id="__abandon__",
+            cyto_emotion="talking",
+            next_step_id="c3_s01c_verify_gating_tab",
         ),
-        # ── Switch to Population Analysis tab ───────────────────────────────────
+        # Passes at once if the user is already on Gating (very likely,
+        # arriving straight from Course 2).
         VerificationStep(
-            id="c3_s02_pop_analysis_switch",
-            text="Your gating tree checks out! Click the 'Population Analysis' tab at the top.",
+            id="c3_s01c_verify_gating_tab",
+            text=(
+                "Let's go find them — click the **Gating** tab at the top, "
+                "that's where the drawing tools live."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(6),
-            on_success_step_id="c3_s04_umap_theory_1",
+            validator=TabActiveValidator(1),
+            on_success_step_id="c3_s02_open_sample",
         ),
-        # ── UMAP theory ──────────────────────────────────────────────────────────
+        VerificationStep(
+            id="c3_s02_open_sample",
+            text="Double-click **Sample A** in the Data hierarchy to open it in a Graph Window.",
+            validator=ExactSampleOpenValidator("sample a"),
+            allow_interaction=True,
+            cyto_emotion="pointing",
+            target_widget_names=["SampleList"],
+            on_success_step_id="c3_s03_tcell_intro",
+            failure_hint="Make sure you double-clicked **Sample A** specifically in the Data hierarchy.",
+        ),
+        # ── T-cells (2-marker plot: B220 vs CD3) ────────────────────────────────
         InfoStep(
-            id="c3_s04_umap_theory_1",
+            id="c3_s03_tcell_intro",
             text=(
-                "Understanding UMAP 🧠<br><br>"
-                "You have 6 fluorescence channels — every cell is a point in "
-                "6-dimensional space. **UMAP** (Uniform Manifold Approximation "
-                "and Projection) is a dimension-reduction technique: it flattens "
-                "that 6D cloud down onto a 2D map you can actually look at, the "
-                "same way t-SNE does, while trying much harder to preserve both "
-                "local neighborhoods and the broader shape between them."
+                "**Gate 1: T-cells (CD3+, B220−)** 🧬<br><br>"
+                "**CD3** is the pan-T-cell marker and **B220** is the pan-B-cell marker — "
+                "plotting them against each other separates both populations, and "
+                "everything else, in one view.<br><br>"
+                "We'll set X = B220 and Y = CD3, inside **Leukocytes**."
             ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s05_umap_theory_2",
+            cyto_emotion="talking",
+            next_step_id="c3_s04_set_x",
+        ),
+        VerificationStep(
+            id="c3_s04_set_x",
+            text="Set the X axis to **FITC-A** — the B220 detector.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["AxisSelectorX"],
+            validator=AxisChannelValidator("fitc"),
+            on_success_step_id="c3_s05_set_y",
+            failure_hint="Make sure the **X:** axis dropdown is set to **FITC-A**, the B220 detector.",
+        ),
+        VerificationStep(
+            id="c3_s05_set_y",
+            text="Now set the Y axis to **Pacific Blue-A** — the CD3 detector.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["AxisSelectorY"],
+            validator=AxisYChannelValidator("pacific blue"),
+            on_success_step_id="c3_s06_tcell_plot_read",
+            failure_hint="Make sure the **Y:** axis dropdown is set to **Pacific Blue-A**, the CD3 detector.",
         ),
         QuestionStep(
-            id="c3_s05_umap_theory_2",
+            id="c3_s06_tcell_plot_read",
             text=(
-                "Reading the map 🗺️<br><br>"
-                "UMAP squeezes your marker channels onto just two axes. One "
-                "cell lands at **x = 5**. What does that tell you about it?"
+                "Read the plot 🔍<br><br>"
+                "X is **B220** (a B-cell marker), Y is **CD3** (a T-cell "
+                "marker). Where are the **T-cells**?"
             ),
-            question_id="c3_umap_axis",
+            question_id="c3_tcell_location",
             choices=[
                 AnswerChoice(
-                    "Its CD3 level is 5",
-                    feedback="There's no CD3 axis. UMAP makes its axes up for the layout; they don't measure any marker.",
+                    "Lower-left: low on both",
+                    feedback="Low on both is CD3− B220−: a 'double negative' group that's neither T nor B cells.",
                 ),
+                AnswerChoice("Upper-left: CD3 high, B220 low", correct=True),
                 AnswerChoice(
-                    "Nothing on its own; only its neighbors matter",
-                    correct=True,
-                ),
-                AnswerChoice(
-                    "It sits halfway between the dimmest and brightest cells",
-                    feedback="The axes have no units and no direction of 'bright'. Only which cells land near it means anything.",
+                    "Lower-right: B220 high, CD3 low",
+                    feedback="B220 without CD3 is a B cell. You'll gate those next, a different way.",
                 ),
             ],
             explanation=(
-                "UMAP's axes measure nothing. What matters is which cells end "
-                "up near each other: a tight island means those cells are "
-                "similar across all the channels at once, often a real "
-                "population you never gated."
+                "T cells carry CD3 but not B220: high on Y, low on X. As you "
+                "draw the rectangle next, watch the Group Preview thumbnails "
+                "(bottom-right) update live across every sample."
             ),
             cyto_emotion="thinking",
-            next_step_id="c3_s05b_umap_caveats",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c3_s07_draw_tcell",
         ),
-        InfoStep(
-            id="c3_s05b_umap_caveats",
+        InteractionStep(
+            id="c3_s07_draw_tcell",
             text=(
-                "When to trust it (and when not) ⚠️<br><br>"
-                "UMAP is genuinely good at preserving *local* neighborhoods — "
-                "which cells resemble which. Don't over-read the rest of the "
-                "picture, though: the distance *between* islands, their "
-                "relative size, and even the overall layout can shift with "
-                "different parameters or a different random seed, even "
-                "though the same real populations keep showing up. Treat "
-                "'these cells cluster together' as trustworthy; treat "
-                "'island A is twice as far from island B as island C' as "
-                "decoration. That's exactly why this course has you "
-                "cross-check the result against your own hand-gating later, "
-                "instead of taking UMAP's word for it alone."
+                "Draw the **T-cells** gate:<br><br>"
+                "1. Select the **Rect** tool.<br>"
+                "2. Draw a rectangle around the upper-left cluster — high CD3 "
+                "(Y), low B220 (X).<br>"
+                "3. Name it **T-cells**.<br><br>" + RIGHT_PANEL_HINT
             ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s06_video_rec",
+            cyto_emotion="pointing",
+            target_widget_names=["Tool_rectangle", "FlowCanvas", RIGHT_PANEL_TARGET],
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
+            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
+            next_step_id="c3_s07_draw_tcell_verify",
+            stuck_hint_text=(
+                "Still there? Click the **Rect** tool, then drag around the upper-left "
+                "cluster (high CD3, low B220)."
+            ),
+            stuck_hint_after_ms=45000,
+        ),
+        VerificationStep(
+            id="c3_s07_draw_tcell_verify",
+            text="Karcytics is scanning automatically...",
+            cyto_emotion="scanning",
+            allow_interaction=False,
+            hide_next_button=True,
+            validator=c3_tcells_validator,
+            on_success_step_id="c3_s08_tcell_done",
+            on_fail_step_id="c3_s07_tcell_gate_retry",
         ),
         InfoStep(
-            id="c3_s06_video_rec",
+            id="c3_s07_tcell_gate_misnamed",
+            text="I renamed the gate to **T-cells** for you. Let's proceed!",
+            cyto_emotion="happy",
+            next_step_id="c3_s08_tcell_done",
+        ),
+        InfoStep(
+            id="c3_s07_tcell_gate_retry",
             text=(
-                "Want the deeper dive? 🎥<br><br>"
-                "StatQuest's walkthrough is the clearest explanation of how "
-                "UMAP actually works under the hood, if you want more than "
-                "the summary I gave:<br><br>"
-                "[Watch: UMAP, Main Ideas!!! (StatQuest)](https://www.youtube.com/watch?v=m3s0Tgh8ofg)"
+                "That gate didn't quite capture the right area!<br><br>"
+                "I deleted it for you. Make sure your rectangle covers the upper-left cluster (CD3+, B220-).<br><br>"
+                "Try drawing it again."
+            ),
+            cyto_emotion="surprised",
+            target_widget_names=["FlowCanvas"],
+            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
+            next_step_id="c3_s07_draw_tcell",
+        ),
+        InfoStep(
+            id="c3_s08_tcell_done",
+            text=(
+                "**T-cells** gated! ✅<br><br>"
+                "Auto-Propagation just copied this gate to every other sample "
+                "in the group — Samples B and C (and the controls) already have it too."
             ),
             cyto_emotion="happy",
-            next_step_id="c3_s07_select_sample",
+            next_step_id="c3_s09_switch_sample_intro",
         ),
-        # ── Select Sample C ──────────────────────────────────────────────────────
-        VerificationStep(
-            id="c3_s07_select_sample",
-            text="In the sidebar, set **Sample** to 'Sample C'.",
+        # ── B-cells (Histogram + FMO Overlay technique, on Sample C) ────────────
+        InfoStep(
+            id="c3_s09_switch_sample_intro",
+            text=(
+                "**Gate 2: B-cells (B220+)** 🎨<br><br>"
+                "Sample A doesn't contain enough B-cells to comfortably gate — "
+                "we need to switch to **Sample C** first.<br><br>"
+                "There's a fast way to jump straight to a specific population on "
+                "a different sample, instead of double-clicking and re-navigating "
+                "the hierarchy by hand."
+            ),
+            cyto_emotion="talking",
+            next_step_id="c3_s10_open_leuko_c",
+        ),
+        InteractionStep(
+            id="c3_s10_open_leuko_c",
+            text=(
+                "In the Data hierarchy, right-click on **Sample C**, then click "
+                "**Leukocytes** in the population menu that appears — this opens "
+                "Sample C directly at that gate."
+            ),
+            target_widget_name="SampleList",
+            target_widget_names=["SampleList"],
+            event_trigger="population_open_requested",
             cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
+            next_step_id="c3_s11_verify_leuko_c",
+        ),
+        VerificationStep(
+            id="c3_s11_verify_leuko_c",
+            text="Checking opened population...",
+            cyto_emotion="scanning",
             hide_next_button=True,
-            target_widget_names=["UmapSampleCombo"],
-            validator=UmapSampleSelectedValidator("sample c"),
-            on_success_step_id="c3_s08_sample_why",
+            allow_interaction=False,
+            validator=SampleAndGateOpenValidator("sample c", "leukocytes"),
+            on_success_step_id="c3_s14_bcell_intro",
+            on_fail_step_id="c3_s11b_wrong_pop",
+        ),
+        InteractionStep(
+            id="c3_s11b_wrong_pop",
+            text=(
+                "Oops! Right-click **Sample C** specifically, and choose **Leukocytes** from its menu."
+            ),
+            cyto_emotion="surprised",
+            target_widget_name="SampleList",
+            target_widget_names=["SampleList"],
+            event_trigger="population_open_requested",
+            next_step_id="c3_s11_verify_leuko_c",
         ),
         InfoStep(
-            id="c3_s08_sample_why",
+            id="c3_s14_bcell_intro",
             text=(
-                "Why Sample C? 🧩<br><br>"
-                "Course 2 confirmed Sample C is the **Spleen** — the one sample "
-                "with mature T-cells *and* B-cells living side by side. That "
-                "mix makes it the richest sample to hand to an unsupervised "
-                "algorithm: there's more than one real population for it to "
-                "actually have to separate."
+                "Notice the axes and the **T-cells** gate are already here — the "
+                "'No-Jump' rule you learned in Course 2 locked B220 (X) and CD3 "
+                "(Y) in for this group the moment you first set them on Sample A, "
+                "and the gate itself propagated straight over.<br><br>"
+                "This sample also has a clear B220+, CD3− population: real "
+                "B-cells. But let's try something new: instead of another "
+                "rectangle, we'll gate it with a **Histogram** and a live **FMO "
+                "overlay**."
             ),
-            cyto_emotion="happy",
-            next_step_id="c3_s09_select_gate",
+            cyto_emotion="talking",
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c3_s15_histogram_mode",
         ),
-        # ── Select the population gate ───────────────────────────────────────────
-        VerificationStep(
-            id="c3_s09_select_gate",
-            text="Set **Population (Gate)** to 'Leukocytes'.",
+        InteractionStep(
+            id="c3_s15_histogram_mode",
+            text=(
+                "Switch the **Display Mode** dropdown (above the plot) from "
+                "**Pseudocolor** to **Histogram**."
+            ),
+            target_widget_name="DisplayModeCombo",
+            target_widget_names=["DisplayModeCombo"],
+            event_trigger="activated",
             cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
+            next_step_id="c3_s15_verify_histogram",
+        ),
+        VerificationStep(
+            id="c3_s15_verify_histogram",
+            text="Checking display mode...",
+            cyto_emotion="scanning",
+            allow_interaction=False,
             hide_next_button=True,
-            target_widget_names=["UmapGateCombo"],
-            validator=UmapGateSelectedValidator("leukocytes"),
-            on_success_step_id="c3_s10_gate_why",
+            validator=PlotTypeValidator("histogram"),
+            on_success_step_id="c3_s16_fmo_overlay",
+            on_fail_step_id="c3_s15_histogram_retry",
+        ),
+        InteractionStep(
+            id="c3_s15_histogram_retry",
+            text=(
+                "Oops, that's not Histogram mode!<br><br>"
+                "Make sure you select **Histogram** from the Display Mode dropdown."
+            ),
+            target_widget_name="DisplayModeCombo",
+            target_widget_names=["DisplayModeCombo"],
+            event_trigger="activated",
+            cyto_emotion="surprised",
+            next_step_id="c3_s15_verify_histogram",
+        ),
+        InteractionStep(
+            id="c3_s16_fmo_overlay",
+            text=(
+                "Now use the **FMO Overlay:** dropdown (next to the axis selectors) "
+                "and select the **FMO FITC** control.<br><br>"
+                "Watch what happens: the FMO's histogram appears in gray behind "
+                "your real data, and Karcytics auto-switches your drawing tool to "
+                "**Range** for you."
+            ),
+            target_widget_name="AxisSelectorFMO",
+            target_widget_names=["AxisSelectorFMO"],
+            event_trigger="currentTextChanged",
+            cyto_emotion="pointing",
+            next_step_id="c3_s16_verify_fmo",
+        ),
+        VerificationStep(
+            id="c3_s16_verify_fmo",
+            text="Checking FMO selection...",
+            cyto_emotion="scanning",
+            allow_interaction=False,
+            hide_next_button=True,
+            validator=FmoOverlayValidator("fmo fitc"),
+            on_success_step_id="c3_s17_threshold_info",
+            on_fail_step_id="c3_s16_fmo_retry",
+        ),
+        InteractionStep(
+            id="c3_s16_fmo_retry",
+            text=(
+                "Wait, that's not the FITC FMO!<br><br>"
+                "Make sure you select **FMO FITC** from the dropdown so the "
+                "threshold line calculation matches your B220 (FITC) axis."
+            ),
+            target_widget_name="AxisSelectorFMO",
+            target_widget_names=["AxisSelectorFMO"],
+            event_trigger="currentTextChanged",
+            cyto_emotion="surprised",
+            next_step_id="c3_s16_verify_fmo",
         ),
         QuestionStep(
-            id="c3_s10_gate_why",
+            id="c3_s17_threshold_info",
             text=(
-                "Why gate first? 🚫<br><br>"
-                "You could run UMAP on **All Events**. Why give it "
-                "**Leukocytes** instead?"
+                "Read the overlay 📏<br><br>"
+                "The gray curve is the **FMO FITC**: every dye except B220's. "
+                "The red dashed line marks its 99th percentile. Why set the "
+                "B220 threshold from this FMO instead of the Blank?"
             ),
-            question_id="c3_why_gate_first",
+            question_id="c3_why_fmo_threshold",
             multi_select=True,
             choices=[
                 AnswerChoice(
-                    "Debris and dead cells would form fake islands",
+                    "It has no cells, so its background is zero",
+                    feedback="An FMO has plenty of cells, just no B220 antibody. Its FITC signal is real background.",
+                ),
+                AnswerChoice(
+                    "Like your samples, it has the other dyes' spillover into FITC",
                     correct=True,
                 ),
                 AnswerChoice(
-                    "UMAP can't read scatter channels",
-                    feedback="It can read any channel. The problem is what debris and dead cells would add, not which channels they're in.",
+                    "The Blank is brighter in FITC",
+                    feedback="It's the reverse: with no dyes at all, the Blank is too dim, so a threshold from it sits too low.",
                 ),
                 AnswerChoice(
-                    "Fewer events, so the run is faster",
-                    correct=True,
-                ),
-                AnswerChoice(
-                    "It pushes the T-cell and B-cell islands further apart",
-                    feedback="Distance between islands means little on a UMAP. Gating is about keeping junk events out of the map.",
-                ),
-            ],
-            explanation=(
-                "Debris and dead cells have no biological identity, but UMAP "
-                "will still group them into islands. Gating to Leukocytes "
-                "keeps them out, so every island is made of real, living "
-                "cells, and the smaller input runs faster."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s11_exclude_channels",
-        ),
-        # ── Exclude PI and CD45 ───────────────────────────────────────────────────
-        VerificationStep(
-            id="c3_s11_exclude_channels",
-            text=(
-                "In the channel list, **uncheck PI and CD45** — leave every other channel checked."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["UmapChannelList"],
-            validator=UmapChannelExcludedValidator("PerCP-Cy5-5-A", "APC-A"),
-            on_success_step_id="c3_s12_exclude_why",
-        ),
-        QuestionStep(
-            id="c3_s12_exclude_why",
-            text=(
-                "Why exclude these two? ✂️<br><br>"
-                "**PI**'s job ended at the Live gate: the dead cells are "
-                "already gone. Inside **Leukocytes**, why is **CD45** no use "
-                "to UMAP either?"
-            ),
-            question_id="c3_why_exclude_cd45",
-            choices=[
-                AnswerChoice(
-                    "It spills too much into the other channels",
-                    feedback="Compensation already corrected spillover. The issue is what CD45 measures inside this gate.",
-                ),
-                AnswerChoice(
-                    "UMAP can't use the APC channel",
-                    feedback="UMAP can use any channel. CD45 is left out for what it shows here, not where it's measured.",
-                ),
-                AnswerChoice(
-                    "Every cell here is CD45-positive, so it can't tell them apart",
+                    "Its cells were stained and handled like your samples",
                     correct=True,
                 ),
             ],
             explanation=(
-                "You drew Leukocytes on CD45, so every cell left is "
-                "CD45-positive. A channel that's high in every cell can't "
-                "separate one population from another; it only adds noise "
-                "for UMAP to wade through."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s13_run_name",
-        ),
-        # ── Run name ─────────────────────────────────────────────────────────────
-        InfoStep(
-            id="c3_s13_run_name",
-            text=(
-                "Give this run a name — anything memorable works, e.g. "
-                "'Sample C Overview'. Click **Next →** once you've typed it in."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["UmapRunNameInput"],
-            next_step_id="c3_s13b_verify_run_name",
-        ),
-        VerificationStep(
-            id="c3_s13b_verify_run_name",
-            text="Checking run name...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=UmapRunNameProvidedValidator(),
-            on_success_step_id="c3_s14_neighbors",
-            on_fail_step_id="c3_s13_run_name",
-        ),
-        # ── Explain Neighbors + Min Distance ─────────────────────────────────────
-        QuestionStep(
-            id="c3_s14_neighbors",
-            text=(
-                "Neighbors 🔗<br><br>"
-                "This sets how many nearby cells UMAP looks at when deciding "
-                "what 'close together' means. Say you're hunting a rare "
-                "population of about 200 cells. Raise it or lower it?"
-            ),
-            question_id="c3_rare_neighbors",
-            choices=[
-                AnswerChoice(
-                    "Lower, to keep fine local detail",
-                    correct=True,
-                ),
-                AnswerChoice(
-                    "Raise, so each cell sees more of its surroundings",
-                    feedback="With many neighbors, a 200-cell group gets blended into the bigger populations around it.",
-                ),
-                AnswerChoice(
-                    "It makes no difference for rare cells",
-                    feedback="It does: neighbors decides how local UMAP's view is, and a rare group needs a local view.",
-                ),
-            ],
-            explanation=(
-                "Low values (5–15) keep small, tight populations apart; high "
-                "values (30–50) show how the major lineages relate. It's a "
-                "judgment call about what you're looking for. The default, "
-                "15, is fine for this run."
+                "The FMO is your sample minus B220: everything that lights up "
+                "FITC except B220 itself. 99% of that background sits left of "
+                "the red line, so the hump to its right is real B-cells."
             ),
             cyto_emotion="thinking",
             allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["UmapNeighborsGroup"],
-            next_step_id="c3_s15_min_dist",
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c3_s18_draw_bcell",
         ),
-        InfoStep(
-            id="c3_s15_min_dist",
-            text=(
-                "Min Distance 📏<br><br>"
-                "This controls how tightly UMAP is allowed to pack points "
-                "together in the final 2D layout. **Lower** values (0.0-0.1) "
-                "pack points densely — good for spotting rare, highly similar "
-                "subtypes. **Higher** values (0.3-0.5) spread everything out, "
-                "which can make broad lineage relationships easier to read at "
-                "a glance, at the cost of local detail."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["UmapMinDistGroup"],
-            next_step_id="c3_s16_subsample",
-        ),
-        # ── Subsample = 25% ──────────────────────────────────────────────────────
-        VerificationStep(
-            id="c3_s16_subsample",
-            text="Set **Subsample Events** to 25%.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["UmapSubsampleGroup"],
-            validator=UmapSubsampleValueValidator(25),
-            on_success_step_id="c3_s17_subsample_why",
-        ),
-        InfoStep(
-            id="c3_s17_subsample_why",
-            text=(
-                "Why not use every event? ⚡<br><br>"
-                "UMAP scales non-linearly — running it on the full event count "
-                "can be very slow for very little extra insight. **25%** keeps "
-                "every real population statistically well represented while "
-                "keeping the run fast enough to iterate on."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s18_metric",
-        ),
-        # ── Explain Distance Metric + Seed ───────────────────────────────────────
-        InfoStep(
-            id="c3_s18_metric",
-            text=(
-                "Distance Metric 📐<br><br>"
-                "This is how UMAP measures 'how different' two cells are. "
-                "**Euclidean** (straight-line distance) is the sane default for "
-                "general use. **Cosine** compares angle instead of magnitude — "
-                "useful if absolute fluorescence intensity varies from staining "
-                "artifacts rather than real biology. **Manhattan** is a "
-                "grid-like distance, more robust to outliers. Euclidean is "
-                "fine here — no need to change it."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["UmapMetricGroup"],
-            next_step_id="c3_s19_seed",
-        ),
-        InfoStep(
-            id="c3_s19_seed",
-            text=(
-                "Random Seed 🎲<br><br>"
-                "UMAP's optimization involves randomness, so the seed pins "
-                "down exactly which random starting point it uses. Keep it "
-                "constant (the default, 42) and the same data always produces "
-                "the exact same layout — useful for reproducibility. Changing "
-                "it gives you a different, equally valid embedding, which is "
-                "sometimes worth doing just to sanity-check that a cluster you "
-                "found is real and not a one-off artifact."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["UmapSeedGroup"],
-            next_step_id="c3_s20_hdbscan",
-        ),
-        # ── Enable HDBSCAN ───────────────────────────────────────────────────────
-        VerificationStep(
-            id="c3_s20_hdbscan",
-            text="Check 'Run HDBSCAN Auto-Clustering'.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["UmapHdbscanGroup"],
-            validator=UmapHdbscanEnabledValidator(),
-            on_success_step_id="c3_s21_hdbscan_why",
-        ),
-        QuestionStep(
-            id="c3_s21_hdbscan_why",
-            text=(
-                "A second opinion 🔬<br><br>"
-                "UMAP already shows islands, so why run **HDBSCAN** too? It "
-                "comes down to what it clusters. Which data does HDBSCAN "
-                "group?"
-            ),
-            question_id="c3_hdbscan_data",
-            choices=[
-                AnswerChoice(
-                    "The 2-D picture UMAP draws",
-                    feedback="Then it would only trace islands you can already see. It works on the marker data itself.",
-                ),
-                AnswerChoice(
-                    "The same marker data UMAP read, before flattening",
-                    correct=True,
-                ),
-                AnswerChoice(
-                    "The gates you drew in Course 2",
-                    feedback="It never sees your gates. That's exactly why its agreement with them means something.",
-                ),
-            ],
-            explanation=(
-                "HDBSCAN groups cells by density in the original marker data, "
-                "with no human input. If its clusters line up with your "
-                "hand-drawn gates, that's a measurement, not a plot that "
-                "happened to look convincing."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s22_min_cluster",
-        ),
-        InfoStep(
-            id="c3_s22_min_cluster",
-            text=(
-                "Minimum Cluster Size 🔢<br><br>"
-                "This is the fewest cells HDBSCAN will accept as its own "
-                "cluster — smaller groups get merged into a bigger neighbor "
-                "or labeled noise. **100** is a solid default here: with "
-                "Sample C's total event count, that's large enough to ignore "
-                "stray noise, but small enough that a real minority "
-                "population — like a smaller B-cell subset — won't get "
-                "swallowed whole. Leave it as-is."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["UmapMinClusterGroup"],
-            next_step_id="c3_s23_run",
-        ),
-        # ── Run the analysis ─────────────────────────────────────────────────────
         InteractionStep(
-            id="c3_s23_run",
-            text="Everything's configured. Click '🧬 Run Analysis' (highlighted).",
-            target_widget_name="RunAnalysisButton",
-            target_widget_names=["RunAnalysisButton"],
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            next_step_id="c3_s24_animation",
-        ),
-        # ── Animation ────────────────────────────────────────────────────────────
-        InfoStep(
-            id="c3_s24_animation",
+            id="c3_s18_draw_bcell",
             text=(
-                "This animation is real 🎬<br><br>"
-                "What you're watching isn't decorative — it's built from "
-                "Sample C's actual high-dimensional marker data, run through "
-                "the real UMAP algorithm, while the full analysis keeps "
-                "computing underneath it. Watch for 5 phases: your cells "
-                "appearing in high-dimensional marker space, a fuzzy "
-                "neighbor graph connecting similar cells, an initial rough 2D "
-                "layout, that layout settling under force-directed motion, and "
-                "finally the finished manifold — the same 'islands' you're "
-                "about to explore."
+                "Build a **Range** gate — the only gate type allowed on a histogram — "
+                "to select the right-hand (positive) population:<br><br>"
+                "Click and drag horizontally starting at (or just past) the red "
+                "threshold line, capturing the bright B220+ peak.<br><br>"
+                "Name the gate **B-cells**.<br><br>" + RIGHT_PANEL_HINT
             ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            next_step_id="c3_s25_wait_results",
+            cyto_emotion="pointing",
+            target_widget_names=["Tool_range", "FlowCanvas", RIGHT_PANEL_TARGET],
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
+            metadata={"guide_range": (4000.0, 100000.0)},
+            stuck_hint_text=(
+                "Still there? Click the **Range** tool, then drag starting at the red "
+                "threshold line across the bright B220+ peak."
+            ),
+            stuck_hint_after_ms=45000,
+            next_step_id="c3_s18_draw_bcell_verify",
         ),
         VerificationStep(
-            id="c3_s25_wait_results",
-            text="Crunching the real numbers underneath that animation...",
+            id="c3_s18_draw_bcell_verify",
+            text="Checking...",
             cyto_emotion="scanning",
+            allow_interaction=False,
             hide_next_button=True,
-            allow_interaction=True,
-            validator=UmapResultsReadyValidator(),
-            on_success_step_id="c3_s25b_history",
+            validator=c3_bcells_validator,
+            on_success_step_id="c3_s19_bcell_done",
+            on_fail_step_id="c3_s18_bcell_gate_retry",
         ),
         InfoStep(
-            id="c3_s25b_history",
+            id="c3_s18_bcell_gate_misnamed",
+            text="I renamed the gate to **B-cells** for you. Let's proceed!",
+            cyto_emotion="happy",
+            next_step_id="c3_s19_bcell_done",
+        ),
+        InfoStep(
+            id="c3_s18_bcell_gate_retry",
             text=(
-                "One thing before we dig into results 📜<br><br>"
-                "That run just got saved to **History** (left sidebar). Every "
-                "run you complete lands here, so if you tweak a parameter and "
-                "run again later, your earlier runs aren't lost — pick any of "
-                "them from this dropdown to instantly revisit its results, no "
-                "recomputing needed. Picking **[ New Run ]** brings back the "
-                "parameter panel so you can configure a fresh run."
+                "That gate didn't quite capture the right range!<br><br>"
+                "I deleted it for you. Make sure you start at the red threshold line and cover the bright B220+ peak.<br><br>"
+                "Try drawing it again."
+            ),
+            cyto_emotion="surprised",
+            target_widget_names=["FlowCanvas"],
+            metadata={"guide_range": (4000.0, 100000.0)},
+            next_step_id="c3_s18_draw_bcell",
+        ),
+        QuestionStep(
+            id="c3_s19_bcell_done",
+            text=(
+                "**B-cells** gated! ✅<br><br>"
+                "You've used two techniques, both anchored to an FMO. In your "
+                "next experiment, you need cells positive vs. negative for "
+                "**one** marker, and the split is subtle. Which do you reach for?"
+            ),
+            question_id="c3_histogram_or_scatter",
+            choices=[
+                AnswerChoice("A histogram with the FMO overlay", correct=True),
+                AnswerChoice(
+                    "A two-marker scatter rectangle",
+                    feedback="Scatter shines when two markers separate populations cleanly at once. One subtle marker needs the FMO's exact threshold.",
+                ),
+                AnswerChoice(
+                    "Gate by eye on the sample alone",
+                    feedback="Without a control, a subtle split is a guess. The FMO shows where background ends.",
+                ),
+            ],
+            explanation=(
+                "One marker means one axis, which a histogram shows best, and "
+                "the FMO's threshold line puts the cut on evidence. A scatter "
+                "rectangle is fastest when two markers separate populations "
+                "cleanly."
+            ),
+            cyto_emotion="happy",
+            next_step_id="c3_s20_hierarchy_view",
+        ),
+        InfoStep(
+            id="c3_s20_hierarchy_view",
+            text=(
+                "Scroll (if needed) in the **Gating Hierarchy** panel — you'll see "
+                "**T-cells** and **B-cells** as sibling populations, both branching "
+                "directly out of **Leukocytes**."
             ),
             cyto_emotion="talking",
             allow_interaction=True,
-            target_widget_names=["UmapHistoryCombo"],
-            next_step_id="c3_s26_plot_gallery",
+            target_widget_names=["GatingHierarchyScrollArea"],
+            next_step_id="c3_s24_verify_pipeline_tab",
         ),
-        # ── Plot Gallery walkthrough ─────────────────────────────────────────────
-        InfoStep(
-            id="c3_s26_plot_gallery",
-            text=(
-                "The Plot Gallery 🖼️<br><br>"
-                "Results are in! Each tile here is the same UMAP layout, "
-                "colored by one marker's expression. Find the **CD3** tile — "
-                "that's your T-cell island lighting up — then find **B220**, "
-                "and watch a completely different island light up instead."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["ClusterResultsTabs"],
-            next_step_id="c3_s27_plot_gallery_cluster",
-        ),
-        InfoStep(
-            id="c3_s27_plot_gallery_cluster",
-            text=(
-                "One more tile 🎯<br><br>"
-                "If HDBSCAN found clusters, there's also an **Auto-Cluster "
-                "ID** tile — every cell colored by which unsupervised cluster "
-                "it landed in, with zero manual gates involved."
-            ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            target_widget_names=["ClusterResultsTabs"],
-            next_step_id="c3_s27b_bio_why",
-        ),
-        InfoStep(
-            id="c3_s27b_bio_why",
-            text=(
-                "Why those two islands are different, biologically 🧬<br><br>"
-                "CD3 and B220 didn't just happen to land in separate islands. "
-                "**CD3** marks the T-cell receptor complex; **B220** is a "
-                "B-cell-restricted isoform of CD45. T-cells and B-cells "
-                "diverge early in development into consistently different "
-                "signatures across the other channels too — so UMAP, which "
-                "only ever looks at overall marker similarity and knows "
-                "nothing about what any channel *means*, separates them "
-                "anyway. That's the same T-cell/B-cell distinction you gated "
-                "by hand in Course 2, arrived at here without drawing a "
-                "single gate."
-            ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            target_widget_names=["ClusterResultsTabs"],
-            next_step_id="c3_s28_switch_interactive",
-        ),
-        # ── Move to Interactive Map ──────────────────────────────────────────────
+        # ── Pipeline mastery ─────────────────────────────────────────────────────
         VerificationStep(
-            # Passes straight through if the tab is already open.
-            id="c3_s28_switch_interactive",
-            text="Click the 'Interactive Map' tab (highlighted).",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ClusterResultsTabBar"],
-            validator=ClusterResultsTabActiveValidator("Interactive Map"),
-            on_success_step_id="c3_s30_hover_explore",
-        ),
-        # ── Encourage hover exploration ──────────────────────────────────────────
-        InfoStep(
-            id="c3_s30_hover_explore",
+            id="c3_s24_verify_pipeline_tab",
             text=(
-                "Explore freely 🖱️<br><br>"
-                "Move your cursor over any population on the map — a live "
-                "panel will show you its local marker expression. Take a "
-                "minute to hover around before continuing.<br><br>"
-                "Keep in mind: this map reflects the **Leukocytes** gate and "
-                "channel choices you made earlier. A different gating "
-                "strategy upstream can lead to noticeably different clusters "
-                "down here — this isn't the one true answer, it's *an* "
-                "answer, shaped by the choices you made."
+                "Let's see your whole gating strategy at a glance — click "
+                "the **Pipeline** tab at the top."
             ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["UmapInteractiveMapCanvas"],
-            next_step_id="c3_s31_axes_meaningless",
-        ),
-        # ── Axes have no meaning ─────────────────────────────────────────────────
-        InfoStep(
-            id="c3_s31_axes_meaningless",
-            text=(
-                "One more reminder ⚠️<br><br>"
-                "The overall **shape** of this map, and where things sit on "
-                "the x/y axes, carry no biological meaning by themselves — "
-                "the axes aren't measuring anything. All that matters is "
-                "which cells UMAP judged similar enough to sit close together."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s32_marker_dropdown",
-        ),
-        # ══════════════════════════════════════════════════════════════════════
-        # Course 3 — Part 2 — Export the B-cell cluster, cross-check it via a
-        # Pipeline AND node, then tour Statistics and Comparisons with both
-        # populations as real evidence.
-        # ══════════════════════════════════════════════════════════════════════
-        # ── Marker dropdown ──────────────────────────────────────────────────────
-        # A single polling VerificationStep, not an InfoStep+Next followed by
-        # a separate check — picking an option from a dropdown is a discrete,
-        # complete action every time (unlike the run-name field, where a
-        # VerificationStep auto-advanced on the very first keystroke), so
-        # there's no premature-partial-state risk here to guard against with
-        # a manual Next click in between.
-        VerificationStep(
-            id="c3_s32_marker_dropdown",
-            text=(
-                "Try a different lens 🔬<br><br>"
-                "Use the dropdown above the map — it's currently showing "
-                "**Auto-Cluster ID**. Switch it to the **FITC** marker (B220) "
-                "and watch the B-cell population light up on the same map, "
-                "no re-running required."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["UmapInteractiveMapCombo"],
-            validator=UmapMarkerColoredValidator("FITC"),
-            on_success_step_id="c3_s35_marker_why",
-        ),
-        InfoStep(
-            id="c3_s35_marker_why",
-            text=(
-                "That's not decoration 🔬<br><br>"
-                "That large lit-up island is real B220 signal — and B220 "
-                "**was** one of the channels UMAP saw (only PI and CD45 were "
-                "excluded). So this isn't an unseen-channel confirmation; "
-                "it's proof the 2D layout UMAP built from *all* your marker "
-                "channels together lines up with what gating on B220 alone "
-                "would tell you — the unsupervised structure matches real "
-                "biology, not an artifact of the projection."
-            ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            target_widget_names=["UmapInteractiveMapCanvas"],
-            next_step_id="c3_s36_switch_pop_stats",
-        ),
-        # ── Switch to Population Statistics sub-tab ──────────────────────────────
-        VerificationStep(
-            # Passes straight through if the tab is already open.
-            id="c3_s36_switch_pop_stats",
-            text="Click the 'Population Statistics' tab (highlighted).",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["ClusterResultsTabBar"],
-            validator=ClusterResultsTabActiveValidator("Population Statistics"),
-            on_success_step_id="c3_s38_cluster_table",
-        ),
-        # ── Explain the 3 plots ──────────────────────────────────────────────────
-        InfoStep(
-            id="c3_s38_cluster_table",
-            text=(
-                "Cluster Statistics 📋<br><br>"
-                "One row per cluster HDBSCAN found — its cell count and its "
-                "% of the total. This is the same count you'd get by hand-gating, "
-                "just produced without you drawing a single gate."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["UmapStatsPlotsPanel"],
-            next_step_id="c3_s39_heatmap_table",
-        ),
-        InfoStep(
-            id="c3_s39_heatmap_table",
-            text=(
-                "Marker Expression Heatmap 🌡️<br><br>"
-                "One row per cluster, one column per marker — brighter red "
-                "means higher expression. This is the **median** expression "
-                "per marker per cluster, not the mean, which is exactly why "
-                "it's the more outlier-robust number to trust for identifying "
-                "which cluster is which population."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["UmapStatsPlotsPanel"],
-            next_step_id="c3_s40_expression_profiles",
-        ),
-        InfoStep(
-            id="c3_s40_expression_profiles",
-            text=(
-                "Expression Profiles 📊<br><br>"
-                "The same heatmap numbers, redrawn as a 100%-stacked bar per "
-                "cluster — easier to compare a cluster's whole marker "
-                "*profile* at a glance than reading numbers cell by cell."
-            ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            target_widget_names=["UmapStatsPlotsPanel"],
-            next_step_id="c3_s41_noise_cluster",
-        ),
-        InfoStep(
-            id="c3_s41_noise_cluster",
-            text=(
-                "One cluster doesn't count 🚫<br><br>"
-                "**Cluster ID -1** is HDBSCAN's noise bucket — cells it "
-                "couldn't confidently assign to any real, dense population. "
-                "It'll show up in every table here, but it's never a "
-                "candidate for anything you export downstream."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c3_s42_select_bcell_cluster",
-        ),
-        # ── Dynamically identify and export the B-cell cluster ──────────────────
-        _best_bcell_step,
-        InteractionStep(
-            id="c3_s43_create_populations",
-            text="Click '➕ Create Populations' (highlighted).",
-            target_widget_name="CreatePopulationsButton",
-            target_widget_names=["CreatePopulationsButton"],
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            next_step_id="c3_s44_create_populations_why",
-        ),
-        InfoStep(
-            id="c3_s44_create_populations_why",
-            text=(
-                "That just built two real, permanent nodes 🌳<br><br>"
-                "A **UMAP Reduction** node now sits under Leukocytes, and "
-                "**UMAP B Cells** sits under that — a genuine gate-tree "
-                "population, exportable, chartable, and comparable exactly "
-                "like the ones you drew by hand in Course 2."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c3_s45_verify_bcell_node",
-        ),
-        VerificationStep(
-            id="c3_s45_verify_bcell_node",
-            text="Checking your new population...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=GateExistsValidator("UMAP B Cells"),
-            on_success_step_id="c3_s46_switch_pipeline",
-        ),
-        # ── Switch to Pipeline ────────────────────────────────────────────────────
-        VerificationStep(
-            id="c3_s46_switch_pipeline",
-            text="Click the 'Pipeline' tab at the top.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(3),
-            on_success_step_id="c3_s48_verify_sample_c",
-        ),
-        VerificationStep(
-            id="c3_s48_verify_sample_c",
-            text="Confirming Sample C is still the active pipeline...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=ExactSampleOpenValidator("Sample C"),
-            on_success_step_id="c3_s49_switch_horizontal",
-            on_fail_step_id="c3_s48b_wrong_sample",
+            on_success_step_id="c3_s25_pipeline_read",
         ),
         InfoStep(
-            id="c3_s48b_wrong_sample",
+            id="c3_s25_pipeline_read",
             text=(
-                "Wrong sample 🔍<br><br>"
-                "This pipeline needs to be **Sample C**'s — use the sample "
-                "dropdown in the Pipeline toolbar to switch back, then I'll "
-                "continue automatically."
+                "The **Pipeline** view 🌿<br><br>"
+                "Your entire gating strategy as a flowchart: **Leukocytes** splits "
+                "into **T-cells** and **B-cells**. Every node is the same gate object as "
+                "in the tree view — just visualized differently.<br><br>"
+                "This isn't just a prettier tree: a flowchart like this is "
+                "the standard way gating strategies get documented and "
+                "shared in real papers and labs — it's what you'd screenshot "
+                "to explain your analysis to a collaborator, not the nested "
+                "sidebar list."
             ),
-            cyto_emotion="surprised",
-            allow_interaction=True,
-            next_step_id="c3_s48_verify_sample_c",
+            cyto_emotion="talking",
+            target_widget_names=["PipelineCanvas"],
+            next_step_id="c3_s26_orientation",
         ),
-        # ── Horizontal layout ─────────────────────────────────────────────────────
         VerificationStep(
-            id="c3_s49_switch_horizontal",
-            text="Set the pipeline layout to **Horizontal** (highlighted).",
+            id="c3_s26_orientation",
+            text=(
+                "Change the **Layout:** dropdown in the Pipeline ribbon from "
+                "**Vertical** to **Horizontal** to quickly view the entire plot chain "
+                "in a single glance."
+            ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["PipelineOrientationCombo"],
             validator=PipelineOrientationValidator("horizontal"),
-            on_success_step_id="c3_s50_spotlight_trio_1",
+            on_success_step_id="c3_s27_pipeline_explain",
+            failure_hint="Make sure the **Layout:** dropdown in the Pipeline ribbon is set to **Horizontal**.",
         ),
-        # ── Spotlight the Leukocytes / UMAP Reduction / UMAP B Cells trio ───────
         InfoStep(
-            id="c3_s50_spotlight_trio_1",
+            id="c3_s27_pipeline_explain",
             text=(
-                "Here's what 'Create Populations' actually built 🔦<br><br>"
-                "**Leukocytes** → **UMAP Reduction** → **UMAP B Cells** — the "
-                "exact trio highlighted here. UMAP Reduction is just a "
-                "container for whatever you exported; UMAP B Cells is the "
-                "real population, hanging off it as a child."
+                "Getting around the canvas 🧭<br><br>"
+                "You can freely drag any node to reposition it. "
+                "To pan the whole canvas, hold the "
+                "middle mouse button and drag.<br><br>"
+                "The **+ AND** / **+ OR** / **+ NOT** buttons build boolean logic nodes "
+                "that combine populations — we'll put those to real use in "
+                "Course 4."
             ),
             cyto_emotion="talking",
-            allow_interaction=True,
-            metadata={
-                "pipeline_highlight_node_names": ["Leukocytes", "UMAP Reduction", "UMAP B Cells"]
-            },
-            next_step_id="c3_s51_spotlight_trio_2",
-        ),
-        InfoStep(
-            id="c3_s51_spotlight_trio_2",
-            text=(
-                "Two very different '% of parent's ⚖️<br><br>"
-                "**UMAP Reduction** shows roughly the subsample percentage "
-                "you set earlier as its % of parent — that's a **random** "
-                "25%, not a judged cut. Compare that to **Leukocytes**' own "
-                "% of parent, back in Course 1 — a carefully drawn boundary, "
-                "not a random sample. Same phrase, two completely different "
-                "meanings depending on which node it's attached to."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            metadata={
-                "pipeline_highlight_node_names": ["Leukocytes", "UMAP Reduction", "UMAP B Cells"]
-            },
-            next_step_id="c3_s51b_and_node_plan",
-        ),
-        InfoStep(
-            id="c3_s51b_and_node_plan",
-            text=(
-                "Cross-checking the two methods 🔀<br><br>"
-                "You now have two independent ways of finding B-cells: your "
-                "hand-gated **B-cells** population from Course 2, and this "
-                "run's unsupervised **UMAP B Cells**. Next, you'll add a "
-                "Pipeline **AND** logic node and wire both of them into it — "
-                "its output is only the events BOTH methods agree are "
-                "B-cells, which is exactly how you sanity-check an "
-                "unsupervised result against ground truth you already trust."
-            ),
-            cyto_emotion="talking",
-            next_step_id="c3_s51b2_overlap_prediction",
-        ),
-        QuestionStep(
-            id="c3_s51b2_overlap_prediction",
-            text=(
-                "Make a prediction 🔮<br><br>"
-                "Of the cells UMAP called B cells, how many will also be "
-                "inside your hand-drawn **B-cells** gate? There's no wrong "
-                "answer — the AND node will tell you."
-            ),
-            kind=QUESTION_PREDICT,
-            question_id="c3_umap_in_gate",
-            choices=[
-                AnswerChoice("Fewer than half"),
-                AnswerChoice("About three quarters"),
-                AnswerChoice("Nearly all of them"),
-            ],
-            cyto_emotion="thinking",
-            next_step_id="c3_s51c_logic_nodes_theory",
-        ),
-        InfoStep(
-            id="c3_s51c_logic_nodes_theory",
-            text=(
-                "Three logic gates, one family 🔢<br><br>"
-                "The Pipeline has three logic nodes, all combining "
-                "populations you've already gated: **AND** keeps only events "
-                "present in every connected parent — what you're about to "
-                "use, for agreement between two methods. **OR** keeps events "
-                "present in any connected parent — useful for merging two "
-                "alternate definitions of the same population into one. "
-                "**NOT** keeps events from the first parent while excluding "
-                "a second — useful for an exclusion population, like "
-                "'everything that isn't a T-cell.' This course only needs "
-                "AND, but OR and NOT are there whenever a real analysis "
-                "calls for them."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            target_widget_names=["AddAndGateButton", "AddOrGateButton", "AddNotGateButton"],
-            next_step_id="c3_s52_add_and_node",
-        ),
-        # ── Add the AND node ──────────────────────────────────────────────────────
-        InteractionStep(
-            id="c3_s52_add_and_node",
-            text="Click '+ AND' (highlighted) to create a new logic node.",
-            target_widget_name="AddAndGateButton",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            next_step_id="c3_s53_drag_and_node",
-        ),
-        InfoStep(
-            id="c3_s53_drag_and_node",
-            text=(
-                "Drag it out of the way 🖐️<br><br>"
-                "The new AND node has no parents yet, so it lands wherever "
-                "the auto-layout puts it — possibly right on top of another "
-                "node. Drag it out to the far right of the canvas, clear of "
-                "everything else, before wiring it up."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
             target_widget_names=["PipelineCanvas"],
-            next_step_id="c3_s54_wire_and",
+            next_step_id="c3_s27b_pipeline_thumbnails",
+        ),
+        InfoStep(
+            id="c3_s27b_pipeline_thumbnails",
+            text=(
+                "One more thing before you go — why the node plots look the way "
+                "they do 🔍<br><br>"
+                "**Leukocytes** shows CD3 vs B220 because that's the exact view "
+                "you were in when you drew **T-cells**, the first split beneath "
+                "it. **B-cells** shares that same B220 (X) axis, so its range "
+                "gate rides along too — that's the shaded band on the right.<br><br>"
+                "Notice that band is on a **pseudocolor** plot, even though you "
+                "actually drew the B-cells gate back in **Histogram** mode. Same "
+                "threshold either way — a 1D range only ever needs its one axis, "
+                "so it projects cleanly onto Leukocytes' 2D view here as a "
+                "vertical line instead of forcing a whole separate histogram "
+                "into this spot.<br><br>"
+                "**B-cells** itself, though, renders as a **histogram** — you drew "
+                "that gate as a 1D range on B220 alone, with no second axis to "
+                "fall back on. Karcytics remembers exactly how each gate was "
+                "drawn and reconstructs that same view for its node here, so "
+                "every plot in the Pipeline shows the real evidence behind it "
+                "instead of a generic icon."
+            ),
+            cyto_emotion="thinking",
+            target_widget_names=["PipelineCanvas"],
+            next_step_id="c3_s29_verify_gating_tab",
         ),
         VerificationStep(
-            id="c3_s54_wire_and",
-            text=(
-                "Drag a connection from **UMAP B Cells** into the new AND "
-                "node, then drag another from your manual **B-cells** node "
-                "into it too."
-            ),
-            cyto_emotion="thinking",
+            id="c3_s29_verify_gating_tab",
+            text=("Time for one more split — click the **Gating** tab at the top to head back."),
+            cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            target_widget_names=["PipelineCanvas"],
-            validator=LogicGateExistsValidator("AND", ["b-cells", "umap b cells"]),
-            on_success_step_id="c3_s55_wait_and_stats",
+            target_widget_names=["MainTabBar"],
+            validator=TabActiveValidator(1),
+            on_success_step_id="c3_s30_reenter_tcells_intro",
         ),
-        VerificationStep(
-            id="c3_s55_wait_and_stats",
-            text="Crunching the real overlap between both methods...",
-            cyto_emotion="scanning",
-            hide_next_button=True,
-            validator=LogicNodeStatsReadyValidator("AND", ["b-cells", "umap b cells"]),
-            on_success_step_id="c3_s56_explain_and_stats",
-        ),
+        # ── CD4/CD8 quadrant split (still on Sample C) ──────────────────────────
         InfoStep(
-            id="c3_s56_explain_and_stats",
+            id="c3_s30_reenter_tcells_intro",
             text=(
-                "Read the AND node's two overlap rows 🔢<br><br>"
-                "You predicted: **{answer:c3_umap_in_gate}**.<br><br>"
-                "**% of UMAP B Cells** sits close to 100% — nearly every "
-                "UMAP-clustered B-cell really is inside your hand-gated "
-                "boundary too. No correction needed there: both sides only "
-                "ever looked at the same 25% subsample, so the ratio "
-                "between them is already honest as-is.<br><br>"
-                "**% of B-cells** is the one to watch, and it's the one "
-                "marked as an estimate. The AND's overlap only exists "
-                "inside that same 25% subsample, so dividing it straight "
-                "into your **full** B-cells count would make two methods "
-                "that mostly agree look like they barely overlap. The app "
-                "scales that overlap back up to the full population first, "
-                "so the marked number is close to your true agreement rate "
-                "— an honest estimate, not a silent undercount. Hover it "
-                "for the exact scale factor.<br><br>"
-                "Same trick everywhere a UMAP population feeds a "
-                "calculation: the number marked as an estimate is the one "
-                "worth trusting over its plain, unscaled neighbor."
+                "Great progress! 🎉<br><br>"
+                "You've gated **T-cells** and **B-cells** with two different techniques, "
+                "explored the quick stats view, and learned to navigate the "
+                "**Pipeline** view.<br><br>"
+                "One more split: not all T-cells are equal. **Sample C** should still "
+                "be open right where you left it — let's dive back into its "
+                "**T-cells** population."
             ),
             cyto_emotion="happy",
-            allow_interaction=True,
-            metadata={"pipeline_highlight_node_names": ["AND Logic"]},
-            next_step_id="c3_s57_save_workspace",
+            next_step_id="c3_s31_dblclick_tcells",
         ),
-        # ── Save workspace (Course 4 needs this exported population + AND node) ──
-        VerificationStep(
-            id="c3_s57_save_workspace",
+        InteractionStep(
+            id="c3_s31_dblclick_tcells",
             text=(
-                "Course 4 needs what you just built — the **UMAP B Cells** "
-                "population and the AND node cross-checking it. We need to "
-                "save our progress.<br><br>"
-                "Click the **⚠️ Save Workspace** button (highlighted) at the "
-                "top right."
+                "In the **Gating Hierarchy** panel, double-click **T-cells** to make it "
+                "the active population."
+            ),
+            target_widget_name="GatingHierarchyView",
+            target_widget_names=["GatingHierarchyView"],
+            event_trigger="gate_double_clicked",
+            cyto_emotion="pointing",
+            next_step_id="c3_s32_verify_tcells_active",
+        ),
+        VerificationStep(
+            id="c3_s32_verify_tcells_active",
+            text="Checking active population...",
+            cyto_emotion="scanning",
+            hide_next_button=True,
+            allow_interaction=False,
+            validator=GateActiveValidator("t-cells"),
+            on_success_step_id="c3_s33_quadrant_intro",
+            on_fail_step_id="c3_s32b_wrong_node",
+        ),
+        InteractionStep(
+            id="c3_s32b_wrong_node",
+            text="Oops! Double-click **T-cells** specifically in the hierarchy.",
+            cyto_emotion="surprised",
+            target_widget_name="GatingHierarchyView",
+            target_widget_names=["GatingHierarchyView"],
+            event_trigger="gate_double_clicked",
+            next_step_id="c3_s32_verify_tcells_active",
+        ),
+        InfoStep(
+            id="c3_s33_quadrant_intro",
+            text=(
+                "Splitting **T-cells** by CD4/CD8 ✂️<br><br>"
+                "**CD4+** helpers, **CD8+** killers, and — in some tissues — cells that "
+                "are BOTH CD4+ and CD8+ ('Double Positive', **DP**), or neither "
+                "('Double Negative', **DN**). A single **Quadrant** gate splits a plot "
+                "into all 4 regions at once."
+            ),
+            cyto_emotion="thinking",
+            next_step_id="c3_s35_set_x_cd4",
+        ),
+        VerificationStep(
+            id="c3_s35_set_x_cd4",
+            text="Set the X axis to **PE-A** — the CD4 detector.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["AxisSelectorX"],
+            validator=AxisChannelValidator("pe-a"),
+            on_success_step_id="c3_s36_set_y_cd8",
+            failure_hint="Make sure the **X:** axis dropdown is set to **PE-A**, the CD4 detector.",
+        ),
+        VerificationStep(
+            id="c3_s36_set_y_cd8",
+            text="Set the Y axis to **APC-Cy7-A** — the CD8 detector.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["AxisSelectorY"],
+            validator=AxisYChannelValidator("apc-cy7"),
+            on_success_step_id="c3_s37_draw_quadrant",
+            failure_hint="Make sure the **Y:** axis dropdown is set to **APC-Cy7-A**, the CD8 detector.",
+        ),
+        InteractionStep(
+            id="c3_s37_draw_quadrant",
+            text=(
+                "Click the **Quadrant** tool (highlighted), then click once on the "
+                "plot where the CD4−/CD8− and CD4+/CD8+ boundaries should sit.<br><br>"
+                + RIGHT_PANEL_HINT
+            ),
+            cyto_emotion="thinking",
+            target_widget_names=["Tool_quadrant", "FlowCanvas", RIGHT_PANEL_TARGET],
+            target_widget_name="MainPanel",
+            event_trigger="gate_added_to_tree",
+            metadata={"guide_quadrant": (5000.0, 5000.0)},
+            next_step_id="c3_s37_draw_quadrant_verify",
+            stuck_hint_text=(
+                "Still there? Click the **Quadrant** tool, then click once where the "
+                "CD4/CD8 boundaries should sit."
+            ),
+            stuck_hint_after_ms=45000,
+        ),
+        VerificationStep(
+            id="c3_s37_draw_quadrant_verify",
+            text="Karcytics is scanning automatically...",
+            cyto_emotion="scanning",
+            allow_interaction=False,
+            hide_next_button=True,
+            validator=c3_quadrant_validator,
+            on_success_step_id="c3_s38_quadrant_naming_info",
+            on_fail_step_id="c3_s37_quadrant_gate_retry",
+        ),
+        InfoStep(
+            id="c3_s37_quadrant_gate_retry",
+            text=(
+                "That quadrant didn't quite hit the right spot!<br><br>"
+                "I deleted it for you. Make sure the crosshair separates the CD4 and CD8 populations correctly (around 10^3 on both axes).<br><br>"
+                "Try drawing it again."
+            ),
+            cyto_emotion="surprised",
+            target_widget_names=["FlowCanvas"],
+            metadata={"guide_quadrant": (5000.0, 5000.0)},
+            next_step_id="c3_s37_draw_quadrant",
+        ),
+        QuestionStep(
+            id="c3_s38_quadrant_naming_info",
+            text=(
+                "Quadrant naming ⚠️<br><br>"
+                "Your 4 new leaves are named **Q1**–**Q4**. With X = **CD4** and "
+                "Y = **CD8**, which quadrant holds CD4+ CD8− cells, the helper "
+                "T cells?"
+            ),
+            question_id="c3_cd4_quadrant",
+            choices=[
+                AnswerChoice(
+                    "Upper-left",
+                    feedback="High on Y means CD8+. Upper-left is CD4− CD8+: the killer T cells.",
+                ),
+                AnswerChoice(
+                    "Upper-right",
+                    feedback="High on both is double positive (DP): young T cells, common in the thymus.",
+                ),
+                AnswerChoice("Lower-right", correct=True),
+            ],
+            explanation=(
+                "The layout is fixed: Q1 upper-left = CD8+, Q2 upper-right = DP, "
+                "Q3 lower-left = DN, Q4 lower-right = CD4+. Next you'll rename "
+                "each leaf under T-cells in the Gating Hierarchy."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas", "GatingHierarchyScrollArea"],
+            next_step_id="c3_s39_rename_quadrants",
+        ),
+        ForcedInteractionStep(
+            id="c3_s39_rename_quadrants",
+            text="Rename all 4 quadrant leaves so each subset is clearly labeled.",
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["GatingHierarchyScrollArea"],
+            auto_advance_when_complete=True,
+            stuck_hint_text=(
+                "Still working on it? Right-click each quadrant leaf (Q1-Q4) in the "
+                "hierarchy, choose **Rename Gate**, and type the label shown for it above."
+            ),
+            stuck_hint_after_ms=60000,
+            sub_tasks=[
+                SubTask(
+                    id="rename_q4_cd4",
+                    instruction=(
+                        "Right-click 'Q4' (lower-right), choose 'Rename Gate', and type 'CD4+'."
+                    ),
+                    target_widget_name="GatingHierarchySampleView",
+                    event_trigger="rename_requested",
+                    validator=QuadrantPositionNamedValidator("Q4", "cd4+"),
+                ),
+                SubTask(
+                    id="rename_q1_cd8",
+                    instruction=(
+                        "Right-click 'Q1' (upper-left), choose 'Rename Gate', and type 'CD8+'."
+                    ),
+                    target_widget_name="GatingHierarchySampleView",
+                    event_trigger="rename_requested",
+                    validator=QuadrantPositionNamedValidator("Q1", "cd8+"),
+                ),
+                SubTask(
+                    id="rename_q2_dp",
+                    instruction=(
+                        "Right-click 'Q2' (upper-right), choose 'Rename Gate', and type 'DP'."
+                    ),
+                    target_widget_name="GatingHierarchySampleView",
+                    event_trigger="rename_requested",
+                    validator=QuadrantPositionNamedValidator("Q2", "dp"),
+                ),
+                SubTask(
+                    id="rename_q3_dn",
+                    instruction=(
+                        "Right-click 'Q3' (lower-left), choose 'Rename Gate', and type 'DN'."
+                    ),
+                    target_widget_name="GatingHierarchySampleView",
+                    event_trigger="rename_requested",
+                    validator=QuadrantPositionNamedValidator("Q3", "dn"),
+                ),
+            ],
+            next_step_id="c3_s40_quadrant_done",
+        ),
+        InfoStep(
+            id="c3_s40_quadrant_done",
+            text=(
+                "Immunophenotyping complete! 🎉<br><br>"
+                "**T-cells**, **B-cells**, and 4 CD4/CD8 subsets, all cleanly gated."
+            ),
+            cyto_emotion="happy",
+            next_step_id="c3_s41_recap_transition",
+        ),
+        # ── Recap ────────────────────────────────────────────────────────────────
+        InfoStep(
+            id="c3_s41_recap_transition",
+            text=(
+                "Let's recap 📋<br><br>"
+                "You've gated **T-cells** and **B-cells** out of **Leukocytes**, split "
+                "T-cells into CD4+/CD8+/DP/DN, and learned to navigate the "
+                "**Pipeline** view.<br><br>"
+                "That's every population we need. Time to crack the case."
+            ),
+            cyto_emotion="talking",
+            next_step_id="c3_s50_mystery_intro",
+        ),
+        # ── Finale: the tissue-ID mystery ────────────────────────────────────────
+        InfoStep(
+            id="c3_s50_mystery_intro",
+            text=(
+                "Welcome back! Incredible job. 🎉<br><br>"
+                "You've gated **T-cells** and **B-cells** with two different techniques, "
+                "split T-cells by CD4/CD8, mastered the **Pipeline** view, and "
+                "understand exactly why and when spillover matters.<br><br>"
+                "Before we call it: remember the opening mystery? Three "
+                "unidentified samples — one **Thymus**, one **Bone Marrow**, one **Spleen**. "
+                "You've actually already gathered enough evidence to form a real "
+                "hypothesis. Let's think it through."
+            ),
+            cyto_emotion="cheering",
+            next_step_id="c3_s50a2_verify_gating_tab",
+        ),
+        VerificationStep(
+            id="c3_s50a2_verify_gating_tab",
+            text="Click the **Gating** tab at the top — that's where the quick-stats grid lives.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar"],
+            validator=TabActiveValidator(1),
+            on_success_step_id="c3_s50b_quickstat_open",
+        ),
+        InteractionStep(
+            id="c3_s50b_quickstat_open",
+            text=(
+                "One tool you haven't needed yet: click the **Quick-Stats** icon (⊞, "
+                "highlighted) next to the **Auto-Propagate** toggle."
+            ),
+            target_widget_name="AllSamplesOverviewButton",
+            target_widget_names=["AllSamplesOverviewButton"],
+            event_trigger="clicked",
+            cyto_emotion="pointing",
+            next_step_id="c3_s50c_quickstat_info",
+        ),
+        InfoStep(
+            id="c3_s50c_quickstat_info",
+            text=(
+                "That's the quick stats view 📊<br><br>"
+                "Every population (rows) across every sample (columns), at a "
+                "glance: **Cells**, **Live Cells**, **Leukocytes**, **T-cells**, "
+                "**B-cells**, and your 4 CD4/CD8 subsets. Each cell is **% "
+                "Parent**: its share of the gate above it.<br><br>"
+                "Can't see Sample A, B, or C's column? Scroll — both "
+                "horizontally and vertically — until you find it. Leave it "
+                "open; we'll walk through it together."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            target_widget_names=["AllSamplesOverviewPopup"],
+            next_step_id="c3_s51_mystery_sample_a",
+        ),
+        QuestionStep(
+            id="c3_s51_mystery_sample_a",
+            text=(
+                "Case file: **Sample A** 🔬<br><br>"
+                "Find Sample A's column and compare its **T-cells** and "
+                "**B-cells**, each a share of Leukocytes. Which organ is it?"
+            ),
+            question_id="c3_sample_a_organ",
+            choices=[
+                AnswerChoice(
+                    "Spleen",
+                    feedback="The spleen holds plenty of both lineages. Sample A has almost no B cells.",
+                ),
+                AnswerChoice("Thymus", correct=True),
+                AnswerChoice(
+                    "Bone marrow",
+                    feedback="Bone marrow makes B cells, so they'd be plentiful. Sample A's are close to zero.",
+                ),
+            ],
+            explanation=(
+                "The thymus is where T cells mature. B cells aren't made there, so they never show up in force."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["AllSamplesOverviewPopup"],
+            next_step_id="c3_s52_mystery_sample_b",
+        ),
+        QuestionStep(
+            id="c3_s52_mystery_sample_b",
+            text=(
+                "Case file: **Sample B** 🤔<br><br>"
+                "Now Sample B's column. How do its **T-cells** and **B-cells** "
+                "compare? Which organ is it?"
+            ),
+            question_id="c3_sample_b_organ",
+            choices=[
+                AnswerChoice(
+                    "Spleen",
+                    feedback="The spleen has mature T cells too. Sample B has almost none.",
+                ),
+                AnswerChoice(
+                    "Thymus",
+                    feedback="The thymus is packed with T cells. Sample B has almost none.",
+                ),
+                AnswerChoice("Bone marrow", correct=True),
+            ],
+            explanation=(
+                "B cells are made in the bone marrow. T cells leave it early and only mature later, in the thymus."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["AllSamplesOverviewPopup"],
+            next_step_id="c3_s53_mystery_sample_c",
+        ),
+        QuestionStep(
+            id="c3_s53_mystery_sample_c",
+            text=(
+                "Case file: **Sample C** 🧩<br><br>"
+                "Last, Sample C's column: solid shares of **both** T-cells and "
+                "B-cells, plus all 4 CD4/CD8 subsets. Which organ is it?"
+            ),
+            question_id="c3_sample_c_organ",
+            choices=[
+                AnswerChoice("Spleen", correct=True),
+                AnswerChoice(
+                    "Thymus",
+                    feedback="The thymus has very few B cells. Sample C has plenty.",
+                ),
+                AnswerChoice(
+                    "Bone marrow",
+                    feedback="Bone marrow has very few mature T cells. Sample C has plenty.",
+                ),
+            ],
+            explanation=(
+                "Mature B and T cells circulate together through the spleen, so both lineages show up side by side."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["AllSamplesOverviewPopup"],
+            next_step_id="c3_s53b_quickstat_close",
+        ),
+        VerificationStep(
+            id="c3_s53b_quickstat_close",
+            text=(
+                "Once you're confident in what you're seeing, close the popup "
+                "(press Esc, or click the × in its top-right corner) — I'll "
+                "continue automatically."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["AllSamplesOverviewPopup"],
+            validator=PopupClosedValidator("AllSamplesOverviewPopup"),
+            on_success_step_id="c3_s54_mystery_reveal",
+            failure_hint="Press **Esc**, or click the **×** in the popup's top-right corner, to close it.",
+        ),
+        InfoStep(
+            id="c3_s54_mystery_reveal",
+            text=(
+                "Your conclusion 🧠<br><br>"
+                "• **Sample A** = **Thymus** (T-cells present, B-cells scarce)<br>"
+                "• **Sample B** = **Bone Marrow** (B220+ present, T-cells scarce)<br>"
+                "• **Sample C** = **Spleen** (both lineages present together)<br><br>"
+                "Back in Course 1 you predicted the thymus would have very few: "
+                "**{answer:c1_thymus_few}**. Sample A's B-cells are just 0.4% of "
+                "its Leukocytes.<br><br>"
+                "That's not a guess — it's a conclusion backed by gates you "
+                "drew yourself and real stats you just read across every "
+                "sample."
+            ),
+            cyto_emotion="happy",
+            next_step_id="c3_s57_save_interaction",
+        ),
+        VerificationStep(
+            id="c3_s57_save_interaction",
+            text=(
+                "Course 4 requires the gating and populations we just built. We need to save "
+                "our progress.<br><br>"
+                "Click the **⚠️ Save Workspace** button (highlighted) at the top right."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["WorkspaceSaveButton"],
             validator=WorkflowSavedValidator(),
-            on_success_step_id="c3_s58_graduation",
+            on_success_step_id="c3_s56_graduation",
             failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
             # The true end of Course 3 — no next_step_id, so
-            # AcademyManager.next_step() treats this as course completion
-            # and awards badge_reward ("Population Analyst") the moment the
-            # user clicks Next. Unlike the old Part 1/Part 2 soft-stops,
-            # this one is real: everything Course 4 depends on (the
-            # exported population, the AND node, the saved workspace) is
-            # genuinely in place by this point. What's next (Course 4) is
-            # already shown on the Academy catalog card, so this doesn't
-            # need its own teaser steps — matches Course 1's compact
-            # one-step ending.
-            id="c3_s58_graduation",
+            # AcademyManager.next_step() treats this as course completion and
+            # awards badge_reward the moment the user clicks Next. What's
+            # next (Course 4) is already shown on the Academy catalog card,
+            # so this doesn't need its own teaser steps the way it used to —
+            # matches Course 1's compact one-step ending.
+            id="c3_s56_graduation",
             text=(
                 "Your workspace is updated!<br><br>Course 3 is complete — "
-                "you're officially a **Population Analyst**! 🏆<br><br>"
+                "you're officially an **Immunophenotyper**! 🏆<br><br>"
                 "See you in Course 4!"
             ),
             cyto_emotion="cheering",

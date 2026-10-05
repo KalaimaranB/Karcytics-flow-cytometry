@@ -301,12 +301,12 @@ class SpectralViewer(QWidget):
         )
 
     def _on_academy_step_changed(self, step: Any) -> None:
-        """Shows the Learning Compensation tab only if course 2 is active."""
-        is_course_2 = (
+        """Shows the Learning Compensation tab only in the course that teaches it."""
+        teaches_it = (
             tutorial_manager.active_course is not None
-            and tutorial_manager.active_course.id == "flow_course_2_gating"
+            and tutorial_manager.active_course.id == "flow_course_1_fundamentals"
         )
-        self._tabs.setTabVisible(self._learning_tab_index, is_course_2)
+        self._tabs.setTabVisible(self._learning_tab_index, teaches_it)
 
     def _on_tab_changed(self, index: int):
         if self._tabs.widget(index) is self._learning_tab:

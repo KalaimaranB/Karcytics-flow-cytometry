@@ -19,13 +19,15 @@ from karcytics_sdk.plugin.tutorial_models import (
 )
 
 from .course1 import course_1_fundamentals
-from .course2 import course_2_gating
-from .course3 import course_3_analysis
-from .course4 import course_4_reporting
+from .course2 import course_2_compensation
+from .course3 import course_3_gating
+from .course4 import course_4_analysis
+from .course5 import course_5_reporting
 
 __all__ = [
     "course_1_fundamentals",
-    "course_2_gating",
-    "course_3_analysis",
-    "course_4_reporting",
+    "course_2_compensation",
+    "course_3_gating",
+    "course_4_analysis",
+    "course_5_reporting",
 ]

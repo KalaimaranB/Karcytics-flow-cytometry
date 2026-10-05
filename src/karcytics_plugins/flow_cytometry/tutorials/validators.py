@@ -615,7 +615,7 @@ class GateShapeValidator(FlowValidator):
             self.last_misnamed_node_id = None
             self.last_failed_node_id = None
             self.last_misnamed_sample_id = None
-            # _TUTORIAL_STATE is legacy: course2.py's own (not-yet-migrated)
+            # _TUTORIAL_STATE is legacy: course3.py's own (not-yet-migrated)
             # gate-failure routing still reads it directly. Keep writing it
             # until that course is migrated to describe_failure() too —
             # course1 itself no longer reads it (see describe_failure below).
@@ -825,7 +825,7 @@ class GateShapeValidator(FlowValidator):
 
 
 class WorkflowSavedValidator(FlowValidator):
-    """Verifies that the user has saved a workflow and registers it as a prerequisite."""
+    """Verifies that the user has saved a workflow since this step became current."""
 
     def __init__(self):
         self._saved_payload = None
@@ -863,25 +863,6 @@ class WorkflowSavedValidator(FlowValidator):
             self._armed_at = time.monotonic()
 
         if self._saved_payload and self._saved_at is not None and self._saved_at >= self._armed_at:
-            from karcytics_sdk.plugin.runtime_services import (
-                tutorial_manager as global_tutorial_manager,
-            )
-
-            # The SDK expects a 'workflow_hash' parameter, but because the plugin is isolated
-            # and Course 2 only validates the workspace state (via Course1StateValidator)
-            # rather than strictly hashing the file, we can just use the filename/path.
-            wf_id = (
-                self._saved_payload.get("filename")
-                or self._saved_payload.get("path")
-                or "standalone_save"
-            )
-
-            # Always unlock Course 2 gating when Course 1 saves
-            global_tutorial_manager.record_prerequisite("flow_course_2_gating", wf_id)
-
-            # Also unlock Course 3 gating when Course 2 saves (as this validator is used in both)
-            global_tutorial_manager.record_prerequisite("flow_course_3_pipeline", wf_id)
-
             return True
 
         return self.log_failure("Waiting for workflow to be saved...")
@@ -924,8 +905,37 @@ class GateActiveValidator(FlowValidator):
         return self.log_failure(f"Gate ID {gate_id} not found in sample gate tree.")
 
 
-class Course1StateValidator(FlowValidator):
-    """Verifies that the workspace state matches the expected Course 1 checkpoint."""
+class SetupAndCellsStateValidator(FlowValidator):
+    """The workspace as Course 1 leaves it: all samples loaded, roles
+    assigned, the Cells gate drawn and every sample compensated.
+    """
+
+    def __init__(self) -> None:
+        self._flow_import = FlowImportValidator()
+        self._role_assign = RoleAssignmentValidator()
+        self._cells_gate = GateExistsValidator("cells")
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        if not (
+            self._flow_import.validate(app_state)
+            and self._role_assign.validate(app_state)
+            and self._cells_gate.validate(app_state)
+        ):
+            return False
+        raw = [
+            s.display_name
+            for s in app_state.data.experiment.samples.values()
+            if s.fcs_data is not None and not s.is_compensated
+        ]
+        if raw:
+            return self.log_failure(f"Not compensated: {', '.join(raw)}.")
+        return True
+
+
+class BaseGatesStateValidator(FlowValidator):
+    """The workspace as Course 2 leaves it: samples, roles, and the base
+    gates Cells → Live Cells → Leukocytes.
+    """
 
     def __init__(self) -> None:
         self._flow_import = FlowImportValidator()
@@ -1342,11 +1352,11 @@ class PreferencesPageValidator(FlowValidator):
         return self.log_failure("Preferences dialog is not open.")
 
 
-class Course2GatingCompleteValidator(FlowValidator):
-    """Verifies Course 2's core gating (Leukocytes, T-cells, B-cells) exists
-    on every FULL_PANEL sample, before Course 3 starts leaning on it.
+class LineageGatingCompleteValidator(FlowValidator):
+    """Verifies Course 3's core gating (Leukocytes, T-cells, B-cells) exists
+    on every FULL_PANEL sample, before Course 4 starts leaning on it.
 
-    Same AND-composition pattern as ``Course1StateValidator`` above.
+    Same AND-composition pattern as ``BaseGatesStateValidator`` above.
     """
 
     def __init__(self) -> None:
@@ -1362,15 +1372,15 @@ class Course2GatingCompleteValidator(FlowValidator):
         return self._bcells.validate(app_state)
 
 
-class Course3AnalysisCompleteValidator(FlowValidator):
-    """Verifies Course 3's population-analysis output — the exported
+class PopulationAnalysisCompleteValidator(FlowValidator):
+    """Verifies Course 4's population-analysis output — the exported
     "UMAP B Cells" gate and the AND node cross-checking it against the
-    manual B-cells gate — actually exists, before Course 4's Statistics/
+    manual B-cells gate — actually exists, before Course 5's Statistics/
     Comparisons walkthrough starts leaning on both.
 
     Checks every FULL_PANEL sample directly, the same "any sample, not
     just whichever one happens to be open" reach `GateExistsValidator`
-    uses — Course 4 can launch with a different sample selected than
+    uses — Course 5 can launch with a different sample selected than
     whichever one the UMAP run was on, and this shouldn't false-fail
     just because of that.
     """
@@ -1836,7 +1846,7 @@ class ComparisonsPlotGeneratedValidator(FlowValidator):
         return True
 
 
-# ── Derived parameters (Course 4) ─────────────────────────────────────────────
+# ── Derived parameters (Course 5) ─────────────────────────────────────────────
 
 
 def _is_ratio_formula(formula: str, numerator: str, denominator: str) -> bool:

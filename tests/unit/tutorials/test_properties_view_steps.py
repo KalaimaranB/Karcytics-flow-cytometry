@@ -104,11 +104,14 @@ def test_only_the_first_gate_uses_the_histogram_view():
 
 
 def _gate_drawing_steps():
-    from karcytics_plugins.flow_cytometry.tutorials.courses import course_2_gating
+    from karcytics_plugins.flow_cytometry.tutorials.courses import (
+        course_2_compensation,
+        course_3_gating,
+    )
 
     return [
         step
-        for course in (course_1_fundamentals, course_2_gating)
+        for course in (course_1_fundamentals, course_2_compensation, course_3_gating)
         for step in course.steps
         if getattr(step, "event_trigger", "") == "gate_added_to_tree"
     ]
@@ -120,7 +123,7 @@ def test_every_gate_drawing_step_keeps_the_right_panel_usable():
     the user can switch it to Histogram or scroll the Group Preview meanwhile.
     """
     steps = _gate_drawing_steps()
-    assert len(steps) == 6  # 3 per course
+    assert len(steps) == 6  # Cells; Live Cells and Leukocytes; three in Course 3
 
     for step in steps:
         if step.id == "c1_s24_cells_gate":

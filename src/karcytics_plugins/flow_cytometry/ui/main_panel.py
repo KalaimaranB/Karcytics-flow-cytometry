@@ -606,8 +606,8 @@ class FlowCytometryPanel(PluginBase):
                     show_error(
                         self,
                         "Prerequisite Required",
-                        "This course requires you to load the saved workflow from Course 1.\n\n"
-                        "Please open the project where you completed Course 1, or load the workflow.",
+                        "This course continues from the workflow you saved in the course before it.\n\n"
+                        "Please open the project where you completed that course, or load the workflow.",
                     )
                     return
                 # Check if the loaded workflow's hash matches the prerequisite
@@ -616,13 +616,13 @@ class FlowCytometryPanel(PluginBase):
                     show_error(
                         self,
                         "No Workflow Loaded",
-                        "Please load your completed Course 1 workflow.",
+                        "Please load the workflow you saved at the end of the previous course.",
                     )
                     return
 
                 # We no longer check the strict workflow hash here because it is brittle
                 # and fails when the user auto-saves or restarts. Instead, we rely on the
-                # robust Course1StateValidator at the start of Course 2.
+                # state validator each later course opens with.
                 pass
 
             # No prerequisites (e.g. Course 1).

@@ -1,12 +1,12 @@
 """Regression test: the on-canvas guide box shown to the user for a gate-
 drawing tutorial step must be something GateShapeValidator actually accepts.
 
-Found via a real bug report: course1's Live Cells guide_range topped out at
+Found via a real bug report: the Live Cells guide_range topped out at
 10000, but its validator's target_bounds required the gate to reach ~50000
 (within a 10%-of-axis-range tolerance) — so a gate drawn to exactly trace the
 box the user was shown got rejected as "bad shape" even though it was
-correct. The same mismatch existed for course2's B-cells gate. This test
-walks every gate-drawing InteractionStep in course1/course2 that has guide
+correct. The same mismatch existed for the B-cells gate. This test
+walks every gate-drawing InteractionStep in courses 1–3 that has guide
 metadata, builds a gate matching that guide exactly, and asserts the paired
 VerificationStep's validator accepts it — so this class of bug can't silently
 come back in either course.
@@ -23,8 +23,14 @@ from karcytics_plugins.flow_cytometry.analysis.gating.polygon import PolygonGate
 from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate, QuadrantSubGate
 from karcytics_plugins.flow_cytometry.analysis.gating.range import RangeGate
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
-from karcytics_plugins.flow_cytometry.tutorials import course1, course2
+from karcytics_plugins.flow_cytometry.tutorials import course1, course2, course3
 from karcytics_plugins.flow_cytometry.tutorials.validators import GateShapeValidator
+
+COURSES = (
+    course1.course_1_fundamentals,
+    course2.course_2_compensation,
+    course3.course_3_gating,
+)
 
 
 def _gate_matching_guide(metadata: dict):
@@ -59,7 +65,7 @@ def _gate_drawing_cases():
     guide metadata whose next_step_id points at a VerificationStep using a
     GateShapeValidator.
     """
-    for course in (course1.course_1_fundamentals, course2.course_2_gating):
+    for course in COURSES:
         steps_by_id = {s.id: s for s in course.steps}
         for step in course.steps:
             if not isinstance(step, InteractionStep):
@@ -94,8 +100,8 @@ class TestNoGateDrawingStepsAreSilentlyOrphaned:
         """Guards the test itself: if course step wiring changes shape and
         this stops matching anything, we'd otherwise pass vacuously."""
         found_courses = {case_id.split("/")[0] for case_id, _metadata, _validator in _CASES}
-        assert found_courses == {course1.course_1_fundamentals.id, course2.course_2_gating.id}
-        assert len(_CASES) >= 6, "expected at least the 3 gates in each of course1/course2"
+        assert found_courses == {course.id for course in COURSES}
+        assert len(_CASES) >= 6, "expected Cells, Live Cells, Leukocytes and course3's three"
 
 
 @pytest.mark.parametrize("case_id, metadata, validator", _CASES, ids=[c[0] for c in _CASES])

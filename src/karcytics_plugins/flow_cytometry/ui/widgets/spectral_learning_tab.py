@@ -1048,7 +1048,7 @@ class SpectralLearningTab(QWidget):
         <h3 style="color: #58a6ff;">Reading the Result</h3>
         <p>This is the corrected data — single positives now sit flat on their own axes instead
         of slanting, so the true Double Positive population is clearly separated from noise.</p>
-        <p>Just like in Course 1, we isolate it by drawing a gate around it.</p>
+        <p>Just like the Cells gate you drew earlier, we isolate it by drawing a gate around it.</p>
         """
         if 5 not in self._completed_steps:  # noqa: PLR2004
             html += "<p style='color: #3fb950; font-weight: bold;'>Action Required: Drag a rectangle around the true Double Positive population (top right).</p>"

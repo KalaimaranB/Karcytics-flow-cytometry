@@ -11,12 +11,19 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.tutorials.courses import (
     course_1_fundamentals,
-    course_2_gating,
-    course_3_analysis,
-    course_4_reporting,
+    course_2_compensation,
+    course_3_gating,
+    course_4_analysis,
+    course_5_reporting,
 )
 
-COURSES = [course_1_fundamentals, course_2_gating, course_3_analysis, course_4_reporting]
+COURSES = [
+    course_1_fundamentals,
+    course_2_compensation,
+    course_3_gating,
+    course_4_analysis,
+    course_5_reporting,
+]
 SPECIAL_TARGETS = {"__abandon__"}
 # Reached only from Python callbacks (ActionStep lambdas), which a static
 # walk can't see — e.g. Course 1's route_import_failure(...).
@@ -82,9 +89,9 @@ def test_every_step_reachable_from_the_first(course):
 
 
 def test_course4_derived_block_sits_between_course3_check_and_statistics():
-    by_id = {s.id: s for s in course_4_reporting.steps}
-    assert by_id["c4_s01_validate_analysis"].on_success_step_id == "c4_d01_intro"
-    assert by_id["c4_d13_pitfalls"].next_step_id == "c4_d14_invalid_question"
-    assert by_id["c4_d14_invalid_question"].next_step_id == "c4_s02_switch_statistics"
-    assert by_id["c4_s06_select_stats"].on_success_step_id == "c4_s06a_ratio_channel"
-    assert by_id["c4_s06a_ratio_channel"].on_success_step_id == "c4_s06b_compute"
+    by_id = {s.id: s for s in course_5_reporting.steps}
+    assert by_id["c5_s01_validate_analysis"].on_success_step_id == "c5_d01_intro"
+    assert by_id["c5_d13_pitfalls"].next_step_id == "c5_d14_invalid_question"
+    assert by_id["c5_d14_invalid_question"].next_step_id == "c5_s02_switch_statistics"
+    assert by_id["c5_s06_select_stats"].on_success_step_id == "c5_s06a_ratio_channel"
+    assert by_id["c5_s06a_ratio_channel"].on_success_step_id == "c5_s06b_compute"

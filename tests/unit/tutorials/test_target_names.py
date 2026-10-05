@@ -14,12 +14,19 @@ from pathlib import Path
 
 from karcytics_plugins.flow_cytometry.tutorials.courses import (
     course_1_fundamentals,
-    course_2_gating,
-    course_3_analysis,
-    course_4_reporting,
+    course_2_compensation,
+    course_3_gating,
+    course_4_analysis,
+    course_5_reporting,
 )
 
-COURSES = [course_1_fundamentals, course_2_gating, course_3_analysis, course_4_reporting]
+COURSES = [
+    course_1_fundamentals,
+    course_2_compensation,
+    course_3_gating,
+    course_4_analysis,
+    course_5_reporting,
+]
 PLUGIN_ROOT = Path(__file__).resolve().parents[3] / "src" / "karcytics_plugins" / "flow_cytometry"
 # setObjectName(f"Tool_{tool_id}") in gating_ribbon.py,
 # setObjectName(f"Add{op.capitalize()}GateButton") in pipeline_ribbon.py.
