@@ -487,6 +487,25 @@ def test_fmo_tubes_are_placed_by_their_signal(state):
     assert rows["(no FMO control)"][:2] == ("PE-A", "not estimated — left at 0")
 
 
+@pytest.mark.parametrize(
+    "tube, expected",
+    [
+        ([0.02, 1.0, 1.1, 0.9], 0),  # plainly missing
+        ([1.0, 0.6, 1.1, 1.2], 1),  # only modestly dim, but nothing else is close
+        ([0.45, 0.4, 0.45, 0.5], None),  # dim all round: a weaker tube, not a missing dye
+        ([1.0, 0.5, 0.55, 1.0], None),  # two candidates
+        ([1.0, 0.95, 1.4, 1.5], None),  # lowest, but not dimmer than the others
+    ],
+)
+def test_the_missing_dye_must_stand_out_from_the_tubes_other_channels(tube, expected):
+    """Levels are relative to three other FMOs that all read 1000 everywhere."""
+    levels = np.array([[1000.0 * level for level in tube], *[[1000.0] * 4] * 3])
+
+    found = matrix_sources._dimmest_channel(levels, 0)
+
+    assert (found[0] if found else None) == expected
+
+
 def test_cells_show_whether_the_method_produced_them(make_view, state):
     """Greyed: the method had no control for the cell. Green bold: edited by hand."""
     from karcytics_plugins.flow_cytometry.analysis.compensation import CELL_DEFAULT, CELL_EDITED

@@ -42,7 +42,7 @@ Measured on `tests/data/fcs/` (FMO fit on all events; re-measure on the Cells ga
 Other facts the course text must respect:
 - The file's matrix is **applied automatically on import** (samples show ✦). "Apply to all samples" in Course 1 therefore reports that samples were skipped.
 - All five FMO tubes are placed **from their data**; the e450 tube's name does not identify its dye, so it is the natural example for "How we know".
-- The PE tube clears the detection threshold narrowly (0.48 against 0.5). If the threshold rule changes, re-check that all five still place.
+- Detection asks that one channel stand clear of the tube's others. The PE tube is the least clear-cut (0.48 as bright as the other FMOs, its next-lowest channel at 1.01) and still places with room to spare.
 
 ## 3. Course 1 — compensation part A (judge the matrix you have)
 
@@ -103,15 +103,13 @@ Then Live Cells, Leukocytes and propagation, moved from Course 1 with their step
 ## 5. Engineering
 
 **Course identity**
-- Keep `flow_course_1_fundamentals`, `flow_course_2_gating`, `flow_course_3_analysis`, `flow_course_4_reporting` so saved progress, badges and recorded answers survive. Add `flow_course_compensation` between 1 and 2; `flow_course_2_gating` now requires it.
-- Displayed numbers come from registration order (`__init__.py::register_courses`, `tutorials/courses.py`). Rename the modules to match what the learner sees (`course2.py` → `course3.py`, and so on) with `git mv`, ids untouched.
-- Moved steps keep their ids (`c1_s26…`, `c2_s43…`). New steps in the new course use the prefix `cc_`.
+- Saved progress is not a concern (user, 2026-10-04: too few users so far), so ids, modules and step prefixes are renumbered to match what the learner sees: `flow_course_1_fundamentals`, `flow_course_2_compensation` (new), `flow_course_3_gating`, `flow_course_4_analysis`, `flow_course_5_reporting`, in `course1.py` … `course5.py` (`git mv`).
+- Step ids follow their course: moved and renumbered steps get the new `c2_` / `c3_` / `c4_` / `c5_` prefix in one mechanical pass, with `question_id`s, `test_tutorial_numbers.py::QUOTES` and the other tests updated in the same commit.
 - Check how `{answer:c1_thymus_few}` resolves across courses before moving any question: answers are stored per course id.
-- A learner who finished today's Course 1 will see Course 1 complete and the new Course 2 not started, though they already drew its gates. Accept this; the new Course 2's gate steps pass immediately when the gate exists.
 
 **Existing code that names a course**
-- `tutorials/validators.py:880–883` records prerequisites by id on save. Add the new id. The second call uses `flow_course_3_pipeline`, which is not a registered id (the course is `flow_course_3_analysis`); check whether Course 3 unlocking relies on it.
-- `ui/widgets/spectral_viewer.py:307` shows the Learning Compensation tab only while `flow_course_2_gating` is active. It must follow the masterclass to Course 1.
+- `tutorials/validators.py:880–883` records prerequisites by id on save. Update it for the new ids. The second call uses `flow_course_3_pipeline`, which is not a registered id (the course is `flow_course_3_analysis`); check whether Course 3 unlocking relies on it.
+- `ui/widgets/spectral_viewer.py:307` shows the Learning Compensation tab only while `flow_course_2_gating` is active. It must follow the masterclass to Course 1 (`flow_course_1_fundamentals`).
 - `Course1StateValidator` (used by `c2_s00_verify`) expects Cells → Live Cells → Leukocytes. It stays for Course 3. Course 2 needs a new checkpoint: samples, roles, Cells gate, compensated.
 - Tab indices: Gating 1, Compensation 2, Spectral 5.
 
@@ -144,8 +142,8 @@ Work continues on `main`, one commit per phase, unpushed until the user says oth
 - [ ] **Phase 5: wording pass on Courses 3–5.** Course numbers in text, Course 3's intro, objectives and recap now that Spectral has left it. *Checkpoint: skim each course's first and last five steps.*
 - [ ] **Phase 6: numbers test, user docs, version bump and release.**
 
-## Open decisions
+## Decisions (2026-10-04)
 
-1. **Spectral viewer in Course 1 or Course 2?** Planned: Course 1 (61 / 63 / 62). In Course 2 instead the totals are about 54 / 70 / 62, which puts Course 1 just under the range.
-2. **New course id and module renames** as in §5, or leave module names alone and accept that `course2.py` holds what learners call Course 3.
-3. **Detection threshold.** Whether to make missing-dye detection judge by how far the dimmest channel stands out, before the course quotes "how we know" on a tube that passes narrowly.
+1. **Spectral viewer and masterclass go in Course 1.**
+2. **Saved progress is not preserved.** Ids, modules and step prefixes are renumbered cleanly (§5).
+3. **Missing-dye detection** now requires one channel to stand clear of the tube's others, instead of a fixed half-brightness cut-off. Done ahead of the course work.

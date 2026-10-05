@@ -54,9 +54,13 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 _MIN_SINGLE_STAINS = 2
 _MIN_MATRIX_CHANNELS = 2
-# Placing an FMO by its signal: it must be this much dimmer than the other
-# FMOs' median in the channel of the dye it lacks.
-_MISSING_DYE_RATIO = 0.5
+# Placing an FMO by its signal. A tube's level in each channel is taken
+# relative to the other FMOs' median there (about 1 where it carries the
+# dye). The dye it lacks is the channel where that is lowest, provided it is
+# dimmer than the others at all, and stands clear of the tube's next-lowest
+# channel, so a tube that is merely dim overall is not placed.
+_DIMMER_THAN_OTHER_FMOS = 0.8
+_CLEAR_OF_NEXT_CHANNEL = 0.7
 _MIN_OTHER_FMOS = 2
 _SIGNAL_SAMPLE_EVENTS = 20_000
 
@@ -459,8 +463,9 @@ class FmoSource(MatrixSource):
     explanation = (
         "<b>How it works.</b> An FMO control is stained with every dye but one, so "
         "whatever its missing dye's detector records has leaked in from the other dyes.<br>"
-        "1. <b>Which dye each tube lacks</b> is read from its data: the channel where it is "
-        "under half as bright as the other FMO tubes. That is worked out once and kept, and "
+        "1. <b>Which dye each tube lacks</b> is read from its data: the one channel where it "
+        "is dimmer than the other FMO tubes, with no other channel coming close. That is "
+        "worked out once and kept, and "
         "shown in the table below, where you can change it. Only when the data doesn't "
         "settle it (fewer than three FMO tubes, say) is the tube's name used as a guess.<br>"
         "2. <b>One fit per tube:</b> the missing dye's detector is written as a weighted "
@@ -817,16 +822,20 @@ def _signal_levels(controls: list[FCSData], channels: list[str]) -> np.ndarray |
 
 
 def _dimmest_channel(levels: np.ndarray, control: int) -> tuple[int, float] | None:
-    """The channel where ``control`` is clearly dimmer than the other FMOs —
-    the dye it lacks — and how dim (its level over theirs). None if nothing
-    stands out.
+    """The one channel where ``control`` is dimmer than the other FMOs — the
+    dye it lacks — and how far it stands out (its relative level there over
+    that of its next-lowest channel; smaller is clearer). None if no single
+    channel stands out.
     """
     others = np.delete(levels, control, axis=0)
-    if len(others) < _MIN_OTHER_FMOS:
+    if len(others) < _MIN_OTHER_FMOS or levels.shape[1] < _MIN_MATRIX_CHANNELS:
         return None
-    ratios = levels[control] / np.median(others, axis=0)
-    dimmest = int(np.argmin(ratios))
-    return (dimmest, float(ratios[dimmest])) if ratios[dimmest] < _MISSING_DYE_RATIO else None
+    relative = levels[control] / np.median(others, axis=0)
+    lowest, next_lowest = np.argsort(relative)[:2]
+    standout = float(relative[lowest] / relative[next_lowest])
+    if relative[lowest] >= _DIMMER_THAN_OTHER_FMOS or standout >= _CLEAR_OF_NEXT_CHANNEL:
+        return None
+    return int(lowest), standout
 
 
 # ── Import from a file ────────────────────────────────────────────────

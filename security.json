@@ -283,7 +283,7 @@
         "src/karcytics_plugins/flow_cytometry/ui/widgets/groups_panel.py": "f869f624164932f0d7b86a9065bf0772d18ce5c5d7a8bce763a6e78f8711b8e9",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/marker_panel.py": "b3d572ba2589ed7bbed02f1ab7d1f579741ef1f0035ddc0c39a1a54f3a76c8e4",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/matrix_library_panel.py": "7b075c6df0c316690ec95731cc232af3730b79cdc934c6bfa3aca1acfb7e7c9f",
-        "src/karcytics_plugins/flow_cytometry/ui/widgets/matrix_sources.py": "3d2642f3e676791f502ce08a829d85f391626e055578ca6f17266f3c03ba0b58",
+        "src/karcytics_plugins/flow_cytometry/ui/widgets/matrix_sources.py": "87607ce3232d27cea80225fed41888539702eb10500fcaed342e0208dfbf62f8",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/method_illustration.py": "c820605e1c5ac427e0300d34f4fbb88cdb37321ec3087a91043854224252c3db",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/method_setup_panel.py": "1a8b35a992574ae7736c8d71baf936e66f382551e09e79fb9f77b7ebbb6f6f3a",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/mini_histogram.py": "84825f60c21d7687a0c3a886cf1ca079b3f4215595bd652ccd03a654640cc3a5",
