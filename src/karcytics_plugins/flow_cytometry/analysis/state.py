@@ -68,6 +68,7 @@ class ViewState:
     _spectral_viewer: Any | None = field(default=None, repr=False, compare=False)
     _statistics_explorer: Any | None = field(default=None, repr=False, compare=False)
     _comparisons_viewer: Any | None = field(default=None, repr=False, compare=False)
+    _compensation_view: Any | None = field(default=None, repr=False, compare=False)
     _population_analysis_viewer: Any | None = field(default=None, repr=False, compare=False)
     _derived_editor: Any | None = field(default=None, repr=False, compare=False)
 

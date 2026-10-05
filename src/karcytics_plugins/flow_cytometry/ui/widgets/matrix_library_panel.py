@@ -139,6 +139,7 @@ class MatrixLibraryPanel(QWidget):
 
         manage = QHBoxLayout()
         self._btn_save = SecondaryButton("💾 Save current as…")
+        self._btn_save.setObjectName("MatrixSaveButton")
         self._btn_save.setToolTip("Keep the matrix in the editor under a name of its own.")
         self._btn_save.clicked.connect(self._on_save_current)
         self._btn_rename = SecondaryButton("Rename")
@@ -169,6 +170,7 @@ class MatrixLibraryPanel(QWidget):
         right_layout.addLayout(compare)
 
         self._table = QTableWidget()
+        self._table.setObjectName("MatrixCompareTable")
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         right_layout.addWidget(self._table, stretch=1)
@@ -180,6 +182,7 @@ class MatrixLibraryPanel(QWidget):
 
         actions = QHBoxLayout()
         self._btn_open = SecondaryButton("✏ Open in editor")
+        self._btn_open.setObjectName("MatrixOpenInEditorButton")
         self._btn_open.setToolTip("Load this saved matrix into the Matrix page to fine-tune it.")
         self._btn_open.clicked.connect(self._on_open)
         self._btn_export = SecondaryButton("📤 Export CSV")

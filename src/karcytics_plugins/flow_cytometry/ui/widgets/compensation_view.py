@@ -55,6 +55,8 @@ from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBo
 logger = get_logger(__name__, "flow_cytometry")
 
 _RUN_BUTTON_NAME = "RunMethodButton"
+
+PAGE_SETUP, PAGE_MATRIX, PAGE_MATRICES = "setup", "matrix", "matrices"
 # Keys of the editor's matrix selector that aren't a saved matrix's id.
 _WORKSPACE_KEY = "workspace"
 _UNSAVED_KEY = "unsaved"
@@ -168,6 +170,7 @@ class CompensationView(QWidget):
         row = QHBoxLayout()
         row.setSpacing(12)
         self._status = QLabel()
+        self._status.setObjectName("CompensationStatusLine")
         self._status.setTextFormat(Qt.TextFormat.RichText)
         row.addWidget(self._status)
         self._note = QLabel()  # outcome of the last action
@@ -222,6 +225,40 @@ class CompensationView(QWidget):
         return row
 
     # ── State sync ────────────────────────────────────────────────────
+
+    # Read-only views of the tab, for the Academy's validators.
+
+    @property
+    def method_key(self) -> str | None:
+        """The selected method's key."""
+        return self._method_combo.currentData()
+
+    @property
+    def page(self) -> str:
+        """Which page is showing: PAGE_SETUP, PAGE_MATRIX or PAGE_MATRICES."""
+        current = self._body.currentWidget()
+        if current is self._library:
+            return PAGE_MATRICES
+        return PAGE_MATRIX if current is self._editor else PAGE_SETUP
+
+    @property
+    def fit_gate(self) -> str | None:
+        """The population the selected method is set to fit on (None: all events)."""
+        source = self._source(self.method_key)
+        return self._options_for(source).gate if source is not None else None
+
+    @property
+    def editor(self) -> CompensationEditor:
+        return self._editor
+
+    @property
+    def illustration_step(self) -> int | None:
+        return self._setup.illustration_step
+
+    @property
+    def samples_match_matrix(self) -> bool:
+        """False while the workspace matrix has changed since samples were compensated."""
+        return not self._data_stale
 
     @property
     def has_unapplied_edits(self) -> bool:

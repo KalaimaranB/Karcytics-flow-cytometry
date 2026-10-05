@@ -106,6 +106,7 @@ class MethodSetupPanel(QWidget):
         self._inputs_title = _heading("What this method will use")
         layout.addWidget(self._inputs_title)
         self._inputs_table = _table()
+        self._inputs_table.setObjectName("MethodInputsTable")
         layout.addWidget(self._inputs_table)
 
         self._report_title = _heading("What the last run rested on")
@@ -113,6 +114,7 @@ class MethodSetupPanel(QWidget):
         self._report_note = _note(_NO_REPORT_NOTE)
         layout.addWidget(self._report_note)
         self._report_table = _table()
+        self._report_table.setObjectName("MethodReportTable")
         layout.addWidget(self._report_table)
         layout.addStretch()
 
@@ -265,6 +267,11 @@ class MethodSetupPanel(QWidget):
             )
             self._inputs_table.setCellWidget(index, choice_column, combo)
         self._inputs_table.resizeColumnsToContents()
+
+    @property
+    def illustration_step(self) -> int | None:
+        """The step the step-by-step picture is on; None before it is opened."""
+        return self._illustration.step if self._illustration is not None else None
 
     def _on_choice(self, sample_id: str, combo: FlowComboBox) -> None:
         if self._source is not None:

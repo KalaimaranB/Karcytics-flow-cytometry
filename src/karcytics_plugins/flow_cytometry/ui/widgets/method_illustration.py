@@ -90,6 +90,8 @@ class FitIllustrationView(QWidget):
         self._btn_next.clicked.connect(lambda: self.go_to(self._step + 1, animate=True))
         self._btn_play = SecondaryButton("▶ Play")
         self._btn_play.clicked.connect(self.play)
+        self._btn_next.setObjectName("IllustrationNextButton")
+        self._btn_play.setObjectName("IllustrationPlayButton")
         self._step_label = QLabel()
         for widget in (self._btn_back, self._btn_next, self._btn_play, self._step_label):
             controls.addWidget(widget)

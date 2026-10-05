@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import typing
 from dataclasses import replace
+from typing import NamedTuple
 
 import numpy as np
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -52,6 +53,15 @@ from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBo
 _PREVIEW_MAX_EVENTS = 10_000
 # The sample selector's entry for every sample at once, one row each.
 ALL_SAMPLES = "__all__"
+
+
+class PreviewSelection(NamedTuple):
+    sample: str | None  # a sample id, or ALL_SAMPLES
+    x: str
+    y: str
+    view: str  # VIEW_SCATTER | VIEW_HISTOGRAM | VIEW_BOTH
+
+
 _ALL_EVENTS = "All events"
 _MIN_SAMPLES_FOR_ALL = 2
 # Typing in a cell re-renders every row; wait for a pause first.
@@ -161,6 +171,16 @@ class CompensationEditor(QWidget):
         """The working copy, including any edits."""
         return self._matrix
 
+    @property
+    def preview_selection(self) -> PreviewSelection:
+        """What the preview is set to show."""
+        return PreviewSelection(
+            self._sample_combo.currentData(),
+            self._x_combo.currentText(),
+            self._y_combo.currentText(),
+            self._view_combo.currentData(),
+        )
+
     def load(self, matrix: CompensationMatrix | None) -> None:
         """Start editing a private copy of ``matrix``, discarding any edits."""
         self._matrix = CompensationMatrix.from_dict(matrix.to_dict()) if matrix else None
@@ -210,6 +230,7 @@ class CompensationEditor(QWidget):
         left_layout.addWidget(caption)
 
         self._table = QTableWidget()
+        self._table.setObjectName("CompensationMatrixTable")
         self._table.itemChanged.connect(self._on_cell_changed)
         self._table.currentCellChanged.connect(self._on_current_cell_changed)
         self._table.setStyleSheet(
@@ -256,6 +277,7 @@ class CompensationEditor(QWidget):
         self._preview = CompensationPreview()
         self._all_preview = CompensationPreviewGrid(self._scheduler)
         self._preview_stack = QStackedWidget()
+        self._preview_stack.setObjectName("CompensationPreviewArea")
         self._preview_stack.addWidget(self._preview.canvas)
         self._preview_stack.addWidget(self._all_preview)
         right_layout.addWidget(self._preview_stack, stretch=1)
@@ -276,6 +298,7 @@ class CompensationEditor(QWidget):
         controls_layout = QVBoxLayout()
         what_row, how_row = QHBoxLayout(), QHBoxLayout()
         self._sample_combo = FlowComboBox()
+        self._sample_combo.setObjectName("PreviewSampleCombo")
         self._population_combo = FlowComboBox()
         self._population_combo.setObjectName("PreviewPopulationCombo")
         self._population_combo.setToolTip(
@@ -283,8 +306,11 @@ class CompensationEditor(QWidget):
             "without that gate is shown whole."
         )
         self._x_combo = FlowComboBox()
+        self._x_combo.setObjectName("PreviewXCombo")
         self._y_combo = FlowComboBox()
+        self._y_combo.setObjectName("PreviewYCombo")
         self._view_combo = FlowComboBox()
+        self._view_combo.setObjectName("PreviewViewCombo")
         self._view_combo.addItem("Scatter (X vs Y)", VIEW_SCATTER)
         self._view_combo.addItem("Histogram (before vs after)", VIEW_HISTOGRAM)
         self._view_combo.addItem("Scatter + histograms", VIEW_BOTH)

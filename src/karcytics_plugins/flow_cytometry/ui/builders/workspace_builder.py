@@ -344,6 +344,7 @@ class WorkspaceBuilder:
         )
 
         panel._compensation_view = CompensationView(panel.state, parent=panel)
+        panel.state.view._compensation_view = panel._compensation_view
 
     @staticmethod
     def finalize_center_stack(panel: FlowCytometryPanel) -> None:
