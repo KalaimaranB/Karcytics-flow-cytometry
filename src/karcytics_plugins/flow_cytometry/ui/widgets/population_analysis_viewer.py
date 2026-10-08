@@ -17,9 +17,9 @@ from karcytics_sdk.plugin.components import (
     repopulate_combo,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIntValidator
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIntValidator
+from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
     QHBoxLayout,
@@ -567,7 +567,7 @@ class PopulationAnalysisViewer(QWidget):
             if combo and hasattr(combo, "_apply_theme_styles"):
                 combo._apply_theme_styles()
 
-        from PyQt6.QtGui import QColor
+        from PySide6.QtGui import QColor
 
         fg_color = QColor(Colors.FG_PRIMARY)
 
@@ -891,7 +891,7 @@ class PopulationAnalysisViewer(QWidget):
         """
         self._last_results = run_data
 
-        # Freeze the UI first — on macOS/PyQt6, calling setEnabled(False) on a
+        # Freeze the UI first — on macOS/PySide6, calling setEnabled(False) on a
         # QCheckBox AFTER setChecked(True) causes the native style to repaint
         # the indicator as visually unchecked even though isChecked() is True.
         # By disabling first and then setting values on the already-disabled
@@ -1118,9 +1118,9 @@ class PopulationAnalysisViewer(QWidget):
 
             def _on_prep_done(results: dict):
                 try:
-                    from PyQt6 import sip
+                    import shiboken6
 
-                    if not sip.isdeleted(worker):
+                    if shiboken6.isValid(worker):
                         worker.finished.disconnect(_on_prep_done)
                         worker.error.disconnect(_on_prep_error)
                 except Exception:
@@ -1164,9 +1164,9 @@ class PopulationAnalysisViewer(QWidget):
 
             def _on_prep_error(err: str):
                 try:
-                    from PyQt6 import sip
+                    import shiboken6
 
-                    if not sip.isdeleted(worker):
+                    if shiboken6.isValid(worker):
                         worker.finished.disconnect(_on_prep_done)
                         worker.error.disconnect(_on_prep_error)
                 except Exception:

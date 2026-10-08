@@ -6,7 +6,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService

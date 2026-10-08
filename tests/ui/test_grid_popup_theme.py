@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from PyQt6.QtGui import QColor
+from PySide6.QtGui import QColor
 
 from karcytics_plugins.flow_cytometry.ui.widgets.gate_hierarchy import all_samples_popup
 from karcytics_plugins.flow_cytometry.ui.widgets.gate_hierarchy.all_samples_popup import _HeatCell

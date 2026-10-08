@@ -21,9 +21,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QEvent, QPoint, QRect, Qt, QTimer
-from PyQt6.QtGui import QFont, QFontMetrics, QKeyEvent, QMouseEvent, QResizeEvent
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QEvent, QPoint, QRect, Qt, QTimer
+from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QMouseEvent, QResizeEvent
+from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QGridLayout,
@@ -76,7 +76,7 @@ class BranchLabel(QWidget):
             super().mousePressEvent(event)
 
     def paintEvent(self, _event) -> None:  # noqa: N802
-        from PyQt6.QtGui import QColor, QPainter
+        from PySide6.QtGui import QColor, QPainter
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -393,7 +393,7 @@ class FloatingGridPopup(QFrame):
         return bottom_row
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:  # noqa: N802
-        super().resizeEvent(event)
+        super().resizeEvent(event)  # type: ignore[arg-type]
         if hasattr(self, "_size_grip"):
             self._size_grip.move(
                 self.width() - self._size_grip.width() - 2,

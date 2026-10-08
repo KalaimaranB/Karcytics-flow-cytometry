@@ -18,9 +18,9 @@ widgets) without vanishing the moment something else is clicked.
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QRect, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QPainter, QPainterPath
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
+from PySide6.QtCore import QRect, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from .all_samples_model import AllSamplesModel, PopulationRow
 from .floating_grid_popup import _PALETTE_HEX, FloatingGridPopup
@@ -31,7 +31,9 @@ _HEAT_TEXT_COLOR = "#e6edf3"
 def _saturate(hex_color: str, pct: float) -> str:
     """Darken a colour proportionally to low event percentage."""
     c = QColor(hex_color)
-    h, s, v, a = c.getHsvF()
+    # PySide6 returns the 4-tuple; its stub declares a bare object.
+    hsva: tuple[float, float, float, float] = c.getHsvF()  # type: ignore[assignment]
+    h, s, v, a = hsva
 
     _h = h if h is not None else 0.0
     _s = s if s is not None else 0.0
@@ -52,7 +54,7 @@ class AllSamplesPopup(FloatingGridPopup):
         popup.show_near(trigger_button, state, reference_sample_id)
     """
 
-    sample_selected = pyqtSignal(str)  # Emitted when a column header is clicked
+    sample_selected = Signal(str)  # Emitted when a column header is clicked
 
     def __init__(self, parent: QWidget | None = None) -> None:
         self._model = AllSamplesModel()

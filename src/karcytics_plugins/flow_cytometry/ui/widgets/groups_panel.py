@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -59,7 +59,7 @@ class GroupsPanel(QWidget):
         group_selected(group_id): Emitted when a group is clicked.
     """
 
-    group_selected = pyqtSignal(str)
+    group_selected = Signal(str)
 
     def __init__(self, state: FlowState, parent=None) -> None:
         super().__init__(parent)
@@ -170,7 +170,7 @@ class GroupsPanel(QWidget):
             # Extract sample_ids from tree widget items
             # The mime data encodes tree widget items. We just need the source widget
             source = event.source()
-            from PyQt6.QtWidgets import QTreeWidget
+            from PySide6.QtWidgets import QTreeWidget
 
             if isinstance(source, QTreeWidget):
                 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
@@ -202,7 +202,7 @@ class GroupsPanel(QWidget):
             return
 
         from karcytics_sdk.plugin.dialogs import ask_yes_no
-        from PyQt6.QtWidgets import QInputDialog, QMenu
+        from PySide6.QtWidgets import QInputDialog, QMenu
 
         menu = QMenu(self)
 

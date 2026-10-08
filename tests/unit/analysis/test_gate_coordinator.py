@@ -2,7 +2,7 @@ import sys
 import time
 
 import pytest
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 # Ensure QApplication exists for signal processing
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager

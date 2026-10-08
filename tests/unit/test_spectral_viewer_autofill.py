@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 app = QApplication.instance() or QApplication(sys.argv)
 

@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout
 
 if TYPE_CHECKING:
     from ...analysis.state import FlowState
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class SpectralRibbon(ThemedToolbarContainer):
     """Toolbar ribbon for spectral intelligence tools."""
 
-    open_spectral_viewer_requested = pyqtSignal()
+    open_spectral_viewer_requested = Signal()
 
     def __init__(self, state: FlowState, parent=None) -> None:
         super().__init__(parent)

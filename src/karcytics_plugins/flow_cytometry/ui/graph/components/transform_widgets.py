@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QDoubleValidator
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QDoubleValidator
+from PySide6.QtWidgets import (
     QButtonGroup,
     QFormLayout,
     QGridLayout,
@@ -33,7 +33,7 @@ class AxisTransformPanel(QWidget):
         scale_changed: Emitted whenever a setting is changed.
     """
 
-    scale_changed = pyqtSignal()
+    scale_changed = Signal()
 
     def __init__(
         self,

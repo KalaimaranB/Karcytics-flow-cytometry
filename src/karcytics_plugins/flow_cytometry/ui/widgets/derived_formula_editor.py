@@ -12,8 +12,8 @@ from itertools import permutations
 
 from karcytics_sdk.plugin.components import BioLineEdit, SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import QTimer, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QGridLayout,
@@ -87,8 +87,8 @@ class DerivedParameterEditor(QWidget):
         validity_changed(bool):  The draft became valid / invalid.
     """
 
-    changed = pyqtSignal()
-    validity_changed = pyqtSignal(bool)
+    changed = Signal()
+    validity_changed = Signal(bool)
 
     def __init__(self, state: FlowState, service: DerivedParameterService, parent=None) -> None:
         super().__init__(parent)

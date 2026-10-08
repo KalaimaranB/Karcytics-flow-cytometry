@@ -119,7 +119,7 @@ bookkeeping to keep index math from shifting.
     **structurally unreachable even if it did have controls**: it sits at
     `_ribbon_stack` index 5, but nothing ever shows the ribbon stack while
     that tab is active. It defines an unused signal,
-    `open_spectral_viewer_requested = pyqtSignal()`, that nothing in the
+    `open_spectral_viewer_requested = Signal()`, that nothing in the
     codebase connects to or emits (confirmed by search — no other file
     references it).
 
@@ -206,9 +206,9 @@ to `_compute_2d()` if the 1-D strategy raises), everything else through
 already acquire `raster_lock` non-blocking via `try_run`), but because a
 queued `QTimer` retry firing after the widget is destroyed crashes natively
 rather than raising a catchable `RuntimeError`. `FlowCanvas._retry_update()`
-/ `_retry_draw()` guard with `sip.isdeleted(self)` before touching `self`
+/ `_retry_draw()` guard with `not shiboken6.isValid(self)` before touching `self`
 again. Any new lock-guarded entry point added to `FlowCanvas` should follow
-the same `sip.isdeleted()` pattern if it can be retried via `QTimer`.
+the same `shiboken6.isValid()` pattern if it can be retried via `QTimer`.
 
 `GateLayerRenderer.render()` and every interactive-preview method on
 `GateDrawingFSM` (rubber band, polygon progress, quadrant crosshair, edit

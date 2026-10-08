@@ -11,7 +11,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 
 @pytest.fixture(scope="session")

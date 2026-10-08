@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.config import DotPlotConfig
 
@@ -19,7 +19,7 @@ from ._utils import (
 class DotPlotSettingsPanel(QWidget):
     """Settings panel for the Dot Plot (scatter) renderer."""
 
-    changed = pyqtSignal()
+    changed = Signal()
 
     def __init__(self, config: DotPlotConfig, max_sample_events: int = 300_000, parent=None):
         super().__init__(parent)

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import QSize, Qt, pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QWidget
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QSizePolicy, QWidget
 
 
 class ElidedLabel(QLabel):
@@ -44,7 +44,7 @@ class ElidedLabel(QLabel):
 class GraphToolbar(QWidget):
     """Navigation and breadcrumbs for GraphWindow."""
 
-    navigation_requested = pyqtSignal(str)  # "next_sample", "prev_sample", "parent_gate"
+    navigation_requested = Signal(str)  # "next_sample", "prev_sample", "parent_gate"
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)

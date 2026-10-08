@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
@@ -18,12 +18,12 @@ NEW_DERIVED_LABEL = "＋ New derived parameter…"
 class AxisControlPanel(QWidget):
     """Axis selection and display mode for GraphWindow."""
 
-    axis_changed = pyqtSignal()
-    display_mode_changed = pyqtSignal(object)  # DisplayMode
-    fmo_overlay_changed = pyqtSignal(str)  # FMO sample ID or empty string
-    transforms_requested = pyqtSignal()
-    settings_requested = pyqtSignal()
-    new_derived_requested = pyqtSignal(str)  # "x" or "y"
+    axis_changed = Signal()
+    display_mode_changed = Signal(object)  # DisplayMode
+    fmo_overlay_changed = Signal(str)  # FMO sample ID or empty string
+    transforms_requested = Signal()
+    settings_requested = Signal()
+    new_derived_requested = Signal(str)  # "x" or "y"
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -52,7 +52,7 @@ class AxisControlPanel(QWidget):
         self._y_label.setObjectName("AxisLabelY")
         layout.addWidget(self._y_label)
 
-        from PyQt6.QtWidgets import QStackedWidget
+        from PySide6.QtWidgets import QStackedWidget
 
         self._y_stack = QStackedWidget()
         layout.addWidget(self._y_stack)

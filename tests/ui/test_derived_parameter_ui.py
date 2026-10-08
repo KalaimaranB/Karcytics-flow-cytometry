@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pandas as pd
 import pytest
-from PyQt6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.derived import DerivedParameterDraft
@@ -377,7 +377,7 @@ def test_graph_window_lists_derived_and_selects_new_param(qtbot, state, service)
 
 
 def test_gating_ribbon_button_requests_editor(qtbot, state):
-    from PyQt6.QtWidgets import QPushButton
+    from PySide6.QtWidgets import QPushButton
 
     from karcytics_plugins.flow_cytometry.ui.ribbons.gating_ribbon import GatingRibbon
 
@@ -439,7 +439,7 @@ def test_comparisons_log_floor_only_drops_for_sub_one_data():
 
 def test_dialog_stays_above_the_main_window(dialog):
     """Clicking the main window (e.g. the Academy's Next) mustn't bury it."""
-    from PyQt6.QtCore import Qt
+    from PySide6.QtCore import Qt
 
     assert dialog.windowType() == Qt.WindowType.Tool
     dialog.open_new()

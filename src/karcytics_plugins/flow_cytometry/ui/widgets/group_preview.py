@@ -11,9 +11,9 @@ from typing import Any, cast
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QPointF, Qt, QTimer
-from PyQt6.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QPolygonF
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPointF, Qt, QTimer
+from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QPolygonF
+from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QLabel,

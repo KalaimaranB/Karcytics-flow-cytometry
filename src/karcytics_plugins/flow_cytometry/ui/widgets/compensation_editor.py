@@ -7,9 +7,9 @@ from dataclasses import replace
 from typing import NamedTuple
 
 import numpy as np
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtGui import QBrush, QColor
+from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QSplitter,
@@ -154,8 +154,8 @@ class CompensationEditor(QWidget):
             ``set_matrix_choices``) to edit instead.
     """
 
-    edited = pyqtSignal()
-    matrix_chosen = pyqtSignal(object)
+    edited = Signal()
+    matrix_chosen = Signal(object)
 
     def __init__(self, state: FlowState, parent=None, scheduler=None):
         super().__init__(parent)

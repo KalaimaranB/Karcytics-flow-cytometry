@@ -51,7 +51,7 @@ def _synchronous_scheduler():
     real QThreadPool, which under a full test-suite run can be contended by
     unrelated tests' background tasks.
     """
-    from PyQt6.QtCore import QTimer
+    from PySide6.QtCore import QTimer
 
     scheduler = Mock()
     workers = []

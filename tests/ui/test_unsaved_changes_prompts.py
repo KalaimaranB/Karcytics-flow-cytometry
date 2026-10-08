@@ -6,7 +6,7 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from tests.fixtures.workspace import build_rich_state, set_real_view_defaults

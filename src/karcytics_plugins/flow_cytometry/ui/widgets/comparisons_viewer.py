@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from karcytics_sdk.plugin import safe_disconnect
 from karcytics_sdk.plugin.components import (
     BioComboBox,
     BioHelpButton,
@@ -29,8 +30,8 @@ from karcytics_sdk.plugin.components import (
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -73,7 +74,7 @@ class DynamicStackedWidget(QStackedWidget):
         self.currentChanged.connect(self._on_current_changed)
 
     def addWidget(self, widget: QWidget | None) -> int:
-        idx = super().addWidget(widget)
+        idx = super().addWidget(widget)  # type: ignore[arg-type]
         if widget is not None:
             if idx != self.currentIndex():
                 widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
@@ -504,7 +505,7 @@ class ComparisonsViewer(QWidget):
         self._progress_bar.hide()
 
         # Remove old canvas. NOTE: `if container_layout:` is a trap here — a
-        # QLayout's truthiness in PyQt6 follows __len__()/count(), not
+        # QLayout's truthiness in PySide6 follows __len__()/count(), not
         # identity, so an *empty* layout (the container's own layout on the
         # very first render, and on every render after since nothing was
         # ever actually added) is falsy even though it's a perfectly valid
@@ -710,7 +711,7 @@ class ComparisonsViewer(QWidget):
         for label, key in channels:
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, key)
-            from PyQt6.QtGui import QColor
+            from PySide6.QtGui import QColor
 
             item.setForeground(QColor(Colors.FG_PRIMARY))
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
@@ -731,10 +732,7 @@ class ComparisonsViewer(QWidget):
         self._channel_list.blockSignals(False)
 
         # Wire channel single-select enforcement
-        try:
-            self._channel_list.itemChanged.disconnect(self._on_channel_item_changed)
-        except TypeError:
-            pass
+        safe_disconnect(self._channel_list.itemChanged, self._on_channel_item_changed)
         if not self._is_multi_channel_mode():
             self._channel_list.itemChanged.connect(self._on_channel_item_changed)
 
@@ -781,7 +779,7 @@ class ComparisonsViewer(QWidget):
         ):
             self._plot_type_combo._apply_theme_styles()
 
-        from PyQt6.QtGui import QColor
+        from PySide6.QtGui import QColor
 
         fg_color = QColor(Colors.FG_PRIMARY)
 

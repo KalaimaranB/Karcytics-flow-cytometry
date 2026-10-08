@@ -10,9 +10,9 @@ from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.dialogs import show_error, show_info, show_warning
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QMainWindow,

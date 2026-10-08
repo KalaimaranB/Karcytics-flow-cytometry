@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
-from PyQt6.QtWidgets import QComboBox
+from PySide6.QtWidgets import QComboBox
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData

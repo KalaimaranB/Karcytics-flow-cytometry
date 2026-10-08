@@ -1307,15 +1307,15 @@ class PopupClosedValidator(FlowValidator):
         self._name = popup_object_name
 
     def validate_flow(self, _app_state: FlowState) -> bool:
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
 
         for w in QApplication.topLevelWidgets():
             if w.objectName() != self._name:
                 continue
             try:
-                from PyQt6 import sip
+                import shiboken6
 
-                if sip.isdeleted(w):
+                if not shiboken6.isValid(w):
                     return True
                 if w.isVisible():
                     return self.log_failure("Popup is still visible.")
@@ -1337,7 +1337,7 @@ class PreferencesPageValidator(FlowValidator):
         self._page_title = page_title
 
     def validate_flow(self, _app_state: FlowState) -> bool:
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
 
         for w in QApplication.topLevelWidgets():
             if w.objectName() != "PreferencesDialog" or not w.isVisible():
@@ -1453,7 +1453,7 @@ class UmapChannelExcludedValidator(FlowValidator):
         self._excluded = {k.lower() for k in excluded_channel_keys}
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from PyQt6.QtCore import Qt as _Qt
+        from PySide6.QtCore import Qt as _Qt
 
         viewer = getattr(app_state.view, "_population_analysis_viewer", None)
         if not viewer or not hasattr(viewer, "_channel_list"):

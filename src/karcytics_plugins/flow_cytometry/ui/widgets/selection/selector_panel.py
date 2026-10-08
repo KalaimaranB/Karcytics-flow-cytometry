@@ -17,8 +17,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from .population_selection_popup import PopulationSelectionPopup
 
@@ -53,7 +53,7 @@ class SampleAndPopulationSelector(QWidget):
             change — the one signal callers need to re-run their compute/plot.
     """
 
-    selectionChanged = pyqtSignal()
+    selectionChanged = Signal()
 
     def __init__(
         self,

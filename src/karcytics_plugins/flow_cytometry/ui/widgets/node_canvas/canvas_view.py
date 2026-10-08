@@ -7,9 +7,9 @@ from karcytics_sdk.plugin.rendering.graphics_scene import (
     DirtyTrackingGraphicsView,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QPointF, QRect, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPen, QPolygonF, QWheelEvent
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPen, QPolygonF, QWheelEvent
+from PySide6.QtWidgets import (
     QGraphicsView,
     QHBoxLayout,
     QPushButton,
@@ -58,7 +58,7 @@ class _CanvasGraphicsView(DirtyTrackingGraphicsView):
             vp.update()
         self._pan_start_pos = QPointF()
 
-    def drawBackground(self, painter: QPainter | None, rect: QRectF | None) -> None:
+    def drawBackground(self, painter: QPainter | None, rect: QRectF | None) -> None:  # type: ignore[override]
         """Draw the infinite dot grid background."""
         if painter is None or rect is None:
             return
@@ -150,12 +150,12 @@ class _CanvasGraphicsView(DirtyTrackingGraphicsView):
 class NodeCanvas(QWidget):
     """The central widget for the Node Canvas view."""
 
-    node_double_clicked = pyqtSignal(str)
-    node_removed = pyqtSignal(str)  # node_id
-    rename_requested = pyqtSignal(str, str, object)  # node_id, new_name, target_sample_ids
-    connection_requested = pyqtSignal(str, str, str)  # sample_id, source_id, target_id
-    connection_removed = pyqtSignal(str, str, str)  # sample_id, source_id, target_id
-    link_delete_requested = pyqtSignal(str, str, object)  # source_id, target_id, target_sample_ids
+    node_double_clicked = Signal(str)
+    node_removed = Signal(str)  # node_id
+    rename_requested = Signal(str, str, object)  # node_id, new_name, target_sample_ids
+    connection_requested = Signal(str, str, str)  # sample_id, source_id, target_id
+    connection_removed = Signal(str, str, str)  # sample_id, source_id, target_id
+    link_delete_requested = Signal(str, str, object)  # source_id, target_id, target_sample_ids
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -243,7 +243,7 @@ class NodeCanvas(QWidget):
 
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh colors when theme changes."""
-        from PyQt6.QtGui import QColor
+        from PySide6.QtGui import QColor
 
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         if hasattr(self, "_view"):
@@ -279,7 +279,7 @@ class NodeCanvas(QWidget):
 
     def set_sample(self, sample_id: str) -> None:
         """Switch the canvas to display a specific sample."""
-        from PyQt6.QtCore import QTimer
+        from PySide6.QtCore import QTimer
 
         self.current_sample_id = sample_id
         self._manager.load_sample(sample_id)
@@ -287,7 +287,7 @@ class NodeCanvas(QWidget):
 
     def set_orientation(self, orientation: str) -> None:
         """Update the canvas orientation (horizontal/vertical)."""
-        from PyQt6.QtCore import QTimer
+        from PySide6.QtCore import QTimer
 
         self._manager.set_orientation(orientation)
         QTimer.singleShot(50, self.center_on_nodes)
@@ -371,7 +371,7 @@ class NodeCanvas(QWidget):
         _collect_child_names(node)
 
         if child_names:
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
 
             msg_box = QMessageBox(self)
             msg_box.setIcon(QMessageBox.Icon.Warning)
@@ -424,7 +424,7 @@ class NodeCanvas(QWidget):
 
         dialog_title = "Rename Node" if node.is_logic_node else "Rename Population"
 
-        from PyQt6.QtWidgets import QInputDialog, QLineEdit
+        from PySide6.QtWidgets import QInputDialog, QLineEdit
 
         new_name, ok = QInputDialog.getText(
             self, dialog_title, "Enter new name:", QLineEdit.EchoMode.Normal, node.name
@@ -432,7 +432,7 @@ class NodeCanvas(QWidget):
         if not ok or not new_name or new_name == node.name:
             return
 
-        from PyQt6.QtWidgets import QDialog
+        from PySide6.QtWidgets import QDialog
 
         from ...scope_resolution import resolve_target_samples
         from ..scope_selection_dialog import ScopeSelectionDialog
@@ -452,7 +452,7 @@ class NodeCanvas(QWidget):
         target_ids = resolve_target_samples(scope, group_id, self.current_sample_id, experiment)
 
         if len(target_ids) > 1:
-            from PyQt6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox
 
             names = [
                 experiment.samples[s].display_name for s in target_ids if s in experiment.samples
@@ -490,7 +490,7 @@ class NodeCanvas(QWidget):
         if not source or not target:
             return
 
-        from PyQt6.QtWidgets import QDialog
+        from PySide6.QtWidgets import QDialog
 
         from ...scope_resolution import resolve_target_samples
         from ..scope_selection_dialog import ScopeSelectionDialog
@@ -509,7 +509,7 @@ class NodeCanvas(QWidget):
         scope, group_id = dialog.get_scope()
         target_ids = resolve_target_samples(scope, group_id, self.current_sample_id, experiment)
 
-        from PyQt6.QtWidgets import QMessageBox
+        from PySide6.QtWidgets import QMessageBox
 
         names = [experiment.samples[s].display_name for s in target_ids if s in experiment.samples]
         max_display = 6

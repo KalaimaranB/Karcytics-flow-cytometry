@@ -7,8 +7,8 @@ No knowledge of what propagation means — it just signals.
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 
 class PropagationToggle(QWidget):
@@ -20,7 +20,7 @@ class PropagationToggle(QWidget):
             False = propagation OFF.
     """
 
-    propagation_mode_changed = pyqtSignal(bool)
+    propagation_mode_changed = Signal(bool)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)

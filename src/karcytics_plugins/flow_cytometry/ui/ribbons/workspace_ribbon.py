@@ -16,8 +16,8 @@ from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import BioProgressDialog, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_error, show_info, show_warning
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
 )
@@ -43,11 +43,11 @@ class WorkspaceRibbon(ThemedToolbarContainer):
         template_save_requested: Emitted to save as template.
     """
 
-    samples_loaded = pyqtSignal()
-    group_requested = pyqtSignal()
-    template_load_requested = pyqtSignal()
-    template_save_requested = pyqtSignal()
-    workflow_save_requested = pyqtSignal()
+    samples_loaded = Signal()
+    group_requested = Signal()
+    template_load_requested = Signal()
+    template_save_requested = Signal()
+    workflow_save_requested = Signal()
 
     def __init__(self, state: FlowState, data_loader_service=None, parent=None) -> None:
         super().__init__(parent)

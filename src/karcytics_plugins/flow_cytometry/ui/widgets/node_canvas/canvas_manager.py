@@ -2,11 +2,11 @@
 
 from typing import Any
 
-from karcytics_sdk.plugin import CentralEventBus, get_logger
+from karcytics_sdk.plugin import CentralEventBus, get_logger, safe_disconnect
 from karcytics_sdk.plugin.rendering.graphics_scene import DirtyTrackingGraphicsScene
 from karcytics_sdk.plugin.runtime_services import task_scheduler
-from PyQt6.QtCore import QObject, QPointF, pyqtSignal
-from PyQt6.QtGui import QImage
+from PySide6.QtCore import QObject, QPointF, Signal
+from PySide6.QtGui import QImage
 
 from karcytics_plugins.flow_cytometry.analysis import events as flow_events
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
@@ -30,12 +30,12 @@ _ThumbnailCache: dict = {}
 class CanvasManager(QObject):
     """Controls the QGraphicsScene based on the current gating state."""
 
-    node_double_clicked = pyqtSignal(str)
-    node_delete_requested = pyqtSignal(str)
-    node_rename_requested = pyqtSignal(str)
-    connection_requested = pyqtSignal(str, str)  # source_node_id, target_node_id
-    connection_removed = pyqtSignal(str, str)  # source_node_id, target_node_id
-    link_delete_requested = pyqtSignal(str, str)  # source_node_id, target_node_id
+    node_double_clicked = Signal(str)
+    node_delete_requested = Signal(str)
+    node_rename_requested = Signal(str)
+    connection_requested = Signal(str, str)  # source_node_id, target_node_id
+    connection_removed = Signal(str, str)  # source_node_id, target_node_id
+    link_delete_requested = Signal(str, str)  # source_node_id, target_node_id
 
     def __init__(
         self, state: FlowState, scene: DirtyTrackingGraphicsScene, parent: QObject | None = None
@@ -59,10 +59,7 @@ class CanvasManager(QObject):
         self._is_alive = True
 
         # Subscribe to TaskScheduler ONLY ONCE by checking if we're already connected
-        try:
-            task_scheduler.task_finished.disconnect(self._on_render_task_finished)
-        except TypeError:
-            pass
+        safe_disconnect(task_scheduler.task_finished, self._on_render_task_finished)
         task_scheduler.task_finished.connect(self._on_render_task_finished)
 
         try:
@@ -412,7 +409,7 @@ class CanvasManager(QObject):
         self._dummy_target = DummyItem(start_pos)
         self._temp_drag_edge = EdgeItem(source_item, self._dummy_target)  # type: ignore
         self._temp_drag_edge.set_orientation(self._orientation)  # type: ignore
-        self.scene.addItem(self._temp_drag_edge)
+        self.scene.addItem(self._temp_drag_edge)  # type: ignore[arg-type]
 
     def _on_edge_dragged(self, current_pos: QPointF) -> None:
         if self._temp_drag_edge:

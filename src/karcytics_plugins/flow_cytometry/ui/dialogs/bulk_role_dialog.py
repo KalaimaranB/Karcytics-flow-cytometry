@@ -1,8 +1,8 @@
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_warning
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QHBoxLayout,

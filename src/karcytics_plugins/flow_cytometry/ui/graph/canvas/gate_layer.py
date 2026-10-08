@@ -24,7 +24,7 @@ class GateLayerRenderer:
         from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 
         if not MPL_RASTER_LOCK.acquire(blocking=False):
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             QTimer.singleShot(50, self.render)
             return

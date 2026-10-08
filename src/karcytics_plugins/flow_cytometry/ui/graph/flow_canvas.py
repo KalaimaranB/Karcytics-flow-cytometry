@@ -1,7 +1,7 @@
 """FlowCanvas — embedded matplotlib widget for flow cytometry plots.
 
 This is the core rendering engine for the graph window.  It creates
-a ``FigureCanvasQTAgg`` embedded in PyQt6 and handles:
+a ``FigureCanvasQTAgg`` embedded in PySide6 and handles:
 - Scatter (dot) plots
 - Pseudocolor (hexbin density) plots
 - Contour plots
@@ -23,14 +23,14 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import shiboken6
 from karcytics_sdk.interfaces.i_crash_reporter import ICrashReporter
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.rendering.mpl_canvas import LayeredMatplotlibCanvas
 from matplotlib.figure import Figure
-from PyQt6 import sip
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QSizePolicy
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QSizePolicy
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.gating import (
@@ -117,15 +117,15 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         gate_selected(str):      Emitted when a gate overlay is clicked (gate_id).
     """
 
-    point_clicked = pyqtSignal(float, float)
-    region_selected = pyqtSignal(dict)
-    gate_created = pyqtSignal(object)  # Gate instance
-    gate_modified = pyqtSignal(str)  # gate_id
-    gate_selected = pyqtSignal(object)  # gate_id or None
-    render_requested = pyqtSignal()  # Emitted on context menu "Render"
-    quality_mode_changed = pyqtSignal(str)  # "optimized" or "transparent"
-    gate_preview_emitted = pyqtSignal(object)  # Temporary gate object
-    drawing_cancelled = pyqtSignal()  # Emitted when user cancels drawing via Esc
+    point_clicked = Signal(float, float)
+    region_selected = Signal(object)
+    gate_created = Signal(object)  # Gate instance
+    gate_modified = Signal(str)  # gate_id
+    gate_selected = Signal(object)  # gate_id or None
+    render_requested = Signal()  # Emitted on context menu "Render"
+    quality_mode_changed = Signal(str)  # "optimized" or "transparent"
+    gate_preview_emitted = Signal(object)  # Temporary gate object
+    drawing_cancelled = Signal()  # Emitted when user cancels drawing via Esc
 
     def __init__(  # noqa: PLR0913, PLR0915
         self,
@@ -435,7 +435,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Paint under a non-blocking RasterLock acquire, retrying if a background render task holds it.
 
         Overrides LayeredMatplotlibCanvas.paintEvent() only to retry via a
-        sip.isdeleted()-guarded `_retry_update()` instead of `self.update`
+        shiboken6.isValid()-guarded `_retry_update()` instead of `self.update`
         directly: a queued QTimer retry firing after this widget is
         destroyed crashes natively (not a catchable RuntimeError) since it
         runs from a QTimer callback rather than a normal Python call. Not
@@ -451,8 +451,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def _retry_update(self) -> None:
         # This canvas is normally long-lived, but guard anyway: a queued
         # retry firing after the widget was destroyed would crash natively
-        # (QTimer callback, not a normal Python call PyQt can intercept).
-        if sip.isdeleted(self):
+        # (QTimer callback, not a normal Python call Qt can intercept).
+        if not shiboken6.isValid(self):
             return
         self.update()
 
@@ -482,7 +482,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             logger.warning("FlowCanvas.draw() failed (FT_Render_Glyph or similar): %s", exc)
 
     def _retry_draw(self) -> None:
-        if sip.isdeleted(self):
+        if not shiboken6.isValid(self):
             return
         self.draw()
 
@@ -578,7 +578,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._cancel_drawing()
         self._drawing_mode = mode
 
-        from PyQt6.QtCore import Qt as _Qt
+        from PySide6.QtCore import Qt as _Qt
 
         if mode == GateDrawingMode.NONE:
             self.setCursor(_Qt.CursorShape.ArrowCursor)
@@ -664,7 +664,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # If the canvas is 0x0, defer the redraw until it has a size.
         if self.width() <= 0 or self.height() <= 0:
             logger.warning("Canvas redraw deferred: size is 0x0. Setting timer for retry.")
-            from PyQt6.QtCore import QTimer
+            from PySide6.QtCore import QTimer
 
             QTimer.singleShot(200, self.redraw)
             return
@@ -1030,7 +1030,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _on_controller_geometry_changed(self, sample_id: str, gate_id: str) -> None:
         """Update a specific gate overlay when its geometry changes elsewhere."""
-        if sip.isdeleted(self):
+        if not shiboken6.isValid(self):
             # CentralEventBus.publish is queued, so an event published just
             # before this canvas was torn down can still be delivered after
             # _cleanup_events already unsubscribed it — see that method's
@@ -1044,7 +1044,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _on_controller_selected(self, sample_id: str, node_id: str) -> None:
         """Update selection highlight when changed globally."""
-        if sip.isdeleted(self):
+        if not shiboken6.isValid(self):
             return
         if sample_id != self._sample_id:
             return
@@ -1054,13 +1054,13 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._gate_renderer.render()
 
     def _on_controller_gate_removed(self, sample_id: str, node_id: str) -> None:
-        if sip.isdeleted(self):
+        if not shiboken6.isValid(self):
             return
         if sample_id == self._sample_id:
             self.refresh_gates()
 
     def _on_controller_gate_renamed(self, sample_id: str, node_id: str) -> None:
-        if sip.isdeleted(self):
+        if not shiboken6.isValid(self):
             return
         if sample_id == self._sample_id:
             self._gate_renderer.render()
@@ -1120,8 +1120,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _on_context_menu(self, pos) -> None:
         """Show context menu on right click."""
-        from PyQt6.QtGui import QAction
-        from PyQt6.QtWidgets import QMenu
+        from PySide6.QtGui import QAction
+        from PySide6.QtWidgets import QMenu
 
         menu = QMenu(self)
 
@@ -1146,8 +1146,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Render figure to PNG in memory and copy to system clipboard."""
         import io
 
-        from PyQt6.QtGui import QImage
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtGui import QImage
+        from PySide6.QtWidgets import QApplication
 
         try:
             buf = io.BytesIO()
@@ -1171,7 +1171,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Download plot in specified format (png, pdf, or svg)."""
         from datetime import datetime
 
-        from PyQt6.QtWidgets import QFileDialog
+        from PySide6.QtWidgets import QFileDialog
 
         # Generate default filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

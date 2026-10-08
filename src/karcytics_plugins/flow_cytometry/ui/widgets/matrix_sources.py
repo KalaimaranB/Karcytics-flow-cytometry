@@ -24,7 +24,7 @@ from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-from PyQt6.QtWidgets import QFileDialog, QWidget
+from PySide6.QtWidgets import QFileDialog, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
     CELL_DEFAULT,

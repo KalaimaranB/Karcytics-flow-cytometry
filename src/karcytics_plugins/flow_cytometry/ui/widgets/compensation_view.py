@@ -19,8 +19,8 @@ from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_warning
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QButtonGroup,
     QHBoxLayout,
     QLabel,
@@ -72,7 +72,7 @@ class CompensationView(QWidget):
             applied to, changed.
     """
 
-    compensation_changed = pyqtSignal()
+    compensation_changed = Signal()
 
     def __init__(
         self,

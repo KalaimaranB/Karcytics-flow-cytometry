@@ -30,8 +30,8 @@ from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton, repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSlider, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSlider, QVBoxLayout
 
 from karcytics_plugins.flow_cytometry.analysis.config import PseudocolorConfig
 from karcytics_plugins.flow_cytometry.analysis.constants import PSEUDOCOLOR_MAX_EVENTS

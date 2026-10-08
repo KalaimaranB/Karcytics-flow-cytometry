@@ -8,8 +8,8 @@ Auto-dismisses on mouse leave (handled by SampleViewWidget which calls hide()).
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
-from PyQt6.QtCore import QPoint, Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPoint, Qt
+from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QLabel,
@@ -121,7 +121,7 @@ class HoverCard(QFrame):
         """,
         )
 
-        from PyQt6.QtWidgets import QVBoxLayout
+        from PySide6.QtWidgets import QVBoxLayout
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, 10, 12, 10)

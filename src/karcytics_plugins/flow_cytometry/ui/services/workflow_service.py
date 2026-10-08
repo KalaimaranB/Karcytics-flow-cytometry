@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ...analysis.state import FlowState
 
-from PyQt6.QtCore import QObject, pyqtSlot
+from PySide6.QtCore import QObject, Slot
 
 from ...analysis.derived import sync_experiment
 
@@ -230,7 +230,7 @@ class WorkflowService(QObject):
         if on_complete:
             on_complete(result)
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def _on_task_error_handler(self, failed_id: str, error_msg: str) -> None:
         """A reload task that raised still has to complete its load.
 
@@ -247,7 +247,7 @@ class WorkflowService(QObject):
             names = [s.display_name for s in self._state.data.experiment.samples.values()]
             cb({"loaded": [], "failed": names})
 
-    @pyqtSlot(str, dict)
+    @Slot(str, object)
     def _on_task_done_handler(self, finished_id: str, results: dict) -> None:
         """Handle completion of background FunctionalTasks from TaskScheduler."""
         pending_id = self._pending_task_id

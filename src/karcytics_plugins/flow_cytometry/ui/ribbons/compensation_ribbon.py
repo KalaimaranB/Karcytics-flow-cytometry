@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
-from PyQt6.QtWidgets import QHBoxLayout
+from PySide6.QtWidgets import QHBoxLayout
 
 if TYPE_CHECKING:
     from ...analysis.state import FlowState

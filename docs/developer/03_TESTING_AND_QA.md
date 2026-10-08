@@ -75,7 +75,7 @@ under test imported (see `test_comparisons_plot_types.py`).
 - **Drive the real path.** Prefer one test that clicks Generate Plot and checks
   the canvas is visible (`test_generate_button_produces_a_visible_canvas`) over
   several that call internal helpers.
-- **Deleted-widget guards.** `sip.delete(widget)` followed by calling the event
+- **Deleted-widget guards.** `shiboken6.delete(widget)` followed by calling the event
   handler is how the stale-callback tests prove a late `CentralEventBus`
   delivery can't raise.
 

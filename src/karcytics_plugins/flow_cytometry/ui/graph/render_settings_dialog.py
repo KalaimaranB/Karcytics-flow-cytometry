@@ -10,8 +10,8 @@ from typing import Any
 
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -60,7 +60,7 @@ class RenderSettingsDialog(QDialog):
     (e.g., Pseudocolor, Dot Plot, etc.) to keep the UI clean and scientist-friendly.
     """
 
-    settings_applied = pyqtSignal(RenderConfig)
+    settings_applied = Signal(RenderConfig)
 
     def __init__(self, state: FlowState, parent: QWidget | None = None):
         super().__init__(parent)

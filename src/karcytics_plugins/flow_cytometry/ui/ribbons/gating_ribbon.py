@@ -10,8 +10,8 @@ from __future__ import annotations
 from karcytics_sdk.plugin.components import SecondaryButton
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -28,12 +28,12 @@ class GatingRibbon(ThemedToolbarContainer):
         adaptive_toggled(bool):        Emitted when Adaptive is toggled.
     """
 
-    tool_selected = pyqtSignal(str)  # gate type name
-    delete_gate_requested = pyqtSignal()
-    fmo_autogate_requested = pyqtSignal()
-    copy_gates_requested = pyqtSignal()
-    derived_params_requested = pyqtSignal()
-    adaptive_toggled = pyqtSignal(bool)
+    tool_selected = Signal(str)  # gate type name
+    delete_gate_requested = Signal()
+    fmo_autogate_requested = Signal()
+    copy_gates_requested = Signal()
+    derived_params_requested = Signal()
+    adaptive_toggled = Signal(bool)
 
     def __init__(self, state: FlowState, parent=None) -> None:
         super().__init__(parent)

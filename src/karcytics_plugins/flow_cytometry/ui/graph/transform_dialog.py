@@ -10,8 +10,8 @@ from collections.abc import Callable
 
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QDialog,
     QLabel,
     QTabWidget,
@@ -34,8 +34,8 @@ class TransformDialog(QDialog):
         apply_to_all_requested(str, AxisScale): emitted when user hits Apply to All perfectly.
     """
 
-    scale_changed = pyqtSignal(str, object)  # axis: 'x' or 'y', AxisScale
-    apply_to_all_requested = pyqtSignal(str, object)  # axis: 'x' or 'y', AxisScale
+    scale_changed = Signal(str, object)  # axis: 'x' or 'y', AxisScale
+    apply_to_all_requested = Signal(str, object)  # axis: 'x' or 'y', AxisScale
 
     def __init__(  # noqa: PLR0913
         self,

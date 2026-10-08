@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import get_logger
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QLabel
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel
 
 from ..flow_canvas import GateDrawingMode
 
@@ -59,7 +59,7 @@ class OverlayManager:
         self.resize_loading(self.canvas.width(), self.canvas.height())
         self._loading_label.setVisible(True)
         self._loading_label.raise_()
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
 
         QApplication.processEvents()
 

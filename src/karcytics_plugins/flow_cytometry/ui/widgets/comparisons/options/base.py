@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QWidget
+from PySide6.QtWidgets import QWidget
 
 if TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState

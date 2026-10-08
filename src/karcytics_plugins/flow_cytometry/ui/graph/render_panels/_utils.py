@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 class ColorPickerButton(QPushButton):
     """A button that shows the current color and opens QColorDialog on click."""
 
-    color_changed = pyqtSignal(str)  # emits hex string
+    color_changed = Signal(str)  # emits hex string
 
     def __init__(self, initial_color: str = "#2196F3", parent=None):
         super().__init__(parent)
@@ -47,7 +47,7 @@ class ColorPickerButton(QPushButton):
         )
 
     def _open_picker(self) -> None:
-        from PyQt6.QtWidgets import QColorDialog
+        from PySide6.QtWidgets import QColorDialog
 
         dlg = QColorDialog(QColor(self._color), self)
         if dlg.exec():

@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QTableWidget,
@@ -34,7 +34,7 @@ class MarkerPanel(QWidget):
         mappings_changed: Emitted when the user edits any mapping.
     """
 
-    mappings_changed = pyqtSignal()
+    mappings_changed = Signal()
 
     def __init__(self, state: FlowState, parent=None) -> None:
         super().__init__(parent)
@@ -99,7 +99,7 @@ class MarkerPanel(QWidget):
             self._table.setItem(row, 2, QTableWidgetItem(mapping.channel))
 
             color_item = QTableWidgetItem(mapping.color)
-            from PyQt6.QtGui import QColor
+            from PySide6.QtGui import QColor
 
             color_item.setBackground(QColor(mapping.color))
             self._table.setItem(row, 3, color_item)

@@ -70,11 +70,11 @@ The trick to force CodeRabbit to review **every file** is to create a PR where t
 
 Categorize all 107 suppressions:
 
-- **Legitimate** (3rd-party stubs missing: PyQt6, matplotlib, scipy): Move to `pyproject.toml` mypy overrides → delete the inline `# type: ignore`.
+- **Legitimate** (3rd-party stubs missing: PySide6, matplotlib, scipy): Move to `pyproject.toml` mypy overrides → delete the inline `# type: ignore`.
 - **Structural** (e.g. `Optional` not narrowed): Fix with `assert`, guard, or proper type narrowing — the approach we started in Phase 4.
 - **Workarounds** (wrong return type, bad assignment): Fix the code, not the suppression.
 
-**Target**: ≤ 20 remaining, all in UI layer for PyQt6 signal typing (which has no stubs).
+**Target**: ≤ 20 remaining, all in UI layer for PySide6 signal typing (which has no stubs).
 
 ### 2.2 `# noqa` Audit and Triage
 

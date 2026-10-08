@@ -233,7 +233,7 @@ class GateDrawingFSM:
             self._pending_edit_args = (x, y)
             if not getattr(self, "_edit_timer_active", False):
                 self._edit_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._edit_timer_active = False
@@ -315,7 +315,7 @@ class GateDrawingFSM:
             self._pending_rubber_args = (x0, y0, x1, y1, mode)
             if not getattr(self, "_rubber_timer_active", False):
                 self._rubber_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._rubber_timer_active = False
@@ -437,7 +437,7 @@ class GateDrawingFSM:
         def _on_busy() -> None:
             if not getattr(self, "_clear_rubber_timer_active", False):
                 self._clear_rubber_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._clear_rubber_timer_active = False
@@ -482,7 +482,7 @@ class GateDrawingFSM:
             self._pending_crosshair_args = (x, y)
             if not getattr(self, "_crosshair_timer_active", False):
                 self._crosshair_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._crosshair_timer_active = False
@@ -573,7 +573,7 @@ class GateDrawingFSM:
         def _on_busy() -> None:
             if not getattr(self, "_clear_crosshair_timer_active", False):
                 self._clear_crosshair_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._clear_crosshair_timer_active = False
@@ -625,7 +625,7 @@ class GateDrawingFSM:
             self._pending_polygon_mouse = current_mouse
             if not getattr(self, "_polygon_timer_active", False):
                 self._polygon_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._polygon_timer_active = False
@@ -728,7 +728,7 @@ class GateDrawingFSM:
         def _on_busy() -> None:
             if not getattr(self, "_clear_polygon_timer_active", False):
                 self._clear_polygon_timer_active = True
-                from PyQt6.QtCore import QTimer
+                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._clear_polygon_timer_active = False

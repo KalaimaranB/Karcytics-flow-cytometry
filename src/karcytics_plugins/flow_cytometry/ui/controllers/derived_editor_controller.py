@@ -12,7 +12,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from PyQt6.QtWidgets import QWidget
+    from PySide6.QtWidgets import QWidget
 
     from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_service import (
         DerivedParameterService,

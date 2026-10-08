@@ -5,7 +5,7 @@ the autosave option, and closes it before heading back to the Hub.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QDialog, QListWidget, QVBoxLayout
+from PySide6.QtWidgets import QDialog, QListWidget, QVBoxLayout
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.tutorials.core_intro_handoff import core_intro_module

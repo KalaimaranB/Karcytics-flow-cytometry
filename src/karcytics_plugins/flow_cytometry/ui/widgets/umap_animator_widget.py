@@ -8,8 +8,8 @@ import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.animation.animation_phases import (
     AnimationPhase,
@@ -118,7 +118,7 @@ class UmapAnimatorWidget(QWidget):
     background UMAP thread.
     """
 
-    animation_finished = pyqtSignal()
+    animation_finished = Signal()
 
     # ── Construction ──────────────────────────────────────────────────────────
 

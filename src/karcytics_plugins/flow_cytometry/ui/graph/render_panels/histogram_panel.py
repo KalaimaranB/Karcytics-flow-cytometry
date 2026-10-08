@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QCheckBox,
     QFormLayout,
     QHBoxLayout,
@@ -22,7 +22,7 @@ from ._utils import PANEL_STYLE, ColorPickerButton, make_int_row, section_header
 class HistogramSettingsPanel(QWidget):
     """Settings panel for the 1D Histogram renderer."""
 
-    changed = pyqtSignal()
+    changed = Signal()
 
     def __init__(self, config: HistogramConfig, parent=None):
         super().__init__(parent)
@@ -139,7 +139,7 @@ class HistogramSettingsPanel(QWidget):
         self._fmo_check.stateChanged.connect(self._on_fmo_threshold_toggled)
         fmo_form.addRow(QLabel(), self._fmo_check)
 
-        from PyQt6.QtWidgets import QDoubleSpinBox
+        from PySide6.QtWidgets import QDoubleSpinBox
 
         self._spin_percentile = QDoubleSpinBox()
         self._spin_percentile.setRange(0.0, 100.0)

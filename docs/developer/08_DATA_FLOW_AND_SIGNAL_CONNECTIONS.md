@@ -18,14 +18,14 @@ is an easy way to wire something that silently never fires:
 |---|---|---|---|
 | `CentralEventBus` | In-process, plugin-local pub/sub. Topics are the plain strings in `analysis/events.py` (prefixed `flow.`). | `karcytics_sdk.plugin.CentralEventBus` | Gate lifecycle, sample lifecycle, stats, compensation — anything the plugin's own domain layer needs to broadcast to decoupled UI listeners. |
 | SDK `event_bus` / `KarcyticsEvent` | Cross-plugin / Hub-wide. In an isolated plugin process this is `runtime_services.event_bus`, a `RemoteEventBus`; `KarcyticsEvent` is a stand-in accessor (`_EventTopicAccessor`) whose attribute access (e.g. `KarcyticsEvent.ACADEMY_COURSE_COMPLETED`) resolves to the matching string topic. | `karcytics_sdk/plugin/runtime_services.py`, `karcytics_sdk/plugin/academy.py` | Academy/tutorial course lifecycle — the only user of this bus in this module (`main_panel.py`'s `_wire_signals`). |
-| PyQt signals/slots | Direct widget-to-widget or widget-to-controller wiring, no bus. | Each widget's own `pyqtSignal` declarations. | Everything that's a 1:1 (or narrowly fan-out) relationship between two specific widgets — ribbon → graph manager, sample list → properties panel, etc. Wired centrally in `MainPanelController.wire()` (§3). |
+| Qt signals/slots | Direct widget-to-widget or widget-to-controller wiring, no bus. | Each widget's own `Signal` declarations. | Everything that's a 1:1 (or narrowly fan-out) relationship between two specific widgets — ribbon → graph manager, sample list → properties panel, etc. Wired centrally in `MainPanelController.wire()` (§3). |
 
 `CentralEventBus.publish(topic, payload_dict)` is fire-and-forget and
 **queued** — a callback that unsubscribes itself is not guaranteed to avoid
 a delivery that was already queued before the unsubscribe ran. Several
 `_cleanup_events`-style methods across the codebase (`FlowCanvas`,
 `GraphManager`, `CanvasManager`) exist specifically to guard against this:
-they check `sip.isdeleted(self)` (or an `_is_alive` flag) at the top of
+they check `not shiboken6.isValid(self)` (or an `_is_alive` flag) at the top of
 every subscribed callback, because a gate event published just before a
 canvas tab closes can still be delivered to it afterward.
 
@@ -48,7 +48,7 @@ changes.
 | `GATE_PROPAGATED` | `flow.gate.propagated` | *(defined; not observed published in the read source — likely legacy/reserved)* | — |
 | `GATE_SELECTED` | `flow.gate.selected` | `GateSelectionService` (via `GateCoordinator.select_gate()`) using `GateEventPublisher.publish_gate_selected()` | `MainPanelController` (`_on_gate_selected_from_controller`), `FlowCanvas` (`_on_controller_selected`) |
 | `GATE_PREVIEW` | `flow.gate.preview` | `GateDrawingFSM` during live drag/edit/polygon/quadrant preview, and `FlowCanvas._clear_previews()` | `GroupPreviewPanel` (thumbnail overlays), `GateHistogramPanel` (highlighted gate) |
-| `SAMPLE_SELECTED` / `SAMPLE_DESELECTED` | `flow.sample.selected` / `flow.sample.deselected` | *(defined; selection is mostly handled via direct PyQt signals — see §3)* | — |
+| `SAMPLE_SELECTED` / `SAMPLE_DESELECTED` | `flow.sample.selected` / `flow.sample.deselected` | *(defined; selection is mostly handled via direct Qt signals — see §3)* | — |
 | `SAMPLE_LOADED` | `flow.sample.loaded` | Sample loading path | Footer status message (`main_panel._setup_footer_events`) |
 | `RENDER_MODE_CHANGED` | `flow.render.mode_changed` | Display-mode changes | — |
 | `RENDER_CONFIG_CHANGED` | `flow.render.config_changed` | Render settings changes | — |
@@ -107,7 +107,7 @@ scattered across each widget's own `__init__`. It does two kinds of wiring:
 1. **`CentralEventBus` subscriptions**, tracked in `panel._subscriptions`
    (a list of `(topic, callback)` tuples) so `unwire()` can cleanly
    unsubscribe everything on `panel.cleanup()`.
-2. **Direct PyQt signal→slot connections** between specific widget pairs.
+2. **Direct Qt signal→slot connections** between specific widget pairs.
 
 ### Undo steps & unsaved changes
 
@@ -147,7 +147,7 @@ gate-propagation failures. Only after this check passes does
 `panel._on_gate_added`/`_on_gates_added` run (refresh overlays + auto-select
 the new node).
 
-### Direct PyQt connections (selected)
+### Direct Qt connections (selected)
 
 | Signal | Slot |
 |---|---|
@@ -237,7 +237,7 @@ Two things worth calling out explicitly:
 
 ## 5. Workflow: Sample Load
 
-`WorkspaceRibbon.samples_loaded` (a direct PyQt signal, not a bus event) is
+`WorkspaceRibbon.samples_loaded` (a direct Qt signal, not a bus event) is
 connected straight to `panel._on_samples_loaded()` in
 `MainPanelController.wire()`. That handler auto-extracts an embedded
 compensation matrix if none exists yet, then explicitly refreshes every

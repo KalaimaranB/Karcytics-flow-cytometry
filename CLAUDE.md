@@ -12,6 +12,10 @@ The package version has one source of truth: `pyproject.toml`'s `[project].versi
 
 See `../Karcytics/ECOSYSTEM.md` for the full map of all 7 Karcytics repos and their relationships.
 
+## Qt binding
+
+PySide6 only (LGPL; PyQt6 is GPL and incompatible with our license). Never import PyQt6 — `karcytics-sdk doctor .` flags it (KS203). PySide6 differs from PyQt6 in ways tests don't always catch; see "Qt binding" in `../Karcytics-SDK/CLAUDE.md` for the full list. The ones that bit this repo: `Signal(dict)` silently drops non-string keys (use `Signal(object)`), `layout.removeWidget(None)` raises, a failed `disconnect()` warns instead of raising (use `safe_disconnect` from the SDK), and `patch("PySide6.QtWidgets.QMenu.exec")` does not reach an SDK subclass — patch the class actually instantiated (`BioMenu`).
+
 ## Commands
 
 ```bash

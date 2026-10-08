@@ -25,7 +25,7 @@ class MainPanelController:
         # ── Undo history & unsaved changes ────────────────────────────
         # HistoryRecorder (analysis/history_recorder.py) is the one table of
         # which events are undo steps; the store behind it decides dirtiness.
-        from PyQt6.QtCore import QTimer
+        from PySide6.QtCore import QTimer
 
         from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
 
@@ -134,8 +134,8 @@ class MainPanelController:
             propagation failures — both want something louder than the
             routine status bar for something the user should notice.
             """
-            from PyQt6.QtCore import Qt, QTimer
-            from PyQt6.QtWidgets import QLabel
+            from PySide6.QtCore import Qt, QTimer
+            from PySide6.QtWidgets import QLabel
 
             bg = "rgba(220, 50, 50, 0.9)" if is_error else "rgba(40, 40, 40, 0.9)"
             label = QLabel(text, panel._graph_manager)

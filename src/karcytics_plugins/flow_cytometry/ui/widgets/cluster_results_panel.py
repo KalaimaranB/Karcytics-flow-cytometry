@@ -12,9 +12,9 @@ from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from matplotlib.figure import Figure
-from PyQt6.QtCore import QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QColor, QImage, QPixmap
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QAction, QColor, QImage, QPixmap
+from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QGridLayout,
@@ -184,7 +184,7 @@ class HoverStatsWidget(QFrame):
 class ClusterResultsPanel(QWidget):
     """A multi-tabbed panel displaying UMAP plot gallery and statistical tables."""
 
-    results_modified = pyqtSignal()
+    results_modified = Signal()
 
     def __init__(
         self,
@@ -488,8 +488,9 @@ class ClusterResultsPanel(QWidget):
         item = self._gallery_grid.itemAtPosition(row, col)
         if item is not None:
             old_widget = item.widget()
-            self._gallery_grid.removeWidget(old_widget)
+            # PySide6 raises on removeWidget(None), unlike PyQt6.
             if old_widget is not None:
+                self._gallery_grid.removeWidget(old_widget)
                 old_widget.deleteLater()
         display_size = QSize(self._GALLERY_TILE_WIDTH_PX, self._GALLERY_TILE_HEIGHT_PX)
         self._gallery_grid.addWidget(CopyablePixmapLabel(pixmap, display_size), row, col)
@@ -497,7 +498,7 @@ class ClusterResultsPanel(QWidget):
     def _build_interactive_map_tab(self) -> None:
         import scipy.spatial
         from karcytics_sdk.plugin.components import BioComboBox, SecondaryButton
-        from PyQt6.QtWidgets import QLabel, QStackedWidget
+        from PySide6.QtWidgets import QLabel, QStackedWidget
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -557,7 +558,7 @@ class ClusterResultsPanel(QWidget):
     def _on_interactive_combo_changed(self, idx: int) -> None:
         while self._interactive_stack.count() > 0:
             widget = self._interactive_stack.widget(0)
-            self._interactive_stack.removeWidget(widget)
+            self._interactive_stack.removeWidget(widget)  # type: ignore[arg-type]
             if widget:
                 widget.deleteLater()
 
@@ -684,7 +685,7 @@ class ClusterResultsPanel(QWidget):
         self._custom_cluster_masks = []
         self._cluster_ui_elements: dict = {}
         from karcytics_sdk.plugin.components import BioLineEdit, PrimaryButton, SecondaryButton
-        from PyQt6.QtWidgets import (
+        from PySide6.QtWidgets import (
             QCheckBox,
             QHBoxLayout,
             QLabel,
@@ -1252,7 +1253,7 @@ class ClusterResultsPanel(QWidget):
     def _on_polygon_drawn(self, verts) -> None:
         import numpy as np
         from matplotlib.path import Path
-        from PyQt6.QtWidgets import QInputDialog
+        from PySide6.QtWidgets import QInputDialog
 
         if self._poly_selector:
             self._poly_selector.disconnect_events()

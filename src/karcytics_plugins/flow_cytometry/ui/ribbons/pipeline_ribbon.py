@@ -3,8 +3,8 @@
 from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton, repopulate_combo
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -13,13 +13,13 @@ class PipelineRibbon(ThemedToolbarContainer):
     """Ribbon tab containing tools for the Pipeline canvas."""
 
     # Emitted when the user selects a new sample to view in the pipeline
-    sample_selected = pyqtSignal(str)
+    sample_selected = Signal(str)
 
     # Emitted when the user requests a logic node
-    logic_node_requested = pyqtSignal(str, str)  # sample_id, operator (AND/OR/NOT)
+    logic_node_requested = Signal(str, str)  # sample_id, operator (AND/OR/NOT)
 
     # Emitted when the user changes layout orientation
-    orientation_changed = pyqtSignal(str)
+    orientation_changed = Signal(str)
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)

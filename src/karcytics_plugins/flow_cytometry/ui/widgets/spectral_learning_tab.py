@@ -17,8 +17,8 @@ from karcytics_sdk.plugin.components import BioCaptionLabel, PrimaryButton, Seco
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib import patches
 from matplotlib.figure import Figure
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -899,7 +899,7 @@ class SpectralLearningTab(QWidget):
 
     def _add_slider(self, on_release):
         self._slider = QSlider()
-        from PyQt6.QtCore import Qt as _Qt
+        from PySide6.QtCore import Qt as _Qt
 
         self._slider.setOrientation(_Qt.Orientation.Horizontal)
         self._slider.setRange(0, 100)

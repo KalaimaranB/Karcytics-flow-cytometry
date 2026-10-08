@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QCheckBox,
     QFormLayout,
     QLabel,
@@ -21,7 +21,7 @@ from ._utils import make_float_row, make_int_row, section_header
 class ContourSettingsPanel(QWidget):
     """Settings panel for the 2D Contour renderer."""
 
-    changed = pyqtSignal()
+    changed = Signal()
 
     def __init__(self, config: ContourConfig, parent=None):
         super().__init__(parent)

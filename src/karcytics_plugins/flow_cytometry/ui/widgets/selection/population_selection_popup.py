@@ -21,9 +21,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QRect, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
-from PyQt6.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtCore import QRect, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis.population_matching import (
     ALL_EVENTS_LABEL,
@@ -50,7 +50,7 @@ class PopulationSelectionPopup(FloatingGridPopup):
             toggle, All/None, refresh(), or a multi/single-select switch).
     """
 
-    selectionChanged = pyqtSignal()
+    selectionChanged = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         self._samples: dict[str, Sample] = {}

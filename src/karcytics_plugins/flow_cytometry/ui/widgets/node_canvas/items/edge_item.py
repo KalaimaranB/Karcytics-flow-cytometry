@@ -1,9 +1,9 @@
 """Graphical representation of a wire between two nodes."""
 
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import QPointF, Qt
-from PyQt6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PyQt6.QtWidgets import QGraphicsPathItem, QStyleOptionGraphicsItem, QWidget
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import QGraphicsPathItem, QStyleOptionGraphicsItem, QWidget
 
 
 class EdgeItem(QGraphicsPathItem):
@@ -79,4 +79,4 @@ class EdgeItem(QGraphicsPathItem):
         if painter is None:
             return
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        super().paint(painter, option, widget)
+        super().paint(painter, option, widget)  # type: ignore[arg-type]

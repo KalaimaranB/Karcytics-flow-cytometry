@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from PyQt6.QtCore import QObject, QTimer, pyqtSignal
-from PyQt6.QtWidgets import QMessageBox
+from PySide6.QtCore import QObject, QTimer, Signal
+from PySide6.QtWidgets import QMessageBox
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -24,8 +24,8 @@ class _FakeGlobalScheduler(QObject):
     `test_cluster_results_panel_gallery.py`'s own fixture.
     """
 
-    task_finished = pyqtSignal(str, dict)
-    task_error = pyqtSignal(str, str)
+    task_finished = Signal(str, object)
+    task_error = Signal(str, str)
 
     def submit(self, analyzer, state=None):
         QTimer.singleShot(0, lambda: None)

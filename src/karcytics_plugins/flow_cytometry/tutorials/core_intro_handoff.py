@@ -71,7 +71,7 @@ def _copy_demo_file(_panel: Any) -> None:
     import urllib.request
 
     from karcytics_sdk.plugin import get_logger
-    from PyQt6.QtCore import QStandardPaths
+    from PySide6.QtCore import QStandardPaths
 
     logger = get_logger(__name__, "flow_cytometry")
     filename = "demo_tutorial.fcs"

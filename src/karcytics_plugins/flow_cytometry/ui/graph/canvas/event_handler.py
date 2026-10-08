@@ -54,8 +54,8 @@ class CanvasEventHandler:
         # matplotlib's own modifier tracking (event.key) is unreliable across
         # backends for a plain button-press with no preceding key event —
         # ask Qt directly instead, same as any other Alt-chord shortcut.
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtCore import Qt
+        from PySide6.QtWidgets import QApplication
 
         modifiers = QApplication.keyboardModifiers()
         alt_cycle = bool(modifiers & Qt.KeyboardModifier.AltModifier)
@@ -104,7 +104,7 @@ class CanvasEventHandler:
     def handle_key_press(self, event) -> None:
         """Handle keyboard press."""
         canvas = self.canvas
-        from PyQt6.QtCore import Qt as _Qt
+        from PySide6.QtCore import Qt as _Qt
 
         from ..flow_canvas import GateDrawingMode
 

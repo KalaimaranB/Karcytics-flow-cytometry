@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from karcytics_sdk.plugin import get_logger
-from PyQt6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFileDialog
 
 from .workspace_save_service import WorkspaceSaveService
 from .zip_export_service import ZipExportService

@@ -177,7 +177,7 @@ def paintEvent(self, event) -> None:
 
 
 def _retry_update(self) -> None:
-    if sip.isdeleted(self):
+    if not shiboken6.isValid(self):
         return
     self.update()
 ```
@@ -186,8 +186,8 @@ def _retry_update(self) -> None:
 fine for the base class, but a `FlowCanvas` can be `deleteLater()`'d (tab
 closed) while a `QTimer.singleShot` retry is still queued. Touching a
 destroyed Qt C++ object from that queued callback crashes **natively**
-(not a catchable `RuntimeError`, because it isn't a normal Python call PyQt
-can intercept) — hence the `sip.isdeleted()` guard before every retry.
+(not a catchable `RuntimeError`, because it isn't a normal Python call Qt
+can intercept) — hence the `shiboken6.isValid()` guard before every retry.
 
 ### `_on_data_layer_finished()` — where the two layers meet
 

@@ -20,8 +20,8 @@ from karcytics_sdk.plugin.rendering.mpl_canvas import LayeredMatplotlibCanvas
 from karcytics_sdk.plugin.rendering.pipeline import RasterizeStage
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtWidgets import QLabel, QSizePolicy, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.constants import (

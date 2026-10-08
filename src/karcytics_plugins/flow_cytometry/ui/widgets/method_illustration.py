@@ -11,9 +11,9 @@ import numpy as np
 from karcytics_sdk.plugin.components import SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QWheelEvent
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QWheelEvent
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import LockedFigureCanvas
 from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import FitIllustration

@@ -16,9 +16,9 @@ from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_error
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
     QHBoxLayout,
@@ -89,9 +89,9 @@ class MatrixLibraryPanel(QWidget):
         note: one line describing what an action here just did.
     """
 
-    apply_requested = pyqtSignal(object)
-    open_requested = pyqtSignal(object)
-    note = pyqtSignal(str)
+    apply_requested = Signal(object)
+    open_requested = Signal(object)
+    note = Signal(str)
 
     def __init__(
         self,

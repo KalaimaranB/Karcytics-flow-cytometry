@@ -10,7 +10,7 @@ unsubscribe instead of letting it propagate.
 """
 
 import pytest
-from PyQt6 import sip
+import shiboken6
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
@@ -40,7 +40,7 @@ def test_on_gate_change_survives_scroll_deleted_before_widget(qtbot, flow_state_
     # Simulate the exact ordering from the traceback: a child (_scroll) is
     # torn down by Qt before `self.destroyed` fires for the parent and
     # unsubscribes us from CentralEventBus.
-    sip.delete(widget._scroll)
+    shiboken6.delete(widget._scroll)
 
     # Must not raise.
     widget._on_gate_change({})
@@ -52,7 +52,7 @@ def test_on_gate_selected_survives_sample_view_deleted_before_widget(qtbot, flow
     widget = GateHierarchy(flow_state_hierarchy)
     qtbot.addWidget(widget)
 
-    sip.delete(widget._sample_view)
+    shiboken6.delete(widget._sample_view)
 
     # Must not raise.
     widget._on_gate_selected({})
@@ -65,7 +65,7 @@ def test_on_gate_change_unsubscribes_after_swallowing_stale_callback(qtbot, flow
 
     widget = GateHierarchy(flow_state_hierarchy)
     qtbot.addWidget(widget)
-    sip.delete(widget._scroll)
+    shiboken6.delete(widget._scroll)
 
     calls_before = CentralEventBus.unsubscribe.call_count
     widget._on_gate_change({})

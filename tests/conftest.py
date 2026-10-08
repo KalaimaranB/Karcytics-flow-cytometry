@@ -17,7 +17,7 @@ import pytest  # noqa: E402
 # under test exercises the actual shared logic rather than a second copy.
 from karcytics_sdk.plugin.components import repopulate_combo  # noqa: E402
 from karcytics_sdk.plugin.history import UndoHistory  # noqa: E402
-from PyQt6.QtWidgets import QLabel, QPushButton, QSplitter, QWidget  # noqa: E402
+from PySide6.QtWidgets import QLabel, QPushButton, QSplitter, QWidget  # noqa: E402
 
 # Mock karcytics_sdk before it gets imported
 mock_karcytics_sdk_plugin = MagicMock()
@@ -28,13 +28,13 @@ class DummyTaskBase:
         pass
 
 
-from PyQt6.QtCore import pyqtSignal  # noqa: E402
+from PySide6.QtCore import Signal  # noqa: E402
 
 
 class DummyPluginBase(QWidget):
-    status_message = pyqtSignal(str)
-    state_changed = pyqtSignal()
-    undo_state_changed = pyqtSignal()
+    status_message = Signal(str)
+    state_changed = Signal()
+    undo_state_changed = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -100,8 +100,8 @@ class DummyButton(QPushButton):
 
 
 class DummyWorkspaceSaveButton(DummyButton):
-    save_requested = pyqtSignal()
-    update_requested = pyqtSignal()
+    save_requested = Signal()
+    update_requested = Signal()
 
     def set_workflow_active(self, active: bool):
         pass
@@ -126,7 +126,7 @@ class DummyFooter(QWidget):
         pass
 
 
-from PyQt6.QtWidgets import (  # noqa: E402
+from PySide6.QtWidgets import (  # noqa: E402
     QComboBox,
     QLineEdit,
     QListWidget,

@@ -8,7 +8,7 @@ authors = [
   { name = "Kalaimaran Balasothy" },
 ]
 dependencies = [
-    "karcytics-sdk>=2.4.0",
+    "karcytics-sdk>=3.0.0",
     "msgpack>=1.0.0, <2.0.0",
     "pyobjc-framework-cocoa>=12.2.1 ; sys_platform == 'darwin'",
     "numpy==1.26.4",
@@ -111,7 +111,7 @@ mypy_path = "src"
 [[tool.mypy.overrides]]
 # Third-party packages without bundled type stubs
 module = [
-    "PyQt6.*",
+    "PySide6.*",
     "numpy.*",
     "scipy.*",
     "pandas.*",
@@ -130,7 +130,7 @@ module = [
     "threadpoolctl.*",
     "karcytics_sdk.*",
     "karcytics.*",
-    "sip.*",
+    "shiboken6.*",
     "requests.*",
 ]
 ignore_missing_imports = true
@@ -140,7 +140,7 @@ karcytics-sdk = { path = "../Karcytics-SDK", editable = true }
 
 [dependency-groups]
 dev = [
-    "pyqt6>=6.11.0, <7.0.0",
+    "pyside6-essentials>=6.11.0, <7.0.0",
 ]
 
 [tool.setuptools.package-data]

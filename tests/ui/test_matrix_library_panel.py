@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 import numpy as np
 import pandas as pd
 import pytest
-from PyQt6.QtCore import QPoint, QPointF, Qt
-from PyQt6.QtGui import QWheelEvent
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtGui import QWheelEvent
+from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole

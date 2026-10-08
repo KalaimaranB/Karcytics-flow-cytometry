@@ -12,8 +12,8 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -54,15 +54,15 @@ class GateHierarchy(QWidget):
     """
 
     # ── Signals (backward-compatible) ────────────────────────────────
-    gate_double_clicked = pyqtSignal(str)
-    selection_changed = pyqtSignal(str)
-    gate_rename_requested = pyqtSignal(str, str, str)
-    gate_delete_requested = pyqtSignal(str, str)
-    copy_gates_requested = pyqtSignal(str)
+    gate_double_clicked = Signal(str)
+    selection_changed = Signal(str)
+    gate_rename_requested = Signal(str, str, str)
+    gate_delete_requested = Signal(str, str)
+    copy_gates_requested = Signal(str)
 
     # New
-    propagation_mode_changed = pyqtSignal(bool)
-    propagate_requested = pyqtSignal(str, str)  # sample_id, node_id
+    propagation_mode_changed = Signal(bool)
+    propagate_requested = Signal(str, str)  # sample_id, node_id
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -386,7 +386,7 @@ class GateHierarchy(QWidget):
         node = sample.gate_tree.find_node_by_id(node_id)
         current_name = node.name if node else ""
 
-        from PyQt6.QtWidgets import QInputDialog, QLineEdit
+        from PySide6.QtWidgets import QInputDialog, QLineEdit
 
         new_name, ok = QInputDialog.getText(
             self,

@@ -18,8 +18,8 @@ from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QButtonGroup,
     QFormLayout,
     QHBoxLayout,
@@ -75,7 +75,7 @@ class PropertiesPanel(QWidget):
     are recomputed.
     """
 
-    roleChanged = pyqtSignal()
+    roleChanged = Signal()
 
     def __init__(
         self,
@@ -432,7 +432,7 @@ class PropertiesPanel(QWidget):
             val.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             form.addRow(_create_label(label_text, help_text), val)
 
-        from PyQt6.QtWidgets import QComboBox
+        from PySide6.QtWidgets import QComboBox
 
         from ...analysis.experiment import SampleRole
 

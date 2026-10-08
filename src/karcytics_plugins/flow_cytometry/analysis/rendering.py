@@ -2,7 +2,7 @@
 
 Contains the math and data processing logic for creating histograms,
 pseudocolor density maps, and contour plots.
-Decoupled from both PyQt and Matplotlib backend details where possible.
+Decoupled from both Qt and Matplotlib backend details where possible.
 """
 
 from __future__ import annotations

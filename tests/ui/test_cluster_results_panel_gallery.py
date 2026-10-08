@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from PyQt6.QtCore import QObject, QSize, QTimer, pyqtSignal
+from PySide6.QtCore import QObject, QSize, QTimer, Signal
 
 from karcytics_plugins.flow_cytometry.ui.widgets import cluster_results_panel as panel_module
 from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import (
@@ -33,8 +33,8 @@ class _FakeGlobalScheduler(QObject):
     already registered before the callback fires.
     """
 
-    task_finished = pyqtSignal(str, dict)
-    task_error = pyqtSignal(str, str)
+    task_finished = Signal(str, object)
+    task_error = Signal(str, str)
 
     def __init__(self) -> None:
         super().__init__()
@@ -141,7 +141,7 @@ def test_rendered_tile_is_fixed_size_and_never_distorted(qtbot):
     all of it — no `QGridLayout` stretch heuristics are involved in sizing a
     tile at all.
     """
-    from PyQt6.QtGui import QPixmap
+    from PySide6.QtGui import QPixmap
 
     source = QPixmap(934, 746)
     source.fill()

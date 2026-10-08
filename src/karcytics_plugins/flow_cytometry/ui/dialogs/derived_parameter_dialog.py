@@ -20,8 +20,8 @@ from karcytics_sdk.plugin.components import (
 )
 from karcytics_sdk.plugin.dialogs import ask_ok_cancel, ask_yes_no, show_warning
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -64,7 +64,7 @@ class DerivedParameterDialog(QDialog):
         parameter_saved(str, bool): param_id, and True if newly created.
     """
 
-    parameter_saved = pyqtSignal(str, bool)
+    parameter_saved = Signal(str, bool)
 
     def __init__(
         self,
@@ -230,7 +230,7 @@ class DerivedParameterDialog(QDialog):
 
     def _start_new(self) -> None:
         self._syncing_list = True
-        self._list.setCurrentItem(None)
+        self._list.setCurrentItem(None)  # type: ignore[call-overload]
         self._syncing_list = False
         self._editor.load(None)
         self._update_buttons()

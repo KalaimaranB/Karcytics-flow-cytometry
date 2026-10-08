@@ -16,8 +16,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
@@ -285,8 +285,8 @@ def test_raw_fcs_injection_starts_unsaved(panel, monkeypatch):
 
 
 class _Scheduler(QObject):
-    task_finished = pyqtSignal(str, dict)
-    task_error = pyqtSignal(str, str)
+    task_finished = Signal(str, object)
+    task_error = Signal(str, str)
 
     def submit(self, _task, _state):
         return MagicMock(task_id="reload-1")

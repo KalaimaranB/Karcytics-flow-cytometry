@@ -10,7 +10,7 @@
     [`08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md`](08_DATA_FLOW_AND_SIGNAL_CONNECTIONS.md)
     for the deep dives this overview links out to.
 
-The Karcytics Flow Cytometry module is a PyQt6 plugin, injected as the
+The Karcytics Flow Cytometry module is a PySide6 plugin, injected as the
 central workspace widget by the Karcytics Hub's `ModuleManager`, that wraps
 [FlowKit](https://github.com/whitews/FlowKit) for FCS parsing and transforms.
 It enforces a hard boundary between a pure-Python analysis layer and a Qt/
@@ -41,8 +41,8 @@ only ever sees the plugin's own `FCSData`/`Sample`/`Experiment` dataclasses.
 
 | Path | Contains |
 |---|---|
-| `analysis/` | Pure Python domain logic — **no PyQt, no matplotlib**. Gating (`gating/`), transforms (`transforms.py`), compensation (`compensation.py`), statistics, services (`analysis/services/`), the `FlowState` model (`state.py`). |
-| `ui/` | PyQt6 views, matplotlib canvases, ribbons, dialogs. Depends on `analysis/`; `analysis/` never imports from `ui/`. |
+| `analysis/` | Pure Python domain logic — **no Qt, no matplotlib**. Gating (`gating/`), transforms (`transforms.py`), compensation (`compensation.py`), statistics, services (`analysis/services/`), the `FlowState` model (`state.py`). |
+| `ui/` | PySide6 views, matplotlib canvases, ribbons, dialogs. Depends on `analysis/`; `analysis/` never imports from `ui/`. |
 | `ui/graph/` | The 2-D scatter/histogram rendering engine (`FlowCanvas`, `GraphWindow`, `GraphManager`, `renderers/`, `canvas/`). |
 | `ui/widgets/node_canvas/` | The Pipeline tab's `QGraphicsScene`-based DAG editor. |
 | `ui/builders/` | `WorkspaceBuilder` — the two-phase skeleton/heavy-widget construction described below. |

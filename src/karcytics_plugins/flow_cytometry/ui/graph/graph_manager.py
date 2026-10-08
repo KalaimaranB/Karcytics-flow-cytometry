@@ -15,8 +15,8 @@ from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QLabel,
     QTabWidget,
     QVBoxLayout,
@@ -50,11 +50,11 @@ class GraphManager(QWidget):
             Forwarded when a gate overlay is clicked on the canvas.
     """
 
-    gate_drawn = pyqtSignal(object, str, object)  # Gate, sample_id, parent_node_id
-    gate_selection_changed = pyqtSignal(object)  # gate_id or None
-    active_graph_changed = pyqtSignal(str, object)  # sample_id, node_id (or "", None)
-    tool_change_requested = pyqtSignal(str)
-    derived_editor_requested = pyqtSignal(object, str)  # GraphWindow, "x" | "y"
+    gate_drawn = Signal(object, str, object)  # Gate, sample_id, parent_node_id
+    gate_selection_changed = Signal(object)  # gate_id or None
+    active_graph_changed = Signal(str, object)  # sample_id, node_id (or "", None)
+    tool_change_requested = Signal(str)
+    derived_editor_requested = Signal(object, str)  # GraphWindow, "x" | "y"
 
     def __init__(
         self,

@@ -17,7 +17,7 @@ import sys
 import numpy as np
 import pandas as pd
 import pytest
-from PyQt6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry.analysis.gating.base import Gate
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode

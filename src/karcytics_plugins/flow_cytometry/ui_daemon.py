@@ -2,7 +2,7 @@
 
 Run by `karcytics_sdk.plugin.PluginUIDaemon` from this plugin's own `.venv`
 interpreter (never imported into the Hub's process). Owns its own
-`QApplication` and its own copies of numpy/matplotlib/PIL/PyQt6, so switching
+`QApplication` and its own copies of numpy/matplotlib/PIL/PySide6, so switching
 to or from this module never touches the Hub's `sys.modules` — the whole
 class of shadow-copy/purge collisions this exists to avoid.
 

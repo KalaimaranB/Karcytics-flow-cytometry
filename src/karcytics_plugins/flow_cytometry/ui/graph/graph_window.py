@@ -19,8 +19,8 @@ from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import (
     QLabel,
     QVBoxLayout,
     QWidget,
@@ -73,15 +73,15 @@ class GraphWindow(QWidget):
         axis_changed:                 Emitted when axis selection changes.
     """
 
-    gate_drawn = pyqtSignal(object, str, object)  # Gate, sample_id, parent_node_id
-    gate_selection_changed = pyqtSignal(object)  # gate_id or None
-    axis_changed = pyqtSignal()
-    axis_scale_sync_requested = pyqtSignal(str, object)  # channel_name, AxisScale
-    navigation_requested = pyqtSignal(str)  # "next_sample", "prev_sample", "parent_gate"
-    tool_change_requested = pyqtSignal(
+    gate_drawn = Signal(object, str, object)  # Gate, sample_id, parent_node_id
+    gate_selection_changed = Signal(object)  # gate_id or None
+    axis_changed = Signal()
+    axis_scale_sync_requested = Signal(str, object)  # channel_name, AxisScale
+    navigation_requested = Signal(str)  # "next_sample", "prev_sample", "parent_gate"
+    tool_change_requested = Signal(
         str
     )  # "select", "rectangle", "polygon", "ellipse", "quadrant", "range"
-    derived_editor_requested = pyqtSignal(object, str)  # this GraphWindow, "x" | "y"
+    derived_editor_requested = Signal(object, str)  # this GraphWindow, "x" | "y"
 
     def __init__(  # noqa: PLR0913
         self,

@@ -161,7 +161,7 @@ def test_generate_button_produces_a_visible_canvas(qtbot, two_sample_state, plot
     (`_on_generate` -> `ComparisonsWorker` QThread -> `_on_render_done`):
 
     1. `_on_render_done` guarded the canvas-swap logic with
-       `if container_layout:` — but a QLayout's truthiness in PyQt6 follows
+       `if container_layout:` — but a QLayout's truthiness in PySide6 follows
        `__len__()`/`count()`, not identity, so an *empty* layout (true on
        every single Generate Plot click, since nothing was ever successfully
        added) silently skipped `addWidget()`. The figure always rendered

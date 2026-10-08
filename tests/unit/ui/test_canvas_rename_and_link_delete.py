@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from karcytics_sdk.plugin.components import BioMenu
+
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -35,8 +37,8 @@ def test_rename_available_for_logic_nodes(qtbot):
     mock_event.screenPos.return_value = MagicMock()
 
     with (
-        patch("PyQt6.QtWidgets.QMenu.exec") as mock_exec,
-        patch("PyQt6.QtWidgets.QMenu.addAction") as mock_add_action,
+        patch.object(BioMenu, "exec") as mock_exec,
+        patch.object(BioMenu, "addAction") as mock_add_action,
     ):
         rename_action_mock = MagicMock(name="rename_action")
         delete_action_mock = MagicMock(name="delete_action")
@@ -55,9 +57,9 @@ def test_link_submenus_only_appear_with_logic_links(qtbot):
     mock_event.screenPos.return_value = MagicMock()
 
     with (
-        patch("PyQt6.QtWidgets.QMenu.exec") as mock_exec,
-        patch("PyQt6.QtWidgets.QMenu.addAction") as mock_add_action,
-        patch("PyQt6.QtWidgets.QMenu.addMenu") as mock_add_menu,
+        patch.object(BioMenu, "exec") as mock_exec,
+        patch.object(BioMenu, "addAction") as mock_add_action,
+        patch.object(BioMenu, "addMenu") as mock_add_menu,
     ):
         rename_mock = MagicMock(name="rename")
         delete_mock = MagicMock(name="delete")
@@ -81,9 +83,9 @@ def test_link_submenu_emits_link_delete_requested_for_picked_connection(qtbot):
     mock_event.screenPos.return_value = MagicMock()
 
     with (
-        patch("PyQt6.QtWidgets.QMenu.exec") as mock_exec,
-        patch("PyQt6.QtWidgets.QMenu.addAction") as mock_add_action,
-        patch("PyQt6.QtWidgets.QMenu.addMenu"),
+        patch.object(BioMenu, "exec") as mock_exec,
+        patch.object(BioMenu, "addAction") as mock_add_action,
+        patch.object(BioMenu, "addMenu"),
     ):
         rename_action_mock = MagicMock(name="rename_action")
         delete_action_mock = MagicMock(name="delete_action")
@@ -115,8 +117,8 @@ def test_keypress_delete_ignores_structural_edges(qtbot):
     """Delete/Backspace on a selected structural edge does nothing (only logic edges
     are deletable this way) — regression test for the pre-existing orphaning gap.
     """
-    from PyQt6.QtCore import Qt
-    from PyQt6.QtGui import QKeyEvent
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QKeyEvent
 
     state = _mock_flow_state()
     canvas = NodeCanvas(state)
@@ -154,7 +156,7 @@ def test_confirm_and_rename_node_emits_with_scope_target_ids(qtbot):
         lambda nid, new_name, target_ids: received.append((nid, new_name, target_ids))
     )
 
-    from PyQt6.QtWidgets import QDialog, QInputDialog
+    from PySide6.QtWidgets import QDialog, QInputDialog
 
     from karcytics_plugins.flow_cytometry.ui.widgets.scope_selection_dialog import (
         ScopeSelectionDialog,
@@ -187,7 +189,7 @@ def test_confirm_and_delete_link_respects_default_no(qtbot):
         lambda src, tgt, target_ids: received.append((src, tgt, target_ids))
     )
 
-    from PyQt6.QtWidgets import QDialog, QMessageBox
+    from PySide6.QtWidgets import QDialog, QMessageBox
 
     from karcytics_plugins.flow_cytometry.ui.widgets.scope_selection_dialog import (
         ScopeSelectionDialog,

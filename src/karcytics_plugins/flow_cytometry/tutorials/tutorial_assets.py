@@ -71,7 +71,7 @@ def resolve_downloads_folder() -> Path:
     background download thread entirely — resolved once here and threaded
     through as a plain Path from then on.
     """
-    from PyQt6.QtCore import QStandardPaths
+    from PySide6.QtCore import QStandardPaths
 
     download_loc = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
     base = Path(download_loc) if download_loc else Path.home() / "Downloads"

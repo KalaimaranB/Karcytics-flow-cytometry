@@ -15,7 +15,7 @@ reviews:
         Enforce the following at Google-engineer standard:
         - All public functions and methods must have complete type annotations (PEP 484).
           Flag any `Any`, untyped parameters, or missing return types.
-        - No imports of `PyQt6`, `PyQt5`, or any UI framework. This is enforced by ruff TID251
+        - No imports of `PySide6`, `PyQt6`, or any UI framework. This is enforced by ruff TID251
           but flag it at the review level too.
         - McCabe complexity must be ≤ 10 per function. If a function exceeds this, suggest
           a specific decomposition strategy (e.g., extract helper, use strategy pattern).
@@ -50,7 +50,7 @@ reviews:
           e.g., `test_gate_rejects_empty_dataframe` not `test_gate`.
         - Flag `except Exception` blocks that swallow assertion errors
           (pattern: `except Exception: pytest.fail(...)` is fine, bare pass is not).
-        - Unit tests (`tests/unit/`) must not import any `PyQt6` or UI modules.
+        - Unit tests (`tests/unit/`) must not import any `PySide6` or UI modules.
           Analysis tests must remain headless.
 
     # ── Config and packaging ─────────────────────────────────────────────────

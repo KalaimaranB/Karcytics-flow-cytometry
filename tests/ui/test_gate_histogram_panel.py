@@ -5,7 +5,7 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 import pytest
-from PyQt6.QtCore import QTimer
+from PySide6.QtCore import QTimer
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.constants import (

@@ -4,9 +4,9 @@ from collections.abc import Callable
 from typing import Any
 
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
-from PyQt6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPainterPath, QPen, QPixmap
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtWidgets import (
     QGraphicsObject,
     QGraphicsSceneHoverEvent,
     QGraphicsSceneMouseEvent,
@@ -19,15 +19,15 @@ class NodeItem(QGraphicsObject):
     """A graphical node representing a single population gate."""
 
     # Emitted when double-clicked
-    node_double_clicked = pyqtSignal(str)
-    delete_requested = pyqtSignal(str)
-    rename_requested = pyqtSignal(str)
-    link_delete_requested = pyqtSignal(str, str)  # source_node_id, target_node_id
+    node_double_clicked = Signal(str)
+    delete_requested = Signal(str)
+    rename_requested = Signal(str)
+    link_delete_requested = Signal(str, str)  # source_node_id, target_node_id
 
     # Drag signals
-    edge_drag_started = pyqtSignal(str, QPointF)  # node_id, start_pos
-    edge_dragged = pyqtSignal(QPointF)  # current_scene_pos
-    edge_drag_released = pyqtSignal(str, QPointF)  # source_node_id, release_scene_pos
+    edge_drag_started = Signal(str, QPointF)  # node_id, start_pos
+    edge_dragged = Signal(QPointF)  # current_scene_pos
+    edge_drag_released = Signal(str, QPointF)  # source_node_id, release_scene_pos
 
     # Dimensions
     WIDTH = 200
@@ -103,7 +103,7 @@ class NodeItem(QGraphicsObject):
 
     def set_plot_image(self, qimg: QImage) -> None:
         """Set the rendered plot image."""
-        from PyQt6.QtGui import QPixmap
+        from PySide6.QtGui import QPixmap
 
         self._plot_pixmap = QPixmap.fromImage(qimg)
         self._mark_dirty()

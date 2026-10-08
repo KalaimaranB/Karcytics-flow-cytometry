@@ -35,9 +35,9 @@ from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color,
 from karcytics_sdk.plugin.worker_thread import OneShotWorkerThread
 from matplotlib.colors import LinearSegmentedColormap, to_hex
 from matplotlib.figure import Figure
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QBrush, QColor, QFont
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor, QFont
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QCheckBox,

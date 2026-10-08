@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QTreeWidget,
@@ -51,9 +51,9 @@ class SampleList(QWidget):
         selection_changed(sample_id): Emitted on selection change.
     """
 
-    sample_double_clicked = pyqtSignal(str)
-    selection_changed = pyqtSignal(str)
-    population_open_requested = pyqtSignal(str, str)
+    sample_double_clicked = Signal(str)
+    selection_changed = Signal(str)
+    population_open_requested = Signal(str, str)
 
     def __init__(self, state: FlowState, parent=None) -> None:
         super().__init__(parent)
@@ -202,7 +202,7 @@ class SampleList(QWidget):
                     break
         else:
             self._tree.clearSelection()
-            self._tree.setCurrentItem(None)
+            self._tree.setCurrentItem(None)  # type: ignore[call-overload]
 
         self._tree.blockSignals(False)
 
@@ -254,7 +254,7 @@ class SampleList(QWidget):
         """Select a sample in the list by ID."""
         if not sample_id:
             self._tree.clearSelection()
-            self._tree.setCurrentItem(None)
+            self._tree.setCurrentItem(None)  # type: ignore[call-overload]
             return
 
         for i in range(self._tree.topLevelItemCount()):
@@ -382,7 +382,7 @@ class SampleList(QWidget):
         if not sample:
             return
 
-        from PyQt6.QtWidgets import QInputDialog
+        from PySide6.QtWidgets import QInputDialog
 
         new_name, ok = QInputDialog.getText(
             self, "Rename Sample", "New name:", text=sample.display_name

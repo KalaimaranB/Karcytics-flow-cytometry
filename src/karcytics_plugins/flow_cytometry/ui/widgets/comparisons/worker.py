@@ -9,7 +9,7 @@ from __future__ import annotations
 import threadpoolctl
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.worker_thread import OneShotWorkerThread
-from PyQt6.QtCore import QObject
+from PySide6.QtCore import QObject
 
 from .renderers.base import IPlotRenderer
 

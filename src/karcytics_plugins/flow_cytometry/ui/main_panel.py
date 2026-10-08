@@ -27,8 +27,8 @@ from karcytics_sdk.plugin.runtime_services import (
     tutorial_manager as global_tutorial_manager,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import (
     QApplication,
     QMessageBox,
     QSizePolicy,
@@ -113,14 +113,14 @@ class FlowCytometryPanel(PluginBase):
 
     # ── Karcytics-required signals ───────────────────────────────────────
     # state_changed and status_message are now provided by PluginBase
-    results_ready = pyqtSignal(object)
+    results_ready = Signal(object)
 
     # ── Ready Gate protocol (Proposal A) ──────────────────────────
     # panel_ready: heavy widgets built — PluginLoaderManager updates loader message.
     # data_ready:  data loaded + graphs rendered — PluginLoaderManager cross-fades.
-    panel_ready = pyqtSignal()
-    data_ready = pyqtSignal()
-    gate_added_to_tree = pyqtSignal()
+    panel_ready = Signal()
+    data_ready = Signal()
+    gate_added_to_tree = Signal()
 
     def __init__(self, plugin_id: str = "flow_cytometry", parent=None) -> None:
         logger.warning("[phase1] FlowCytometryPanel.__init__: super().__init__ start")
@@ -733,7 +733,7 @@ class FlowCytometryPanel(PluginBase):
             # Skip the prompt; leaves get renamed individually afterward.
             name = default_name
         else:
-            from PyQt6.QtWidgets import QInputDialog
+            from PySide6.QtWidgets import QInputDialog
 
             # Prompt the user for the name, pausing the event loop here
             typed_name, ok = QInputDialog.getText(
@@ -885,7 +885,7 @@ class FlowCytometryPanel(PluginBase):
                 if grp:
                     group_choices.append((gid, grp.name))
 
-            from PyQt6.QtWidgets import QDialog
+            from PySide6.QtWidgets import QDialog
 
             from .widgets.scope_selection_dialog import ScopeSelectionDialog
 
@@ -1169,7 +1169,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _on_group_requested(self) -> None:
         """Callback when the user clicks 'Create Group'."""
-        from PyQt6.QtWidgets import QInputDialog
+        from PySide6.QtWidgets import QInputDialog
 
         from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 

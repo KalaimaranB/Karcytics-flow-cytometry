@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -22,7 +22,7 @@ from ._utils import make_float_row, make_int_row, section_header
 class PseudocolorSettingsPanel(QWidget):
     """Settings panel for the Pseudocolor density renderer."""
 
-    changed = pyqtSignal()  # emitted on any value change
+    changed = Signal()  # emitted on any value change
 
     def __init__(self, config: PseudocolorConfig, max_sample_events: int = 300_000, parent=None):
         super().__init__(parent)

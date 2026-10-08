@@ -128,13 +128,13 @@ def test_node_canvas_confirm_delete_with_children(qtbot, mock_flow_state):
     canvas.node_removed.connect(lambda nid: removed_nodes.append(nid))
 
     # Test 1: User declines confirmation
-    with patch("PyQt6.QtWidgets.QMessageBox.exec", return_value=1024):  # No / Reject
+    with patch("PySide6.QtWidgets.QMessageBox.exec", return_value=1024):  # No / Reject
         canvas._confirm_and_delete_node(parent.node_id)
         assert len(removed_nodes) == 0
 
     # Test 2: User accepts confirmation
-    from PyQt6.QtWidgets import QMessageBox
+    from PySide6.QtWidgets import QMessageBox
 
-    with patch("PyQt6.QtWidgets.QMessageBox.exec", return_value=QMessageBox.StandardButton.Yes):
+    with patch("PySide6.QtWidgets.QMessageBox.exec", return_value=QMessageBox.StandardButton.Yes):
         canvas._confirm_and_delete_node(parent.node_id)
         assert removed_nodes == [parent.node_id]

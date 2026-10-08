@@ -9,8 +9,8 @@ shown comes from the source, so a new method needs no changes here.
 from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QFormLayout,
     QHeaderView,
@@ -53,7 +53,7 @@ class MethodSetupPanel(QWidget):
             would do is different now.
     """
 
-    changed = pyqtSignal()
+    changed = Signal()
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)

@@ -19,7 +19,7 @@ from karcytics_plugins.flow_cytometry.ui.services.workspace_io_handler import Wo
 
 
 class _FakeSignal:
-    """Stand-in for AnalysisWorker's pyqtSignal-based .finished/.error.
+    """Stand-in for AnalysisWorker's Signal-based .finished/.error.
 
     Real code connects a callback to whichever signal actually fires, after
     task_scheduler.submit() has already returned — so this defers "emission"

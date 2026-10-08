@@ -10,8 +10,8 @@ from karcytics_sdk.plugin.components import (
     WorkspaceSaveButton,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QSizePolicy,
