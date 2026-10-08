@@ -153,6 +153,7 @@ def draw_preview(fig: Figure, plan: PreviewPlan, single_row: bool = False) -> li
     stack as two rows, unless ``single_row`` (a row in the all-samples list).
     """
     fig.clear()
+    fig.set_facecolor(Colors.BG_DARKEST)  # the theme may have changed since the last draw
     count = plan.plot_count
     rows = 1 if single_row or count <= 2 else 2  # noqa: PLR2004
     axes = [fig.add_subplot(rows, count // rows, index + 1) for index in range(count)]
@@ -309,6 +310,7 @@ class CompensationPreview:
 
     def show_message(self, message: str) -> None:
         self._fig.clear()
+        self._fig.set_facecolor(Colors.BG_DARKEST)
         self.axes = []
         self._fig.text(
             0.5, 0.5, message, ha="center", va="center", color=Colors.FG_SECONDARY, fontsize=10

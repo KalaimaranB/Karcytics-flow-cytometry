@@ -615,16 +615,16 @@ class _ToggleCell(QWidget):
         path.addRoundedRect(QRectF(1, 1, self.width() - 2, self.height() - 2), 4, 4)
 
         if not self._enabled:
-            fill = QColor("#21262d")
-            text_color = QColor("#484f58")
+            fill = QColor(Colors.BG_MEDIUM)
+            text_color = QColor(Colors.FG_DISABLED)
             label = "—"
         elif self._checked:
             fill = QColor(Colors.ACCENT_PRIMARY)
             text_color = QColor("#ffffff")
             label = "✓"
         else:
-            fill = QColor("#1a2030")
-            text_color = QColor("#484f58")
+            fill = QColor(Colors.BG_DARK)
+            text_color = QColor(Colors.FG_DISABLED)
             label = ""
 
         painter.fillPath(path, fill)

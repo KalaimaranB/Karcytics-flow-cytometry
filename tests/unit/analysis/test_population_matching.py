@@ -8,6 +8,7 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.population_matching import (
     ALL_EVENTS_LABEL,
+    build_row_order,
     compute_population_groups,
     label_path_index,
 )
@@ -137,3 +138,35 @@ class TestComputePopulationGroups:
         assert node_id_1 is not None
         assert node_id_2 is not None
         assert node_id_1 != node_id_2  # distinct GateNode instances per sample
+
+
+@pytest.mark.unit
+class TestBuildRowOrder:
+    def test_gate_deleted_from_one_sample_keeps_a_single_row(self):
+        full = [("B-cells", None), ("DP", "B-cells"), ("DN", "B-cells")]
+        samples = [
+            _make_sample("s1", full),
+            _make_sample("s2", full),
+            _make_sample("s3", [("B-cells", None)]),
+        ]
+        rows = build_row_order(compute_population_groups(samples))
+
+        paths = [r.label_path for r in rows]
+        assert paths == [ALL_EVENTS_LABEL, "B-cells", "B-cells / DP", "B-cells / DN"]
+        by_path = {r.label_path: r for r in rows}
+        assert by_path["B-cells"].is_shared
+        assert not by_path["B-cells / DP"].is_shared
+        # Still nested under its parent rather than detached to the root.
+        assert by_path["B-cells / DP"].row.depth == by_path["B-cells"].row.depth + 1
+
+    def test_sample_specific_branch_nests_under_shared_parent(self):
+        samples = [
+            _make_sample("s1", [("Leukocytes", None)]),
+            _make_sample("s2", [("Leukocytes", None), ("UMAP", "Leukocytes")]),
+        ]
+        rows = build_row_order(compute_population_groups(samples))
+
+        by_path = {r.label_path: r for r in rows}
+        assert len(rows) == len(by_path) == 3
+        assert by_path["Leukocytes / UMAP"].row.depth == 1
+        assert not by_path["Leukocytes / UMAP"].is_shared

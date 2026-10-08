@@ -25,6 +25,8 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 from .all_samples_model import AllSamplesModel, PopulationRow
 from .floating_grid_popup import _PALETTE_HEX, FloatingGridPopup
 
+_HEAT_TEXT_COLOR = "#e6edf3"
+
 
 def _saturate(hex_color: str, pct: float) -> str:
     """Darken a colour proportionally to low event percentage."""
@@ -89,17 +91,18 @@ class AllSamplesPopup(FloatingGridPopup):
         legend_layout.setContentsMargins(14, 0, 14, 0)
         legend_layout.setSpacing(16)
 
-        for dot_color, label_text in [
-            ("#00bcd4", "Gated"),
-            ("#484f58", "Not applied"),
-            ("#21262d", "0 events"),
+        # (dot, the theme colour it takes) and the labels, styled in _apply_theme_styles.
+        self._legend_dots: list[tuple[QLabel, str]] = []
+        self._legend_labels: list[QLabel] = []
+        for dot_token, label_text in [
+            ("ACCENT_PRIMARY", "Gated"),
+            ("FG_DISABLED", "Not applied"),
+            ("BORDER", "0 events"),
         ]:
             dot = QLabel("●")
-            dot.setStyleSheet(f"color: {dot_color}; font-size: 10px; background: transparent;")
             lbl = QLabel(label_text)
-            lbl.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-size: 10px; background: transparent;"
-            )
+            self._legend_dots.append((dot, dot_token))
+            self._legend_labels.append(lbl)
             legend_layout.addWidget(dot)
             legend_layout.addWidget(lbl)
 
@@ -112,6 +115,14 @@ class AllSamplesPopup(FloatingGridPopup):
             self._legend.setStyleSheet(
                 f"background: {Colors.BG_DARK}; border-top: 1px solid {Colors.BORDER};"
             )
+            for dot, token in self._legend_dots:
+                dot.setStyleSheet(
+                    f"color: {getattr(Colors, token)}; font-size: 10px; background: transparent;"
+                )
+            for lbl in self._legend_labels:
+                lbl.setStyleSheet(
+                    f"color: {Colors.FG_SECONDARY}; font-size: 10px; background: transparent;"
+                )
 
     def _rebuild_grid(self) -> None:
         """Clear and repopulate the grid from the current model."""
@@ -148,17 +159,18 @@ class _HeatCell(QWidget):
 
         if self._value is None:
             # Not applied
-            fill = QColor("#21262d")
-            text_color = QColor("#484f58")
+            fill = QColor(Colors.BG_MEDIUM)
+            text_color = QColor(Colors.FG_DISABLED)
             label = "—"
         elif self._value == 0.0:
-            fill = QColor("#1a2030")
-            text_color = QColor("#484f58")
+            fill = QColor(Colors.BG_DARK)
+            text_color = QColor(Colors.FG_DISABLED)
             label = "0%"
         else:
             base = _PALETTE_HEX[self._color_index % len(_PALETTE_HEX)]
             fill = QColor(_saturate(base, self._value))
-            text_color = QColor(Colors.FG_PRIMARY)
+            # The fill is the population's own colour in every theme.
+            text_color = QColor(_HEAT_TEXT_COLOR)
             label = f"{self._value:.1f}%"
 
         path = QPainterPath()

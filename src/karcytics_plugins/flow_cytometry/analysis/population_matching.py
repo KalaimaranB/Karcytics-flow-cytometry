@@ -173,7 +173,7 @@ class PopulationSelectionRow:
     is_shared: bool
 
 
-def _branch_rows_for(labels: list[str], *, is_shared: bool) -> list[PopulationSelectionRow]:
+def _branch_rows_for(labels: list[str], shared: set[str]) -> list[PopulationSelectionRow]:
     """Compute tree-branch connector strings for a flat list of label-paths,
     grouping by each label's own parent path (same parent lookup
     `population_tree.py`'s `_build_nested_rows` uses) rather than walking a
@@ -187,7 +187,7 @@ def _branch_rows_for(labels: list[str], *, is_shared: bool) -> list[PopulationSe
     for label in labels:
         parent = label.rsplit(PATH_SEP, 1)[0] if PATH_SEP in label else None
         if parent is not None and parent not in label_set:
-            parent = None  # parent not present in this group -> treat as a root
+            parent = None  # parent not present in any sample -> treat as a root
         children_of.setdefault(parent, []).append(label)
 
     rows: list[PopulationSelectionRow] = []
@@ -209,7 +209,7 @@ def _branch_rows_for(labels: list[str], *, is_shared: bool) -> list[PopulationSe
                         color_index=min(depth, 5),
                     ),
                     label_path=label,
-                    is_shared=is_shared,
+                    is_shared=label in shared,
                 )
             )
             _walk_labels(label, depth + 1, [*is_last_flags, is_last])
@@ -220,12 +220,24 @@ def _branch_rows_for(labels: list[str], *, is_shared: bool) -> list[PopulationSe
 
 def build_row_order(groups: PopulationGroups) -> list[PopulationSelectionRow]:
     """Order every population across ``groups`` into branch-connected rows
-    for the selection grid: shared labels first (in `compute_population_groups`'s
-    existing tree-discovery order), then each sample's own sample-specific
-    labels appended after.
+    for the selection grid: one row per distinct label-path, nested under
+    its parent's row wherever any sample has that parent.
+
+    A label present in only some samples still gets exactly one row — the
+    samples lacking it just have a disabled cell there. Emitting each
+    sample's sample-specific labels as its own block instead (what this
+    used to do) repeats the row once per sample that has it: deleting a
+    propagated gate from one sample out of N turned it into N-1 identical
+    rows, detached from their parent.
+
+    Siblings keep first-seen order: the first sample's tree-walk order,
+    then whatever later samples add.
     """
-    rows = _branch_rows_for(groups.shared, is_shared=True)
-    for labels in groups.per_sample.values():
-        if labels:
-            rows.extend(_branch_rows_for(labels, is_shared=False))
-    return rows
+    labels: list[str] = []
+    seen: set[str] = set()
+    for idx in groups.node_index.values():
+        for label in idx:
+            if label not in seen:
+                seen.add(label)
+                labels.append(label)
+    return _branch_rows_for(labels, set(groups.shared))

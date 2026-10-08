@@ -40,6 +40,7 @@ from .validators import (
     ExactSampleOpenValidator,
     FmoOverlayValidator,
     GateActiveValidator,
+    GateEditTracker,
     GateShapeValidator,
     PipelineOrientationValidator,
     PlotTypeValidator,
@@ -67,6 +68,9 @@ c3_tcells_validator = GateShapeValidator(
     misnamed_retry_step_id="c3_s07_tcell_gate_misnamed",
     shape_retry_step_id="c3_s07_tcell_gate_retry",
 )
+
+# Shared by the edit step and the undo step that follows it.
+c3_tcells_edit = GateEditTracker("T-cells")
 
 c3_bcells_validator = GateShapeValidator(
     # Must match the on-canvas guide_range=(4000.0, 100000.0) drawn for
@@ -315,6 +319,109 @@ course_3_gating = Course(
                 "in the group — Samples B and C (and the controls) already have it too."
             ),
             cyto_emotion="happy",
+            next_step_id="c3_e01_gates_arent_final",
+        ),
+        # ── Editing a gate, and undoing it ──────────────────────────────────────
+        InfoStep(
+            id="c3_e01_gates_arent_final",
+            text=(
+                "A gate is never final ✏️<br><br>"
+                "You'll often draw a gate on one sample, see it on another, and "
+                "want an edge a little tighter or wider. You don't redraw it: "
+                "with the **Select** tool (highlighted) you click a gate, then "
+                "drag an edge to resize it or drag its middle to move it."
+            ),
+            cyto_emotion="talking",
+            target_widget_names=["Tool_select"],
+            next_step_id="c3_e02_edit_gate",
+        ),
+        VerificationStep(
+            id="c3_e02_edit_gate",
+            text=(
+                "Try it on **T-cells**:<br><br>"
+                "1. Click the **Select** tool.<br>"
+                "2. Click the T-cells gate, then drag its right edge a little "
+                "to the left.<br><br>"
+                "Keep an eye on the **Group Preview** on the right as you let go."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["Tool_select", "FlowCanvas", RIGHT_PANEL_TARGET],
+            validator=c3_tcells_edit.edited(),
+            on_success_step_id="c3_e03_edit_everywhere",
+            failure_hint="Pick the **Select** tool, click the T-cells rectangle, and drag one of its edges.",
+        ),
+        QuestionStep(
+            id="c3_e03_edit_everywhere",
+            text=(
+                "You resized the gate on **Sample A**. What happened to T-cells on Samples B and C?"
+            ),
+            question_id="c3_edit_propagates",
+            choices=[
+                AnswerChoice(
+                    "Nothing, until the gate is copied again",
+                    feedback="Auto-Propagation re-applies every edit to the whole group, not just the first drawing.",
+                ),
+                AnswerChoice("They changed too: the group shares one gate", correct=True),
+                AnswerChoice(
+                    "They were removed from those samples",
+                    feedback="Editing never deletes a gate. The same gate, in its new shape, is on every sample in the group.",
+                ),
+            ],
+            explanation=(
+                "One gate, every sample: that keeps them comparable. Anything "
+                "gated inside it is recounted too, which is why an early gate "
+                "deserves the most care."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=[RIGHT_PANEL_TARGET],
+            next_step_id="c3_e04_undo",
+        ),
+        VerificationStep(
+            id="c3_e04_undo",
+            text=(
+                "Now put it back. Press **Ctrl+Z** (**Cmd+Z** on a Mac).<br><br>"
+                "The gate returns to the shape you drew, on every sample. "
+                "**Ctrl+Y** (**Cmd+Shift+Z** on a Mac) is Redo, should you want "
+                "the edit after all.<br><br>"
+                "*Nothing happening? Click the plot once so it has focus, then try again.*"
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["FlowCanvas", RIGHT_PANEL_TARGET],
+            validator=c3_tcells_edit.undone(),
+            on_success_step_id="c3_e05_undo_limits",
+            failure_hint="Click the plot, then press Ctrl+Z (Cmd+Z on a Mac) until the gate is back to its first shape.",
+        ),
+        QuestionStep(
+            id="c3_e05_undo_limits",
+            text=(
+                "Undo steps back through changes to your **analysis**, one at a "
+                "time. But it doesn't cover everything. Which of these will "
+                "Undo *not* bring back?"
+            ),
+            question_id="c3_undo_limits",
+            choices=[
+                AnswerChoice("The axis scale a plot had before you changed it", correct=True),
+                AnswerChoice(
+                    "A gate you deleted",
+                    feedback="Deleting a gate is one undo step. It comes back with every gate that was inside it.",
+                ),
+                AnswerChoice(
+                    "The role a sample had before you changed it",
+                    feedback="Roles are part of the analysis, so a role change is an undo step like any other.",
+                ),
+            ],
+            explanation=(
+                "Undo covers gates, roles, groups, compensation and derived "
+                "parameters. It leaves how you are looking at the data alone: "
+                "axis scales, zoom, which sample is open. Matrix edits not yet "
+                "applied have their own Revert Edits button."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c3_s09_switch_sample_intro",
         ),
         # ── B-cells (Histogram + FMO Overlay technique, on Sample C) ────────────

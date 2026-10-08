@@ -24,7 +24,7 @@ if typing.TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from karcytics_sdk.plugin.components import BioHelpButton, repopulate_combo
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, get_contrast_text_color
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
     CELL_DEFAULT,
@@ -112,12 +112,9 @@ _Y_INTO_X_COLOR = "#FFB74D"
 _PAIR_CELL_ALPHA = 110
 
 # How a cell's origin is shown (see ``CompensationMatrix.origin``).
-_EDITED_COLOR = "#7EE787"
-_ORIGIN_LEGEND = (
-    "<i>Grey italic</i>: not set — nothing measured or entered for this cell, so it "
-    f'is left at its default. &nbsp;<b style="color:{_EDITED_COLOR};">Green bold</b>: '
-    "edited by hand. &nbsp;Plain: from the method."
-)
+# A green that reads on the theme's background: light on dark, dark on light.
+_EDITED_COLOR_ON_DARK = "#7EE787"
+_EDITED_COLOR_ON_LIGHT = "#1A7F37"
 _ORIGIN_NOTES = {
     CELL_DEFAULT: "\nNot set: nothing measured or entered for this cell, so it is left at 0.",
     CELL_EDITED: "\nEdited by hand.",
@@ -130,6 +127,19 @@ _MATRIX_CAPTION = (
     "the two cells of a pair are separate numbers. Click a cell to plot its pair; "
     "double-click to fine-tune its value."
 )
+
+
+def _edited_color() -> str:
+    on_dark = get_contrast_text_color(Colors.BG_DARKEST) == "#ffffff"
+    return _EDITED_COLOR_ON_DARK if on_dark else _EDITED_COLOR_ON_LIGHT
+
+
+def _origin_legend() -> str:
+    return (
+        "<i>Grey italic</i>: not set — nothing measured or entered for this cell, so it "
+        f'is left at its default. &nbsp;<b style="color:{_edited_color()};">Green bold</b>: '
+        "edited by hand. &nbsp;Plain: from the method."
+    )
 
 
 class CompensationEditor(QWidget):
@@ -199,10 +209,6 @@ class CompensationEditor(QWidget):
 
     def _build_matrix_side(self) -> QWidget:
         """The matrix table, with what its cells mean underneath."""
-        note_style = (
-            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
-            " background: transparent;"
-        )
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
@@ -210,7 +216,6 @@ class CompensationEditor(QWidget):
         # Which matrix is in the editor; the owner knows what there is to pick from.
         matrix_row = QHBoxLayout()
         matrix_label = QLabel("Matrix:")
-        matrix_label.setStyleSheet(note_style)
         matrix_row.addWidget(matrix_label)
         self._matrix_combo = FlowComboBox()
         self._matrix_combo.setObjectName("EditorMatrixCombo")
@@ -226,36 +231,29 @@ class CompensationEditor(QWidget):
 
         caption = QLabel(_MATRIX_CAPTION)
         caption.setWordWrap(True)
-        caption.setStyleSheet(note_style)
         left_layout.addWidget(caption)
 
         self._table = QTableWidget()
         self._table.setObjectName("CompensationMatrixTable")
         self._table.itemChanged.connect(self._on_cell_changed)
         self._table.currentCellChanged.connect(self._on_current_cell_changed)
-        self._table.setStyleSheet(
-            f"background-color: {Colors.BG_DARKEST}; color: {Colors.FG_PRIMARY};"
-        )
         left_layout.addWidget(self._table, stretch=1)
 
-        self._origin_legend = QLabel(_ORIGIN_LEGEND)
+        self._origin_legend = QLabel()
         self._origin_legend.setWordWrap(True)
         self._origin_legend.setTextFormat(Qt.TextFormat.RichText)
-        self._origin_legend.setStyleSheet(note_style)
         left_layout.addWidget(self._origin_legend)
 
         # What the two highlighted cells do to the plotted pair.
         self._pair_help = QLabel()
         self._pair_help.setWordWrap(True)
         self._pair_help.setTextFormat(Qt.TextFormat.RichText)
-        self._pair_help.setStyleSheet(note_style)
         left_layout.addWidget(self._pair_help)
 
         goal_row = QHBoxLayout()
         goal = QLabel(_GOAL_LINE)
         goal.setWordWrap(True)
         goal.setTextFormat(Qt.TextFormat.RichText)
-        goal.setStyleSheet(note_style)
         goal_row.addWidget(goal, stretch=1)
         self._guide_button = BioHelpButton()
         self._guide_button.setObjectName("CompensationGuideButton")
@@ -263,7 +261,35 @@ class CompensationEditor(QWidget):
         goal_row.addWidget(self._guide_button)
         left_layout.addLayout(goal_row)
 
+        self._note_labels = [matrix_label, caption, self._origin_legend, self._pair_help, goal]
+        self._apply_static_styles()
         return left_widget
+
+    def _apply_static_styles(self) -> None:
+        note_style = (
+            f"color: {Colors.FG_SECONDARY}; font-size: {Fonts.SIZE_SMALL}px;"
+            " background: transparent;"
+        )
+        for label in self._note_labels:
+            label.setStyleSheet(note_style)
+        self._origin_legend.setText(_origin_legend())
+        self._table.setStyleSheet(
+            f"background-color: {Colors.BG_DARKEST}; color: {Colors.FG_PRIMARY};"
+        )
+
+    def _apply_theme_styles(self) -> None:
+        """Re-read the theme's colours; MainPanel calls this when the theme changes."""
+        self._apply_static_styles()
+        if self._matrix is not None:
+            self._table.blockSignals(True)  # styling an item fires itemChanged
+            for i in range(self._table.rowCount()):
+                for j in range(self._table.columnCount()):
+                    item = self._table.item(i, j)
+                    if item is not None and i != j:
+                        self._style_by_origin(item, i, j)
+            self._table.blockSignals(False)
+        self._highlight_pair()
+        self._update_plots()
 
     def _build_preview_side(self) -> QWidget:
         """The preview's selectors and the before/after plots."""
@@ -430,7 +456,7 @@ class CompensationEditor(QWidget):
         item.setFont(font)
         item.setForeground(
             QColor(
-                {CELL_DEFAULT: Colors.FG_DISABLED, CELL_EDITED: _EDITED_COLOR}.get(
+                {CELL_DEFAULT: Colors.FG_DISABLED, CELL_EDITED: _edited_color()}.get(
                     origin, Colors.FG_PRIMARY
                 )
             )

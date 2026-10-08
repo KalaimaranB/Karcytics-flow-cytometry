@@ -474,7 +474,9 @@ course_2_compensation = Course(
                 "The cytometer's matrix was measured for all six dyes. Ours "
                 "agrees with it where it could measure, and needed a typed-in "
                 "value where it couldn't. So the file's matrix stays, now with "
-                "an independent check behind it.<br><br>"
+                "an independent check behind it. (You'd keep your own if the files "
+                "carried none, or if yours sat level on a pair where the file's "
+                "tilted.)<br><br>"
                 "In the list, select **Embedded in the FCS files** and click "
                 "**✅ Apply to all samples**."
             ),

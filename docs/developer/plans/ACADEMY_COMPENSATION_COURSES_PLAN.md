@@ -163,6 +163,11 @@ Work continues on `main`, one commit per phase, unpushed until the user says oth
 - [x] **Phase 5: wording pass on Courses 3–5.** Done 2026-10-04. Course numbers in step text were shifted in Phase 1. Course 3 is now "Immunophenotyping & the Pipeline": its title, description, objectives and mystery intro no longer promise spectral theory.
 - [ ] **Phase 6: numbers test, user docs, version bump and release.** Numbers test and docs done 2026-10-04 (`10_ACADEMY_TUTORIALS.md` describes five courses; tab order and course numbers fixed in `00_OVERVIEW.md`, `01_GETTING_STARTED.md`, `15_DERIVED_PARAMETERS.md`, developer `09_DERIVED_PARAMETERS.md`). The user played Courses 1 and 2 end to end on 2026-10-04 and approved them. **Still open:** a play-through of Course 3 (it lost its Spectral section and now opens from Course 2's workspace), new screenshots, and the version bump and release, which wait for the user.
 
+- [x] **Follow-up: gate editing and undo** (user request, 2026-10-07). Course 3 gains five steps after the T-cells gate (`c3_e01`–`c3_e05`, 68 steps in all): the Select tool, resizing the T-cells gate, a question on the edit reaching every sample, undoing it with the keyboard shortcut, and a question on what Undo doesn't cover. Course 1 mentions Ctrl/Cmd+Z at the Cells gate. Course 2's "which one do we keep?" step now says when you would keep your own matrix.
+    - `GateEditTracker` pairs the two steps: the edit step remembers the gate's shape and passes when it differs; the undo step passes when it is back.
+    - Checked on the real store, coordinator and Compensation view with the tutorial files: a gate edit is one undo step ("Edit Gate") and Undo restores it on every sample in the group; undoing a matrix change restores the matrix **and** the samples' values; "Apply to all samples" is not an undo step of its own (the matrix change is); cell edits in the matrix editor, axis-scale changes and switching sample make no undo step.
+    - *Not yet played with the overlay.* Undo is taught by keyboard shortcut only, as the user asked.
+
 ## Decisions (2026-10-04)
 
 1. **Spectral viewer and masterclass go in Course 1.**

@@ -84,11 +84,11 @@ class BranchLabel(QWidget):
         palette_hex = (
             _PALETTE_HEX[self._row.color_index % len(_PALETTE_HEX)]
             if 0 <= self._row.color_index < len(_PALETTE_HEX)
-            else "#8b949e"
+            else Colors.FG_SECONDARY
         )
         dot_color = QColor(palette_hex)
-        branch_color = QColor("#2a4a5a")
-        text_color = QColor("#e6edf3")
+        branch_color = QColor(Colors.FG_DISABLED)
+        text_color = QColor(Colors.FG_PRIMARY)
 
         branch = self._row.branch_str
         font = QFont("Courier New, monospace", 9)
@@ -449,6 +449,11 @@ class FloatingGridPopup(QFrame):
         self._frozen_content.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         self._header_content.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         self._size_grip.setStyleSheet(f"background: transparent; color: {Colors.FG_DISABLED};")
+        # Row labels and cells paint the theme's colours themselves.
+        for painted in self._frozen_content.findChildren(QWidget) + self._content.findChildren(
+            QWidget
+        ):
+            painted.update()
 
     def _populate_grid(  # noqa: PLR0913
         self,

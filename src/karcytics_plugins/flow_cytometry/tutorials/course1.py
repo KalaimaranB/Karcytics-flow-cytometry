@@ -743,7 +743,8 @@ course_1_fundamentals = Course(
             text=(
                 "Perfect shape! 🎯<br><br>"
                 "Notice that your new gate has appeared in the **Gating Hierarchy** panel on the left.<br><br>"
-                "This hierarchy tracks all populations. By default, the gates you apply to one sample will propagate to all other samples in the same group."
+                "This hierarchy tracks all populations. By default, the gates you apply to one sample will propagate to all other samples in the same group.<br><br>"
+                "Made a mistake while gating? **Ctrl+Z** (**Cmd+Z** on a Mac) undoes your last change."
             ),
             cyto_emotion="happy",
             target_widget_names=["GatingHierarchySampleView"],

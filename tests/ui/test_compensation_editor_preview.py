@@ -73,6 +73,41 @@ def _tinted(dialog) -> set[tuple[int, int]]:
     }
 
 
+# ── Theme ─────────────────────────────────────────────────────────────
+
+LIGHT = {
+    "BG_DARKEST": "#f6f8fa",
+    "BG_DARK": "#ffffff",
+    "FG_PRIMARY": "#24292e",
+    "FG_SECONDARY": "#57606a",
+}
+
+
+def test_a_theme_change_recolours_the_table_and_the_preview(dialog, monkeypatch):
+    from matplotlib.colors import to_hex
+
+    # The suite's stand-in theme is all black, i.e. a dark one.
+    monkeypatch.setattr(
+        compensation_editor,
+        "get_contrast_text_color",
+        lambda background: "#ffffff" if background == "#000000" else "#0d1117",
+    )
+    item = dialog._table.item(0, 1)
+    item.setText("0.25")  # an edited cell: green, in a shade for the background
+    edited_on_dark = item.foreground().color().name()
+
+    for token, value in LIGHT.items():
+        monkeypatch.setattr(compensation_editor.Colors, token, value, raising=False)
+    dialog._apply_theme_styles()
+
+    assert LIGHT["BG_DARKEST"] in dialog._table.styleSheet()
+    assert LIGHT["FG_SECONDARY"] in dialog._pair_help.styleSheet()
+    assert to_hex(dialog._preview._fig.get_facecolor()) == LIGHT["BG_DARKEST"]
+    assert dialog._preview._left.title.get_color() == LIGHT["FG_PRIMARY"]
+    assert item.foreground().color().name() != edited_on_dark
+    assert dialog._table.item(1, 1).background().color().name() == LIGHT["BG_DARK"]
+
+
 # ── Matrix: direction and the plotted pair ────────────────────────────
 
 

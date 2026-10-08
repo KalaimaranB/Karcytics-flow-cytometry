@@ -2189,3 +2189,65 @@ class EmbeddedMatrixInUseValidator(_CompensationTabValidator):
         if not view.samples_match_matrix or not all(s.is_compensated for s in samples):
             return "The embedded matrix is selected but not applied to every sample."
         return None
+
+
+# ── Editing a gate, then undoing it (Course 3) ────────────────────────────────
+
+
+class GateEditTracker:
+    """Follows one named gate through "edit it, then undo the edit".
+
+    ``edited()`` remembers the gate's geometry the first time it is polled
+    and passes once the geometry differs; ``undone()`` passes when the
+    geometry is back to what was remembered.
+    """
+
+    def __init__(self, gate_name: str) -> None:
+        self._name = gate_name.casefold()
+        self._baseline: dict | None = None
+
+    def edited(self) -> FlowValidator:
+        return _GateEdited(self)
+
+    def undone(self) -> FlowValidator:
+        return _GateEditUndone(self)
+
+    def geometry(self, app_state: FlowState) -> dict | None:
+        """The gate as drawn on the open sample (any sample, if none is open)."""
+        samples = app_state.data.experiment.samples
+        current = samples.get(app_state.view.current_sample_id or "")
+        for sample in [current] if current is not None else list(samples.values()):
+            for node in sample.gate_tree.iter_dag():
+                if (node.name or "").casefold() == self._name and node.gate is not None:
+                    return node.gate.to_dict()
+        return None
+
+
+class _GateEdited(FlowValidator):
+    def __init__(self, tracker: GateEditTracker) -> None:
+        self._tracker = tracker
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        tracker = self._tracker
+        now = tracker.geometry(app_state)
+        if now is None:
+            return self.log_failure("The gate to edit wasn't found.")
+        if tracker._baseline is None:
+            tracker._baseline = now
+        if now == tracker._baseline:
+            return self.log_failure("The gate hasn't been moved or resized yet.")
+        return True
+
+
+class _GateEditUndone(FlowValidator):
+    def __init__(self, tracker: GateEditTracker) -> None:
+        self._tracker = tracker
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        tracker = self._tracker
+        if tracker._baseline is None:
+            return self.log_failure("No edit has been made to undo.")
+        if tracker.geometry(app_state) != tracker._baseline:
+            return self.log_failure("The gate is still in its edited shape.")
+        tracker._baseline = None  # a replay of the course starts afresh
+        return True

@@ -157,6 +157,7 @@ class FitIllustrationView(QWidget):
     def _redraw(self) -> None:
         fit = self._fit
         self._ax.clear()
+        self._figure.set_facecolor(Colors.BG_DARKEST)  # the theme may have changed
         self._ax.set_facecolor(_PLOT_BG)
         for button in (self._btn_back, self._btn_next, self._btn_play):
             button.setEnabled(fit is not None)
@@ -214,6 +215,10 @@ class FitIllustrationView(QWidget):
         self._caption.setText(self._caption_text(fit))
         self._step_label.setText(f"Step {self._step + 1} of {_LAST_STEP + 1}")
         self.canvas.draw_idle()
+
+    def _apply_theme_styles(self) -> None:
+        """Redraw in the theme's colours; MainPanel calls this when the theme changes."""
+        self._redraw()
 
     def _style(self) -> None:
         self._ax.tick_params(colors=Colors.FG_PRIMARY, labelsize=8)

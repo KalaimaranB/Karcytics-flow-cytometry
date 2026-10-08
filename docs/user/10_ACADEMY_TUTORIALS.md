@@ -79,12 +79,13 @@ Questions along the way: how a tube with an unhelpful name was matched to its mi
 Picks up exactly where Course 2 left off. You:
 
 - Gate **T-cells** and **B-cells** out of your Leukocytes population two different ways — a two-marker scatter rectangle for one, a histogram-plus-live-FMO-overlay range gate for the other — and learn when each technique is the better call.
+- Edit a gate after drawing it with the **Select** tool, watch the edit reach every sample in the group, then **undo** it (Ctrl+Z, or Cmd+Z on a Mac) and learn what Undo does and doesn't cover.
 - Split T-cells four ways at once with a single **Quadrant** gate (CD4+, CD8+, double-positive, double-negative), then rename all four resulting leaves.
 - Learn to read and reorient the **Pipeline** flowchart view, including the boolean **AND/OR/NOT** logic nodes you'll put to real use in a later course.
 - Use the **Quick-Stats** grid to read hard numbers across every sample and decide, from the evidence, which mystery sample is Thymus, Bone Marrow, and Spleen.
 - Save your workspace again — required to continue into Course 4.
 
-Questions along the way: where the T cells sit on a B220 vs CD3 plot, why the B220 threshold comes from the FMO (select all that apply), when a histogram beats a scatter plot, and which quadrant holds the helper T cells. To crack the mystery, you name each sample's organ yourself from the Quick-Stats grid, and Course 3 shows how your Course 1 prediction held up.
+Questions along the way: where the T cells sit on a B220 vs CD3 plot, what an edit does on the other samples, what Undo won't bring back, why the B220 threshold comes from the FMO (select all that apply), when a histogram beats a scatter plot, and which quadrant holds the helper T cells. To crack the mystery, you name each sample's organ yourself from the Quick-Stats grid, and Course 3 shows how your Course 1 prediction held up.
 
 <!-- SCREENSHOT: docs/images/user/academy/course2-quadrant-gate.png — a CD4 vs CD8 plot with a completed Quadrant gate showing the four renamed subpopulations (CD4+, CD8+, DP, DN) -->
 
