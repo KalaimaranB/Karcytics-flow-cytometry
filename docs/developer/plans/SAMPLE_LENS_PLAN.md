@@ -64,7 +64,7 @@ phase. One branch (`feature/sample-lens-demo`), one commit per phase.
   UMAP gates-vs-clusters, across-samples table. Live refresh on gate events.
 - [x] **4. Fix a missed population** — propose gates for a cluster, preview,
   add through the coordinator.
-- [ ] **5. Docs** — user docs page, plan checked off. (The demo tab, never
+- [x] **5. Docs** — user docs page, plan checked off. (The demo tab, never
   committed, was deleted in phase 3.)
 
 ## Later (not in this plan)

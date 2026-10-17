@@ -54,7 +54,7 @@
         "docs/user/image/06_Installation/gatekeeper_macos.png": "7349dd0393b339ee2ec98e707edaf892295c2125e99411abcd8c47efb65b9e68",
         "docs/user/image/06_Installation/releases_view.png": "4834c3ccbbb6550c0339022d65f4de95f69257f83fd2566e865132b9630ca3fb",
         "docs/user/image/06_Installation/system_settings.png": "1d3994ea2119a892c0550242ff06a14d1b8f46119fc9b69e899bfe960ea4a395",
-        "mkdocs.yml": "ff34730aa9a50fb3f522de2edd18a8626d075a1335f834b8af265a84dd4af6aa",
+        "mkdocs.yml": "b6cd9f56285521a418478341198e5c3ca71647fb0252aa67213a92da17c02649",
         "scripts/check_license_compliance.py": "e4168c3c4234e358665426c072610bcbdb6b6c53c87f0e8b75f471c85dd41b20",
         "scripts/sync_core_docs.py": "e20da883a0b4bf4c740e1ed90bacd6bd41ce68f3b0571549966c0ee7fd185876",
         "scripts/verify_security_ledger.py": "b8a5140452ede650042840ef61e418ccd49595e4a754656284cd5812e31808aa",

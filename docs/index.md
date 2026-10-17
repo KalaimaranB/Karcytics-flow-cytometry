@@ -24,6 +24,7 @@ Comprehensive guides for data analysis workflows, visual refinement, and publica
 - **[Spectral](./user/07_SPECTRAL.md)**: Spectral overlap visualization and the educational compensation wizard.
 - **[Population Analysis](./user/08_POPULATION_ANALYSIS.md)**: UMAP dimensionality reduction, clustering, and history.
 - **[Comparisons](./user/09_COMPARISONS.md)**: Cross-sample comparison plots.
+- **[Sample Lens](./user/16_SAMPLE_LENS.md)**: Check one sample's gating: backgating, a gate audit against clustering, and the population across samples.
 - **[Academy & Guided Tutorials](./user/10_ACADEMY_TUTORIALS.md)**: The in-app guided courses and what each one teaches.
 - **[Scientific Logic & Algorithms](./user/11_SCIENTIFIC_LOGIC.md)**: Mathematical principles behind Logicle transforms, rank-percentile density calculation, and smoothing kernels.
 - **[Keyboard Shortcuts & Quick Reference](./user/12_KEYBOARD_SHORTCUTS.md)**: The real, current set of key bindings — this app is mostly mouse-driven.

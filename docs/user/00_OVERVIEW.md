@@ -30,7 +30,7 @@ Every screen in the module shares the same skeleton:
 - **Right sidebar** — the **Properties Panel**, showing live statistics and settings for whatever sample or gate is currently selected.
 - **Footer** — a thin status bar across the very bottom that quietly reports what just happened ("Samples loaded," "Gate created," "Compensation applied," …).
 
-Four tabs — **Workspace**, **Gating**, **Compensation**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other four — **Statistics**, **Spectral**, **Population Analysis**, and **Comparisons** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
+Four tabs — **Workspace**, **Gating**, **Compensation**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other five — **Statistics**, **Spectral**, **Population Analysis**, **Comparisons**, and **Sample Lens** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
 
 ![alt text](../images/00_overview/tabs.png)
 
@@ -67,6 +67,10 @@ Where you step outside manual gating. Pick a root population and a set of channe
 ### 8. Comparisons
 Five dedicated chart types for putting populations and samples side by side: Violin, Channel Heatmap, Radar, and Histogram Overlay (with a Ridge alternative for a handful of series) — each one better suited to a different kind of question than a plain statistics table.
 → [Comparisons guide](./09_COMPARISONS.md)
+
+### 9. Sample Lens
+A check of one sample's gating strategy. Pick a population to see every gate above it with the population backgated; the lens compares your gates with a UMAP + HDBSCAN clustering of the same cells and flags populations you missed, gates that merge two clusters, and gates that cut one; and it shows the population across every sample, flagging fragile gate edges and outliers. A missed population can be turned into ordinary gates in one click.
+→ [Sample Lens guide](./16_SAMPLE_LENS.md)
 
 ## Learn by doing: the Academy
 
