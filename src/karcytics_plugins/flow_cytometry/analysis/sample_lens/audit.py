@@ -18,6 +18,7 @@ from enum import Enum
 
 import numpy as np
 
+from ..population_matching import PATH_SEP
 from .scope import NOISE, RunScope
 
 MIN_CLUSTER_SHARE = 0.005  # clusters smaller than this share of the run are ignored
@@ -42,7 +43,7 @@ class Finding:
 
     @property
     def title(self) -> str:
-        name = self.population.rsplit(" / ", 1)[-1] if self.population else ""
+        name = self.population.rsplit(PATH_SEP, 1)[-1] if self.population else ""
         if self.kind is FindingKind.MISSED:
             return f"Cluster {self.clusters[0]} isn't in any population"
         if self.kind is FindingKind.MERGES:
@@ -62,8 +63,9 @@ class Finding:
             )
             return f"{parts}. Separate clusters usually mean separate populations."
         return (
-            f"The gate holds {self.shares[0]:.0%} of cluster {self.clusters[0]}; the rest is "
-            "outside it. The edge probably runs through the population, not around it."
+            f"Of the cluster's cells that reach this gate, it keeps {self.shares[0]:.0%}; the "
+            "rest fall just outside. The edge probably runs through the population, not "
+            "around it."
         )
 
 
@@ -93,10 +95,32 @@ def _cluster_findings(scope: RunScope, clusters: list[int]) -> list[Finding]:
         if covered < MISSED_BELOW:
             findings.append(Finding(FindingKind.MISSED, (cid,), size=size, shares=(covered,)))
         elif CUT_RANGE[0] < best_share < CUT_RANGE[1]:
-            findings.append(
-                Finding(FindingKind.CUTS, (cid,), best, size=size, shares=(best_share,))
-            )
+            culprit, kept = _where_lost(scope, best, in_cluster)
+            findings.append(Finding(FindingKind.CUTS, (cid,), culprit, size=size, shares=(kept,)))
     return findings
+
+
+def _where_lost(scope: RunScope, final_path: str, in_cluster: np.ndarray) -> tuple[str, float]:
+    """The gate on ``final_path`` that drops the most of a cluster, and the share it keeps.
+
+    The final population is only where the survivors end up; the edge that
+    cuts the cluster can be any gate above it (within the run's scope).
+    """
+    parts = final_path.split(PATH_SEP)
+    chain = [PATH_SEP.join(parts[: i + 1]) for i in range(len(parts))]
+    reaching = in_cluster
+    worst, worst_kept, worst_lost = final_path, 1.0, -1
+    for path in chain:
+        mask = scope.steps.get(path)
+        if mask is None:  # above the run's population: every run event is inside it
+            continue
+        kept = reaching & mask
+        lost = int(reaching.sum() - kept.sum())
+        if lost > worst_lost:
+            worst, worst_lost = path, lost
+            worst_kept = float(kept.sum()) / max(int(reaching.sum()), 1)
+        reaching = kept
+    return worst, worst_kept
 
 
 def _merge_findings(scope: RunScope, clusters: list[int]) -> list[Finding]:

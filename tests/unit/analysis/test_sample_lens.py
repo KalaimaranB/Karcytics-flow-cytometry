@@ -123,3 +123,18 @@ def test_gate_node_mask_matches_apply_hierarchy(planted):
     sample, events, *_ = planted
     node: GateNode = sample.gate_tree.children[0].children[0]
     assert node.mask(events).sum() == len(node.apply_hierarchy(events))
+
+
+def test_a_cut_is_blamed_on_the_gate_that_loses_the_cells():
+    """Clip the upstream T cells gate through the CD4 T cells: blame it, not CD4+."""
+    sample, events, truth = make_sample("s1")
+    t_cells = sample.gate_tree.children[0].children[0]
+    t_cells.children[0].gate.x_min = 1600  # CD4+ itself no longer cuts anything
+    t_cells.gate.x_max = 3400  # but T cells now stops at the CD3 median of the T cells
+    sample.gate_tree.invalidate_mask_cache()
+
+    scope = build_scope(sample, make_run(events, truth), events)
+    cuts = {f.clusters[0]: f for f in audit(scope) if f.kind is FindingKind.CUTS}
+
+    assert cuts[1].population == "Lymphocytes / T cells"
+    assert 0.3 < cuts[1].shares[0] < 0.7  # noqa: PLR2004

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from ..scaling import AxisScale
 
 MAX_STEPS = 3
-MIN_GAIN = 0.005  # a step must raise F1 at least this much
+MIN_GAIN = 0.01  # a step must raise F1 at least this much
 PAD = 0.03  # padding around a box, as a share of the channel's display range
 OPEN_EDGE = 0.995  # a box edge past this quantile of the data is left open
 

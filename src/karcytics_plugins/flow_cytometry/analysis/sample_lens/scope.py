@@ -9,7 +9,7 @@ mask per *final* population under the run's node.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -45,6 +45,9 @@ class RunScope:
     clusters: np.ndarray | None  # (n,) HDBSCAN labels, None if the run had no clustering
     final_populations: list[LensPopulation]  # the leaves under the run's node
     masks: dict[str, np.ndarray]  # path -> (n,) membership of each final population
+    # path -> (n,) membership of every population under the run's node, final
+    # or not: lets a finding name the gate on a path where cells are lost.
+    steps: dict[str, np.ndarray] = field(default_factory=dict)
 
     @property
     def n(self) -> int:
@@ -104,6 +107,12 @@ def build_scope(sample: Sample, run: dict[str, Any], events: pd.DataFrame) -> Ru
     clusters = run.get("clusters")
     clusters = np.asarray(clusters)[kept] if clusters is not None else None
 
-    finals = final_populations(sample, run.get("node_id"))
-    masks = {pop.path: pop.node.mask(events)[rows] for pop in finals}
-    return RunScope(run, rows, embedding, clusters, finals, masks)
+    under = run.get("node_id")
+    finals = final_populations(sample, under)
+    steps = {
+        path: node.mask(events)[rows]
+        for path, node in populations(sample)
+        if not is_cluster_population(node) and _descends_from(node, under)
+    }
+    masks = {pop.path: steps[pop.path] for pop in finals}
+    return RunScope(run, rows, embedding, clusters, finals, masks, steps)
