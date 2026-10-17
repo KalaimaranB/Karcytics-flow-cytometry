@@ -311,3 +311,66 @@ def test_resume_from_the_catalog_in_another_project_explains(panel, monkeypatch)
     panel.resume_academy_course(COURSE_1, {"workflow": "x.json", "project_dir": "/elsewhere"})
 
     assert shown and "another project" in shown[0]
+
+
+# ── Resuming where the step can show ──────────────────────────────────
+
+
+def _synthetic_course(manager, course_id: str):
+    """Replaces the course with one whose steps target real panel widgets
+    (or, for 'popup', a widget that only exists while a popup is open).
+    """
+    from karcytics_sdk.plugin.tutorial_models import InfoStep
+
+    course = manager.find_course(course_id)
+    course.steps = [
+        InfoStep(id="tabs", text="Tabs", target_widget_names=["MainTabBar"], next_step_id="plain"),
+        InfoStep(id="plain", text="No target", next_step_id="popup"),
+        InfoStep(
+            id="popup",
+            text="In a popup",
+            target_widget_names=["NotOpenRightNow"],
+            next_step_id="dialog",
+        ),
+        InfoStep(id="dialog", text="In a dialog", next_step_id=None, resume_step_id="tabs"),
+    ]
+    return course
+
+
+@pytest.fixture
+def shown(panel, qtbot, monkeypatch):
+    original = panel.manager.find_course(COURSE_1).steps
+    _synthetic_course(panel.manager, COURSE_1)
+    panel.show()
+    qtbot.waitExposed(panel)
+    yield panel
+    panel.manager.find_course(COURSE_1).steps = original
+
+
+def _pause_at(panel, step_id: str) -> None:
+    start_in_academy(panel)
+    while panel.manager.current_step.id != step_id:
+        panel.manager.next_step()
+    panel.on_academy_pause_requested()
+
+
+def test_a_step_whose_target_shows_resumes_in_place(shown):
+    _pause_at(shown, "plain")
+    shown._academy._card.primary_button.click()
+    assert shown.manager.current_step.id == "plain"
+
+
+def test_a_step_whose_target_is_gone_resumes_on_the_step_before(shown):
+    _pause_at(shown, "popup")
+    shown._academy._card.primary_button.click()
+
+    assert shown.manager.current_step.id == "plain"
+    assert shown.manager.step_history == ["tabs", "plain"]
+
+
+def test_resume_step_id_wins(shown):
+    _pause_at(shown, "dialog")
+    shown._academy._card.primary_button.click()
+
+    assert shown.manager.current_step.id == "tabs"
+    assert shown.manager.step_history == ["tabs"]

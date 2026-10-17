@@ -35,7 +35,7 @@ from karcytics_sdk.plugin.academy import (
 from karcytics_sdk.plugin.academy_lock_card import AcademyLockCard, LockCardContent
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_info, show_warning
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QInputDialog
+from PySide6.QtWidgets import QApplication, QInputDialog, QWidget
 
 logger = logging.getLogger(__name__)
 
@@ -250,11 +250,63 @@ class AcademyWorkflowController(QObject):
             tab_bar.setCurrentIndex(tab)
         if self._card is not None:
             self._card.unlock()
-        if not self._manager.restore_session(block):
+        if not self._manager.restore_session(self._resume_point(block)):
             show_warning(self._panel, "Karcytics Academy", "This course could not be resumed.")
             self._show_paused_card()
             return
         self._show_overlay(pausable=True)
+
+    def _resume_point(self, block: dict[str, Any]) -> dict[str, Any]:
+        """The block, moved back to the latest visited step that can show.
+
+        A step whose spotlight targets aren't on screen after reopening —
+        inside a popup, a dialog, a Compensation sub-page or a tab that
+        isn't saved with the workflow — would spotlight nothing. Resume
+        instead on the latest step before it whose targets are all there
+        (often the one that opens them). A step's own `resume_step_id`
+        is applied first.
+        """
+        course = self._manager.find_course(block.get("course_id", ""))
+        step = course.get_step(block.get("step_id", "")) if course else None
+        if course is None or step is None:
+            return block
+        if step.resume_step_id and course.get_step(step.resume_step_id):
+            step = course.get_step(step.resume_step_id)
+        history = [s for s in block.get("step_history", []) if course.get_step(s)]
+        if step is not None and step.id in history:
+            history = history[: len(history) - history[::-1].index(step.id)]
+        candidates = [step.id] if step is not None else []
+        candidates += [s for s in reversed(history) if s not in candidates]
+        for step_id in candidates:
+            if self._targets_on_screen(course.get_step(step_id)):
+                if step_id == block.get("step_id"):
+                    return block
+                cut = (
+                    history[: len(history) - history[::-1].index(step_id)]
+                    if step_id in history
+                    else history
+                )
+                return {**block, "step_id": step_id, "step_history": cut, "subtask_progress": {}}
+        return block
+
+    def _targets_on_screen(self, step: Any) -> bool:
+        """Whether every spotlight target `step` names is visible somewhere."""
+        names = list(getattr(step, "target_widget_names", None) or [])
+        if getattr(step, "target_widget_name", None):
+            names.append(step.target_widget_name)
+        roots = [self._panel, *(w for w in QApplication.topLevelWidgets() if w.isVisible())]
+        return all(self._visible_named(roots, name) for name in names)
+
+    def _visible_named(self, roots: list[QWidget], name: str) -> bool:
+        for root in roots:
+            if root.objectName() == name and root.isVisible():
+                return True
+            for widget in root.findChildren(QWidget):
+                if widget.isVisible() and (
+                    widget.objectName() == name or widget.property("tutorial_id") == name
+                ):
+                    return True
+        return False
 
     def on_workflow_loaded(self) -> None:
         """A workflow finished loading: lock it if it's an Academy workflow mid-course."""

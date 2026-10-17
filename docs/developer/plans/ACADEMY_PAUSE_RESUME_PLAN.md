@@ -1,6 +1,6 @@
 # Plan: pause and resume Academy courses (Academy workflows)
 
-**Status:** Phases 1–3 built 2026-10-17 (SDK `281a1aa`, `220428d`, `53d64f9`; flow Phase 3). Resume from the first unchecked box in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** Phases 1–4 built 2026-10-17 (SDK `281a1aa`, `220428d`, `53d64f9`; flow `10edcd5` + Phase 4). Next: Phase 5 in the Hub. Resume from the first unchecked box in [Phases and checkpoints](#phases-and-checkpoints).
 
 **Why:** the five flow courses run 58–65 steps each. A learner can't stop partway: closing the module loses their place, and the catalog only knows "not started" or "completed".
 
@@ -68,7 +68,7 @@ A workflow that has an `academy` block is never interactive outside `running`, e
 
 **Resume:** the saved step id, step history and sub-task progress are restored, plus the panel's tab. Then the step is shown again.
 
-**Steps that rely on a window or dialog that isn't saved:** these get `resume_step_id` on the step, pointing back to the step that opens it. Resuming lands there instead. Phase 4 goes through all five courses to find and set them.
+**Steps that rely on a window or dialog that isn't saved:** resuming checks that the step's spotlight targets are all on screen. If one isn't (it lives in a popup, a dialog, a Compensation sub-page or an unsaved tab), the course resumes on the latest visited step whose targets all show — usually the one that opens them. A step can also name `resume_step_id` explicitly. The Phase 4 audit found that no course needs one yet: the gate-drawing steps tell the learner to pick the tool themselves, and their `_verify` steps only check the saved gate.
 
 **While locked:** the overlay covers the whole panel and takes all input, and the isolated window's menu bar is disabled.
 
@@ -93,7 +93,7 @@ A workflow that has an `academy` block is never interactive outside `running`, e
   - Starting a course converts the workflow, and Cyto explains it.
   - Save on pause, lock on load, resume, and the prompt to start the next course or leave the Academy.
   - Graduation after Course 5, and `confirm_close` integration.
-- [ ] **Phase 4 — Flow course audit.**
+- [x] **Phase 4 — Flow course audit.**
   - `resume_step_id` on steps that depend on transient UI, and restoring the open tab.
   - Integration test: pause at several steps of every course, reload, resume, and check that the step's validator still passes.
   - Raise the SDK lower bound when the user releases.
