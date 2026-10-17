@@ -203,6 +203,16 @@ class GateNode:
         self._mask_cache = (events, mask)
         return mask
 
+    def mask(self, events: pd.DataFrame) -> np.ndarray:
+        """Which of ``events`` (the sample's root events) are in this population."""
+        return self._get_mask(events)
+
+    def parent_mask(self, events: pd.DataFrame) -> np.ndarray:
+        """Which of ``events`` reach this node: its parents combined, before its own gate."""
+        if self.is_incomplete:
+            return np.zeros(len(events), dtype=bool)
+        return self._combine_parent_masks([p._get_mask(events) for p in self.parents], len(events))
+
     def invalidate_mask_cache(self) -> None:
         """Clear this node's cached mask and every descendant's.
 

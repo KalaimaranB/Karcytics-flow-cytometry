@@ -22,7 +22,7 @@ from .constants import (
     LOGICLE_W_DEFAULT,
 )
 from .scaling import AxisScale
-from .transforms import TransformType, apply_transform
+from .transforms import TransformType, apply_transform, invert_transform
 
 
 class ScaleFactory:
@@ -184,6 +184,18 @@ def project_to_display(raw_values: np.ndarray, scale: AxisScale) -> np.ndarray:
     else:
         kwargs = {}
     return apply_transform(np.asarray(raw_values), transform_type, **kwargs)
+
+
+def project_to_raw(display_values: np.ndarray, scale: AxisScale) -> np.ndarray:
+    """Inverse of :func:`project_to_display`: display-space values back to raw."""
+    transform_type = TransformTypeResolver.resolve(getattr(scale, "transform_type", "linear"))
+    if transform_type == TransformType.BIEXPONENTIAL:
+        kwargs: dict[str, Any] = BiexponentialParameters(scale).to_dict()
+    elif transform_type == TransformType.LOG:
+        kwargs = {"min_value": getattr(scale, "log_floor", 1.0)}
+    else:
+        kwargs = {}
+    return invert_transform(np.asarray(display_values, dtype=np.float64), transform_type, **kwargs)
 
 
 class ScaleSerializer:

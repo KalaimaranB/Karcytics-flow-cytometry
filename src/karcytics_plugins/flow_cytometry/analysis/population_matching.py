@@ -80,6 +80,13 @@ def _walk(node: GateNode, prefix: str, visited: set[str]) -> list[tuple[str, Gat
     return out
 
 
+def populations(sample: Sample) -> list[tuple[str, GateNode]]:
+    """Every population in ``sample`` as ``(label_path, node)``, in tree order."""
+    if sample.gate_tree is None:
+        return []
+    return _walk(sample.gate_tree, "", set())
+
+
 def label_path_index(sample: Sample) -> dict[str, str | None]:
     """Map every population label-path in `sample` to its GateNode.node_id.
 
@@ -88,9 +95,7 @@ def label_path_index(sample: Sample) -> dict[str, str | None]:
     to share a leaf name are never confused with each other.
     """
     index: dict[str, str | None] = {ALL_EVENTS_LABEL: None}
-    if sample.gate_tree is None:
-        return index
-    for path, node in _walk(sample.gate_tree, "", set()):
+    for path, node in populations(sample):
         index[path] = node.node_id
     return index
 
