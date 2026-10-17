@@ -17,6 +17,7 @@ import pytest  # noqa: E402
 # under test exercises the actual shared logic rather than a second copy.
 from karcytics_sdk.plugin.components import repopulate_combo  # noqa: E402
 from karcytics_sdk.plugin.history import UndoHistory  # noqa: E402
+from karcytics_sdk.plugin.timing import Debouncer  # noqa: E402
 from PySide6.QtWidgets import QLabel, QPushButton, QSplitter, QWidget  # noqa: E402
 
 # Mock karcytics_sdk before it gets imported
@@ -178,6 +179,8 @@ mock_karcytics_sdk_plugin.validate_file_exists = lambda path: (True, "")
 # Real, dependency-free undo stack — FlowStore's behaviour is the thing
 # under test, so it must not be a MagicMock.
 mock_karcytics_sdk_plugin.UndoHistory = UndoHistory
+# Real debounce timer — gate propagation's timing is under test.
+mock_karcytics_sdk_plugin.Debouncer = Debouncer
 
 mock_tasks = MagicMock()
 mock_tasks.TaskBase = DummyTaskBase

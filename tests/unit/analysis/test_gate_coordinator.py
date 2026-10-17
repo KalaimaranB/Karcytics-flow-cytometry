@@ -52,7 +52,10 @@ def gate_coordinator(flow_state):
 
 
 def wait_for_propagation(gate_coordinator):
-    time.sleep(0.05)
+    # The debounce is a QTimer, so let the event loop run it.
+    deadline = time.monotonic() + 0.05
+    while time.monotonic() < deadline:
+        app.processEvents()
     gate_coordinator.propagator.cleanup()
 
 

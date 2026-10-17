@@ -125,7 +125,7 @@
         "src/karcytics_plugins/flow_cytometry/analysis/fcs_loader_analysis.py": "20e82c412cb4c737289849ba3223e5b377293c7d484379a062917c9e4e0915bf",
         "src/karcytics_plugins/flow_cytometry/analysis/fit_population.py": "3d054f58c41233af764b42e94eed1af2a7102584496ed773e49c0cc1ca75bd60",
         "src/karcytics_plugins/flow_cytometry/analysis/gate_coordinator.py": "d6e37140ca234b57e463fb83edfa7321bf1d70b6501795c845e20020d64b468b",
-        "src/karcytics_plugins/flow_cytometry/analysis/gate_propagator.py": "5db0de446944f016b262460767c399875577c7cb804ec6433bea839f090d860e",
+        "src/karcytics_plugins/flow_cytometry/analysis/gate_propagator.py": "732e6e07ee9536ad6c9c229d289aacf56d5f904e8c99ba9208a1f2bd49557b0d",
         "src/karcytics_plugins/flow_cytometry/analysis/gating/__init__.py": "8a662f99d3ef3f12033e8b8e363f153beccfdd5f9f5671cef383c6d08a00fa87",
         "src/karcytics_plugins/flow_cytometry/analysis/gating/base.py": "2c5431091085c274ac5e040c9a33944cbb15d85b9e83ef18de66f043b9ea9872",
         "src/karcytics_plugins/flow_cytometry/analysis/gating/ellipse.py": "227eea45b7be2dbd5064f7f3e9f1af5c8f76edf7bf7e2f2e8e0ea2a99004638b",

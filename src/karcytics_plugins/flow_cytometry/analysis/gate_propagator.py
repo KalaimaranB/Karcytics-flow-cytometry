@@ -6,7 +6,10 @@ recomputing statistics (count, %parent, %total) for each population.
 
 This runs on a background thread via TaskScheduler so the UI stays responsive
 during batch computation. A 200ms debounce timer prevents redundant recalculations
-while the user is still dragging a gate handle.
+while the user is still dragging a gate handle. The debounce runs on the GUI
+thread (the SDK's ``Debouncer``): a ``threading.Timer`` used to submit from its
+own short-lived thread, which under PySide6 silently lost the task's
+``task_finished`` (the gate then never reached the other samples).
 """
 
 from __future__ import annotations
@@ -14,7 +17,7 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-from karcytics_sdk.plugin import CentralEventBus, get_logger
+from karcytics_sdk.plugin import CentralEventBus, Debouncer, get_logger
 
 from . import events
 from .experiment import Sample
@@ -43,8 +46,8 @@ class GatePropagator:
         self._task_scheduler = task_scheduler
         self._lock = threading.Lock()
 
-        # Debounce timer
-        self._timer: threading.Timer | None = None
+        self._debouncer = Debouncer(self._execute_propagation)
+        self._cross_group_override = False
 
         # Pending request
         self._pending_gate_id: str | None = None
@@ -65,11 +68,7 @@ class GatePropagator:
             self._pending_source_id = source_sample_id
             self._cross_group_override = False
 
-            if self._timer is not None:
-                self._timer.cancel()
-
-            self._timer = threading.Timer(self.DEBOUNCE_MS / 1000.0, self._execute_propagation)
-            self._timer.start()
+        self._debouncer.trigger(self.DEBOUNCE_MS)
 
     def request_cross_group_propagation(self, gate_id: str, source_sample_id: str) -> None:
         """Request gate propagation bypassing the active group filter."""
@@ -78,11 +77,7 @@ class GatePropagator:
             self._pending_source_id = source_sample_id
             self._cross_group_override = True
 
-            if self._timer is not None:
-                self._timer.cancel()
-
-            self._timer = threading.Timer(self.DEBOUNCE_MS / 1000.0, self._execute_propagation)
-            self._timer.start()
+        self._debouncer.trigger(self.DEBOUNCE_MS)
 
     def cancel_pending(self) -> None:
         """Drop any queued or running propagation without applying its result.
@@ -91,10 +86,8 @@ class GatePropagator:
         workflow): a result computed from the old source tree would
         otherwise land a moment later and overwrite the restored targets.
         """
+        self._debouncer.cancel()
         with self._lock:
-            if self._timer is not None:
-                self._timer.cancel()
-                self._timer = None
             self._pending_source_id = None
         self._active_task_id = None
 
@@ -213,7 +206,7 @@ class GatePropagator:
 
         target_ids: set[str] = set()
 
-        cross_group = getattr(self, "_cross_group_override", False)
+        cross_group = self._cross_group_override
         active_group_id = getattr(state.view, "active_group_filter", "__all__")
 
         if cross_group:
@@ -240,6 +233,4 @@ class GatePropagator:
 
     def cleanup(self) -> None:
         """Clean up resources."""
-        if self._timer is not None:
-            self._timer.cancel()
-            self._timer = None
+        self._debouncer.cancel()
