@@ -86,11 +86,15 @@ def _descends_from(node: GateNode, ancestor_id: str | None) -> bool:
 
 
 def final_populations(sample: Sample, under_node_id: str | None = None) -> list[LensPopulation]:
-    """The populations a gating strategy ends in: leaves, minus cluster exports."""
+    """The populations a gating strategy ends in: leaves, minus cluster exports.
+
+    Logic nodes (AND/OR/NOT) only recombine gates, so they are neither final
+    populations nor children that stop their gates from being final.
+    """
     found = []
     for path, node in populations(sample):
-        complete_children = [c for c in node.children if not c.is_incomplete]
-        if complete_children or is_cluster_population(node):
+        gate_children = [c for c in node.children if not c.is_incomplete and not c.is_logic_node]
+        if node.is_logic_node or gate_children or is_cluster_population(node):
             continue
         if _descends_from(node, under_node_id):
             found.append(LensPopulation(path, node))

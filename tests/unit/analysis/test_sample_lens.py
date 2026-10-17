@@ -33,6 +33,23 @@ def test_final_populations_are_leaves_without_cluster_exports(planted):
     assert paths == ["Lymphocytes / T cells / CD4+", "Lymphocytes / T cells / CD8+"]
 
 
+def test_a_logic_node_leaves_its_gates_final(planted):
+    """Wiring two gates into an AND node (as the Pipeline does) changes nothing."""
+    sample, events, truth, _ = planted
+    t_cells = sample.gate_tree.children[0].children[0]
+    cd4, cd8 = t_cells.children
+    logic = GateNode(name="CD4 AND CD8", logic_operator="AND", parents=[], is_logic_node=True)
+    sample.gate_tree.children.append(logic)
+    for parent in (cd4, cd8):
+        logic.parents.append(parent)
+        parent.children.append(logic)
+
+    paths = [p.path for p in final_populations(sample)]
+    assert paths == ["Lymphocytes / T cells / CD4+", "Lymphocytes / T cells / CD8+"]
+    scope = build_scope(sample, make_run(events, truth), events)
+    assert {f.kind for f in audit(scope)} == set(FindingKind)
+
+
 def test_scope_aligns_run_rows_by_event_label(planted):
     sample, events, truth, scope = planted
     assert scope.n == 4000
