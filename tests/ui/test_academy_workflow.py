@@ -150,12 +150,15 @@ def test_agreeing_converts_saves_and_starts_a_pausable_course(panel):
     assert not panel._academy.is_locked
 
 
-def test_each_step_keeps_the_block_and_catalog_current(panel):
+def test_each_step_keeps_the_block_current_but_the_catalog_waits_for_a_save(panel):
     start_in_academy(panel)
     panel.manager.next_step()
 
     assert block(panel)["step_id"] == panel.manager.current_step.id
     assert block(panel)["step_number"] == 2
+    assert panel.manager.get_in_progress(COURSE_1)["step_number"] == 1  # saved at start
+
+    panel._academy._on_workflow_saved({"filename": "flow_academy.json"})  # e.g. autosave
     attempt = panel.manager.get_in_progress(COURSE_1)
     assert attempt["workflow"] == "flow_academy.json"
     assert attempt["workflow_name"] == "My Academy"
@@ -210,14 +213,53 @@ def test_loading_a_mid_course_workflow_opens_locked(panel):
     assert block(panel)["state"] == PAUSED
 
 
-def test_closing_mid_course_pauses_saves_and_then_closes(panel):
+def _answer_close(panel, monkeypatch, answer):
+    asked: list[str] = []
+
+    def _ask(text, _buttons):
+        asked.append(text)
+        return answer
+
+    monkeypatch.setattr(panel, "_ask_unsaved_changes", _ask)
+    return asked
+
+
+def test_closing_mid_course_asks_and_save_pauses_then_closes(panel, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
     start_in_academy(panel)
     panel.manager.next_step()
+    asked = _answer_close(panel, monkeypatch, QMessageBox.StandardButton.Save)
 
-    assert panel.confirm_close() is False
+    assert panel.confirm_close() is False  # closes once the save is written
+    assert asked and "Course 1" in asked[0]
     _filename, saved = panel.saves[-1]
     assert saved[ACADEMY_KEY]["state"] == PAUSED
-    assert panel.manager.active_course is None
+    assert panel._close_after_save
+    assert panel.manager.get_in_progress(COURSE_1)["step_number"] == 2
+
+
+def test_closing_mid_course_without_saving_saves_nothing(panel, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    start_in_academy(panel)
+    panel.manager.next_step()
+    saves = len(panel.saves)
+    _answer_close(panel, monkeypatch, QMessageBox.StandardButton.Discard)
+
+    assert panel.confirm_close() is True
+    assert len(panel.saves) == saves
+    assert panel.manager.get_in_progress(COURSE_1)["step_number"] == 1  # the last save
+
+
+def test_cancel_keeps_the_course_running(panel, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    start_in_academy(panel)
+    _answer_close(panel, monkeypatch, QMessageBox.StandardButton.Cancel)
+
+    assert panel.confirm_close() is False
+    assert panel.manager.active_course.id == COURSE_1
 
 
 def test_closing_a_paused_clean_workflow_just_closes(panel):
@@ -401,3 +443,35 @@ def test_a_blank_name_falls_back_to_the_default(panel):
     panel._academy._card.primary_button.click()
 
     assert panel._current_workflow_metadata["name"] == "Flow Academy"
+
+
+def test_the_real_leave_confirmation_answers_over_the_locked_panel(panel, monkeypatch):
+    """The confirmation is parented to the locked panel; it must still take clicks."""
+    from PySide6.QtCore import QTimer
+    from PySide6.QtWidgets import QMessageBox
+
+    # The real SDK dialog (tests/conftest.py mocks the karcytics_sdk.plugin package).
+    dialogs = sys.modules["karcytics_sdk.plugin.dialogs"]
+    assert isinstance(dialogs.QMessageBox, type)
+    monkeypatch.setattr(academy_workflow, "ask_yes_no", dialogs.ask_yes_no)
+    start_in_academy(panel)
+    panel.on_academy_pause_requested()
+    seen: list[bool] = []
+
+    def _click_yes() -> None:
+        box = QApplication.activeModalWidget()
+        if not isinstance(box, QMessageBox):
+            box = next(
+                w
+                for w in QApplication.topLevelWidgets()
+                if isinstance(w, QMessageBox) and w.isVisible()
+            )
+        seen.append(box.isEnabled())
+        box.button(QMessageBox.StandardButton.Yes).click()
+
+    QTimer.singleShot(50, _click_yes)
+    panel._academy._card.secondary_button.click()
+
+    assert seen == [True]
+    assert ACADEMY_KEY not in panel._current_workflow_metadata
+    assert not panel._academy.is_locked

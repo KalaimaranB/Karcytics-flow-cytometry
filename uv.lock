@@ -632,6 +632,7 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'docs'" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'" },
     { name = "msgpack", specifier = ">=1.0.0" },
+    { name = "nd2", marker = "extra == 'imaging'", specifier = ">=0.10" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pillow", specifier = ">=12.3.0" },
@@ -641,7 +642,7 @@ requires-dist = [
     { name = "scikit-image", specifier = ">=0.26.0" },
     { name = "scipy" },
 ]
-provides-extras = ["docs"]
+provides-extras = ["imaging", "docs"]
 
 [[package]]
 name = "kiwisolver"

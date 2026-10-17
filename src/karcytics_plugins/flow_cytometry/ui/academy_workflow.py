@@ -27,6 +27,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from karcytics_sdk.plugin import CentralEventBus
 from karcytics_sdk.plugin.academy import (
     ACADEMY_COURSE_COMPLETED,
     ACADEMY_STEP_CHANGED,
@@ -35,7 +36,7 @@ from karcytics_sdk.plugin.academy import (
 from karcytics_sdk.plugin.academy_lock_card import AcademyLockCard, LockCardContent
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_info, show_warning
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QApplication, QWidget
+from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,9 @@ BETWEEN_COURSES = "between_courses"
 GRADUATED = "graduated"
 
 DEFAULT_WORKFLOW_NAME = "Flow Academy"
+
+# Published by WorkspaceIOHandler after any successful workflow save.
+WORKFLOW_SAVED = "flow.workflow.saved"
 
 # What the lock card is asking; decides what its two buttons do.
 _MODE_CONVERT = "convert"
@@ -105,11 +109,15 @@ class AcademyWorkflowController(QObject):
         self._pending_course_id: str | None = None
         self._bus.subscribe(ACADEMY_STEP_CHANGED, self._on_step_changed)
         self._bus.subscribe(ACADEMY_COURSE_COMPLETED, self._on_course_completed)
+        # The course's own Save steps, Update and autosave save the block
+        # too; the catalog's progress follows whatever was last saved.
+        CentralEventBus.subscribe(WORKFLOW_SAVED, self._on_workflow_saved)
 
     def dispose(self) -> None:
         """Unsubscribes from the Academy bus (the panel is going away)."""
         self._bus.unsubscribe(ACADEMY_STEP_CHANGED, self._on_step_changed)
         self._bus.unsubscribe(ACADEMY_COURSE_COMPLETED, self._on_course_completed)
+        CentralEventBus.unsubscribe(WORKFLOW_SAVED, self._on_workflow_saved)
 
     # ── State ──────────────────────────────────────────────────────────
 
@@ -320,18 +328,28 @@ class AcademyWorkflowController(QObject):
             self._card.unlock()
 
     def confirm_close(self) -> bool | None:
-        """Closing the window mid-course pauses and saves, then closes.
+        """Closing the window mid-course asks whether to save the place.
 
-        None when this isn't an Academy matter (the panel's usual prompt
-        applies); otherwise whether the window may close right now.
+        Save pauses, saves the workflow and closes once it's written; Don't
+        Save closes with nothing saved (the course later resumes from the
+        last save); Cancel keeps the window open. None when no course is
+        running here — the panel's usual unsaved-changes prompt applies.
         """
-        state = (self.block or {}).get("state")
-        if state not in (RUNNING, PAUSED, BETWEEN_COURSES) or self._project_manager() is None:
-            return None  # an ordinary (or graduated, unlocked) workflow
-        if self._course_running_here():
-            self._pause_into_block()
-        elif not self._panel._store.is_dirty:
+        if self._project_manager() is None or not self._course_running_here():
+            return None
+        Btn = QMessageBox.StandardButton
+        number = self._course_number((self.block or {}).get("course_id"))
+        choice = self._panel._ask_unsaved_changes(
+            f"Save your work and your place in Course {number} before closing?\n\n"
+            "Don't Save closes without saving anything; next time the course "
+            "continues from your last save.",
+            Btn.Save | Btn.Discard | Btn.Cancel,
+        )
+        if choice == Btn.Discard:
             return True
+        if choice != Btn.Save:
+            return False
+        self._pause_into_block()
         self._panel._close_after_save = True
         self._save()
         return False
@@ -459,7 +477,6 @@ class AcademyWorkflowController(QObject):
         block.update({key: snapshot[key] for key in _SNAPSHOT_KEYS if key in snapshot})
         block["state"] = PAUSED
         block["ui"] = self._ui_state()
-        self._record_attempt(block)
 
     def _leave(self) -> None:
         block = self.block or {}
@@ -491,7 +508,6 @@ class AcademyWorkflowController(QObject):
         block["state"] = RUNNING
         block["ui"] = self._ui_state()
         self._stamp_numbers(block)
-        self._record_attempt(block)
 
     def _on_course_completed(self, course_id: str, _badge_reward: Any) -> None:
         block = self.block
@@ -571,6 +587,17 @@ class AcademyWorkflowController(QObject):
             },
         )
 
+    def _on_workflow_saved(self, _payload: Any = None) -> None:
+        """The workflow (with its block) was saved: the catalog shows that place.
+
+        Recorded only on a save, never per step — closing without saving
+        must not leave the catalog showing a step the saved workflow
+        never reached.
+        """
+        block = self.block
+        if block and block.get("state") in (RUNNING, PAUSED) and block.get("course_id"):
+            self._record_attempt(block)
+
     def _forget_attempt(self, course_id: str) -> None:
         self._manager.forget_in_progress(
             course_id, workflow=getattr(self._panel, "_current_workflow_filename", None)
@@ -589,9 +616,7 @@ class AcademyWorkflowController(QObject):
         def _on_success(new_filename: str) -> None:
             if new_filename and new_filename != filename:
                 self._panel._current_workflow_filename = new_filename
-                block = self.block
-                if block and block.get("state") in (RUNNING, PAUSED) and block.get("course_id"):
-                    self._record_attempt(block)
+            self._on_workflow_saved()
 
         def _on_error(err: str) -> None:
             logger.error(f"Academy: saving the workflow failed: {err}")

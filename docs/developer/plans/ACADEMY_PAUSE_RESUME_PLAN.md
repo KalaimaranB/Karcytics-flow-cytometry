@@ -63,7 +63,8 @@ A workflow that has an `academy` block is never interactive outside `running`, e
 
 **Pause:**
 - The ⏸ Pause button in the bubble header replaces the "×" exit, which currently means "lose your place".
-- Closing the module window mid-course pauses and saves automatically. The unsaved-changes prompt doesn't appear.
+- Closing the module window mid-course asks first (user's call, 2026-10-17: never save without asking). **Save** pauses, saves and then closes; **Don't Save** closes with nothing saved, so the course later resumes from the last save; **Cancel** keeps the window open.
+- The catalog's progress for an attempt updates only when the workflow is saved (Pause, the course's Save steps, Update, autosave), never per step. Otherwise Don't Save would leave the catalog showing a step the saved workflow never reached.
 - Pause is disabled while a modal dialog is open (for example the gate-name prompt), so a course is never saved halfway through a dialog.
 
 **Resume:** the saved step id, step history and sub-task progress are restored, plus the panel's tab. Then the step is shown again.
@@ -100,4 +101,5 @@ A workflow that has an `academy` block is never interactive outside `running`, e
 - [x] **Phase 5 — Hub.** The 🎓 pill on dashboard workflow cards, the workflow properties dialog keeping the `academy` key, and `docs/internal`.
 - [ ] **Phase 6 — Play-through.** Run the app offscreen and go pause → close → reopen → resume → finish → next-course prompt → leave Academy, for each course. Then hand over to the user for a play-through.
   - 2026-10-17 self-run on the real panel, offscreen, with a temporary project: start (conversion card) → pause at Course 1 step 2/59 → close → reopen locked → resume on the same step → close mid-course (auto-pause and save) → finish → next-course card → Course 2 in the same workflow → pause → leave (ordinary workflow, attempt forgotten). This run found the lock card stretching to full height (fixed in SDK `6df5846`).
+  - The user's play-through on 2026-10-17 found that the "Leave the course?" Yes/No did nothing: the lock card disabled the dialog because it was parented to the locked panel (fixed in SDK `50e5b9c`). The user also asked for closing mid-course to prompt rather than auto-save (see §3).
   - [ ] The user's play-through in the app.
