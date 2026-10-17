@@ -1,6 +1,6 @@
 # Plan: pause and resume Academy courses (Academy workflows)
 
-**Status:** Phases 1–4 built 2026-10-17 (SDK `281a1aa`, `220428d`, `53d64f9`; flow `10edcd5` + Phase 4). Next: Phase 5 in the Hub. Resume from the first unchecked box in [Phases and checkpoints](#phases-and-checkpoints).
+**Status:** built 2026-10-17 and run through offscreen. Commits: SDK `281a1aa`, `220428d`, `53d64f9`, `6df5846`; flow `10edcd5`, `7b5302c`, `da1c27d`; Hub `b694cab` on `feature/academy-pause-resume`. Open: the user's own play-through.
 
 **Why:** the five flow courses run 58–65 steps each. A learner can't stop partway: closing the module loses their place, and the catalog only knows "not started" or "completed".
 
@@ -97,5 +97,7 @@ A workflow that has an `academy` block is never interactive outside `running`, e
   - `resume_step_id` on steps that depend on transient UI, and restoring the open tab.
   - Integration test: pause at several steps of every course, reload, resume, and check that the step's validator still passes.
   - Raise the SDK lower bound when the user releases.
-- [ ] **Phase 5 — Hub.** The 🎓 pill on dashboard workflow cards, the workflow properties dialog keeping the `academy` key, and `docs/internal`.
+- [x] **Phase 5 — Hub.** The 🎓 pill on dashboard workflow cards, the workflow properties dialog keeping the `academy` key, and `docs/internal`.
 - [ ] **Phase 6 — Play-through.** Run the app offscreen and go pause → close → reopen → resume → finish → next-course prompt → leave Academy, for each course. Then hand over to the user for a play-through.
+  - 2026-10-17 self-run on the real panel, offscreen, with a temporary project: start (conversion card) → pause at Course 1 step 2/59 → close → reopen locked → resume on the same step → close mid-course (auto-pause and save) → finish → next-course card → Course 2 in the same workflow → pause → leave (ordinary workflow, attempt forgotten). This run found the lock card stretching to full height (fixed in SDK `6df5846`).
+  - [ ] The user's play-through in the app.
