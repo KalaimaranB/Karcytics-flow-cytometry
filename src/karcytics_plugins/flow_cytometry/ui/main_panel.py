@@ -219,6 +219,12 @@ class FlowCytometryPanel(PluginBase):
             has_unsaved_changes=lambda: self._store.is_dirty,
         )
 
+        # Academy courses run inside Academy workflows: pausable, saved as
+        # they go, locked while paused (see ui/academy_workflow.py).
+        from .academy_workflow import AcademyWorkflowController
+
+        self._academy = AcademyWorkflowController(self)
+
     def _setup_footer_events(self) -> None:
         """Subscribe to events to update the footer message."""
         from karcytics_sdk.plugin import CentralEventBus
@@ -1216,6 +1222,7 @@ class FlowCytometryPanel(PluginBase):
         from ..ui.controllers.main_panel_controller import MainPanelController
 
         MainPanelController.unwire(self)
+        self._academy.dispose()
 
         # Unsubscribe from global events to prevent memory leaks and zombie callbacks
         try:
@@ -1374,6 +1381,9 @@ class FlowCytometryPanel(PluginBase):
             if getattr(self, "_loading", False):
                 return False  # the save-then-close is still writing
             self._close_after_save = False  # it was cancelled or failed
+        academy_decision = self._academy.confirm_close()
+        if academy_decision is not None:
+            return academy_decision
         if not self._store.is_dirty:
             return True
 
@@ -1414,6 +1424,20 @@ class FlowCytometryPanel(PluginBase):
             Btn.Discard | Btn.Cancel,
         )
         return choice == Btn.Discard
+
+    # ── Academy (called by the SDK's open_academy / build_academy_overlay) ──
+
+    def start_academy_course(self, course_id: str) -> None:
+        """The catalog's "Start Course": run it in this workflow."""
+        self._academy.start_course(course_id)
+
+    def resume_academy_course(self, course_id: str, attempt: dict) -> None:
+        """The catalog's "Resume Course" for the latest attempt."""
+        self._academy.resume_from_catalog(course_id, attempt)
+
+    def on_academy_pause_requested(self) -> None:
+        """The course bubble's ⏸ Pause."""
+        self._academy.pause()
 
     def export_workflow(self) -> dict:
         """Serialize the workspace for saving to disk."""
@@ -1488,6 +1512,7 @@ class FlowCytometryPanel(PluginBase):
 
             # 2. The loaded workspace is the new, saved baseline.
             self._finish_workflow_load(clean=True)
+            self._academy.on_workflow_loaded()
 
             # 3. Refresh sample list, gate hierarchy, and active graph canvas
             self._refresh_all()
