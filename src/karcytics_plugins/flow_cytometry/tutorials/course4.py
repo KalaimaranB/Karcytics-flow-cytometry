@@ -133,7 +133,7 @@ course_4_analysis = Course(
             # looping the user against a dead end — this step's
             # allow_interaction is unset (defaults False), so there's no way
             # to actually leave and go finish Course 3 without abandoning
-            # first. See Course 5's identical c5_s01b_incomplete_analysis
+            # first. See Course 6's identical c6_s01b_incomplete_analysis
             # and AcademyManager.abandon_course() for the full explanation.
             id="c4_s01b_incomplete_gating",
             text=(

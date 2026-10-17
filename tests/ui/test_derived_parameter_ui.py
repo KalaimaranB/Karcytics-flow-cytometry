@@ -406,17 +406,17 @@ def test_population_preview_shows_whole_sample_behind_on_same_axis(state, editor
 
 # ── Academy targets inside the dialog ────────────────────────────────────
 
-DIALOG_STEPS = ("c5_d07_build_ratio", "c5_d08_preview", "c5_d08b_compare", "c5_d09_close_editor")
+DIALOG_STEPS = ("c6_d07_build_ratio", "c6_d08_preview", "c6_d08b_compare", "c6_d09_close_editor")
 
 
 def test_course4_dialog_targets_exist_in_the_dialog(dialog):
     """The SDK frames these inside the dialog's own window; a renamed widget
     would silently lose its highlight.
     """
-    from karcytics_plugins.flow_cytometry.tutorials.courses import course_5_reporting
+    from karcytics_plugins.flow_cytometry.tutorials.courses import course_6_reporting
 
     dialog.open_new()
-    by_id = {s.id: s for s in course_5_reporting.steps}
+    by_id = {s.id: s for s in course_6_reporting.steps}
     named = [(sid, n) for sid in DIALOG_STEPS for n in by_id[sid].target_widget_names]
     assert named
     missing = [(sid, n) for sid, n in named if dialog.findChild(QWidget, n) is None]

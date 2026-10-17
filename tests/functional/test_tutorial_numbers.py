@@ -35,7 +35,7 @@ from karcytics_plugins.flow_cytometry.tutorials.courses import (
     course_1_fundamentals,
     course_2_compensation,
     course_3_gating,
-    course_5_reporting,
+    course_6_reporting,
 )
 
 pytestmark = pytest.mark.functional
@@ -46,12 +46,12 @@ SAMPLES = ("Sample A", "Sample B", "Sample C")
 RATIO = parse_formula("[FITC-A] / [APC-A]")
 
 # The valley between the ratio histogram's two peaks on Sample C's
-# Leukocytes, where c5_d12b's "Range gate on the right peak" starts.
+# Leukocytes, where c6_d12b's "Range gate on the right peak" starts.
 RATIO_VALLEY = 0.1
 
 STEPS = {
     s.id: s
-    for c in (course_1_fundamentals, course_2_compensation, course_3_gating, course_5_reporting)
+    for c in (course_1_fundamentals, course_2_compensation, course_3_gating, course_6_reporting)
     for s in c.steps
 }
 
@@ -139,29 +139,29 @@ class Quote:
 QUOTES = [
     # Sample A (thymus) has almost no B cells.
     Quote("c3_s54_mystery_reveal", "0.4% of", "Sample A", "b_pct_leuk", 0.4, 0.05),
-    Quote("c5_s07_read_table", "B cells are 0.4%", "Sample A", "b_pct_leuk", 0.4, 0.05),
-    Quote("c5_s07_read_table", "~43% of its Leukocytes", "Sample B", "b_pct_leuk", 43, 0.5),
-    Quote("c5_s07_read_table", "~68% of its Leukocytes", "Sample C", "b_pct_leuk", 68, 0.5),
-    Quote("c5_s14_heatmap_read", "are **68%** of Leukocytes", "Sample C", "b_pct_leuk", 68, 0.5),
+    Quote("c6_s07_read_table", "B cells are 0.4%", "Sample A", "b_pct_leuk", 0.4, 0.05),
+    Quote("c6_s07_read_table", "~43% of its Leukocytes", "Sample B", "b_pct_leuk", 43, 0.5),
+    Quote("c6_s07_read_table", "~68% of its Leukocytes", "Sample C", "b_pct_leuk", 68, 0.5),
+    Quote("c6_s14_heatmap_read", "are **68%** of Leukocytes", "Sample C", "b_pct_leuk", 68, 0.5),
     # % Parent vs % Total: debris differs between samples.
-    Quote("c5_s06q_fair_abundance", "89% of Sample A", "Sample A", "leuk_pct_total", 89, 0.5),
-    Quote("c5_s06q_fair_abundance", "77% of B", "Sample B", "leuk_pct_total", 77, 0.5),
-    Quote("c5_s06q_fair_abundance", "65% of C", "Sample C", "leuk_pct_total", 65, 0.5),
-    Quote("c5_s06q_fair_abundance", "1.35×", "Sample C", "vs_b_pct_total", 1.35, 0.01),
-    Quote("c5_s06q_fair_abundance", "1.6×", "Sample C", "vs_b_pct_leuk", 1.6, 0.05),
+    Quote("c6_s06q_fair_abundance", "89% of Sample A", "Sample A", "leuk_pct_total", 89, 0.5),
+    Quote("c6_s06q_fair_abundance", "77% of B", "Sample B", "leuk_pct_total", 77, 0.5),
+    Quote("c6_s06q_fair_abundance", "65% of C", "Sample C", "leuk_pct_total", 65, 0.5),
+    Quote("c6_s06q_fair_abundance", "1.35×", "Sample C", "vs_b_pct_total", 1.35, 0.01),
+    Quote("c6_s06q_fair_abundance", "1.6×", "Sample C", "vs_b_pct_leuk", 1.6, 0.05),
     # The B220 ÷ CD45 ratio on Sample C.
-    Quote("c5_d08b_compare", "~0%", "Sample C", "leuk_ratio_invalid_pct", 0, 0.5),
-    Quote("c5_d12b_two_peaks", "near 0.01", "Sample C", "t_ratio_median", 0.01, 0.005),
-    Quote("c5_d12b_two_peaks", "near 0.6", "Sample C", "b_ratio_median", 0.6, 0.05),
-    Quote("c5_d12b_two_peaks", "~60× apart", "Sample C", "peak_gap", 60, 6),
-    Quote("c5_d12b_two_peaks", "~97% pure", "Sample C", "ratio_gate_b_purity", 97, 1),
-    Quote("c5_s25_histogram_info", "ratio **0.64**", "Sample C", "b_ratio_median", 0.64, 0.005),
-    Quote("c5_s25_histogram_info", "CV **46%**", "Sample C", "b_ratio_cv", 46, 0.5),
+    Quote("c6_d08b_compare", "~0%", "Sample C", "leuk_ratio_invalid_pct", 0, 0.5),
+    Quote("c6_d12b_two_peaks", "near 0.01", "Sample C", "t_ratio_median", 0.01, 0.005),
+    Quote("c6_d12b_two_peaks", "near 0.6", "Sample C", "b_ratio_median", 0.6, 0.05),
+    Quote("c6_d12b_two_peaks", "~60× apart", "Sample C", "peak_gap", 60, 6),
+    Quote("c6_d12b_two_peaks", "~97% pure", "Sample C", "ratio_gate_b_purity", 97, 1),
+    Quote("c6_s25_histogram_info", "ratio **0.64**", "Sample C", "b_ratio_median", 0.64, 0.005),
+    Quote("c6_s25_histogram_info", "CV **46%**", "Sample C", "b_ratio_cv", 46, 0.5),
     # CV across samples.
-    Quote("c5_s09_cv_question", "tightest (~35%)", "Sample B", "b_ratio_cv", 35, 1),
-    Quote("c5_s09_cv_question", "Sample A's ~75%", "Sample A", "b_ratio_cv", 75, 1),
-    Quote("c5_s09_cv_question", "only ~1,000 cells", "Sample A", "b_count", 1000, 50),
-    Quote("c5_s25_histogram_info", "only ~1,000 thymus", "Sample A", "b_count", 1000, 50),
+    Quote("c6_s09_cv_question", "tightest (~35%)", "Sample B", "b_ratio_cv", 35, 1),
+    Quote("c6_s09_cv_question", "Sample A's ~75%", "Sample A", "b_ratio_cv", 75, 1),
+    Quote("c6_s09_cv_question", "only ~1,000 cells", "Sample A", "b_count", 1000, 50),
+    Quote("c6_s25_histogram_info", "only ~1,000 thymus", "Sample A", "b_count", 1000, 50),
 ]
 
 IDS = [f"{q.step_id}:{q.text}" for q in QUOTES]

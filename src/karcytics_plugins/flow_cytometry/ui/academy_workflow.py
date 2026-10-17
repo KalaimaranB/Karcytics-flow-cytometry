@@ -1,7 +1,7 @@
 """Academy workflows: courses that run inside a saved workflow and can pause.
 
 A flow course always runs in a saved workflow, and that workflow carries the
-learner through all five courses (each builds on the one before). Its
+learner through every course (each builds on the one before). Its
 metadata holds an ``academy`` block — the course, its place in it, and the
 courses already finished — which is what lets a learner pause, close the
 module, and resume later, and what the Hub's dashboard reads to badge the
@@ -67,24 +67,9 @@ _SNAPSHOT_KEYS = (
 
 def course_order() -> list[str]:
     """The flow courses' ids, in the order a learner takes them."""
-    from ..tutorials.courses import (
-        course_1_fundamentals,
-        course_2_compensation,
-        course_3_gating,
-        course_4_analysis,
-        course_5_reporting,
-    )
+    from ..tutorials.courses import COURSES
 
-    return [
-        c.id
-        for c in (
-            course_1_fundamentals,
-            course_2_compensation,
-            course_3_gating,
-            course_4_analysis,
-            course_5_reporting,
-        )
-    ]
+    return [c.id for c in COURSES]
 
 
 def academy_block(metadata: dict[str, Any] | None) -> dict[str, Any] | None:

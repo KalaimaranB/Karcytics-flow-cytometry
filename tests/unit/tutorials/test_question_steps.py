@@ -12,21 +12,8 @@ import re
 import pytest
 from karcytics_sdk.plugin.tutorial_models import QuestionStep
 
-from karcytics_plugins.flow_cytometry.tutorials.courses import (
-    course_1_fundamentals,
-    course_2_compensation,
-    course_3_gating,
-    course_4_analysis,
-    course_5_reporting,
-)
+from karcytics_plugins.flow_cytometry.tutorials.courses import COURSES, course_6_reporting
 
-COURSES = [
-    course_1_fundamentals,
-    course_2_compensation,
-    course_3_gating,
-    course_4_analysis,
-    course_5_reporting,
-]
 MAX_QUESTION_WORDS = 50
 MAX_CHOICE_WORDS = 15
 MAX_FEEDBACK_WORDS = 40
@@ -40,7 +27,7 @@ def _words(text: str) -> int:
 
 
 def test_course4_has_questions():
-    assert any(cid == course_5_reporting.id for cid, _ in QUESTIONS)
+    assert any(cid == course_6_reporting.id for cid, _ in QUESTIONS)
 
 
 @pytest.mark.parametrize(("course_id", "step"), QUESTIONS, ids=[s.id for _, s in QUESTIONS])

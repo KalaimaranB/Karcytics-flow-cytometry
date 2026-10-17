@@ -7,21 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from karcytics_plugins.flow_cytometry.tutorials.courses import (
-    course_1_fundamentals,
-    course_2_compensation,
-    course_3_gating,
-    course_4_analysis,
-    course_5_reporting,
-)
-
-COURSES = [
-    course_1_fundamentals,
-    course_2_compensation,
-    course_3_gating,
-    course_4_analysis,
-    course_5_reporting,
-]
+from karcytics_plugins.flow_cytometry.tutorials.courses import COURSES
 
 
 @pytest.mark.parametrize("course", COURSES, ids=lambda c: c.id)

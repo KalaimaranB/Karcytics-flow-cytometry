@@ -67,23 +67,14 @@ os.environ["ARROW_DEFAULT_MEMORY_POOL"] = "system"
 
 
 def register_courses(manager: Any) -> None:
-    from .tutorials.courses import (
-        course_1_fundamentals,
-        course_2_compensation,
-        course_3_gating,
-        course_4_analysis,
-        course_5_reporting,
-    )
+    from .tutorials.courses import COURSES
 
     # Prevent duplicate registration
     if __plugin_id__ not in manager.courses_by_module or not any(
-        c.id == course_1_fundamentals.id for c in manager.courses_by_module[__plugin_id__]
+        c.id == COURSES[0].id for c in manager.courses_by_module[__plugin_id__]
     ):
-        manager.register_storyboard(__plugin_id__, course_1_fundamentals)
-        manager.register_storyboard(__plugin_id__, course_2_compensation)
-        manager.register_storyboard(__plugin_id__, course_3_gating)
-        manager.register_storyboard(__plugin_id__, course_4_analysis)
-        manager.register_storyboard(__plugin_id__, course_5_reporting)
+        for course in COURSES:
+            manager.register_storyboard(__plugin_id__, course)
 
 
 def get_panel_class() -> type:

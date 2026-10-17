@@ -22,12 +22,22 @@ from .course1 import course_1_fundamentals
 from .course2 import course_2_compensation
 from .course3 import course_3_gating
 from .course4 import course_4_analysis
-from .course5 import course_5_reporting
+from .course6 import course_6_reporting
+
+# Every flow course, in the order a learner takes them.
+COURSES = (
+    course_1_fundamentals,
+    course_2_compensation,
+    course_3_gating,
+    course_4_analysis,
+    course_6_reporting,
+)
 
 __all__ = [
+    "COURSES",
     "course_1_fundamentals",
     "course_2_compensation",
     "course_3_gating",
     "course_4_analysis",
-    "course_5_reporting",
+    "course_6_reporting",
 ]

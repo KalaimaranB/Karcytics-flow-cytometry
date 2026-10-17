@@ -1376,12 +1376,12 @@ class LineageGatingCompleteValidator(FlowValidator):
 class PopulationAnalysisCompleteValidator(FlowValidator):
     """Verifies Course 4's population-analysis output — the exported
     "UMAP B Cells" gate and the AND node cross-checking it against the
-    manual B-cells gate — actually exists, before Course 5's Statistics/
+    manual B-cells gate — actually exists, before Course 6's Statistics/
     Comparisons walkthrough starts leaning on both.
 
     Checks every FULL_PANEL sample directly, the same "any sample, not
     just whichever one happens to be open" reach `GateExistsValidator`
-    uses — Course 5 can launch with a different sample selected than
+    uses — Course 6 can launch with a different sample selected than
     whichever one the UMAP run was on, and this shouldn't false-fail
     just because of that.
     """
@@ -1847,7 +1847,7 @@ class ComparisonsPlotGeneratedValidator(FlowValidator):
         return True
 
 
-# ── Derived parameters (Course 5) ─────────────────────────────────────────────
+# ── Derived parameters (Course 6) ─────────────────────────────────────────────
 
 
 def _is_ratio_formula(formula: str, numerator: str, denominator: str) -> bool:

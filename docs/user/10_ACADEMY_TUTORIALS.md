@@ -108,11 +108,11 @@ Questions along the way: what a cell's position on a UMAP axis tells you, why UM
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
-### Course 5 — Derived Parameters, Statistics & Comparisons
+### Course 6 — Derived Parameters, Statistics & Comparisons
 
 **~35 minutes · requires Course 4 · badge: 📊 Insight Reporter**
 
-Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 5 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
+Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 6 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
 
 - Confirm your Course 4 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
 - Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — predict where T cells land in its live preview, then plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
@@ -122,7 +122,7 @@ Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B C
 
 Along the way, short questions check each idea before you move on: pick the right answer to continue, and after two tries the correct one is outlined. Your answers stay on your computer.
 
-<!-- SCREENSHOT: docs/images/user/academy/course5-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
+<!-- SCREENSHOT: docs/images/user/academy/course6-statistics-table.png — the Statistics tab showing the computed table comparing hand-gated B-cells against UMAP B Cells -->
 
 ## After you finish
 

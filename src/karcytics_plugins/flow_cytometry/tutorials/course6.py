@@ -15,12 +15,12 @@ Spotlight convention:
 Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
 Statistics, Spectral, Population Analysis, Comparisons.
 
-Course 5 picks up where Course 4 left off: Course 4 ends with a real,
+Course 6 picks up where Course 4 left off: Course 4 ends with a real,
 gate-tree population ("UMAP B Cells") exported from unsupervised
 clustering and cross-checked against the hand-gated "B-cells" population
 via a Pipeline AND node. That showed they are (nearly) the same cells;
-Course 5 asks the follow-up — *are they measured the same?* — as a
-prediction at the start (`c5_same_measure`), and answers it with a
+Course 6 asks the follow-up — *are they measured the same?* — as a
+prediction at the start (`c6_same_measure`), and answers it with a
 **derived parameter** (B220 ÷ CD45, a per-cell ratio used like any
 channel), the **Statistics** tab and the **Comparisons** tab. The
 histogram overlay and graduation steps show the prediction back.
@@ -73,8 +73,8 @@ from .validators import (
     WorkflowSavedValidator,
 )
 
-course_5_reporting = Course(
-    id="flow_course_5_reporting",
+course_6_reporting = Course(
+    id="flow_course_6_reporting",
     title="Derived Parameters, Statistics & Comparisons",
     description=(
         "Build a per-cell B220 ÷ CD45 derived parameter, then use your "
@@ -88,9 +88,9 @@ course_5_reporting = Course(
     prerequisite_course_ids=["flow_course_4_analysis"],
     steps=[
         InfoStep(
-            id="c5_s00_intro",
+            id="c6_s00_intro",
             text=(
-                "Welcome to Course 5! 📊<br><br>"
+                "Welcome to Course 6! 📊<br><br>"
                 "Course 4 left you with two independent ways of finding "
                 "B-cells — your own hand-gated **B-cells**, and the "
                 "unsupervised **UMAP B Cells** — plus an AND node showing "
@@ -100,10 +100,10 @@ course_5_reporting = Course(
                 "parameter, real statistics and side-by-side charts."
             ),
             cyto_emotion="happy",
-            next_step_id="c5_s00b_objectives",
+            next_step_id="c6_s00b_objectives",
         ),
         InfoStep(
-            id="c5_s00b_objectives",
+            id="c6_s00b_objectives",
             text=(
                 "What you'll walk away with 🎯<br><br>"
                 "By the end of this course, you'll be able to:<br>"
@@ -119,10 +119,10 @@ course_5_reporting = Course(
                 "• Export your tables and plots"
             ),
             cyto_emotion="talking",
-            next_step_id="c5_s00c_prediction",
+            next_step_id="c6_s00c_prediction",
         ),
         QuestionStep(
-            id="c5_s00c_prediction",
+            id="c6_s00c_prediction",
             text=(
                 "Make a prediction 🔮<br><br>"
                 "UMAP B Cells and your hand-gated B-cells are nearly the same "
@@ -130,7 +130,7 @@ course_5_reporting = Course(
                 "yours? There's no wrong answer — we'll check at the end."
             ),
             kind=QUESTION_PREDICT,
-            question_id="c5_same_measure",
+            question_id="c6_same_measure",
             choices=[
                 AnswerChoice("About the same peak and spread"),
                 AnswerChoice("Brighter — UMAP keeps the clearest B cells"),
@@ -138,17 +138,17 @@ course_5_reporting = Course(
                 AnswerChoice("Much broader — clustering is messier"),
             ],
             cyto_emotion="thinking",
-            next_step_id="c5_s01_validate_analysis",
+            next_step_id="c6_s01_validate_analysis",
         ),
         # ── Validate Course 4's analysis output ─────────────────────────────────
         VerificationStep(
-            id="c5_s01_validate_analysis",
+            id="c6_s01_validate_analysis",
             text="Checking for your Course 4 analysis...",
             cyto_emotion="scanning",
             hide_next_button=True,
             validator=PopulationAnalysisCompleteValidator(),
-            on_success_step_id="c5_d01_intro",
-            on_fail_step_id="c5_s01b_incomplete_analysis",
+            on_success_step_id="c6_d01_intro",
+            on_fail_step_id="c6_s01b_incomplete_analysis",
         ),
         InfoStep(
             # This step has allow_interaction unset (defaults False), so the
@@ -161,20 +161,20 @@ course_5_reporting = Course(
             # dead loop or falling into the "no next_id" branch, which would
             # have completed the course and awarded "Insight Reporter" for
             # reading one message.
-            id="c5_s01b_incomplete_analysis",
+            id="c6_s01b_incomplete_analysis",
             text=(
                 "Missing your Course 4 export 🔍<br><br>"
-                "Course 5 needs the **UMAP B Cells** population and the "
+                "Course 6 needs the **UMAP B Cells** population and the "
                 "**AND** node cross-checking it against **B-cells** — both "
                 "built in Course 4. Head back and finish that course first, "
-                "then relaunch Course 5."
+                "then relaunch Course 6."
             ),
             cyto_emotion="thinking",
             next_step_id="__abandon__",
         ),
         # ── Derived parameters: B220 ÷ CD45 ───────────────────────────────────────
         InfoStep(
-            id="c5_d01_intro",
+            id="c6_d01_intro",
             text=(
                 "New tool: derived parameters ƒ<br><br>"
                 "Every cell is just a row of numbers — FSC, SSC, one per "
@@ -189,10 +189,10 @@ course_5_reporting = Course(
                 "on it, compute statistics on it."
             ),
             cyto_emotion="talking",
-            next_step_id="c5_d02_why_b220_cd45",
+            next_step_id="c6_d02_why_b220_cd45",
         ),
         InfoStep(
-            id="c5_d02_why_b220_cd45",
+            id="c6_d02_why_b220_cd45",
             text=(
                 "Our version: B220 ÷ CD45 🧬<br><br>"
                 "Our panel has no GFP, but it has the same idea built in. "
@@ -204,10 +204,10 @@ course_5_reporting = Course(
                 "Leukocytes."
             ),
             cyto_emotion="happy",
-            next_step_id="c5_d03_open_leuko",
+            next_step_id="c6_d03_open_leuko",
         ),
         InteractionStep(
-            id="c5_d03_open_leuko",
+            id="c6_d03_open_leuko",
             text=(
                 "In the Data hierarchy, right-click **Sample C**, then click "
                 "**Leukocytes** in the population menu — the same move you "
@@ -217,50 +217,50 @@ course_5_reporting = Course(
             target_widget_names=["SampleList"],
             event_trigger="population_open_requested",
             cyto_emotion="pointing",
-            next_step_id="c5_d04_verify_leuko",
+            next_step_id="c6_d04_verify_leuko",
         ),
         VerificationStep(
-            id="c5_d04_verify_leuko",
+            id="c6_d04_verify_leuko",
             text="Checking opened population...",
             cyto_emotion="scanning",
             hide_next_button=True,
             validator=SampleAndGateOpenValidator("sample c", "leukocytes"),
-            on_success_step_id="c5_d05_gating_tab",
-            on_fail_step_id="c5_d04b_wrong_pop",
+            on_success_step_id="c6_d05_gating_tab",
+            on_fail_step_id="c6_d04b_wrong_pop",
         ),
         InteractionStep(
-            id="c5_d04b_wrong_pop",
+            id="c6_d04b_wrong_pop",
             text="Oops! Right-click **Sample C** and choose **Leukocytes** from its menu.",
             cyto_emotion="surprised",
             target_widget_name="SampleList",
             target_widget_names=["SampleList"],
             event_trigger="population_open_requested",
-            next_step_id="c5_d04_verify_leuko",
+            next_step_id="c6_d04_verify_leuko",
         ),
         VerificationStep(
             # Verification (not Interaction) so it passes straight through if
             # the Gating tab is already open — clicking the active tab emits
             # no currentChanged and would leave an InteractionStep stuck.
-            id="c5_d05_gating_tab",
+            id="c6_d05_gating_tab",
             text="Open the **Gating** tab (its ribbon has the tool we need).",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(1),
-            on_success_step_id="c5_d06_open_editor",
+            on_success_step_id="c6_d06_open_editor",
         ),
         InteractionStep(
-            id="c5_d06_open_editor",
+            id="c6_d06_open_editor",
             text="Click **ƒ Derived** (highlighted) on the Gating ribbon.",
             target_widget_name="DerivedParamsButton",
             target_widget_names=["DerivedParamsButton"],
             event_trigger="clicked",
             cyto_emotion="pointing",
-            next_step_id="c5_d07_build_ratio",
+            next_step_id="c6_d07_build_ratio",
         ),
         VerificationStep(
-            id="c5_d07_build_ratio",
+            id="c6_d07_build_ratio",
             text=(
                 "Build the ratio ➗<br><br>"
                 "In the Derived Parameters window:<br>"
@@ -283,10 +283,10 @@ course_5_reporting = Course(
             failure_hint=(
                 "Pick Ratio A ÷ B, set A to B220 (FITC-A) and B to CD45 (APC-A), then click Save."
             ),
-            on_success_step_id="c5_d08_preview",
+            on_success_step_id="c6_d08_preview",
         ),
         InfoStep(
-            id="c5_d08_preview",
+            id="c6_d08_preview",
             text=(
                 "What the preview shows 🔍<br><br>"
                 "Your formula has already been run on every cell in Sample C — "
@@ -303,16 +303,16 @@ course_5_reporting = Course(
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["DerivedPreviewPopulation", "DerivedPreviewHistogram"],
-            next_step_id="c5_d08q_tcell_hump",
+            next_step_id="c6_d08q_tcell_hump",
         ),
         QuestionStep(
-            id="c5_d08q_tcell_hump",
+            id="c6_d08q_tcell_hump",
             text=(
                 "Before you switch 🤔<br><br>"
                 "If you picked **T-cells** in the preview's dropdown, which "
                 "hump would the blue bars land on?"
             ),
-            question_id="c5_tcell_hump",
+            question_id="c6_tcell_hump",
             choices=[
                 AnswerChoice(
                     "The right hump, near 0.6",
@@ -332,10 +332,10 @@ course_5_reporting = Course(
             ),
             cyto_emotion="thinking",
             target_widget_names=["DerivedPreviewPopulation", "DerivedPreviewHistogram"],
-            next_step_id="c5_d08b_compare",
+            next_step_id="c6_d08b_compare",
         ),
         InfoStep(
-            id="c5_d08b_compare",
+            id="c6_d08b_compare",
             text=(
                 "Check it 🔬<br><br>"
                 "Switch the preview's population dropdown:<br>"
@@ -356,30 +356,30 @@ course_5_reporting = Course(
                 "DerivedPreviewHistogram",
                 "DerivedPreviewSummary",
             ],
-            next_step_id="c5_d09_close_editor",
+            next_step_id="c6_d09_close_editor",
         ),
         VerificationStep(
-            id="c5_d09_close_editor",
+            id="c6_d09_close_editor",
             text="Close the Derived Parameters window (**Close**, highlighted).",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["DerivedCloseButton"],
             validator=DerivedEditorClosedValidator(),
-            on_success_step_id="c5_d10_histogram",
+            on_success_step_id="c6_d10_histogram",
         ),
         VerificationStep(
-            id="c5_d10_histogram",
+            id="c6_d10_histogram",
             text="Switch the graph's plot type to **Histogram**.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["DisplayModeCombo"],
             validator=PlotTypeValidator("histogram"),
-            on_success_step_id="c5_d11_axis",
+            on_success_step_id="c6_d11_axis",
         ),
         VerificationStep(
-            id="c5_d11_axis",
+            id="c6_d11_axis",
             text=(
                 "Now set the **X:** axis to **ƒ B220/CD45** — derived "
                 "parameters are listed after the real channels.<br><br>"
@@ -392,10 +392,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["AxisSelectorX"],
             validator=ActiveGraphDerivedAxisValidator("FITC-A", "APC-A"),
-            on_success_step_id="c5_d12_read_histogram",
+            on_success_step_id="c6_d12_read_histogram",
         ),
         InfoStep(
-            id="c5_d12_read_histogram",
+            id="c6_d12_read_histogram",
             text=(
                 "The preview, full size 📊<br><br>"
                 "This is the same picture as the preview, now on a real graph "
@@ -412,10 +412,10 @@ course_5_reporting = Course(
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["FlowCanvas"],
-            next_step_id="c5_d12b_two_peaks",
+            next_step_id="c6_d12b_two_peaks",
         ),
         InfoStep(
-            id="c5_d12b_two_peaks",
+            id="c6_d12b_two_peaks",
             text=(
                 "Two populations, one axis 🔬<br><br>"
                 "• **Left peak, near 0.01** — leukocytes with almost no B220: "
@@ -433,10 +433,10 @@ course_5_reporting = Course(
             cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["FlowCanvas"],
-            next_step_id="c5_d13_pitfalls",
+            next_step_id="c6_d13_pitfalls",
         ),
         InfoStep(
-            id="c5_d13_pitfalls",
+            id="c6_d13_pitfalls",
             text=(
                 "Ratio rules of thumb ⚠️<br><br>"
                 "• **Compensate first** — a ratio of uncompensated channels "
@@ -447,16 +447,16 @@ course_5_reporting = Course(
                 "values."
             ),
             cyto_emotion="talking",
-            next_step_id="c5_d14_invalid_question",
+            next_step_id="c6_d14_invalid_question",
         ),
         QuestionStep(
-            id="c5_d14_invalid_question",
+            id="c6_d14_invalid_question",
             text=(
                 "Your turn 🧠<br><br>"
                 "On another panel, a ratio shows **40% invalid** events in one "
                 "population and ~0% everywhere else. What's the most likely cause?"
             ),
-            question_id="c5_ratio_invalid_cause",
+            question_id="c6_ratio_invalid_cause",
             choices=[
                 AnswerChoice(
                     "The numerator is very bright there",
@@ -485,28 +485,28 @@ course_5_reporting = Course(
                 "cell you care about, like CD45 here."
             ),
             cyto_emotion="thinking",
-            next_step_id="c5_s02_switch_statistics",
+            next_step_id="c6_s02_switch_statistics",
         ),
         # ── Statistics tab ────────────────────────────────────────────────────────
         VerificationStep(
-            id="c5_s02_switch_statistics",
+            id="c6_s02_switch_statistics",
             text=("Now put numbers on it — click the **Statistics** tab at the top."),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(4),
-            on_success_step_id="c5_s04b_median_question",
+            on_success_step_id="c6_s04b_median_question",
         ),
         QuestionStep(
-            id="c5_s04b_median_question",
+            id="c6_s04b_median_question",
             text=(
                 "First, brightness 💡<br><br>"
                 "B220 spans four decades on a log axis, and a few cells are far "
                 "brighter than the rest. Which number best describes how bright "
                 "a **typical** B cell is?"
             ),
-            question_id="c5_typical_brightness",
+            question_id="c6_typical_brightness",
             choices=[
                 AnswerChoice("The median (MFI)", correct=True),
                 AnswerChoice(
@@ -530,10 +530,10 @@ course_5_reporting = Course(
                 "standard brightness statistic in flow."
             ),
             cyto_emotion="thinking",
-            next_step_id="c5_s05_select_pops",
+            next_step_id="c6_s05_select_pops",
         ),
         VerificationStep(
-            id="c5_s05_select_pops",
+            id="c6_s05_select_pops",
             text=(
                 "Trim the population list 🎯<br><br>"
                 "Click **Edit Population Selection** (highlighted) to open the "
@@ -561,10 +561,10 @@ course_5_reporting = Course(
                 max_checked=4,
                 require_popup_closed=True,
             ),
-            on_success_step_id="c5_s06q_fair_abundance",
+            on_success_step_id="c6_s06q_fair_abundance",
         ),
         QuestionStep(
-            id="c5_s06q_fair_abundance",
+            id="c6_s06q_fair_abundance",
             text=(
                 "A fair comparison ⚖️<br><br>"
                 "Leukocytes are 89% of Sample A's events, 77% of B's and only "
@@ -572,7 +572,7 @@ course_5_reporting = Course(
                 "**how much of each sample's immune cells are B cells**, which "
                 "statistic?"
             ),
-            question_id="c5_fair_abundance",
+            question_id="c6_fair_abundance",
             choices=[
                 AnswerChoice(
                     "% Total — the share of every event",
@@ -596,10 +596,10 @@ course_5_reporting = Course(
                 "cells; % of Leukocytes says 1.6×."
             ),
             cyto_emotion="thinking",
-            next_step_id="c5_s06_select_stats",
+            next_step_id="c6_s06_select_stats",
         ),
         VerificationStep(
-            id="c5_s06_select_stats",
+            id="c6_s06_select_stats",
             text=(
                 "Trim the stat list too ✂️<br><br>"
                 "**Count**, **Percent Parent** and **MFI** are checked by "
@@ -616,10 +616,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["StatsCheckboxPanel"],
             validator=StatsCheckedValidator(StatType.PERCENT_PARENT, StatType.CV, max_checked=2),
-            on_success_step_id="c5_s06a_ratio_channel",
+            on_success_step_id="c6_s06a_ratio_channel",
         ),
         VerificationStep(
-            id="c5_s06a_ratio_channel",
+            id="c6_s06a_ratio_channel",
             text=(
                 "Give CV its ★ channel ƒ<br><br>"
                 "In the **Channel** dropdown (highlighted), pick **ƒ B220/CD45** "
@@ -631,10 +631,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["StatsChannelCombo"],
             validator=StatsDerivedChannelValidator("FITC-A", "APC-A"),
-            on_success_step_id="c5_s06b_compute",
+            on_success_step_id="c6_s06b_compute",
         ),
         VerificationStep(
-            id="c5_s06b_compute",
+            id="c6_s06b_compute",
             text=(
                 "Click '📊 Compute Statistics' (highlighted) to generate the "
                 "table. Cyto carries on once it's ready."
@@ -645,17 +645,17 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["StatsComputeButton"],
             validator=StatsResultsReadyValidator(),
-            on_success_step_id="c5_s07_read_table",
+            on_success_step_id="c6_s07_read_table",
         ),
         QuestionStep(
-            id="c5_s07_read_table",
+            id="c6_s07_read_table",
             text=(
                 "Read the table 🔍<br><br>"
                 "Look along the **B-cells** row's **Percent Parent** columns. "
                 "Which sample "
                 "has almost no B cells?"
             ),
-            question_id="c5_few_bcells_sample",
+            question_id="c6_few_bcells_sample",
             choices=[
                 AnswerChoice("Sample A", correct=True),
                 AnswerChoice(
@@ -677,25 +677,25 @@ course_5_reporting = Course(
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["StatsResultsTable"],
-            next_step_id="c5_s08_chart_toggle",
+            next_step_id="c6_s08_chart_toggle",
         ),
         InteractionStep(
-            id="c5_s08_chart_toggle",
+            id="c6_s08_chart_toggle",
             text="Click '📈 Chart' (highlighted) to switch from table to chart view.",
             target_widget_name="StatsChartMode",
             event_trigger="clicked",
             cyto_emotion="pointing",
-            next_step_id="c5_s09_cv_question",
+            next_step_id="c6_s09_cv_question",
         ),
         QuestionStep(
-            id="c5_s09_cv_question",
+            id="c6_s09_cv_question",
             text=(
                 "Read the chart 📈<br><br>"
                 "With **Cv** picked in the dropdown beside the chart type, the "
                 "bars show each population's CV on **B220 ÷ CD45**. Sample B's "
                 "B-cells have the lowest. What does that tell you?"
             ),
-            question_id="c5_cv_meaning",
+            question_id="c6_cv_meaning",
             choices=[
                 AnswerChoice(
                     "It has the most B cells",
@@ -720,10 +720,10 @@ course_5_reporting = Course(
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["StatsChartCanvas"],
-            next_step_id="c5_s13_heatmap",
+            next_step_id="c6_s13_heatmap",
         ),
         VerificationStep(
-            id="c5_s13_heatmap",
+            id="c6_s13_heatmap",
             text=(
                 "Bars get crowded as populations pile up. Switch the chart-type "
                 "dropdown (highlighted) to **Heatmap** — a grid that stays readable."
@@ -733,10 +733,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["StatsChartTypeCombo"],
             validator=StatsChartTypeValidator("heatmap"),
-            on_success_step_id="c5_s14_heatmap_read",
+            on_success_step_id="c6_s14_heatmap_read",
         ),
         InfoStep(
-            id="c5_s14_heatmap_read",
+            id="c6_s14_heatmap_read",
             text=(
                 "One-glance comparison 🗺️<br><br>"
                 "Rows are populations, columns are samples; the dropdown next "
@@ -749,21 +749,21 @@ course_5_reporting = Course(
             cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["StatsChartCanvas"],
-            next_step_id="c5_s15_switch_comparisons",
+            next_step_id="c6_s15_switch_comparisons",
         ),
         # ── Comparisons tab ───────────────────────────────────────────────────────
         VerificationStep(
-            id="c5_s15_switch_comparisons",
+            id="c6_s15_switch_comparisons",
             text=("Numbers done; now shapes. Click the **Comparisons** tab at the top."),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
             validator=TabActiveValidator(7),
-            on_success_step_id="c5_s17_comparisons_intro",
+            on_success_step_id="c6_s17_comparisons_intro",
         ),
         InfoStep(
-            id="c5_s17_comparisons_intro",
+            id="c6_s17_comparisons_intro",
             text=(
                 "Comparing distributions 🎨<br><br>"
                 "Statistics gave single numbers; this tab plots the whole "
@@ -771,10 +771,10 @@ course_5_reporting = Course(
                 "answering a different question about your two B-cell methods."
             ),
             cyto_emotion="talking",
-            next_step_id="c5_s17b_select_pops",
+            next_step_id="c6_s17b_select_pops",
         ),
         VerificationStep(
-            id="c5_s17b_select_pops",
+            id="c6_s17b_select_pops",
             text=(
                 "Pick your population here too 🎯<br><br>"
                 "This tab has its own population picker, separate from the "
@@ -799,20 +799,20 @@ course_5_reporting = Course(
                 max_checked=3,
                 require_popup_closed=True,
             ),
-            on_success_step_id="c5_s18_violin",
+            on_success_step_id="c6_s18_violin",
         ),
         VerificationStep(
-            id="c5_s18_violin",
+            id="c6_s18_violin",
             text="Select '🎻 Violin Plot'.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
             validator=ComparisonPlotTypeValidator("violin"),
-            on_success_step_id="c5_s18a_violin_options",
+            on_success_step_id="c6_s18a_violin_options",
         ),
         InfoStep(
-            id="c5_s18a_violin_options",
+            id="c6_s18a_violin_options",
             text=(
                 "Before you generate: what these settings do 🎛️<br><br>"
                 "• **Orientation** — vertical or horizontal violins.<br>"
@@ -827,10 +827,10 @@ course_5_reporting = Course(
             cyto_emotion="talking",
             allow_interaction=True,
             target_widget_names=["ComparisonsOptionsPanel"],
-            next_step_id="c5_s18b_violin_generate",
+            next_step_id="c6_s18b_violin_generate",
         ),
         VerificationStep(
-            id="c5_s18b_violin_generate",
+            id="c6_s18b_violin_generate",
             text=(
                 "Click '🔬 Generate Plot' (highlighted) to render it with the "
                 "settings from the last step. Cyto carries on once it's ready."
@@ -841,10 +841,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
             validator=ComparisonsPlotGeneratedValidator("violin"),
-            on_success_step_id="c5_s19_violin_info",
+            on_success_step_id="c6_s19_violin_info",
         ),
         InfoStep(
-            id="c5_s19_violin_info",
+            id="c6_s19_violin_info",
             text=(
                 "Wide violin = many cells at that intensity. Three organs, "
                 "one population — the same Thymus/Bone Marrow/Spleen "
@@ -854,20 +854,20 @@ course_5_reporting = Course(
             cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["ComparisonsPlotDisplay"],
-            next_step_id="c5_s20_channel_heatmap",
+            next_step_id="c6_s20_channel_heatmap",
         ),
         VerificationStep(
-            id="c5_s20_channel_heatmap",
+            id="c6_s20_channel_heatmap",
             text="Select '🗺️ Channel Heatmap'.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
             validator=ComparisonPlotTypeValidator("channel heatmap"),
-            on_success_step_id="c5_s20a_add_umap_pop",
+            on_success_step_id="c6_s20a_add_umap_pop",
         ),
         VerificationStep(
-            id="c5_s20a_add_umap_pop",
+            id="c6_s20a_add_umap_pop",
             text=(
                 "Bring in UMAP B Cells 🎯<br><br>"
                 "Heatmap (and every chart type from here on) can show more "
@@ -890,10 +890,10 @@ course_5_reporting = Course(
                 max_checked=4,
                 require_popup_closed=True,
             ),
-            on_success_step_id="c5_s20a1_heatmap_channels",
+            on_success_step_id="c6_s20a1_heatmap_channels",
         ),
         InfoStep(
-            id="c5_s20a1_heatmap_channels",
+            id="c6_s20a1_heatmap_channels",
             text=(
                 "About that Channels list 📡<br><br>"
                 "Violin only ever used one channel, so switching here reset "
@@ -906,10 +906,10 @@ course_5_reporting = Course(
             cyto_emotion="talking",
             allow_interaction=True,
             target_widget_names=["ComparisonsChannelSection"],
-            next_step_id="c5_s20b_channel_heatmap_generate",
+            next_step_id="c6_s20b_channel_heatmap_generate",
         ),
         VerificationStep(
-            id="c5_s20b_channel_heatmap_generate",
+            id="c6_s20b_channel_heatmap_generate",
             text=(
                 "Click '🔬 Generate Plot' (highlighted) to render it. Cyto "
                 "carries on once it's ready."
@@ -920,10 +920,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
             validator=ComparisonsPlotGeneratedValidator("channel heatmap"),
-            on_success_step_id="c5_s21_channel_heatmap_info",
+            on_success_step_id="c6_s21_channel_heatmap_info",
         ),
         InfoStep(
-            id="c5_s21_channel_heatmap_info",
+            id="c6_s21_channel_heatmap_info",
             text=(
                 "Every marker at once 🗺️<br><br>"
                 "Both Sample C B-cell rows should light up the same way, "
@@ -936,20 +936,20 @@ course_5_reporting = Course(
             cyto_emotion="talking",
             allow_interaction=True,
             target_widget_names=["ComparisonsPlotDisplay"],
-            next_step_id="c5_s24_histogram",
+            next_step_id="c6_s24_histogram",
         ),
         VerificationStep(
-            id="c5_s24_histogram",
+            id="c6_s24_histogram",
             text="Select '📊 Histogram Overlay'.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
             validator=ComparisonPlotTypeValidator("histogram overlay"),
-            on_success_step_id="c5_s24a_histogram_settings",
+            on_success_step_id="c6_s24a_histogram_settings",
         ),
         InfoStep(
-            id="c5_s24a_histogram_settings",
+            id="c6_s24a_histogram_settings",
             text=(
                 "What these settings do 🎛️<br><br>"
                 "• **Layout** — Ridge (the default, also called 'waterfall') "
@@ -967,10 +967,10 @@ course_5_reporting = Course(
             cyto_emotion="talking",
             allow_interaction=True,
             target_widget_names=["ComparisonsOptionsPanel", "ComparisonsChannelSection"],
-            next_step_id="c5_s24a2_histogram_layout",
+            next_step_id="c6_s24a2_histogram_layout",
         ),
         VerificationStep(
-            id="c5_s24a2_histogram_layout",
+            id="c6_s24a2_histogram_layout",
             text=(
                 "Set it up to test your prediction 🔀<br><br>"
                 "• **Channels:** check only **ƒ B220/CD45** — your ratio.<br>"
@@ -986,10 +986,10 @@ course_5_reporting = Course(
                 ComparisonsDerivedChannelValidator("FITC-A", "APC-A"),
                 HistogramOverlayLayoutValidator("overlay"),
             ),
-            on_success_step_id="c5_s24b_histogram_generate",
+            on_success_step_id="c6_s24b_histogram_generate",
         ),
         VerificationStep(
-            id="c5_s24b_histogram_generate",
+            id="c6_s24b_histogram_generate",
             text=(
                 "Click '🔬 Generate Plot' (highlighted) to render it. Cyto "
                 "carries on once it's ready."
@@ -1000,13 +1000,13 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
             validator=ComparisonsPlotGeneratedValidator("histogram overlay"),
-            on_success_step_id="c5_s25_histogram_info",
+            on_success_step_id="c6_s25_histogram_info",
         ),
         InfoStep(
-            id="c5_s25_histogram_info",
+            id="c6_s25_histogram_info",
             text=(
                 "Your prediction, tested 🔮<br><br>"
-                "You predicted: **{answer:c5_same_measure}**.<br><br>"
+                "You predicted: **{answer:c6_same_measure}**.<br><br>"
                 "Find Sample C's two curves — B-cells and UMAP B Cells. They "
                 "sit almost on top of each other: median ratio **0.64** vs "
                 "**0.65**, and a near-identical spread (CV **46%** vs "
@@ -1018,20 +1018,20 @@ course_5_reporting = Course(
             cyto_emotion="thinking",
             allow_interaction=True,
             target_widget_names=["ComparisonsPlotDisplay"],
-            next_step_id="c5_s26_pseudocolor",
+            next_step_id="c6_s26_pseudocolor",
         ),
         VerificationStep(
-            id="c5_s26_pseudocolor",
+            id="c6_s26_pseudocolor",
             text="Last chart type: select '🌈 Pseudocolor Overlay'.",
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
             validator=ComparisonPlotTypeValidator("pseudocolor overlay"),
-            on_success_step_id="c5_s26b_pseudocolor_generate",
+            on_success_step_id="c6_s26b_pseudocolor_generate",
         ),
         VerificationStep(
-            id="c5_s26b_pseudocolor_generate",
+            id="c6_s26b_pseudocolor_generate",
             text=(
                 "Click '🔬 Generate Plot' (highlighted) to render it. Cyto "
                 "carries on once it's ready."
@@ -1042,10 +1042,10 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
             validator=ComparisonsPlotGeneratedValidator("pseudocolor overlay"),
-            on_success_step_id="c5_s27_pseudocolor_info",
+            on_success_step_id="c6_s27_pseudocolor_info",
         ),
         InfoStep(
-            id="c5_s27_pseudocolor_info",
+            id="c6_s27_pseudocolor_info",
             text=(
                 "A different kind of comparison 🌈<br><br>"
                 "This one skips channel expression entirely — no shared "
@@ -1060,11 +1060,11 @@ course_5_reporting = Course(
             cyto_emotion="happy",
             allow_interaction=True,
             target_widget_names=["ComparisonsPlotDisplay"],
-            next_step_id="c5_s27b_export",
+            next_step_id="c6_s27b_export",
         ),
         # ── Take it with you (export) ────────────────────────────────────────────
         ForcedInteractionStep(
-            id="c5_s27b_export",
+            id="c6_s27b_export",
             text=(
                 "Take it with you 📤<br><br>"
                 "Both tabs export. Do these two, in either order — Cyto "
@@ -1080,23 +1080,23 @@ course_5_reporting = Course(
             auto_advance_when_complete=True,
             sub_tasks=[
                 SubTask(
-                    id="c5_export_comparisons_plot",
+                    id="c6_export_comparisons_plot",
                     instruction="Here on Comparisons: '📸 Export' saves this plot (PNG, PDF or SVG).",
                     target_widget_name="ComparisonsExportButton",
                     validator=ExportDoneValidator("_comparisons_viewer", "plot"),
                 ),
                 SubTask(
-                    id="c5_export_stats_csv",
+                    id="c6_export_stats_csv",
                     instruction="On Statistics: '📤 Export CSV' saves the table for a spreadsheet.",
                     target_widget_name="StatsExportButton",
                     validator=ExportDoneValidator("_statistics_explorer", "csv"),
                 ),
             ],
-            next_step_id="c5_s27k_save_workspace",
+            next_step_id="c6_s27k_save_workspace",
         ),
         # ── Save workspace + real completion ─────────────────────────────────────
         VerificationStep(
-            id="c5_s27k_save_workspace",
+            id="c6_s27k_save_workspace",
             text=(
                 "Last step: save your progress. Click the **⚠️ Save "
                 "Workspace** button (highlighted) at the top right."
@@ -1106,22 +1106,22 @@ course_5_reporting = Course(
             hide_next_button=True,
             target_widget_names=["WorkspaceSaveButton"],
             validator=WorkflowSavedValidator(),
-            on_success_step_id="c5_s27z_graduation",
+            on_success_step_id="c6_s27z_graduation",
             failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
-            # The true end of Course 5 — no next_step_id, so
+            # The true end of Course 6 — no next_step_id, so
             # AcademyManager.next_step() treats this as course completion
             # and awards badge_reward ("Insight Reporter") the moment the
             # user clicks Next. Matches Course 4's own ending convention
             # (c4_s58_graduation): a real save-workspace step immediately
             # before it, then a plain graduation message with no further
             # step to loop back to.
-            id="c5_s27z_graduation",
+            id="c6_s27z_graduation",
             text=(
-                "Course 5 is complete — you're officially an **Insight "
+                "Course 6 is complete — you're officially an **Insight "
                 "Reporter**! 🏆<br><br>"
-                "**The verdict.** You predicted: *{answer:c5_same_measure}*. "
+                "**The verdict.** You predicted: *{answer:c6_same_measure}*. "
                 "The evidence:<br>"
                 "• **Same cells** — 99.95% of UMAP B Cells sit inside your "
                 "gate, and UMAP found ~93% of yours.<br>"
