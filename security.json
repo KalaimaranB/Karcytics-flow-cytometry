@@ -180,7 +180,7 @@
         "src/karcytics_plugins/flow_cytometry/tutorials/tutorial_assets.py": "c0c71f9761a9ec95d50428cd2136e93c0e304b895f4ee2ff3b5e526f0a4fdd5f",
         "src/karcytics_plugins/flow_cytometry/tutorials/validators.py": "1b6b67e2b9349f27d960cdead961fed13eec4b214eace0e81b89d22dc3635207",
         "src/karcytics_plugins/flow_cytometry/ui/__init__.py": "b08d3e93a00c30d61b37a2f31658e31c3708e371252498641c6466917bca49db",
-        "src/karcytics_plugins/flow_cytometry/ui/academy_workflow.py": "d4c534c9c3f36360e34ee86a69fc100b67635cb88715cd828f29173112a77ba5",
+        "src/karcytics_plugins/flow_cytometry/ui/academy_workflow.py": "bd3a77eb309aa2926e71790d492b8fa8af47aa1352d97dc6a88430c796e31e3d",
         "src/karcytics_plugins/flow_cytometry/ui/builders/workspace_builder.py": "e358e46bc68f93119304fbf1a6b9242211d13e6a648a774a3449489d0ef0b1c4",
         "src/karcytics_plugins/flow_cytometry/ui/composition_root.py": "84557e39622b01e90d7824e7157562b714e9ae744ab9f119347ca2b270a0e4f7",
         "src/karcytics_plugins/flow_cytometry/ui/controllers/derived_editor_controller.py": "4149124326d88157ace12c7f827dc62f7ef5fbf08a357ae9cfdbe7faa99c5b1a",

@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from karcytics_sdk.plugin.academy import AcademyManager
-from PySide6.QtWidgets import QApplication, QInputDialog
+from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry import register_courses
 from karcytics_plugins.flow_cytometry.ui import academy_workflow
@@ -92,9 +92,6 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
         p._academy, "_show_overlay", lambda pausable: p.overlay_calls.append(pausable)
     )
     monkeypatch.setattr(p._academy, "_hide_overlay", lambda: p.overlay_calls.append("hide"))
-    monkeypatch.setattr(
-        QInputDialog, "getText", staticmethod(lambda *_a, **_k: ("My Academy", True))
-    )
     monkeypatch.setattr(academy_workflow, "ask_yes_no", lambda *_a, **_k: True)
     p.closed = []
     monkeypatch.setattr(p, "_close_window_when_idle", lambda: p.closed.append(True))
@@ -108,7 +105,10 @@ def block(panel) -> dict:
 
 def start_in_academy(panel, course_id: str = COURSE_1) -> None:
     panel.start_academy_course(course_id)
-    panel._academy._card.primary_button.click()
+    card = panel._academy._card
+    if card is not None and not card.input_field.isHidden():
+        card.input_field.setText("My Academy")
+    card.primary_button.click()
 
 
 # ── Starting ──────────────────────────────────────────────────────────
@@ -120,6 +120,8 @@ def test_starting_in_an_ordinary_workflow_asks_first_and_locks_meanwhile(panel):
     card = panel._academy._card
     assert card.is_locked
     assert "Academy workflow" in card.message_label.text()
+    assert not card.input_field.isHidden()  # an unsaved workspace needs a name
+    assert card.input_field.text() == "Flow Academy"
     assert not panel._tab_bar.isEnabled()
     assert panel.manager.active_course is None
 
@@ -378,3 +380,23 @@ def test_resume_step_id_wins(shown):
 
     assert shown.manager.current_step.id == "tabs"
     assert shown.manager.step_history == ["tabs"]
+
+
+def test_a_saved_workflow_converts_without_asking_for_a_name(panel):
+    panel._current_workflow_filename = "mine.json"
+    panel._current_workflow_metadata = {"name": "Mine", "tags": []}
+
+    panel.start_academy_course(COURSE_1)
+    assert panel._academy._card.input_field.isHidden()
+    panel._academy._card.primary_button.click()
+
+    assert panel._current_workflow_metadata["name"] == "Mine"
+    assert panel.saves[-1][0] == "mine.json"
+
+
+def test_a_blank_name_falls_back_to_the_default(panel):
+    panel.start_academy_course(COURSE_1)
+    panel._academy._card.input_field.setText("   ")
+    panel._academy._card.primary_button.click()
+
+    assert panel._current_workflow_metadata["name"] == "Flow Academy"

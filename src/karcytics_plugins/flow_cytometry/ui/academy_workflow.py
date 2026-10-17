@@ -35,7 +35,7 @@ from karcytics_sdk.plugin.academy import (
 from karcytics_sdk.plugin.academy_lock_card import AcademyLockCard, LockCardContent
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_info, show_warning
 from PySide6.QtCore import QObject, QTimer
-from PySide6.QtWidgets import QApplication, QInputDialog, QWidget
+from PySide6.QtWidgets import QApplication, QWidget
 
 logger = logging.getLogger(__name__)
 
@@ -188,7 +188,16 @@ class AcademyWorkflowController(QObject):
                 ),
                 primary_text="▶ Start course",
                 secondary_text="Not now",
+                input_label="Name this workflow:" if self._needs_name() else "",
+                input_default=DEFAULT_WORKFLOW_NAME,
             ),
+        )
+
+    def _needs_name(self) -> bool:
+        """Whether converting must name the workflow (it was never saved)."""
+        metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
+        return not getattr(self._panel, "_current_workflow_filename", None) or not metadata.get(
+            "name"
         )
 
     def resume_from_catalog(self, course_id: str, attempt: dict[str, Any]) -> None:
@@ -429,18 +438,11 @@ class AcademyWorkflowController(QObject):
 
     def _convert_and_begin(self, course_id: str) -> None:
         metadata = dict(getattr(self._panel, "_current_workflow_metadata", None) or {})
-        if not getattr(self._panel, "_current_workflow_filename", None) or not metadata.get("name"):
-            name, ok = QInputDialog.getText(
-                self._panel,
-                "Name your Academy workflow",
-                "Workflow name:",
-                text=DEFAULT_WORKFLOW_NAME,
-            )
-            if not ok:
-                return  # the card stays up; they can try again or choose "Not now"
+        if self._needs_name():
+            name = self._card.input_text() if self._card is not None else ""
             metadata.update(
                 {
-                    "name": name.strip() or DEFAULT_WORKFLOW_NAME,
+                    "name": name or DEFAULT_WORKFLOW_NAME,
                     "description": "Karcytics Academy workflow",
                     "tags": sorted({*metadata.get("tags", []), "academy"}),
                     "timestamp": datetime.now().isoformat(),
