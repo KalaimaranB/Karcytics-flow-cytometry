@@ -293,8 +293,11 @@ class SampleLensModel(QObject):
         self.changed.emit()
 
     def _sample_events(self) -> list[tuple[Sample, pd.DataFrame]]:
+        """The samples to compare across: controls are left out, unless one is open."""
         pairs = []
         for sample in self.samples():
+            if sample.role.is_control and sample.sample_id != self.sample_id:
+                continue
             events = self.events(sample)
             if events is not None:
                 pairs.append((sample, events))

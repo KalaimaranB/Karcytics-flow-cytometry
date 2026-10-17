@@ -40,6 +40,16 @@ class SampleRole(Enum):
     FULL_PANEL = "full_panel"
     OTHER = "other"
 
+    @property
+    def is_control(self) -> bool:
+        """A control: its stains differ from the panel, so its populations aren't comparable."""
+        return self in {
+            SampleRole.UNSTAINED,
+            SampleRole.SINGLE_STAIN,
+            SampleRole.FMO_CONTROL,
+            SampleRole.ISOTYPE_CONTROL,
+        }
+
 
 class GroupRole(Enum):
     """Role of a sample group."""

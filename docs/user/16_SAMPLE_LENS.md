@@ -42,7 +42,7 @@ These are live plots of the real gates. Drag a gate here and it is edited exactl
 - **Coloured by your final populations**: each cell in the colour of the final population it ended up in; grey if none. A grey slice through a coloured island is a gate edge cutting a population.
 - **Coloured by cluster (HDBSCAN)**: the same cells, coloured by cluster. Where the two pictures disagree, the findings circle the spot. Click a cluster to circle it.
 
-**Across samples** lists the selected population in every sample that has it (matched by its full path, e.g. *Lymphocytes / T cells / CD4+*):
+**Across samples** lists the selected population in every sample that has it (matched by its full path, e.g. *Lymphocytes / T cells / CD4+*). Controls (unstained, single-stain, FMO and isotype samples) are left out, because their stains differ from the panel:
 
 - **% parent** and **Events**, as in Statistics.
 - **On edge**: the share of the parent's cells sitting right at the gate's edge. Above 5%, the edge runs through a dense part of the data and a small shift (of the gate, or of staining) changes the result a lot.

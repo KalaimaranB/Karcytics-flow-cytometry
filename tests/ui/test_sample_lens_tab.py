@@ -3,6 +3,7 @@
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
+from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.sample_lens import FindingKind
 from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens import SampleLensTab
@@ -79,6 +80,13 @@ def test_selecting_a_population_shows_its_path_and_every_sample(lens):
     table = tab._across._table
     assert table.rowCount() == 4  # noqa: PLR2004
     assert "outlier" in table.item(2, 4).text()  # s2 has dimmer CD4
+
+
+def test_controls_are_left_out_of_across_samples(lens):
+    tab, state, _ = lens
+    state.data.experiment.samples["s3"].role = SampleRole.SINGLE_STAIN
+    tab._model.select(_cd4_node(state).node_id)
+    assert [c.sample_id for c in tab._model.checks] == ["s0", "s1", "s2"]
 
 
 def test_a_finding_selects_its_population(lens):
