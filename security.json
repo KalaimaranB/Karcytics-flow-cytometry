@@ -230,7 +230,7 @@
         "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/histogram.py": "23f131ad7687ac998ba0de4f5c1b42a23113df5105d6b172f6c57af757818f00",
         "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/pseudocolor.py": "6ad8c7defe7e4b4f2569597e77c412446de0192e8099d4296a33b9ab6009dd2c",
         "src/karcytics_plugins/flow_cytometry/ui/graph/transform_dialog.py": "2bc81d37406efc14256062c1fa76007c39bf8ab8a497d0c121869c1c2273345c",
-        "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": "9ff4c1d5aa6be11e0e0df979d15f2d877985ce4dc2179bde7b33f164356a6cbb",
+        "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": "9413c5dd9b9fc9637005391f08d9c77f3b1cd7c3ebadd8cd52871790c1636513",
         "src/karcytics_plugins/flow_cytometry/ui/onboarding/__init__.py": "8bdf0b019851c72131c4a65cc4c4ba8f65de33abaccffbbb1e1073bb9b3efe0d",
         "src/karcytics_plugins/flow_cytometry/ui/ribbons/__init__.py": "7683adf1c60bd53e0c4df402a53af88ab504cdcaab4c70386cb606fa6ad96819",
         "src/karcytics_plugins/flow_cytometry/ui/ribbons/comparisons_ribbon.py": "021402700096a7fa6db93f586deaf527f0a6f384c9f272098336f4d60007c991",

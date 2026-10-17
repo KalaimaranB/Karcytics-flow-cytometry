@@ -1122,6 +1122,14 @@ class FlowCytometryPanel(PluginBase):
         # Sync tree selection
         self._gate_hierarchy.refresh()
 
+        # Nothing selected (e.g. a click on empty plot): describe the population the
+        # active plot shows, not All Events, so the properties and Group Preview
+        # still match the main plot.
+        if node_id is None:
+            graph = self._graph_manager.get_active_graph()
+            if graph is not None and graph.sample_id == sample_id:
+                node_id = graph.node_id
+
         # Update properties panel
         self._properties_panel.show_sample_properties(sample_id, node_id)
 
