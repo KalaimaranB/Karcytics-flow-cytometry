@@ -13,7 +13,7 @@ Best of all, it provisions its own demo data: **you don't need any FCS files of 
 
 Click **🎓 Cyto Academy**, next to the Save Workspace button in the tab bar. This opens the **Academy course catalog** — a set of course cards showing your progress and any badges you've already earned.
 
-<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing five course cards (Flow Cytometry Fundamentals, Immunophenotyping/Pipeline/Spectral Mastery, Population Analysis: Run & Validate, Derived Parameters, Statistics & Comparisons) with progress indicators -->
+<!-- SCREENSHOT: docs/images/user/academy/course-catalog.png — the Academy catalog window showing six course cards (Flow Cytometry Fundamentals, Compensation & Clean-up Gates, Immunophenotyping & the Pipeline, Population Analysis: Run & Validate, Sample Lens: Check Every Gate, Derived Parameters, Statistics & Comparisons) with progress indicators -->
 
 Pick a course and it starts immediately: a floating tutor overlay appears on top of your workspace, with a speech-bubble guide (nicknamed **Cyto**) and a soft spotlight highlighting whichever button, panel, or plot region you need to interact with next.
 
@@ -31,11 +31,11 @@ This is what makes the Academy different from a static walkthrough: it's checkin
 
 ## Your demo data
 
-Course 1 provisions ten realistic tutorial FCS files (a Blank, a PI viability single stain, five FMO controls, and three "mystery" experimental samples) the first time you need them. If they're already present in your project or a known folder, this is instant; otherwise Karcytics downloads them once (roughly 100&nbsp;MB) from the project's own reference dataset, showing live progress as it goes. You'll never need to hunt for or prepare your own files to complete any of the four courses.
+Course 1 provisions ten realistic tutorial FCS files (a Blank, a PI viability single stain, five FMO controls, and three "mystery" experimental samples) the first time you need them. If they're already present in your project or a known folder, this is instant; otherwise Karcytics downloads them once (roughly 100&nbsp;MB) from the project's own reference dataset, showing live progress as it goes. You'll never need to hunt for or prepare your own files to complete any of the courses.
 
 <!-- SCREENSHOT: docs/images/user/academy/file-provisioning.png — the provisioning step showing live download progress ("6/10 files done") -->
 
-## The five courses
+## The six courses
 
 The courses build on each other in order: each one after the first opens the workflow you saved at the end of the one before, and checks it is loaded before starting.
 
@@ -108,9 +108,25 @@ Questions along the way: what a cell's position on a UMAP axis tells you, why UM
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
+### Course 5 — Sample Lens: Check Every Gate
+
+**~40 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
+
+Course 4 checked one population against the clusters. Course 5 checks all of them in the **[Sample Lens](./16_SAMPLE_LENS.md)** tab, before Course 6 reports numbers from them. You predict at the start what the comparison will turn up. You:
+
+- Open the lens on Sample C with Course 4's clustering run, and see exactly which populations it judges (and why UMAP exports and logic nodes are left out).
+- **Backgate**: follow B-cells and then CD4+ through every gate on their path, with the population highlighted on each gate's parent.
+- Read the run's map twice, coloured by your final populations and by cluster, and learn the three kinds of audit finding.
+- Find the cells none of your gates holds (leukocytes that are neither T nor B cells), let **Propose gates** turn the cluster into ordinary rectangle gates, read its precision, recall and F1, and add them to your tree.
+- Read **Across samples**: why the thymus is flagged as an outlier on DP (biology, not a gating error), and what **On edge** says about how fragile a gate is.
+- Drag the T-cells gate's top edge into the CD4 T cells on purpose, watch the lens name the gate that cut them, then fix it.
+- Save your workspace again — required to continue into Course 6.
+
+Questions along the way: why the run clusters Leukocytes, what grey means on each map, whether a finding proves a gate wrong, what the missed cells are, why gates beat an exported cluster, what precision and recall say, why the lens blames T-cells for cells that would have been CD4+, and what "no findings" does and doesn't prove.
+
 ### Course 6 — Derived Parameters, Statistics & Comparisons
 
-**~35 minutes · requires Course 4 · badge: 📊 Insight Reporter**
+**~35 minutes · requires Course 5 · badge: 📊 Insight Reporter**
 
 Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 6 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
 
@@ -133,5 +149,5 @@ Each course awards a badge on completion, tracked on the course catalog card so 
 ## Where to go next
 
 - **[Getting Started](./01_GETTING_STARTED.md)** — the same core workflow as Courses 1 and 2, written out for readers who'd rather read than click through a tutorial.
-- **[Overview](./00_OVERVIEW.md)** — the full map of all eight tabs.
-- Once you've completed all five courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Comparisons](./09_COMPARISONS.md)**) are the best reference for details a guided course necessarily moves past quickly.
+- **[Overview](./00_OVERVIEW.md)** — the full map of every tab.
+- Once you've completed all six courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Sample Lens](./16_SAMPLE_LENS.md)**) are the best reference for details a guided course necessarily moves past quickly.

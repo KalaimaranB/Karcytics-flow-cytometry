@@ -28,12 +28,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
 from ....analysis.sample_lens import Finding
-from ..gate_hierarchy import GateHierarchy
 from ._style import Pill, card, palette_color, section_header
 from .across_samples import AcrossSamples
 from .findings_panel import FindingsPanel
 from .gating_path import GatingPathStrip
 from .lens_model import Proposal, RunRef, SampleLensModel
+from .population_list import PopulationList
 from .run_map import RunMap
 
 if TYPE_CHECKING:
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from ....analysis.state import FlowState
 
 SIDEBAR_WIDTH = 340
+POPULATIONS_HEIGHT = 280
 _RUN_SEP = "|"
 
 
@@ -80,7 +81,7 @@ class SampleLensTab(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         theme_manager.apply_style(self, "QWidget#SampleLensTab { background: {BG_DARK}; }")
-        root.addWidget(self._build_sidebar(state))
+        root.addWidget(self._build_sidebar())
         root.addWidget(self._build_main(state, controller, axis_manager), 1)
 
         self._model.changed.connect(self._render)
@@ -88,7 +89,7 @@ class SampleLensTab(QWidget):
 
     # ── Layout ─────────────────────────────────────────────────────────
 
-    def _build_sidebar(self, state: FlowState) -> QWidget:
+    def _build_sidebar(self) -> QWidget:
         sidebar = QWidget()
         sidebar.setObjectName("lens_sidebar")
         sidebar.setFixedWidth(SIDEBAR_WIDTH)
@@ -138,12 +139,18 @@ class SampleLensTab(QWidget):
 
         layout.addSpacing(6)
         layout.addWidget(
-            section_header("Populations", "Click a population to see its gating path and samples.")
+            section_header(
+                "Populations",
+                "Click a population to see its gating path and samples. Bold populations are "
+                "the final ones the lens judges; italic ones (UMAP exports, logic nodes) it "
+                "leaves out.",
+            )
         )
-        self._hierarchy = GateHierarchy(state)
-        self._hierarchy.setMinimumHeight(420)
-        self._hierarchy.selection_changed.connect(self._model.select)
-        layout.addWidget(self._hierarchy)
+        self._populations = PopulationList()
+        self._populations.setObjectName("SampleLensHierarchy")
+        self._populations.setMinimumHeight(POPULATIONS_HEIGHT)
+        self._populations.population_clicked.connect(self._model.select)
+        layout.addWidget(self._populations)
 
         layout.addSpacing(6)
         layout.addWidget(
@@ -154,6 +161,7 @@ class SampleLensTab(QWidget):
             )
         )
         self._findings = FindingsPanel()
+        self._findings.setObjectName("SampleLensFindings")
         self._findings.finding_clicked.connect(self._on_finding_clicked)
         self._findings.fix_requested.connect(self._on_fix_requested)
         layout.addWidget(self._findings)
@@ -170,17 +178,21 @@ class SampleLensTab(QWidget):
         layout.setSpacing(12)
         layout.addWidget(HeaderLabel("Sample Lens"))
         self._scope_caption = BioCaptionLabel("")
+        self._scope_caption.setObjectName("SampleLensScope")
         layout.addWidget(self._scope_caption)
 
         layout.addWidget(self._build_proposal_bar())
         self._path = GatingPathStrip(state, controller, axis_manager)
+        self._path.setObjectName("SampleLensPath")
         layout.addWidget(self._path)
 
         lower = QSplitter(Qt.Orientation.Horizontal)
         self._map = RunMap()
+        self._map.setObjectName("SampleLensMap")
         self._map.cluster_clicked.connect(self._on_cluster_clicked)
         lower.addWidget(self._map)
         self._across = AcrossSamples()
+        self._across.setObjectName("SampleLensAcross")
         lower.addWidget(self._across)
         lower.setStretchFactor(0, 1)
         lower.setStretchFactor(1, 1)
@@ -232,7 +244,6 @@ class SampleLensTab(QWidget):
     def _render(self) -> None:
         model = self._model
         sample = model.sample
-        self._hierarchy.set_active_sample(model.sample_id)
 
         runs = model.runs()
         repopulate_combo(
@@ -257,6 +268,11 @@ class SampleLensTab(QWidget):
         selected_path = model.selected_path()
         color = colors.get(selected_path or "", palette_color(0))
 
+        self._populations.show_populations(
+            sample,
+            {p.path for p in scope.final_populations} if scope else set(),
+            model.selected_node_id,
+        )
         self._scope_caption.setText(self._scope_text())
         self._findings.show_findings(model.findings, *self._empty_findings_text())
         if self._proposal is not None and self._proposal.sample_id != model.sample_id:

@@ -7,33 +7,15 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.sample_lens import FindingKind
 from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens import SampleLensTab
-from tests.fixtures.lens import build_lens_state, make_run, make_sample
+from tests.fixtures.lens import (
+    FakeUmapService,
+    TreeController,
+    build_lens_state,
+    make_run,
+    make_sample,
+)
 
 CD4_PATH = "Lymphocytes / T cells / CD4+"
-
-
-class TreeController:
-    """Adds gates to the real tree, like the gate coordinator (minus events)."""
-
-    def __init__(self, state) -> None:
-        self._population_service = PopulationService(state)
-        self.added: list = []
-
-    def add_gate(self, gate, sample_id, name=None, parent_node_id=None):
-        node = self._population_service.add_population(sample_id, gate, parent_node_id, name)
-        self.added.append((name, parent_node_id))
-        return node.node_id
-
-    def get_gates_for_display(self, sample_id, parent_node_id=None):
-        return [], []
-
-
-class FakeUmapService:
-    def __init__(self) -> None:
-        self.calls: list = []
-
-    def run_analysis(self, params, on_done, on_error_cb, on_progress=None):
-        self.calls.append((params, on_done, on_error_cb))
 
 
 @pytest.fixture
@@ -80,6 +62,18 @@ def test_selecting_a_population_shows_its_path_and_every_sample(lens):
     table = tab._across._table
     assert table.rowCount() == 4  # noqa: PLR2004
     assert "outlier" in table.item(2, 4).text()  # s2 has dimmer CD4
+
+
+def test_clicking_a_population_row_selects_it(lens):
+    tab, _, _ = lens
+    rows = tab._populations
+    texts = [rows.item(i).text() for i in range(rows.count())]
+    assert "Lymphocytes" in texts[0] and texts[1].strip() == "T cells"  # indented by depth
+    rows.itemClicked.emit(rows.item(next(i for i, t in enumerate(texts) if t.strip() == "CD4+")))
+
+    assert tab._model.selected_path() == CD4_PATH
+    current = tab._populations.currentItem()  # rebuilt on render, selection kept
+    assert current.text().strip() == "CD4+" and current.font().bold()  # a final population
 
 
 def test_controls_are_left_out_of_across_samples(lens):

@@ -377,6 +377,7 @@ class WorkspaceBuilder:
             parent=panel,
         )
         panel._center_stack.addWidget(panel._sample_lens)  # 7
+        panel.state.view._sample_lens = panel._sample_lens  # read by the Academy validators
 
         panel._center_stack.setCurrentIndex(0)
 

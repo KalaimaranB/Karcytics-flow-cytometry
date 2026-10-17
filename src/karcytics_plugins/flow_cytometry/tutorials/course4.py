@@ -27,8 +27,9 @@ Map — then proves that result out: export the real B-cell HDBSCAN cluster
 as a gate-tree population and cross-check it against the manual "B-cells"
 gate via a Pipeline AND node. That's a complete arc (run an unsupervised
 analysis AND validate it), so Course 4 ends for real here — save workspace,
-badge, the works — handing off to Course 5 for the Statistics/Comparisons
-reporting half of what used to be one oversized course.
+badge, the works — handing off to Course 5, which checks every gate against
+this run, and Course 6, the Statistics/Comparisons reporting half of what
+used to be one oversized course.
 """
 
 from karcytics_sdk.plugin.tutorial_models import (
@@ -67,7 +68,7 @@ from .validators import (
 # No new gating. Validates Course 3's tree, walks unsupervised UMAP + HDBSCAN
 # clustering on Sample C end to end, then exports the real B-cell cluster and
 # cross-checks it against the manual gate via a Pipeline AND node. Ends for
-# real — save workspace, badge, handoff to Course 5.
+# real — save workspace, badge, handoff to Course 5 (Sample Lens).
 # ==============================================================================
 
 # Held as a module-level variable for the same reason course1.py's
@@ -1044,13 +1045,13 @@ course_4_analysis = Course(
             metadata={"pipeline_highlight_node_names": ["AND Logic"]},
             next_step_id="c4_s57_save_workspace",
         ),
-        # ── Save workspace (Course 5 needs this exported population + AND node) ──
+        # ── Save workspace (Courses 5–6 need this run, export and AND node) ──
         VerificationStep(
             id="c4_s57_save_workspace",
             text=(
-                "Course 5 needs what you just built — the **UMAP B Cells** "
-                "population and the AND node cross-checking it. We need to "
-                "save our progress.<br><br>"
+                "The next two courses build on what you just made: this "
+                "clustering run, the **UMAP B Cells** population and the AND "
+                "node cross-checking it. We need to save our progress.<br><br>"
                 "Click the **⚠️ Save Workspace** button (highlighted) at the "
                 "top right."
             ),
@@ -1067,9 +1068,9 @@ course_4_analysis = Course(
             # AcademyManager.next_step() treats this as course completion
             # and awards badge_reward ("Population Analyst") the moment the
             # user clicks Next. Unlike the old Part 1/Part 2 soft-stops,
-            # this one is real: everything Course 5 depends on (the
-            # exported population, the AND node, the saved workspace) is
-            # genuinely in place by this point. What's next (Course 5) is
+            # this one is real: everything Courses 5–6 depend on (the
+            # run, the exported population, the AND node, the saved workspace)
+            # is genuinely in place by this point. What's next (Course 5) is
             # already shown on the Academy catalog card, so this doesn't
             # need its own teaser steps — matches Course 1's compact
             # one-step ending.
@@ -1077,7 +1078,7 @@ course_4_analysis = Course(
             text=(
                 "Your workspace is updated!<br><br>Course 4 is complete — "
                 "you're officially a **Population Analyst**! 🏆<br><br>"
-                "See you in Course 5!"
+                "In Course 5 you'll use this run to check every gate you drew."
             ),
             cyto_emotion="cheering",
             cyto_animation="cheering",

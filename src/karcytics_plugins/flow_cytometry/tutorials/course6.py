@@ -13,9 +13,9 @@ Spotlight convention:
   target_widget_names — list of objectNames for multi-target InfoStep spotlights.
 
 Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
-Statistics, Spectral, Population Analysis, Comparisons.
+Statistics, Spectral, Population Analysis, Comparisons, Sample Lens.
 
-Course 6 picks up where Course 4 left off: Course 4 ends with a real,
+Course 6 reports from the gates Course 5 checked, and builds on Course 4: Course 4 ends with a real,
 gate-tree population ("UMAP B Cells") exported from unsupervised
 clustering and cross-checked against the hand-gated "B-cells" population
 via a Pipeline AND node. That showed they are (nearly) the same cells;
@@ -85,7 +85,7 @@ course_6_reporting = Course(
     estimated_minutes=35,
     badge_reward="Insight Reporter",
     badge_icon="📊",
-    prerequisite_course_ids=["flow_course_4_analysis"],
+    prerequisite_course_ids=["flow_course_5_sample_lens"],
     steps=[
         InfoStep(
             id="c6_s00_intro",

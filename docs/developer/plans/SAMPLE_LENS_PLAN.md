@@ -60,15 +60,21 @@ phase. One branch (`feature/sample-lens-demo`), one commit per phase.
 - [x] **2. Backgating overlay on FlowCanvas** — `set_backgate(mask, color)`;
   2-D scatter overlay and 1-D highlight through the existing data layer.
 - [x] **3. Sample Lens tab** — replaces the demo: sample + run pickers ("Run
-  UMAP + clustering" when none), GateHierarchy, findings, gating-path strip,
+  UMAP + clustering" when none), population list, findings, gating-path strip,
   UMAP gates-vs-clusters, across-samples table. Live refresh on gate events.
 - [x] **4. Fix a missed population** — propose gates for a cluster, preview,
   add through the coordinator.
 - [x] **5. Docs** — user docs page, plan checked off. (The demo tab, never
   committed, was deleted in phase 3.)
+- [x] **6. Academy Course 5** — `tutorials/course5.py` (56 steps) between Population
+  Analysis and reporting (now Course 6). Found on the tutorial data first: Course 3's
+  T-cells guide cut the CD4 T cells (guide fixed), logic nodes hid their gates from
+  the final populations, and controls skewed Across samples (both fixed). The
+  sidebar's icicle became an indented `PopulationList`: a wide tree doesn't fit
+  340 px. Lens validators in `tutorials/validators.py`; dry run on the tutorial
+  data passes every check in order.
 
 ## Later (not in this plan)
 
 - Persisting dismissed findings in the workspace.
 - Fixes for "merges" / "cuts" (today: Show only, the user edits the gate).
-- An Academy course for the lens.

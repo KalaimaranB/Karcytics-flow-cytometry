@@ -1,5 +1,8 @@
 # Sample Lens
 
+!!! tip "Learn it hands-on"
+    Academy **Course 5 — Sample Lens: Check Every Gate** walks through every part of this tab on the tutorial data.
+
 The **Sample Lens** tab is a single-sample check of your gating strategy. It answers the question manual gating never answers on its own: *is this strategy actually right?* It shows every gate on a population's path with that population highlighted (backgating), compares your gates with an unsupervised clustering of the same cells, and shows how a population behaves across every sample.
 
 It is the last tab of the module. Like Statistics and Population Analysis, it takes over the whole window: a sidebar on the left, results on the right.
@@ -32,6 +35,8 @@ Click a finding to select its population and circle its clusters on the UMAP.
     Clustering can split one population in two or merge two similar ones, depending on its settings. Treat a finding as a prompt to look, not as a verdict.
 
 ## 3. Gating path (backgating)
+
+**Populations** lists the sample's populations as an indented tree. **Bold** ones are the final populations the lens judges; *italic* ones (UMAP exports and logic nodes) it leaves out.
 
 Click a population in **Populations**. The strip at the top shows one plot per gate on its path: each plot shows that gate's **parent** population on the gate's own axes, in grey, with the selected population drawn on top in colour. This shows at a glance where the population sits at every step.
 

@@ -100,3 +100,29 @@ def build_lens_state(n_samples: int = 4, shifted: int = 2):
             state.data.umap_results["s0::root"] = [run]
     state.view.current_sample_id = "s0"
     return state
+
+
+class TreeController:
+    """Adds gates to the real tree, like the gate coordinator (minus events)."""
+
+    def __init__(self, state) -> None:
+        from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
+
+        self._population_service = PopulationService(state)
+        self.added: list = []
+
+    def add_gate(self, gate, sample_id, name=None, parent_node_id=None):
+        node = self._population_service.add_population(sample_id, gate, parent_node_id, name)
+        self.added.append((name, parent_node_id))
+        return node.node_id
+
+    def get_gates_for_display(self, sample_id, parent_node_id=None):
+        return [], []
+
+
+class FakeUmapService:
+    def __init__(self) -> None:
+        self.calls: list = []
+
+    def run_analysis(self, params, on_done, on_error_cb, on_progress=None):
+        self.calls.append((params, on_done, on_error_cb))

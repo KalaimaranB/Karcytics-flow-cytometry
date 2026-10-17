@@ -35,6 +35,7 @@ from karcytics_plugins.flow_cytometry.tutorials.courses import (
     course_1_fundamentals,
     course_2_compensation,
     course_3_gating,
+    course_5_sample_lens,
     course_6_reporting,
 )
 
@@ -51,7 +52,13 @@ RATIO_VALLEY = 0.1
 
 STEPS = {
     s.id: s
-    for c in (course_1_fundamentals, course_2_compensation, course_3_gating, course_6_reporting)
+    for c in (
+        course_1_fundamentals,
+        course_2_compensation,
+        course_3_gating,
+        course_5_sample_lens,
+        course_6_reporting,
+    )
     for s in c.steps
 }
 
@@ -103,6 +110,7 @@ def _measure_sample(events: pd.DataFrame) -> dict[str, float]:
     return {
         "leuk_pct_total": stat("Leukocytes", "pct_total"),
         "b_pct_leuk": stat("B-cells", "pct_parent"),
+        "t_pct_leuk": stat("T-cells", "pct_parent"),
         "b_pct_total": stat("B-cells", "pct_total"),
         "b_count": stat("B-cells", "count"),
         "b_ratio_median": compute_statistic(b_cells, "ratio", StatType.MEDIAN),
@@ -157,6 +165,8 @@ QUOTES = [
     Quote("c6_d12b_two_peaks", "~97% pure", "Sample C", "ratio_gate_b_purity", 97, 1),
     Quote("c6_s25_histogram_info", "ratio **0.64**", "Sample C", "b_ratio_median", 0.64, 0.005),
     Quote("c6_s25_histogram_info", "CV **46%**", "Sample C", "b_ratio_cv", 46, 0.5),
+    # Course 5: what the T-cells gate's top edge is worth.
+    Quote("c5_s49_fixed", "about 22%", "Sample C", "t_pct_leuk", 22, 0.5),
     # CV across samples.
     Quote("c6_s09_cv_question", "tightest (~35%)", "Sample B", "b_ratio_cv", 35, 1),
     Quote("c6_s09_cv_question", "Sample A's ~75%", "Sample A", "b_ratio_cv", 75, 1),

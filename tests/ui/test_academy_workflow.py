@@ -18,6 +18,7 @@ from karcytics_sdk.plugin.academy import AcademyManager
 from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry import register_courses
+from karcytics_plugins.flow_cytometry.tutorials.courses import COURSES
 from karcytics_plugins.flow_cytometry.ui import academy_workflow
 from karcytics_plugins.flow_cytometry.ui.academy_workflow import (
     ACADEMY_KEY,
@@ -250,7 +251,7 @@ def test_finishing_a_course_offers_the_next_one(panel):
     _filename, saved = panel.saves[-1]
     assert saved[ACADEMY_KEY]["course_number"] == 2  # the course to start next
     assert saved[ACADEMY_KEY]["completed_count"] == 1
-    assert saved[ACADEMY_KEY]["course_count"] == 5
+    assert saved[ACADEMY_KEY]["course_count"] == len(COURSES)
 
 
 def test_starting_the_next_course_continues_in_the_same_workflow(panel):

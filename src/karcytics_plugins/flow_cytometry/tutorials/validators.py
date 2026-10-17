@@ -2251,3 +2251,172 @@ class _GateEditUndone(FlowValidator):
             return self.log_failure("The gate is still in its edited shape.")
         tracker._baseline = None  # a replay of the course starts afresh
         return True
+
+
+# ── Sample Lens (Course 5) ────────────────────────────────────────────────────
+
+
+def _lens(app_state: FlowState) -> Any | None:
+    return getattr(app_state.view, "_sample_lens", None)
+
+
+class ClusteredRunValidator(FlowValidator):
+    """A sample whose name contains ``sample_name`` has a UMAP run with clusters."""
+
+    def __init__(self, sample_name: str) -> None:
+        self._sample_name = sample_name.casefold()
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        samples = app_state.data.experiment.samples
+        for key, runs in app_state.data.umap_results.items():
+            sample = samples.get(key.split("::", 1)[0])
+            if sample is None or self._sample_name not in sample.display_name.casefold():
+                continue
+            if any(run.get("clusters") is not None for run in runs):
+                return True
+        return self.log_failure(f"No clustered run on '{self._sample_name}'.")
+
+
+class _LensValidator(FlowValidator):
+    """A check on what the Sample Lens tab is showing."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        lens = _lens(app_state)
+        if lens is None:
+            return self.log_failure("Sample Lens tab missing.")
+        return self.validate_lens(lens)
+
+    @abstractmethod
+    def validate_lens(self, lens: Any) -> bool:
+        pass
+
+
+class LensSampleValidator(_LensValidator):
+    """The lens is open on a sample whose name contains ``sample_name``."""
+
+    def __init__(self, sample_name: str) -> None:
+        self._sample_name = sample_name.casefold()
+
+    def validate_lens(self, lens: Any) -> bool:
+        sample = lens._model.sample
+        if sample is None or self._sample_name not in sample.display_name.casefold():
+            return self.log_failure(f"Lens isn't on '{self._sample_name}'.")
+        return True
+
+
+class LensRunReadyValidator(_LensValidator):
+    """The lens is judging the gates against a run with clusters."""
+
+    def validate_lens(self, lens: Any) -> bool:
+        scope = lens._model.scope
+        if scope is None or not scope.has_clusters:
+            return self.log_failure("No clustered run selected in the lens.")
+        return True
+
+
+class LensPopulationSelectedValidator(_LensValidator):
+    """The population named ``name`` is selected in the lens."""
+
+    def __init__(self, name: str) -> None:
+        self._name = name.casefold()
+
+    def validate_lens(self, lens: Any) -> bool:
+        model = lens._model
+        if model.selected_node_id is None:
+            return self.log_failure("No population selected in the lens.")
+        if model.population_name(model.selected_node_id).casefold() != self._name:
+            return self.log_failure(f"Lens selection isn't '{self._name}'.")
+        return True
+
+
+def _lens_findings(lens: Any, kind: Any, gate: str | None) -> list[Any]:
+    """The lens's findings of ``kind``, naming the population ``gate`` if given."""
+    from ..analysis.population_matching import PATH_SEP
+
+    return [
+        f
+        for f in lens._model.findings
+        if f.kind is kind
+        and (gate is None or (f.population or "").rsplit(PATH_SEP, 1)[-1].casefold() == gate)
+    ]
+
+
+class LensFindingValidator(_LensValidator):
+    """The lens shows (or, with ``present=False``, no longer shows) a finding of ``kind``.
+
+    ``gate`` narrows it to findings naming that population. ``on_found`` gets
+    the first matching finding on every poll, so a step's text can name the
+    real cluster (cluster numbers differ run to run).
+    """
+
+    def __init__(
+        self,
+        kind: Any,
+        gate: str | None = None,
+        present: bool = True,
+        on_found: Callable[[Any], None] | None = None,
+    ) -> None:
+        self._kind = kind
+        self._gate = gate.casefold() if gate else None
+        self._present = present
+        self._on_found = on_found
+
+    def validate_lens(self, lens: Any) -> bool:
+        found = _lens_findings(lens, self._kind, self._gate)
+        if found and self._on_found is not None:
+            self._on_found(found[0])
+        if bool(found) != self._present:
+            return self.log_failure(
+                f"{self._kind.value} finding {'missing' if self._present else 'still shown'}."
+            )
+        return True
+
+
+class LensFindingFocusedValidator(_LensValidator):
+    """The learner clicked a finding of ``kind``: its clusters are circled on the map."""
+
+    def __init__(self, kind: Any, on_found: Callable[[Any], None] | None = None) -> None:
+        self._kind = kind
+        self._on_found = on_found
+
+    def validate_lens(self, lens: Any) -> bool:
+        found = _lens_findings(lens, self._kind, None)
+        if not found:
+            return self.log_failure(f"No {self._kind.value} finding.")
+        if self._on_found is not None:
+            self._on_found(found[0])
+        if not any(lens._emphasis == f.clusters for f in found):
+            return self.log_failure(f"The {self._kind.value} finding hasn't been clicked.")
+        return True
+
+
+class LensProposalValidator(_LensValidator):
+    """The lens is previewing proposed gates."""
+
+    def validate_lens(self, lens: Any) -> bool:
+        if lens._proposal is None or not lens._proposal.steps:
+            return self.log_failure("No gate proposal shown.")
+        return True
+
+
+class LensProposalAddedValidator(_LensValidator):
+    """Proposed gates were added: the open sample has a gated "Cluster N" population.
+
+    UMAP exports can carry the same default name, so they don't count.
+    """
+
+    def validate_lens(self, lens: Any) -> bool:
+        import re
+
+        from ..analysis.population_matching import populations
+        from ..analysis.sample_lens.scope import is_cluster_population
+
+        sample = lens._model.sample
+        names = [
+            node.name or ""
+            for _, node in (populations(sample) if sample else [])
+            if not is_cluster_population(node)
+        ]
+        if not any(re.fullmatch(r"Cluster -?\d+", name) for name in names):
+            return self.log_failure("No proposed 'Cluster N' gate in the tree yet.")
+        return True

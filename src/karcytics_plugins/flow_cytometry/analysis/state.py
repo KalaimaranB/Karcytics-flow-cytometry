@@ -70,6 +70,7 @@ class ViewState:
     _comparisons_viewer: Any | None = field(default=None, repr=False, compare=False)
     _compensation_view: Any | None = field(default=None, repr=False, compare=False)
     _population_analysis_viewer: Any | None = field(default=None, repr=False, compare=False)
+    _sample_lens: Any | None = field(default=None, repr=False, compare=False)
     _derived_editor: Any | None = field(default=None, repr=False, compare=False)
 
     @property
