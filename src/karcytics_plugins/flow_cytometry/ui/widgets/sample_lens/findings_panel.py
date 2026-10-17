@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from karcytics_sdk.plugin.components import BioCaptionLabel, ModuleCard, SubtitleLabel
+from karcytics_sdk.plugin.components import (
+    BioCaptionLabel,
+    ModuleCard,
+    SecondaryButton,
+    SubtitleLabel,
+)
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
@@ -16,6 +21,7 @@ _ICON = {FindingKind.MISSED: "◯", FindingKind.MERGES: "⊕", FindingKind.CUTS:
 
 class _FindingCard(ModuleCard):
     clicked = Signal(object)
+    fix_requested = Signal(object)
 
     def __init__(self, finding: Finding | None, title: str = "", detail: str = "") -> None:
         super().__init__()
@@ -37,6 +43,11 @@ class _FindingCard(ModuleCard):
         text.setSpacing(2)
         text.addWidget(SubtitleLabel(finding.title if finding else title))
         text.addWidget(BioCaptionLabel(finding.detail if finding else detail))
+        if finding is not None and finding.kind is FindingKind.MISSED:
+            fix = SecondaryButton("Propose gates")
+            fix.setObjectName("SampleLensProposeButton")
+            fix.clicked.connect(lambda: self.fix_requested.emit(finding))
+            text.addWidget(fix, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addLayout(text, 1)
 
     def mousePressEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
@@ -47,6 +58,7 @@ class _FindingCard(ModuleCard):
 
 class FindingsPanel(QWidget):
     finding_clicked = Signal(object)
+    fix_requested = Signal(object)
 
     def __init__(self) -> None:
         super().__init__()
@@ -66,4 +78,5 @@ class FindingsPanel(QWidget):
         ]
         for card in cards:
             card.clicked.connect(self.finding_clicked)
+            card.fix_requested.connect(self.fix_requested)
             self._layout.addWidget(card)

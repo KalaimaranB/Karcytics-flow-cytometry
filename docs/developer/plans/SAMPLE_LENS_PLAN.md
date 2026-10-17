@@ -62,7 +62,7 @@ phase. One branch (`feature/sample-lens-demo`), one commit per phase.
 - [x] **3. Sample Lens tab** — replaces the demo: sample + run pickers ("Run
   UMAP + clustering" when none), GateHierarchy, findings, gating-path strip,
   UMAP gates-vs-clusters, across-samples table. Live refresh on gate events.
-- [ ] **4. Fix a missed population** — propose gates for a cluster, preview,
+- [x] **4. Fix a missed population** — propose gates for a cluster, preview,
   add through the coordinator.
 - [ ] **5. Docs** — user docs page, plan checked off. (The demo tab, never
   committed, was deleted in phase 3.)

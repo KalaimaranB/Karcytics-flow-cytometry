@@ -71,6 +71,7 @@ def make_run(events: pd.DataFrame, clusters: np.ndarray, n: int = 4000, seed: in
         "indices": events.index.to_numpy()[pick],
         "embedding": rng.normal(size=(n, 2)),
         "clusters": clusters[pick],
+        "channels": CHANNELS[2:],  # the markers, as a real run records them
     }
 
 

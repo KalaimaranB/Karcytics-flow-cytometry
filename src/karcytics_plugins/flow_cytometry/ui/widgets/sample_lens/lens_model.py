@@ -19,16 +19,19 @@ from ....analysis import events as flow_events
 from ....analysis.population_matching import populations
 from ....analysis.sample_lens import (
     Finding,
+    ProposedGate,
     RunScope,
     SampleCheck,
     audit,
     build_scope,
     check_across,
+    propose_gates,
 )
 from ....analysis.services import experiment_edits
 from ....analysis.services.umap_service import UmapParams
 
 if TYPE_CHECKING:
+    import numpy as np
     import pandas as pd
 
     from ....analysis.experiment import Sample
@@ -65,6 +68,20 @@ class RunRef:
         return f"{name} · {population} · {len(run.get('indices', [])):,} events{clusters}"
 
 
+@dataclass(frozen=True)
+class Proposal:
+    """Gates proposed for one cluster of the current run."""
+
+    sample_id: str
+    cluster: int
+    events: pd.DataFrame  # the run's events
+    target: np.ndarray  # which of them are the cluster
+    steps: list[ProposedGate]  # a chain: each gate is meant as the previous one's child
+
+
+SCATTER_CHANNELS = ("FSC-A", "SSC-A")
+
+
 class SampleLensModel(QObject):
     """Everything the lens shows, kept current."""
 
@@ -77,11 +94,15 @@ class SampleLensModel(QObject):
         state: FlowState,
         population_service: PopulationService,
         umap_service: UmapService,
+        controller: Any,
+        axis_manager: Any,
     ) -> None:
         super().__init__()
         self._state = state
         self._population_service = population_service
         self._umap_service = umap_service
+        self._controller = controller
+        self._axis_manager = axis_manager
 
         self.sample_id: str | None = None
         self.run_ref: RunRef | None = None
@@ -204,6 +225,42 @@ class SampleLensModel(QObject):
             on_done=self._run_finished.emit,
             on_error_cb=lambda msg: self._run_finished.emit({"error": msg}),
         )
+
+    def propose(self, cluster: int) -> Proposal | None:
+        """Rectangle gates on the run's channels (+ scatter) that recover ``cluster``."""
+        sample, scope = self.sample, self.scope
+        events = self.events(sample) if sample is not None else None
+        if sample is None or scope is None or scope.clusters is None or events is None:
+            return None
+        run_events = events.iloc[scope.rows]
+        # The channels the run clustered on (older runs don't say: then all of them).
+        markers = scope.run.get("channels") or list(run_events.columns)
+        channels = [ch for ch in [*SCATTER_CHANNELS, *markers] if ch in run_events.columns]
+        scales = {
+            ch: self._axis_manager.get_scale(ch, sample.sample_id) for ch in dict.fromkeys(channels)
+        }
+        target = scope.clusters == cluster
+        steps = propose_gates(run_events, target, scales) if len(scales) >= 2 else []  # noqa: PLR2004
+        return Proposal(sample.sample_id, cluster, run_events, target, steps)
+
+    def add_proposal(self, proposal: Proposal) -> None:
+        """Add the proposed chain to the tree, under the run's population."""
+        parent_id = self.scope.run.get("node_id") if self.scope is not None else None
+        last = len(proposal.steps) - 1
+        for i, step in enumerate(proposal.steps):
+            name = (
+                f"Cluster {proposal.cluster}"
+                if i == last
+                else f"Cluster {proposal.cluster} · pre-gate {i + 1}"
+            )
+            parent_id = self._controller.add_gate(
+                step.gate, proposal.sample_id, name=name, parent_node_id=parent_id
+            )
+            if parent_id is None:
+                logger.warning("Sample Lens: adding proposed gate %d failed", i + 1)
+                break
+        self.selected_node_id = parent_id
+        self.refresh()
 
     def _on_run_finished(self, results: dict[str, Any]) -> None:
         if "error" in results:

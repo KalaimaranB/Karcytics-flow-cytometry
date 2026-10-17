@@ -9,13 +9,16 @@ Gating tab.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 from karcytics_sdk.plugin.components import BioCaptionLabel, SubtitleLabel
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
 from ....analysis.fcs_io import get_channel_marker_label
+from ....analysis.gating import GateNode
 from ....analysis.sample_lens.edges import gate_axes
 from ...graph.flow_canvas import DisplayMode, FlowCanvas
 from ._style import card
@@ -24,10 +27,25 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from ....analysis.experiment import Sample
-    from ....analysis.gating import GateNode
+    from ....analysis.gating import Gate
     from ....analysis.state import FlowState
+    from .lens_model import Proposal
 
 PLOT_W, PLOT_H = 320, 290
+
+
+@dataclass
+class PlotStep:
+    """One plot: ``events`` on ``gate``'s axes, ``backgate`` rows highlighted."""
+
+    caption: str
+    events: pd.DataFrame
+    gate: Gate
+    backgate: np.ndarray
+    color: str
+    gates: list[Gate]  # overlays to draw (the canvas keeps those on its axes)
+    nodes: list[GateNode]  # their nodes: a gate is drawn only with a node
+    selected_node_id: str | None = None  # whose handles to show (None: not editable here)
 
 
 def gate_path(node: GateNode) -> list[GateNode]:
@@ -99,62 +117,105 @@ class GatingPathStrip(QWidget):
             self._plots.append(plot)
         return self._plots[i]
 
+    def show_steps(self, title: str, hint: str, sample: Sample, steps: list[PlotStep]) -> None:
+        """Show one plot per step (extra canvases are hidden, never destroyed)."""
+        self._title.setText(title)
+        self._hint.setText(hint)
+        for plot in self._plots[len(steps) :]:
+            plot.hide()
+        for i, step in enumerate(steps):
+            plot = self._plot(i)
+            self._draw(plot, sample, step)
+            plot.show()
+
     def show_population(
         self, sample: Sample | None, events: pd.DataFrame | None, node: GateNode | None, color: str
     ) -> None:
+        """``node``'s gating path, ``node`` backgated on every step."""
         path = gate_path(node) if node is not None else []
-        for plot in self._plots[len(path) :]:
-            plot.hide()
         if sample is None or events is None or node is None or not path:
+            for plot in self._plots:
+                plot.hide()
             self._title.setText("Gating path")
             self._hint.setText("Pick a population in the hierarchy to see every gate above it.")
             return
-
-        self._title.setText(f"Gating path · {node.name}")
-        self._hint.setText(
-            f"Each plot is the parent population on that gate's axes; {node.name} is highlighted. "
-            "Drag a gate here to edit it — every sample in its group follows."
-        )
         selected = node.mask(events)
-        for i, step in enumerate(path):
-            plot = self._plot(i)
-            self._show_step(plot, sample, events, step, selected, color)
-            plot.show()
+        steps = []
+        for step_node in path:
+            assert step_node.gate is not None
+            parent = step_node.parent_mask(events)
+            parent_node = step_node.parents[0] if step_node.parents else None
+            gates, nodes = self._controller.get_gates_for_display(
+                sample.sample_id, parent_node.node_id if parent_node else None
+            )
+            steps.append(
+                PlotStep(
+                    caption=f"{parent_node.name if parent_node else 'All Events'}  →  {step_node.name}",
+                    events=events.loc[parent],
+                    gate=step_node.gate,
+                    backgate=selected[parent],
+                    color=color,
+                    gates=gates,
+                    nodes=nodes,
+                    selected_node_id=step_node.node_id,
+                )
+            )
+        self.show_steps(
+            f"Gating path · {node.name}",
+            f"Each plot is the parent population on that gate's axes; {node.name} is highlighted. "
+            "Drag a gate here to edit it — every sample in its group follows.",
+            sample,
+            steps,
+        )
 
-    def _show_step(
-        self,
-        plot: _PathPlot,
-        sample: Sample,
-        events: pd.DataFrame,
-        step: GateNode,
-        selected: Any,
-        color: str,
-    ) -> None:
-        assert step.gate is not None
-        parent = step.parent_mask(events)
+    def show_proposal(self, sample: Sample, proposal: Proposal, color: str) -> None:
+        """Each proposed gate on the events left by the ones before it, cluster highlighted."""
+        steps = []
+        remaining = np.ones(len(proposal.events), dtype=bool)
+        for i, proposed in enumerate(proposal.steps):
+            preview = GateNode(gate=proposed.gate, name=f"Step {i + 1}")
+            steps.append(
+                PlotStep(
+                    caption=f"Step {i + 1} · F1 {proposed.f1:.2f}",
+                    events=proposal.events.loc[remaining],
+                    gate=proposed.gate,
+                    backgate=proposal.target[remaining],
+                    color=color,
+                    gates=[proposed.gate],
+                    nodes=[preview],
+                )
+            )
+            remaining &= proposed.gate.contains(proposal.events)
+        self.show_steps(
+            f"Proposed gates · cluster {proposal.cluster}",
+            "The cluster is highlighted; each step keeps only the events inside the one before. "
+            "Nothing changes until you add them.",
+            sample,
+            steps,
+        )
+
+    def _draw(self, plot: _PathPlot, sample: Sample, step: PlotStep) -> None:
         params = [param for param, _ in gate_axes(step.gate)]
         x = params[0]
         y = params[1] if len(params) > 1 else x
         fcs = sample.fcs_data
-        x_label = get_channel_marker_label(fcs, x) if fcs else x
-        y_label = get_channel_marker_label(fcs, y) if fcs else y
-        parent_name = step.parents[0].name if step.parents else "All Events"
-        plot.caption.setText(f"{parent_name}  →  {step.name}")
-
-        gates, nodes = self._controller.get_gates_for_display(
-            sample.sample_id, step.parents[0].node_id if step.parents else None
-        )
+        plot.caption.setText(step.caption)
         canvas = plot.canvas
         canvas.begin_update()
         canvas.set_sample_id(sample.sample_id)
         canvas.set_display_mode(DisplayMode.PSEUDOCOLOR if y != x else DisplayMode.HISTOGRAM)
-        canvas.set_axes(x, y, x_label, y_label)
+        canvas.set_axes(
+            x,
+            y,
+            get_channel_marker_label(fcs, x) if fcs else x,
+            get_channel_marker_label(fcs, y) if fcs else y,
+        )
         canvas.set_scales(
             self._axis_manager.get_scale(x, sample.sample_id),
             self._axis_manager.get_scale(y, sample.sample_id),
         )
-        canvas.set_backgate(selected[parent], color)
-        canvas.set_data(events.loc[parent])
+        canvas.set_backgate(step.backgate, step.color)
+        canvas.set_data(step.events)
         canvas.end_update()  # one redraw with axes, scales, data and backgate together
-        canvas.set_gates(gates, nodes)
-        canvas.select_gate(step.node_id)
+        canvas.set_gates(step.gates, step.nodes)
+        canvas.select_gate(step.selected_node_id)

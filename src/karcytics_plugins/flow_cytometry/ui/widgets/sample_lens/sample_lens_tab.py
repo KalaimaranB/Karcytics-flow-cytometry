@@ -20,6 +20,7 @@ from karcytics_sdk.plugin.components import (
     BioStatusLabel,
     HeaderLabel,
     PrimaryButton,
+    SecondaryButton,
     repopulate_combo,
 )
 from karcytics_sdk.plugin.theme_fallback import theme_manager
@@ -28,14 +29,15 @@ from PySide6.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
 from ....analysis.sample_lens import Finding
 from ..gate_hierarchy import GateHierarchy
-from ._style import palette_color, section_header
+from ._style import Pill, card, palette_color, section_header
 from .across_samples import AcrossSamples
 from .findings_panel import FindingsPanel
 from .gating_path import GatingPathStrip
-from .lens_model import RunRef, SampleLensModel
+from .lens_model import Proposal, RunRef, SampleLensModel
 from .run_map import RunMap
 
 if TYPE_CHECKING:
+    from ....analysis.experiment import Sample
     from ....analysis.population_service import PopulationService
     from ....analysis.services.umap_service import UmapService
     from ....analysis.state import FlowState
@@ -68,8 +70,11 @@ class SampleLensTab(QWidget):
     ) -> None:
         super().__init__(parent)
         self.setObjectName("SampleLensTab")
-        self._model = SampleLensModel(state, population_service, umap_service)
+        self._model = SampleLensModel(
+            state, population_service, umap_service, controller, axis_manager
+        )
         self._emphasis: tuple[int, ...] = ()
+        self._proposal: Proposal | None = None
 
         root = QHBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -150,6 +155,7 @@ class SampleLensTab(QWidget):
         )
         self._findings = FindingsPanel()
         self._findings.finding_clicked.connect(self._on_finding_clicked)
+        self._findings.fix_requested.connect(self._on_fix_requested)
         layout.addWidget(self._findings)
         layout.addStretch()
 
@@ -166,6 +172,7 @@ class SampleLensTab(QWidget):
         self._scope_caption = BioCaptionLabel("")
         layout.addWidget(self._scope_caption)
 
+        layout.addWidget(self._build_proposal_bar())
         self._path = GatingPathStrip(state, controller, axis_manager)
         layout.addWidget(self._path)
 
@@ -179,6 +186,25 @@ class SampleLensTab(QWidget):
         lower.setStretchFactor(1, 1)
         layout.addWidget(lower, 1)
         return main
+
+    def _build_proposal_bar(self) -> QWidget:
+        self._proposal_bar = card("lens_proposal_bar", "BG_MEDIUM")
+        row = QHBoxLayout(self._proposal_bar)
+        row.setContentsMargins(12, 8, 12, 8)
+        row.setSpacing(8)
+        self._proposal_pills = [Pill(), Pill(tone="accent"), Pill(), Pill()]
+        for pill in self._proposal_pills:
+            row.addWidget(pill)
+        row.addStretch()
+        cancel = SecondaryButton("Cancel")
+        cancel.clicked.connect(self._close_proposal)
+        row.addWidget(cancel)
+        self._accept_btn = PrimaryButton("Add gates to tree")
+        self._accept_btn.setObjectName("SampleLensAcceptProposal")
+        self._accept_btn.clicked.connect(self._accept_proposal)
+        row.addWidget(self._accept_btn)
+        self._proposal_bar.hide()
+        return self._proposal_bar
 
     # ── Lifecycle ──────────────────────────────────────────────────────
 
@@ -233,13 +259,19 @@ class SampleLensTab(QWidget):
 
         self._scope_caption.setText(self._scope_text())
         self._findings.show_findings(model.findings, *self._empty_findings_text())
-        events = model.events(sample) if sample is not None else None
-        self._path.show_population(
-            sample,
-            events,
-            model.node(model.selected_node_id) if model.selected_node_id else None,
-            color,
-        )
+        if self._proposal is not None and self._proposal.sample_id != model.sample_id:
+            self._proposal = None  # proposed for another sample
+        self._proposal_bar.setVisible(self._proposal is not None)
+        if self._proposal is not None and sample is not None:
+            self._show_proposal(sample, self._proposal)
+        else:
+            events = model.events(sample) if sample is not None else None
+            self._path.show_population(
+                sample,
+                events,
+                model.node(model.selected_node_id) if model.selected_node_id else None,
+                color,
+            )
         self._map.show_scope(scope, colors, selected_path, model.findings, self._emphasis)
         name = model.population_name(model.selected_node_id) if model.selected_node_id else None
         self._across.show_checks(name, model.checks, model.sample_id)
@@ -282,6 +314,38 @@ class SampleLensTab(QWidget):
 
     def _on_cluster_clicked(self, cluster: int) -> None:
         self._emphasis = (cluster,)
+        self._render()
+
+    def _show_proposal(self, sample: Sample, proposal: Proposal) -> None:
+        steps = proposal.steps
+        if not steps:
+            texts = ["No gates found", "", "", ""]
+        else:
+            last = steps[-1]
+            texts = [
+                f"{len(steps)} gate{'s' if len(steps) > 1 else ''}",
+                f"F1 {last.f1:.2f}",
+                f"Precision {last.precision:.0%}",
+                f"Recall {last.recall:.0%}",
+            ]
+        for pill, text in zip(self._proposal_pills, texts, strict=True):
+            pill.setText(text)
+            pill.setVisible(bool(text))
+        self._accept_btn.setEnabled(bool(steps))
+        self._path.show_proposal(sample, proposal, palette_color(proposal.cluster))
+
+    def _on_fix_requested(self, finding: Finding) -> None:
+        self._emphasis = finding.clusters
+        self._proposal = self._model.propose(finding.clusters[0])
+        self._render()
+
+    def _accept_proposal(self) -> None:
+        proposal, self._proposal = self._proposal, None
+        if proposal is not None:
+            self._model.add_proposal(proposal)  # re-renders
+
+    def _close_proposal(self) -> None:
+        self._proposal = None
         self._render()
 
     def _on_run_progress(self, running: bool, text: str) -> None:

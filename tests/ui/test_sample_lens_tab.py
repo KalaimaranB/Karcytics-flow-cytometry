@@ -1,7 +1,5 @@
 """The Sample Lens tab on planted samples (see tests/fixtures/lens.py)."""
 
-from unittest.mock import MagicMock
-
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
@@ -11,6 +9,22 @@ from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens import SampleLensTa
 from tests.fixtures.lens import build_lens_state, make_run, make_sample
 
 CD4_PATH = "Lymphocytes / T cells / CD4+"
+
+
+class TreeController:
+    """Adds gates to the real tree, like the gate coordinator (minus events)."""
+
+    def __init__(self, state) -> None:
+        self._population_service = PopulationService(state)
+        self.added: list = []
+
+    def add_gate(self, gate, sample_id, name=None, parent_node_id=None):
+        node = self._population_service.add_population(sample_id, gate, parent_node_id, name)
+        self.added.append((name, parent_node_id))
+        return node.node_id
+
+    def get_gates_for_display(self, sample_id, parent_node_id=None):
+        return [], []
 
 
 class FakeUmapService:
@@ -25,8 +39,7 @@ class FakeUmapService:
 def lens(qtbot):
     state = build_lens_state()
     umap = FakeUmapService()
-    controller = MagicMock()
-    controller.get_gates_for_display.return_value = ([], [])
+    controller = TreeController(state)
     tab = SampleLensTab(state, PopulationService(state), umap, controller, AxisManager(state))
     qtbot.addWidget(tab)
     tab.resize(1400, 900)
@@ -116,3 +129,39 @@ def test_a_gate_edit_anywhere_refreshes_the_findings(lens, qtbot):
 
     tab._model._on_gates_changed({"sample_id": "s0"})
     qtbot.waitUntil(lambda: all(f.kind is not FindingKind.CUTS for f in tab._model.findings))
+
+
+def test_proposing_gates_previews_them_then_adds_the_chain(lens):
+    tab, state, _ = lens
+    missed = next(f for f in tab._model.findings if f.kind is FindingKind.MISSED)
+    tab._on_fix_requested(missed)
+
+    assert not tab._proposal_bar.isHidden()
+    proposal = tab._proposal
+    assert proposal is not None and proposal.steps
+    assert proposal.steps[-1].f1 > 0.9  # noqa: PLR2004
+    shown = [p for p in tab._path._plots if not p.isHidden()]
+    assert len(shown) == len(proposal.steps)
+    assert tab._path._title.text() == f"Proposed gates · cluster {missed.clusters[0]}"
+
+    tab._accept_btn.click()
+
+    controller = tab._model._controller
+    names = [name for name, _ in controller.added]
+    assert names[-1] == f"Cluster {missed.clusters[0]}"
+    # A chain under the run's population (All Events): each step under the previous one.
+    parents = [parent for _, parent in controller.added]
+    assert parents[0] is None
+    assert tab._proposal_bar.isHidden()
+    assert all(f.kind is not FindingKind.MISSED for f in tab._model.findings)
+    assert tab._model.population_name(tab._model.selected_node_id) == names[-1]
+
+
+def test_cancelling_a_proposal_changes_nothing(lens):
+    tab, state, _ = lens
+    missed = next(f for f in tab._model.findings if f.kind is FindingKind.MISSED)
+    tab._on_fix_requested(missed)
+    tab._close_proposal()
+    assert tab._proposal_bar.isHidden()
+    assert tab._model._controller.added == []
+    assert any(f.kind is FindingKind.MISSED for f in tab._model.findings)
