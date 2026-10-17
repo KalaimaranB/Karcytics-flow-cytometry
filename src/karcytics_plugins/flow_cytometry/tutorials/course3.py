@@ -56,14 +56,17 @@ from .validators import (
 # ==============================================================================
 
 c3_tcells_validator = GateShapeValidator(
-    # Matches the on-canvas guide_rect=(-400.0, 2000.0, 300.0, 2000.0) drawn
+    # Matches the on-canvas guide_rect=(-400.0, 2000.0, 300.0, 8000.0) drawn
     # for c3_s07_draw_tcell below. The old (-1000, 5000, 100, 10000) target
     # didn't match that guide box, though the ±10%-of-axis-range tolerance
     # happened to be wide enough that it never actually rejected a correctly
     # drawn gate here — realigned anyway so the guide box shown is always
     # exactly what gets validated (see c1_live_validator in course1.py for a
     # case where this same kind of mismatch WAS wide enough to matter).
-    target_bounds=(-400.0, 2000.0, 300.0, 2000.0),
+    # The CD3 top sits above the 99.9th percentile of every sample's T cells:
+    # at the old 2000 it ran through the CD4 T cells' median and dropped
+    # about half of them (the Sample Lens flagged it as a cut).
+    target_bounds=(-400.0, 2000.0, 300.0, 8000.0),
     target_name="T-cells",
     misnamed_retry_step_id="c3_s07_tcell_gate_misnamed",
     shape_retry_step_id="c3_s07_tcell_gate_retry",
@@ -275,7 +278,7 @@ course_3_gating = Course(
             target_widget_names=["Tool_rectangle", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
-            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
+            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 8000.0)},
             next_step_id="c3_s07_draw_tcell_verify",
             stuck_hint_text=(
                 "Still there? Click the **Rect** tool, then drag around the upper-left "
@@ -308,7 +311,7 @@ course_3_gating = Course(
             ),
             cyto_emotion="surprised",
             target_widget_names=["FlowCanvas"],
-            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0)},
+            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 8000.0)},
             next_step_id="c3_s07_draw_tcell",
         ),
         InfoStep(

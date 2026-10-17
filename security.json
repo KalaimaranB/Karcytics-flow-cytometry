@@ -178,7 +178,7 @@
         "src/karcytics_plugins/flow_cytometry/tutorials/core_intro_handoff.py": "c10879003e6676378b2bb505364131cdce6d82503608356270eb07c3be799e3c",
         "src/karcytics_plugins/flow_cytometry/tutorials/course1.py": "cca98bf9cbd3c49633644785cfd8f309323eb993f4fc9d9d6ac6df611480ed0c",
         "src/karcytics_plugins/flow_cytometry/tutorials/course2.py": "54cec4e82b1f175d1f4cf9900895712ff613be9b1ebe783d1f6f5eb92bc626cb",
-        "src/karcytics_plugins/flow_cytometry/tutorials/course3.py": "51b25192bcc0e20774407738e132944da90057335082c095204f7aa215cf97b1",
+        "src/karcytics_plugins/flow_cytometry/tutorials/course3.py": "db1fe800daed5392a738505225552aa4296dd9c10e328b3754056f3e02370c50",
         "src/karcytics_plugins/flow_cytometry/tutorials/course4.py": "4bca9e955da818ce6ef65de6745d0dd5a609a6bd637b8952d9903045d61c099c",
         "src/karcytics_plugins/flow_cytometry/tutorials/course5.py": "79ed5542cd2c99896f7774a3150b54822611c0678ee3ba2536796e5daacff3a2",
         "src/karcytics_plugins/flow_cytometry/tutorials/courses.py": "4d2a7d79110101719eeabd473729d2340542206934b4dc248e627816746a0134",
