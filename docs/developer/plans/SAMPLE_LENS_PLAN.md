@@ -59,13 +59,13 @@ phase. One branch (`feature/sample-lens-demo`), one commit per phase.
   cross-sample check, gate synthesis. Public `GateNode.mask()`. Unit tests.
 - [x] **2. Backgating overlay on FlowCanvas** — `set_backgate(mask, color)`;
   2-D scatter overlay and 1-D highlight through the existing data layer.
-- [ ] **3. Sample Lens tab** — replaces the demo: sample + run pickers ("Run
+- [x] **3. Sample Lens tab** — replaces the demo: sample + run pickers ("Run
   UMAP + clustering" when none), GateHierarchy, findings, gating-path strip,
   UMAP gates-vs-clusters, across-samples table. Live refresh on gate events.
 - [ ] **4. Fix a missed population** — propose gates for a cluster, preview,
   add through the coordinator.
-- [ ] **5. Cleanup + docs** — delete the demo module and its test, user docs
-  page, plan checked off.
+- [ ] **5. Docs** — user docs page, plan checked off. (The demo tab, never
+  committed, was deleted in phase 3.)
 
 ## Later (not in this plan)
 

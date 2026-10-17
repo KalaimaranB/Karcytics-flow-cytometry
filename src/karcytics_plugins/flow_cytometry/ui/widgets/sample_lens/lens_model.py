@@ -1,0 +1,244 @@
+"""State behind the Sample Lens tab: which sample, which run, which population.
+
+Widgets read from here and call its commands; they never compute anything
+themselves. Any gate change anywhere in the app (drawn, dragged, propagated,
+renamed, deleted) triggers one debounced refresh, so the lens always reflects
+the current gates.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
+
+from karcytics_sdk.plugin import CentralEventBus, get_logger
+from karcytics_sdk.plugin.timing import Debouncer
+from PySide6.QtCore import QObject, Signal
+
+from ....analysis import events as flow_events
+from ....analysis.population_matching import populations
+from ....analysis.sample_lens import (
+    Finding,
+    RunScope,
+    SampleCheck,
+    audit,
+    build_scope,
+    check_across,
+)
+from ....analysis.services import experiment_edits
+from ....analysis.services.umap_service import UmapParams
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+    from ....analysis.experiment import Sample
+    from ....analysis.gating import GateNode
+    from ....analysis.population_service import PopulationService
+    from ....analysis.services.umap_service import UmapService
+    from ....analysis.state import FlowState
+
+logger = get_logger(__name__, "flow_cytometry")
+
+REFRESH_MS = 250
+RUN_NAME = "Sample Lens"
+_GATE_TOPICS = (
+    flow_events.GATE_CREATED,
+    flow_events.GATES_CREATED,
+    flow_events.GATE_MODIFIED,
+    flow_events.GATE_DELETED,
+    flow_events.GATE_RENAMED,
+    flow_events.PROPAGATION_COMPLETE,
+    flow_events.SAMPLE_LOADED,
+    flow_events.STATE_RESTORED,
+    flow_events.UMAP_COMPLETED,
+)
+
+
+@dataclass(frozen=True)
+class RunRef:
+    key: str  # "sample::node" in state.data.umap_results
+    index: int
+
+    def label(self, run: dict[str, Any], population: str) -> str:
+        name = run.get("name") or f"Run {self.index + 1}"
+        clusters = "" if run.get("clusters") is not None else " · no clusters"
+        return f"{name} · {population} · {len(run.get('indices', [])):,} events{clusters}"
+
+
+class SampleLensModel(QObject):
+    """Everything the lens shows, kept current."""
+
+    changed = Signal()  # sample, run, populations, findings or checks changed
+    run_progress = Signal(bool, str)  # running, status text
+    _run_finished = Signal(object)  # results dict, delivered on this object's thread
+
+    def __init__(
+        self,
+        state: FlowState,
+        population_service: PopulationService,
+        umap_service: UmapService,
+    ) -> None:
+        super().__init__()
+        self._state = state
+        self._population_service = population_service
+        self._umap_service = umap_service
+
+        self.sample_id: str | None = None
+        self.run_ref: RunRef | None = None
+        self.selected_node_id: str | None = None
+        self.scope: RunScope | None = None
+        self.findings: list[Finding] = []
+        self.checks: list[SampleCheck] = []
+
+        self._active = False
+        self._debouncer = Debouncer(self.refresh)
+        self._run_finished.connect(self._on_run_finished)
+        self._on_gates_changed = lambda _data=None: self._schedule()
+        for topic in _GATE_TOPICS:
+            CentralEventBus.subscribe(topic, self._on_gates_changed)
+        self.destroyed.connect(self._cleanup)
+
+    def _cleanup(self) -> None:
+        for topic in _GATE_TOPICS:
+            CentralEventBus.unsubscribe(topic, self._on_gates_changed)
+
+    # ── Queries ────────────────────────────────────────────────────────
+
+    def samples(self) -> list[Sample]:
+        return [s for s in self._state.data.experiment.samples.values() if s.has_data]
+
+    def default_sample_id(self) -> str | None:
+        """The sample the rest of the app is on, to open the lens on."""
+        return self._state.view.current_sample_id
+
+    @property
+    def sample(self) -> Sample | None:
+        return self._state.data.experiment.samples.get(self.sample_id or "")
+
+    def events(self, sample: Sample) -> pd.DataFrame | None:
+        """The sample's root events, with derived columns synced."""
+        return self._population_service.get_gated_events(sample.sample_id)
+
+    def runs(self) -> list[tuple[RunRef, dict[str, Any]]]:
+        """UMAP runs of the current sample, oldest first."""
+        prefix = f"{self.sample_id}::"
+        return [
+            (RunRef(key, i), run)
+            for key, runs in self._state.data.umap_results.items()
+            if key.startswith(prefix)
+            for i, run in enumerate(runs)
+        ]
+
+    @property
+    def run(self) -> dict[str, Any] | None:
+        if self.run_ref is None:
+            return None
+        runs = self._state.data.umap_results.get(self.run_ref.key, [])
+        return runs[self.run_ref.index] if self.run_ref.index < len(runs) else None
+
+    def population_name(self, node_id: str | None) -> str:
+        node = self.node(node_id)
+        return node.name if node is not None and node_id else "All Events"
+
+    def node(self, node_id: str | None) -> GateNode | None:
+        sample = self.sample
+        if sample is None:
+            return None
+        return sample.gate_tree.find_node_by_id(node_id) if node_id else sample.gate_tree
+
+    def selected_path(self) -> str | None:
+        sample = self.sample
+        if sample is None or self.selected_node_id is None:
+            return None
+        return next(
+            (path for path, node in populations(sample) if node.node_id == self.selected_node_id),
+            None,
+        )
+
+    def node_for_path(self, path: str) -> GateNode | None:
+        sample = self.sample
+        return dict(populations(sample)).get(path) if sample is not None else None
+
+    # ── Commands ───────────────────────────────────────────────────────
+
+    def set_active(self, active: bool) -> None:
+        """Only compute while the tab is visible; catch up when it is shown."""
+        self._active = active
+        if active:
+            self.refresh()
+
+    def set_sample(self, sample_id: str | None) -> None:
+        if sample_id == self.sample_id:
+            return
+        self.sample_id = sample_id
+        self.selected_node_id = None
+        runs = self.runs()
+        clustered = [ref for ref, run in runs if run.get("clusters") is not None]
+        candidates = clustered or [ref for ref, _ in runs]
+        self.run_ref = candidates[-1] if candidates else None
+        self.refresh()
+
+    def set_run(self, ref: RunRef | None) -> None:
+        self.run_ref = ref
+        self.refresh()
+
+    def select(self, node_id: str | None) -> None:
+        self.selected_node_id = node_id
+        self.refresh()
+
+    def run_umap(self, node_id: str | None) -> None:
+        """UMAP + HDBSCAN on ``node_id``'s population of the current sample."""
+        if self.sample_id is None:
+            return
+        params = UmapParams(
+            target_sample_id=self.sample_id,
+            target_node_id=node_id,
+            name=RUN_NAME,
+            run_hdbscan=True,
+        )
+        self.run_progress.emit(
+            True, f"Running UMAP + clustering on {self.population_name(node_id)}…"
+        )
+        self._umap_service.run_analysis(
+            params,
+            on_done=self._run_finished.emit,
+            on_error_cb=lambda msg: self._run_finished.emit({"error": msg}),
+        )
+
+    def _on_run_finished(self, results: dict[str, Any]) -> None:
+        if "error" in results:
+            self.run_progress.emit(False, f"UMAP failed: {results['error']}")
+            return
+        key = experiment_edits.add_umap_run(self._state, results)
+        self.run_ref = RunRef(key, len(self._state.data.umap_results[key]) - 1)
+        self.run_progress.emit(False, "")
+        self.refresh()
+
+    def _schedule(self) -> None:
+        if self._active:
+            self._debouncer.trigger(REFRESH_MS)
+
+    def refresh(self) -> None:
+        """Recompute the scope, findings and cross-sample checks from current state."""
+        self.scope, self.findings, self.checks = None, [], []
+        sample = self.sample
+        events = self.events(sample) if sample is not None else None
+        run = self.run
+        if sample is not None and events is not None and run is not None:
+            try:
+                self.scope = build_scope(sample, run, events)
+                self.findings = audit(self.scope)
+            except (KeyError, ValueError) as exc:  # e.g. a gate on a channel this sample lacks
+                logger.warning("Sample Lens: can't evaluate run on %s: %s", sample.sample_id, exc)
+        path = self.selected_path()
+        if path is not None:
+            self.checks = check_across(self._sample_events(), path)
+        self.changed.emit()
+
+    def _sample_events(self) -> list[tuple[Sample, pd.DataFrame]]:
+        pairs = []
+        for sample in self.samples():
+            events = self.events(sample)
+            if events is not None:
+                pairs.append((sample, events))
+        return pairs

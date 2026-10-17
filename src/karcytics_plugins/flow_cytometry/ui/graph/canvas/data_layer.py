@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__, "flow_cytometry")
 
 BACKGATE_MAX_POINTS = 20_000
+BACKGATE_BASE_CMAP = "Greys"
 
 
 @dataclass
@@ -325,6 +326,10 @@ class FlowDataComputeStage(RenderComputeStage):
                 )
         else:
             render_kwargs["max_events"] = state.max_events
+
+        if state.backgate_mask is not None:
+            # Mute the base plot so the backgated population stands out on it.
+            render_kwargs["cmap"] = render_kwargs["colormap"] = BACKGATE_BASE_CMAP
 
         try:
             strategy_data = strategy.compute(x_data, y_data, xlim=xlim, ylim=ylim, **render_kwargs)

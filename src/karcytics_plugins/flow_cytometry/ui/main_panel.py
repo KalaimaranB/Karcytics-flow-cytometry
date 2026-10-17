@@ -109,6 +109,7 @@ class FlowCytometryPanel(PluginBase):
     _population_analysis_viewer: Any
     _statistics_explorer: Any
     _comparisons_viewer: Any
+    _sample_lens: Any
     _subscriptions: list[Any]
 
     # ── Karcytics-required signals ───────────────────────────────────────
@@ -315,11 +316,11 @@ class FlowCytometryPanel(PluginBase):
         finally:
             self.setUpdatesEnabled(True)
 
-    def _on_tab_changed_locked(self, index: int) -> None:
+    def _on_tab_changed_locked(self, index: int) -> None:  # noqa: PLR0915
         self._ribbon_stack.setCurrentIndex(index)
 
         # 1=Gating, 2=Compensation, 3=Pipeline, 4=Statistics, 5=Spectral,
-        # 6=Population Analysis
+        # 6=Population Analysis, 7=Comparisons, 8=Sample Lens
         if index == 2:  # noqa: PLR2004
             self._center_stack.setCurrentIndex(6)  # CompensationView
             self._left_sidebar.hide()
@@ -366,6 +367,11 @@ class FlowCytometryPanel(PluginBase):
             self._properties_panel.hide()
             self._ribbon_stack.hide()
             self._comparisons_viewer.refresh_samples()
+        elif index == 8:  # noqa: PLR2004
+            self._center_stack.setCurrentIndex(7)  # SampleLensTab
+            self._left_sidebar.hide()
+            self._properties_panel.hide()
+            self._ribbon_stack.hide()
         else:
             self._center_stack.setCurrentIndex(0)  # GraphManager
             self._left_sidebar.show()

@@ -129,11 +129,14 @@ class DummyFooter(QWidget):
 
 from PySide6.QtWidgets import (  # noqa: E402
     QComboBox,
+    QFrame,
     QLineEdit,
     QListWidget,
     QMenu,
     QProgressDialog,
+    QScrollArea,
     QSpinBox,
+    QTableWidget,
 )
 
 
@@ -188,6 +191,18 @@ mock_karcytics_sdk_plugin.tasks = mock_tasks
 sys.modules["karcytics_sdk.plugin.tasks"] = mock_tasks
 
 
+class DummyCard(QFrame):
+    pass
+
+
+class DummyScrollArea(QScrollArea):
+    pass
+
+
+class DummyTableWidget(QTableWidget):
+    pass
+
+
 class MockComponents:
     pass
 
@@ -211,6 +226,11 @@ mock_components.BioHelpButton = DummyButton
 mock_components.BioProgressDialog = DummyProgressDialog
 mock_components.AcademyButton = DummyButton
 mock_components.BioMenu = DummyMenu
+mock_components.ModuleCard = DummyCard
+mock_components.HeaderLabel = DummyLabel
+mock_components.SubtitleLabel = DummyLabel
+mock_components.BioScrollArea = DummyScrollArea
+mock_components.BioTableWidget = DummyTableWidget
 mock_components.WorkspaceSaveButton = DummyWorkspaceSaveButton
 mock_components.theme_manager = MagicMock()
 mock_components.repopulate_combo = repopulate_combo

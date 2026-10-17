@@ -19,7 +19,20 @@ import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
 
 if TYPE_CHECKING:
+    from matplotlib.axes import Axes
     from matplotlib.figure import Figure
+
+
+def style_embedding_axes(ax: Axes, title: str) -> None:
+    """Theme an axes for a UMAP embedding: dark face, bottom/left spines, equal aspect."""
+    ax.set_facecolor(Colors.BG_DARK)
+    ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=7)
+    for spine in ("bottom", "left"):
+        ax.spines[spine].set_color(Colors.BORDER)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    ax.set_title(title, color=Colors.FG_PRIMARY, fontsize=10, fontweight="bold", pad=8)
+    ax.set_aspect("equal", "datalim")
 
 
 def draw_cluster_scatter(  # noqa: PLR0913
@@ -35,15 +48,7 @@ def draw_cluster_scatter(  # noqa: PLR0913
 ) -> None:
     """Draw a themed UMAP scatter + colorbar onto `fig` (adds its one subplot)."""
     ax = fig.add_subplot(111)
-    ax.set_facecolor(Colors.BG_DARK)
-    ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=7)
-    for spine in ("bottom", "left"):
-        ax.spines[spine].set_color(Colors.BORDER)
-    for spine in ("top", "right"):
-        ax.spines[spine].set_visible(False)
-
-    ax.set_title(title, color=Colors.FG_PRIMARY, fontsize=10, fontweight="bold", pad=8)
-    ax.set_aspect("equal", "datalim")
+    style_embedding_axes(ax, title)
 
     scatter = ax.scatter(
         embedding[:, 0],

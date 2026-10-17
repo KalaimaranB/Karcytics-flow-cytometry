@@ -97,6 +97,7 @@ class WorkspaceBuilder:
             "Spectral",
             "Population Analysis",
             "Comparisons",
+            "Sample Lens",
         ]
         for name in tab_names:
             panel._tab_bar.addTab(name)
@@ -247,6 +248,7 @@ class WorkspaceBuilder:
     #   4 → StatisticsExplorer     (Statistics tab)
     #   5 → ComparisonsViewer      (Comparisons tab)
     #   6 → CompensationView       (Compensation tab)
+    #   7 → SampleLensTab          (Sample Lens tab)
 
     @staticmethod
     def build_step_graph_manager(panel: FlowCytometryPanel) -> None:
@@ -348,7 +350,7 @@ class WorkspaceBuilder:
 
     @staticmethod
     def finalize_center_stack(panel: FlowCytometryPanel) -> None:
-        """Replace the skeleton placeholder with all 7 real views at correct indices."""
+        """Replace the skeleton placeholder with all 8 real views at correct indices."""
         # Remove placeholder (only widget currently in the stack at index 0)
         placeholder = panel._center_stack.widget(0)
         panel._center_stack.removeWidget(placeholder)
@@ -362,6 +364,19 @@ class WorkspaceBuilder:
         panel._center_stack.addWidget(panel._statistics_explorer)  # 4
         panel._center_stack.addWidget(panel._comparisons_viewer)  # 5
         panel._center_stack.addWidget(panel._compensation_view)  # 6
+
+        # Deferred import — see build_step_graph_manager's comment.
+        from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens import SampleLensTab
+
+        panel._sample_lens = SampleLensTab(
+            panel.state,
+            population_service=panel._factory.get("population_service"),
+            umap_service=panel._umap_service,
+            controller=panel._gate_coordinator,
+            axis_manager=panel._factory.get("axis_manager"),
+            parent=panel,
+        )
+        panel._center_stack.addWidget(panel._sample_lens)  # 7
 
         panel._center_stack.setCurrentIndex(0)
 
