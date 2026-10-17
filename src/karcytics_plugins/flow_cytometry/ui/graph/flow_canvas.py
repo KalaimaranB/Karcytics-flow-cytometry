@@ -172,6 +172,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._x_label: str = "FSC-A"
         self._y_label: str = "SSC-A"
         self._fmo_sample_id: str | None = None
+        self._backgate_mask: np.ndarray | None = None
+        self._backgate_color: str = "#ff7b72"
 
         self._guide_poly_patch: Any | None = None
 
@@ -560,6 +562,16 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._display_mode = mode
         self.redraw()
 
+    def set_backgate(self, mask: np.ndarray | None, color: str = "#ff7b72") -> None:
+        """Draw the rows of the current data where ``mask`` is True on top, in ``color``.
+
+        ``mask`` must line up with the frame passed to :meth:`set_data`; None
+        clears it.
+        """
+        self._backgate_mask = mask
+        self._backgate_color = color
+        self.redraw()
+
     def set_fmo_overlay(self, sample_id: str) -> None:
         """Set the FMO overlay sample ID and trigger a redraw."""
         self._fmo_sample_id = sample_id or None
@@ -708,6 +720,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             quality_multiplier=self._quality_multiplier,
             max_events=self._max_events,
             render_config=self._state.view.render_config if self._state else None,
+            backgate_mask=self._backgate_mask,
+            backgate_color=self._backgate_color,
         )
 
     def _on_data_layer_finished(self) -> None:

@@ -145,7 +145,7 @@ def test_histogram_empty_highlight_draws_only_the_backdrop(mock_ax, dummy_data):
     assert mock_ax.hist.call_args.kwargs["color"] != "#2196F3"
 
 
-def _render_state(df, highlight_gate=None):
+def _render_state(df, highlight_gate=None, display_mode=None, backgate_mask=None):
     from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
     from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
     from karcytics_plugins.flow_cytometry.ui.graph.canvas.data_layer import FlowRenderState
@@ -157,7 +157,7 @@ def _render_state(df, highlight_gate=None):
         y_param="SSC-A",
         x_scale=AxisScale(TransformType.LINEAR),
         y_scale=AxisScale(TransformType.LINEAR),
-        display_mode=DisplayMode.HISTOGRAM,
+        display_mode=display_mode or DisplayMode.HISTOGRAM,
         x_label="FSC-A",
         y_label="SSC-A",
         fmo_sample_id=None,
@@ -166,6 +166,7 @@ def _render_state(df, highlight_gate=None):
         max_events=None,
         render_config=None,
         highlight_gate=highlight_gate,
+        backgate_mask=backgate_mask,
     )
 
 
@@ -188,6 +189,32 @@ def test_compute_stage_highlights_the_events_inside_the_gate():
     result = stage.compute(_render_state(df, RangeGate("APC-A", low=0, high=1)))
     assert result.mode == "1d"
     assert result.strategy_data.highlight_x is None
+
+
+def test_compute_stage_backgates_the_masked_rows():
+    import pandas as pd
+
+    from karcytics_plugins.flow_cytometry.analysis.gating import RangeGate
+    from karcytics_plugins.flow_cytometry.ui.graph.canvas.data_layer import FlowDataComputeStage
+    from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
+
+    df = pd.DataFrame({"FSC-A": [10.0, 20.0, 30.0, 40.0], "SSC-A": [1.0, 2.0, 3.0, 4.0]})
+    mask = np.array([True, False, True, False])
+    stage = FlowDataComputeStage()
+
+    dots = stage.compute(_render_state(df, display_mode=DisplayMode.DOT_PLOT, backgate_mask=mask))
+    assert dots.backgate_xy.tolist() == [[10.0, 1.0], [30.0, 3.0]]
+
+    # In 1-D the backgated rows are the highlight, ahead of any highlight gate.
+    gate = RangeGate("FSC-A", low=35, high=45)
+    hist = stage.compute(_render_state(df, gate, backgate_mask=mask))
+    assert sorted(hist.strategy_data.highlight_x) == [10.0, 30.0]
+
+    # A mask for another frame (wrong length) is ignored rather than misapplied.
+    stale = stage.compute(
+        _render_state(df, display_mode=DisplayMode.DOT_PLOT, backgate_mask=mask[:2])
+    )
+    assert stale.backgate_xy is None
 
 
 def test_contour_strategy_render(mock_ax, dummy_data):

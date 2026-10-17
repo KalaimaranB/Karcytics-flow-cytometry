@@ -57,7 +57,7 @@ phase. One branch (`feature/sample-lens-demo`), one commit per phase.
 - [x] **1. Analysis core** — `analysis/sample_lens/`: run scope (align a UMAP
   run with a sample's events and populations), audit, edge density +
   cross-sample check, gate synthesis. Public `GateNode.mask()`. Unit tests.
-- [ ] **2. Backgating overlay on FlowCanvas** — `set_backgate(mask, color)`;
+- [x] **2. Backgating overlay on FlowCanvas** — `set_backgate(mask, color)`;
   2-D scatter overlay and 1-D highlight through the existing data layer.
 - [ ] **3. Sample Lens tab** — replaces the demo: sample + run pickers ("Run
   UMAP + clustering" when none), GateHierarchy, findings, gating-path strip,

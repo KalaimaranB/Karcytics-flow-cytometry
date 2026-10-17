@@ -37,6 +37,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__, "flow_cytometry")
 
+BACKGATE_MAX_POINTS = 20_000
+
 
 @dataclass
 class FlowRenderState:
@@ -68,6 +70,10 @@ class FlowRenderState:
     # 1D modes only: a gate whose events are drawn over the population's
     # histogram. Must be a private copy — it is read on the compute thread.
     highlight_gate: Any | None = None
+    # Backgating: which rows of ``current_data`` to draw on top in
+    # ``backgate_color`` (2-D: a scatter; 1-D: the highlighted histogram).
+    backgate_mask: np.ndarray | None = None
+    backgate_color: str = "#ff7b72"
 
 
 @dataclass
@@ -84,6 +90,8 @@ class FlowRenderData(RenderData):
     strategy_data: Any = None
     strategy_kwargs: dict = field(default_factory=dict)
     event_count: int = 0
+    backgate_xy: np.ndarray | None = None  # (n, 2) display coords drawn over the plot
+    backgate_color: str = ""
 
 
 class FlowDataComputeStage(RenderComputeStage):
@@ -189,16 +197,40 @@ class FlowDataComputeStage(RenderComputeStage):
             return None
 
     @staticmethod
-    def _highlight_values(state: FlowRenderState, x_transformed: np.ndarray) -> np.ndarray | None:
-        """The transformed x values of the events inside ``state.highlight_gate``."""
-        if state.highlight_gate is None or state.current_data is None:
+    def _highlight_mask(state: FlowRenderState) -> np.ndarray | None:
+        """Rows to highlight: the backgated population, else ``highlight_gate``'s events."""
+        if state.current_data is None:
+            return None
+        if state.backgate_mask is not None and len(state.backgate_mask) == len(state.current_data):
+            return np.asarray(state.backgate_mask, dtype=bool)
+        if state.highlight_gate is None:
             return None
         try:
-            mask = np.asarray(state.highlight_gate.contains(state.current_data), dtype=bool)
+            return np.asarray(state.highlight_gate.contains(state.current_data), dtype=bool)
         except KeyError:
             # The gate is on a channel this frame doesn't carry.
             return None
-        return x_transformed[mask]
+
+    @classmethod
+    def _highlight_values(
+        cls, state: FlowRenderState, x_transformed: np.ndarray
+    ) -> np.ndarray | None:
+        """The transformed x values of the highlighted rows (see ``_highlight_mask``)."""
+        mask = cls._highlight_mask(state)
+        return None if mask is None else x_transformed[mask]
+
+    @staticmethod
+    def _backgate_points(
+        state: FlowRenderState, x_data: np.ndarray, y_data: np.ndarray
+    ) -> np.ndarray | None:
+        """Display coords of the backgated rows, thinned to what a scatter can show."""
+        mask = state.backgate_mask
+        if mask is None or len(mask) != len(x_data):
+            return None
+        rows = np.flatnonzero(mask)
+        if len(rows) > BACKGATE_MAX_POINTS:
+            rows = np.random.default_rng(0).choice(rows, BACKGATE_MAX_POINTS, replace=False)
+        return np.column_stack([x_data[rows], y_data[rows]])
 
     def _compute_2d(
         self, state: FlowRenderState, df: pd.DataFrame, x_raw: np.ndarray
@@ -315,6 +347,8 @@ class FlowDataComputeStage(RenderComputeStage):
             strategy_data=strategy_data,
             strategy_kwargs=used_kwargs,
             event_count=len(x_data),
+            backgate_xy=self._backgate_points(state, x_data, y_data),
+            backgate_color=state.backgate_color,
         )
 
 
@@ -390,6 +424,17 @@ class FlowDataRasterizeStage(RasterizeStage):
             ax.set_ylim(data.ylim)
 
         data.strategy.draw(ax, data.strategy_data, **data.strategy_kwargs)
+        if data.backgate_xy is not None and len(data.backgate_xy):
+            ax.scatter(
+                data.backgate_xy[:, 0],
+                data.backgate_xy[:, 1],
+                s=2,
+                c=data.backgate_color,
+                alpha=0.6,
+                linewidths=0,
+                rasterized=True,
+                zorder=3,
+            )
 
         # Re-apply the pre-render limits to prevent autoscale from shifting the
         # view — scatter()/contour()/hist() calls autoscale_view() internally.
