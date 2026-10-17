@@ -336,7 +336,28 @@ course_3_gating = Course(
             ),
             cyto_emotion="talking",
             target_widget_names=["Tool_select"],
-            next_step_id="c3_e02_edit_gate",
+            next_step_id="c3_e01b_back_to_parent",
+        ),
+        VerificationStep(
+            # Drawing a gate opens its own plot (MainPanel._on_gate_drawn), and
+            # that plot shows only the gate's cells: the T-cells rectangle is
+            # drawn on Leukocytes, one level up. Passes at once if the learner
+            # is already there.
+            id="c3_e01b_back_to_parent",
+            text=(
+                "First, find the gate 🔼<br><br>"
+                "Drawing a gate took you **inside** it, so you can keep gating: "
+                "this plot shows only the T cells. The T-cells rectangle itself "
+                "lives one level up, on **Leukocytes**.<br><br>"
+                "Click **↑ Parent Gate** above the plot."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["ParentGateButton"],
+            validator=SampleAndGateOpenValidator("sample a", "leukocytes"),
+            on_success_step_id="c3_e02_edit_gate",
+            failure_hint="Click **↑ Parent Gate** above the plot until it shows Sample A's Leukocytes.",
         ),
         VerificationStep(
             id="c3_e02_edit_gate",

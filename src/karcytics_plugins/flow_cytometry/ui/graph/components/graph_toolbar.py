@@ -70,6 +70,7 @@ class GraphToolbar(QWidget):
 
         # Up to parent button
         self._btn_parent = QPushButton("↑ Parent Gate")
+        self._btn_parent.setObjectName("ParentGateButton")
         self._btn_parent.setFixedHeight(24)
         self._style_btn(self._btn_parent)
         self._btn_parent.setVisible(False)
