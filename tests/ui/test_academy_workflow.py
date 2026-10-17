@@ -245,6 +245,10 @@ def test_finishing_a_course_offers_the_next_one(panel):
     assert panel._academy.is_locked
     assert panel._academy._card.primary_button.text() == "▶ Start Course 2"
     assert panel.manager.get_in_progress(COURSE_1) is None
+    _filename, saved = panel.saves[-1]
+    assert saved[ACADEMY_KEY]["course_number"] == 2  # the course to start next
+    assert saved[ACADEMY_KEY]["completed_count"] == 1
+    assert saved[ACADEMY_KEY]["course_count"] == 5
 
 
 def test_starting_the_next_course_continues_in_the_same_workflow(panel):

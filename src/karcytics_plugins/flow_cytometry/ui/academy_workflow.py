@@ -503,6 +503,7 @@ class AcademyWorkflowController(QObject):
         block.update({key: snapshot[key] for key in _SNAPSHOT_KEYS})
         block["state"] = RUNNING
         block["ui"] = self._ui_state()
+        self._stamp_numbers(block)
         self._record_attempt(block)
 
     def _on_course_completed(self, course_id: str, _badge_reward: Any) -> None:
@@ -554,6 +555,21 @@ class AcademyWorkflowController(QObject):
         tab_bar = getattr(self._panel, "_tab_bar", None)
         return {"tab": tab_bar.currentIndex()} if tab_bar is not None else {}
 
+    def _stamp_numbers(self, block: dict[str, Any]) -> None:
+        """Course numbers for readers that don't know the flow courses (the
+        Hub's dashboard card): "Course 2 of 5", "1 of 5 done".
+        """
+        order = course_order()
+        block["course_count"] = len(order)
+        block["completed_count"] = len(block.get("completed_courses", []))
+        current = (
+            block.get("next_course_id")
+            if block.get("state") == BETWEEN_COURSES
+            else block.get("course_id")
+        )
+        if current in order:
+            block["course_number"] = order.index(current) + 1
+
     def _record_attempt(self, block: dict[str, Any]) -> None:
         pm = self._project_manager()
         metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
@@ -580,6 +596,8 @@ class AcademyWorkflowController(QObject):
             return
         filename = getattr(self._panel, "_current_workflow_filename", None)
         metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
+        if self.block is not None:
+            self._stamp_numbers(self.block)
 
         def _on_success(new_filename: str) -> None:
             if new_filename and new_filename != filename:
