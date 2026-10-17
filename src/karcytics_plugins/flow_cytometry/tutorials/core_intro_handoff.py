@@ -224,7 +224,10 @@ core_intro_module = Course(
                 f"Open them from {_PREFERENCES_MENU_PATH}"
             ),
             cyto_emotion="pointing",
-            allow_interaction=True,
+            # The menu bar sits outside this overlay (native on macOS, above
+            # the panel elsewhere), so dimming and locking the panel leaves
+            # it as the one thing to click. The validator still polls.
+            allow_interaction=False,
             validator=PreferencesPageValidator(),
             on_success_step_id="handoff_prefs_workspace",
         ),

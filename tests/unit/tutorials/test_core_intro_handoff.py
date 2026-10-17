@@ -56,6 +56,13 @@ def test_save_step_leads_through_preferences_before_returning_home():
     assert steps["handoff_prefs_autosave"].target_widget_names == ["AutosaveWorkflowsCheckbox"]
 
 
+def test_preferences_open_step_dims_the_panel():
+    # The menu bar is outside the overlay, so a non-interactive step dims and
+    # locks the panel while leaving Flow Cytometry -> Preferences reachable.
+    steps = _steps_by_id()
+    assert steps["handoff_prefs_open"].allow_interaction is False
+
+
 def test_preferences_validators_track_the_dialog(qtbot):
     state = FlowState()
     opened = PreferencesPageValidator()
