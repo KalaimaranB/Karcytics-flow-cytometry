@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from karcytics_sdk.plugin import get_logger
 
 from ..flowsom_analysis import FlowsomAnalysis
+from ..phenograph_analysis import PhenographAnalysis, PhenographReclusterAnalysis
 from ..umap_analysis import UmapAnalysis
 
 if TYPE_CHECKING:
@@ -51,6 +52,22 @@ class FlowsomParams:
     ydim: int = 10
     k: int = 10
     passes: int = 10
+    random_seed: int = 42
+    channels: list[str] | None = None
+
+
+@dataclass
+class PhenographParams:
+    """Parameters for a PhenoGraph run."""
+
+    target_sample_id: str
+    target_node_id: str | None = None  # None = All Events (no gate filter)
+    name: str = ""
+    percentage: float = 100.0
+    n_events: int = 0
+    n_neighbors: int = 30
+    resolution: float = 1.0
+    min_cluster_size: int = 10
     random_seed: int = 42
     channels: list[str] | None = None
 
@@ -101,6 +118,34 @@ class UmapService:
             setattr(analyzer, name, value)
         analyzer.channels = params.channels or []
         self._submit(analyzer, on_done, on_error_cb, on_progress)
+
+    def run_phenograph(
+        self,
+        params: PhenographParams,
+        on_done: Callable[[dict], None],
+        on_error_cb: Callable[[str], None],
+        on_progress: Callable[[int], None] | None = None,
+    ) -> None:
+        """Cancel any in-flight task, and submit a new PhenoGraph run."""
+        analyzer = PhenographAnalysis()
+        for name, value in vars(params).items():
+            setattr(analyzer, name, value)
+        analyzer.channels = params.channels or []
+        self._submit(analyzer, on_done, on_error_cb, on_progress)
+
+    def recluster_phenograph(
+        self,
+        run: dict[str, Any],
+        resolution: float,
+        on_done: Callable[[dict], None],
+        on_error_cb: Callable[[str], None],
+    ) -> None:
+        """Re-cluster a PhenoGraph run at ``resolution``.
+
+        ``on_done`` gets the new arrays; apply them on the GUI thread with
+        ``phenograph_analysis.apply_clusters``.
+        """
+        self._submit(PhenographReclusterAnalysis(run, resolution), on_done, on_error_cb, None)
 
     def _submit(  # noqa: C901
         self,

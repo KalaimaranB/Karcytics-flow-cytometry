@@ -96,7 +96,7 @@ def audit(scope: RunScope) -> list[Finding]:
         if c != NOISE and (scope.clusters == c).mean() >= MIN_CLUSTER_SHARE
     ]
     method = method_of(scope.run)
-    summaries = _summaries(scope) if method.recuttable else {}
+    summaries = _summaries(scope) if method.over_splits else {}
     cuts_ok = _same_phenotype_split(scope, summaries) if summaries else None
     findings = _cluster_findings(scope, clusters, cuts_ok) + _merge_findings(
         scope, clusters, summaries

@@ -239,7 +239,7 @@ def _jaccard(
     return graph
 
 
-@njit(cache=True, nogil=True)
+@njit(nogil=True)  # no disk cache: the daemon loads this module under another name
 def _count_shared(neighbours: np.ndarray, lo: int, hi: int, out: np.ndarray) -> None:
     """For rows lo..hi: how many neighbours each row shares with each of its neighbours.
 

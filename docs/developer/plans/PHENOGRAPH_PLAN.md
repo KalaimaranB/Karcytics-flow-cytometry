@@ -167,7 +167,13 @@ PhenoGraph runs is left for later (see Decisions).
   - connectivity is high inside a split population and low between distinct
     ones;
   - 1M events within budget.
-- [ ] **2. Run plumbing.** `PhenographAnalysis` and `PhenographParams`.
+- [x] **2. Run plumbing.** Runs in the daemon: in a worker thread the
+  neighbour search and Leiden stalled the GUI thread for up to 1.8 s. The
+  daemon loads the Qt-free `clustering` package by path and caches the last
+  three runs' graphs by `run_uid`; after a reload the graph is rebuilt from the
+  run's intensities (equal to rounding, so clusters match to ARI > 0.95). The
+  method descriptor gained `RecutSetting` (k or resolution), `over_splits` and
+  `tag_prefix`. `PhenographAnalysis` and `PhenographParams`.
   `run_phenograph()` in the service (thread or daemon, per the note above).
   - `recluster_run(run, resolution)`, as `recut_run`: exported clusters
     unchanged, names cleared, tables recomputed.

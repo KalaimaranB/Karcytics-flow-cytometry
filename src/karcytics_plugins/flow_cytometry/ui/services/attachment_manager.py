@@ -12,12 +12,15 @@ from typing import Any
 import numpy as np
 from karcytics_sdk.plugin import get_logger
 
-from ...analysis.clustering import FLOWSOM, method_of, tree_embedding
+from ...analysis.clustering import FLOWSOM, PHENOGRAPH, method_of, tree_embedding
+from ...analysis.clustering.phenograph import graph_embedding
 
 logger = get_logger(__name__, "flow_cytometry")
 
 # A FlowSOM run's node-level arrays (stored in the metadata as lists).
 FLOWSOM_NODE_ARRAYS = ("codes", "grid", "mst_edges", "layout", "linkage", "node_metaclusters")
+# A PhenoGraph run's cluster-level arrays (stored in the metadata as lists).
+PHENOGRAPH_CLUSTER_ARRAYS = ("layout", "cluster_edges", "cluster_connectivity")
 # Event-level arrays: saved as attachments, or rebuilt on load.
 _FLOWSOM_REBUILT = (
     "indices",
@@ -66,6 +69,9 @@ class AttachmentManager:
             for res in runs:
                 if method_of(res) is FLOWSOM:
                     meta_dict[key].append(self._serialize_flowsom(res, context))
+                    continue
+                if method_of(res) is PHENOGRAPH:
+                    meta_dict[key].append(self._serialize_phenograph(res, context))
                     continue
                 emb_key = res.get("emb_key")
                 idx_key = res.get("idx_key")
@@ -136,8 +142,13 @@ class AttachmentManager:
         for key, runs_meta in meta_dict.items():
             results[key] = []
             for meta in runs_meta:
-                if method_of(meta) is FLOWSOM:
-                    run = self._hydrate_flowsom(meta, state, context)
+                if method_of(meta) in (FLOWSOM, PHENOGRAPH):
+                    hydrate = (
+                        self._hydrate_flowsom
+                        if method_of(meta) is FLOWSOM
+                        else self._hydrate_phenograph
+                    )
+                    run = hydrate(meta, state, context)
                     if run is not None:
                         results[key].append(run)
                     continue
@@ -194,6 +205,40 @@ class AttachmentManager:
         res["nodes"] = np.load(nodes_path).astype(np.int64)
         res["embedding"] = tree_embedding(res["layout"], res["nodes"], meta.get("random_seed", 0))
         res["clusters"] = res["node_metaclusters"][res["nodes"]]
+        self._reconstruct_intensities(res, meta, state)
+        self._reconstruct_cluster_stats(res)
+        return res
+
+    def _serialize_phenograph(self, res: dict, context: Any) -> dict:
+        """Indices and clusters go to attachments; the cluster graph is small, so it stays
+        in the metadata. The map is rebuilt on load; the neighbour graph isn't saved
+        (the daemon rebuilds it the first time the resolution changes).
+        """
+        if not res.get("idx_key"):
+            run_uuid = uuid.uuid4().hex[:8]
+            res["idx_key"], res["cls_key"] = f"umap_idx_{run_uuid}", f"phenograph_cls_{run_uuid}"
+        self._attach(context, res["idx_key"], res["indices"], "PhenoGraph Indices")
+        clusters = np.asarray(res["clusters"]).astype(np.int32)
+        self._attach(context, res["cls_key"], clusters, "PhenoGraph Clusters")
+        meta = {k: v for k, v in res.items() if k not in _FLOWSOM_REBUILT}
+        for k in PHENOGRAPH_CLUSTER_ARRAYS:
+            meta[k] = np.asarray(res[k]).tolist()
+        return meta
+
+    def _hydrate_phenograph(self, meta: dict, state: Any, context: Any) -> dict | None:
+        idx_path = context.get_path(meta.get("idx_key"))
+        cls_path = context.get_path(meta.get("cls_key"))
+        if not (idx_path and idx_path.exists() and cls_path and cls_path.exists()):
+            return None
+        res = meta.copy()
+        res["layout"] = np.asarray(meta["layout"], dtype=np.float64).reshape(-1, 2)
+        res["cluster_edges"] = np.asarray(meta["cluster_edges"], dtype=np.int64).reshape(-1, 2)
+        res["cluster_connectivity"] = np.asarray(meta["cluster_connectivity"], dtype=np.float64)
+        res["indices"] = np.load(idx_path)
+        res["clusters"] = np.load(cls_path).astype(np.int64)
+        res["embedding"] = graph_embedding(
+            res["layout"], res["clusters"], meta.get("random_seed", 0)
+        )
         self._reconstruct_intensities(res, meta, state)
         self._reconstruct_cluster_stats(res)
         return res

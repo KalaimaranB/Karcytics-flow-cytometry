@@ -14,6 +14,7 @@ import struct
 import sys
 import time as _time
 import traceback
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -350,6 +351,90 @@ def handle_run_umap(kwargs: dict[str, Any]) -> dict[str, Any]:
     return res
 
 
+# ── PhenoGraph ──────────────────────────────────────────────────────────────
+# Runs here, not in the app: the neighbour search and Leiden hold the GIL for
+# seconds at a time, which froze the window when they ran in a worker thread.
+# The graph (the costly part) is cached per run, so a new resolution only
+# re-runs Leiden.
+
+GRAPH_CACHE_SIZE = 3
+_GRAPHS: OrderedDict[str, tuple[tuple, Any]] = OrderedDict()  # run uid -> (inputs, graph)
+_clustering_module: Any = None
+
+
+def _clustering() -> Any:
+    """The plugin's Qt-free clustering package, loaded by path.
+
+    Importing it through ``karcytics_plugins.flow_cytometry`` would run the
+    plugin's ``__init__`` and pull Qt into this process.
+    """
+    global _clustering_module
+    if _clustering_module is None:
+        import importlib.util
+        from pathlib import Path
+
+        here = Path(__file__).resolve().parent / "clustering"
+        spec = importlib.util.spec_from_file_location(
+            "flow_clustering", here / "__init__.py", submodule_search_locations=[str(here)]
+        )
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["flow_clustering"] = module
+        spec.loader.exec_module(module)
+        _clustering_module = module
+    return _clustering_module
+
+
+def _phenograph_graph(uid: str, x: np.ndarray, k: int, seed: int) -> Any:
+    """The run's graph: cached when the inputs match, else built (and cached)."""
+    phenograph = _clustering().phenograph
+    inputs = (x.shape, k, seed, float(x.sum()))
+    cached = _GRAPHS.get(uid)
+    if cached is not None and cached[0] == inputs:
+        _GRAPHS.move_to_end(uid)
+        return cached[1]
+    graph = phenograph.build_graph(x, k, seed)
+    _GRAPHS[uid] = (inputs, graph)
+    while len(_GRAPHS) > GRAPH_CACHE_SIZE:
+        _GRAPHS.popitem(last=False)
+    return graph
+
+
+def handle_run_phenograph(kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Cluster with PhenoGraph (a first run, or the same run at a new resolution)."""
+    x_b64 = kwargs.get("x_b64", "")
+    if not x_b64:
+        return {"error": "No input matrix x_b64 provided."}
+    params = kwargs.get("params", {})
+    seed = int(params.get("random_seed", 42))
+    graph = _phenograph_graph(
+        str(kwargs.get("run_uid", "")), _decode_array(x_b64), int(params.get("k", 30)), seed
+    )
+    result = _clustering().phenograph.recluster(
+        graph,
+        float(params.get("resolution", 1.0)),
+        seed=seed,
+        min_size=int(params.get("min_size", 10)),
+    )
+    return {
+        "status": "ok",
+        "clusters_b64": _encode_array(result.clusters),
+        "edges_b64": _encode_array(result.edges),
+        "connectivity_b64": _encode_array(result.connectivity),
+        "layout_b64": _encode_array(result.layout),
+    }
+
+
+_HANDLERS: dict[str, Any] = {
+    "ping": lambda _kwargs: {"status": "pong"},
+    "load_fcs": handle_load_fcs,
+    "load_fcs_batch": handle_load_fcs_batch,
+    "run_umap": handle_run_umap,
+    "run_phenograph": handle_run_phenograph,
+    "cancel": lambda _kwargs: {"status": "cancelled"},
+}
+
+
 def main() -> None:
     """Worker daemon main loop."""
     sys.stderr.write("KARCYTICS_WORKER_READY\n")
@@ -369,24 +454,13 @@ def main() -> None:
 
             if method == "exit":
                 break
-            if method == "ping":
-                write_frame({"status": "pong"})
-            elif method == "load_fcs":
-                res = handle_load_fcs(kwargs)
-                write_frame(res)
-            elif method == "load_fcs_batch":
-                res = handle_load_fcs_batch(kwargs)
+            handler = _HANDLERS.get(method)
+            res = handler(kwargs) if handler else {"error": f"Unknown method '{method}'"}
+            if method == "load_fcs_batch":
                 _dlog(
                     f"main: writing load_fcs_batch response, {len(res.get('results', {}))} results"
                 )
-                write_frame(res)
-            elif method == "run_umap":
-                res = handle_run_umap(kwargs)
-                write_frame(res)
-            elif method == "cancel":
-                write_frame({"status": "cancelled"})
-            else:
-                write_frame({"error": f"Unknown method '{method}'"})
+            write_frame(res)
 
         except Exception as exc:
             err_msg = f"Daemon worker exception: {exc}\n{traceback.format_exc()}"
