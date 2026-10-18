@@ -346,7 +346,11 @@ class SampleLensTab(QWidget):
             model.selected_node_id,
         )
         self._scope_caption.setText(self._scope_text())
-        self._findings.show_findings(model.findings, *self._empty_findings_text())
+        self._findings.show_findings(
+            model.findings,
+            *self._empty_findings_text(),
+            [a.text for a in model.agreements] if model.agreements else None,
+        )
         if self._proposal is not None and self._proposal.sample_id != model.sample_id:
             self._proposal = None  # proposed for another sample
         self._proposal_bar.setVisible(self._proposal is not None)

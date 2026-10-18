@@ -207,7 +207,13 @@ PhenoGraph runs is left for later (see Decisions).
   - Findings name clusters with phenotypes and use the over-split rules.
   - The map draws the cluster graph with finding clusters ringed.
   - Tests mirror the FlowSOM lens tests.
-- [ ] **5. Agreement across methods.** When the open sample has more than one
+- [x] **5. Agreement across methods.** `analysis/sample_lens/agreement.py`. Cuts
+  and merges match by kind and gate; a missed cluster matches when the other
+  run's missed cluster holds over half of its events (of those both runs used).
+  Each card shows "Also found by …" or "Only this run finds it". Re-auditing 3
+  runs on 209k events takes ~0.3 s. On the tutorial data (PhenoGraph res 0.5)
+  the T-cells cuts and the DN merge are also found by FlowSOM; the DP merge (the
+  B220+ CD3+ cluster) only by PhenoGraph. When the open sample has more than one
   clustering run on the same population, each finding says which other runs
   report the same kind of finding on the same gate ("Also found by: FlowSOM,
   PhenoGraph"). Findings found by only one method are marked as such.

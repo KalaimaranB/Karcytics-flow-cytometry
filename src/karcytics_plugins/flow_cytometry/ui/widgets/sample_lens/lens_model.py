@@ -22,10 +22,13 @@ from ....analysis.flowsom_analysis import recut_run
 from ....analysis.phenograph_analysis import apply_clusters
 from ....analysis.population_matching import populations
 from ....analysis.sample_lens import (
+    Agreement,
     Finding,
+    OtherRun,
     ProposedGate,
     RunScope,
     SampleCheck,
+    agreements,
     audit,
     build_scope,
     check_across,
@@ -145,6 +148,7 @@ class SampleLensModel(QObject):
         self.selected_node_id: str | None = None
         self.scope: RunScope | None = None
         self.findings: list[Finding] = []
+        self.agreements: list[Agreement] = []  # per finding: what other runs say
         self.checks: list[SampleCheck] = []
         self._chosen_runs: dict[str, RunRef] = {}  # sample -> run picked for it
         self._reclustering: dict[str, Any] | None = None  # the run a re-cluster is for
@@ -357,6 +361,7 @@ class SampleLensModel(QObject):
     def refresh(self) -> None:
         """Recompute the scope, findings and cross-sample checks from current state."""
         self.scope, self.findings, self.checks = None, [], []
+        self.agreements = []
         sample = self.sample
         events = self.events(sample) if sample is not None else None
         run = self.run
@@ -364,12 +369,28 @@ class SampleLensModel(QObject):
             try:
                 self.scope = build_scope(sample, run, events)
                 self.findings = audit(self.scope)
+                others = self._other_runs(sample, events)
+                self.agreements = agreements(self.scope, self.findings, others)
             except (KeyError, ValueError) as exc:  # e.g. a gate on a channel this sample lacks
                 logger.warning("Sample Lens: can't evaluate run on %s: %s", sample.sample_id, exc)
         path = self.selected_path()
         if path is not None:
             self.checks = check_across(self._sample_events(), path)
         self.changed.emit()
+
+    def _other_runs(self, sample: Sample, events: pd.DataFrame) -> list[OtherRun]:
+        """The other clustered runs of the same population, audited against the same gates."""
+        if self.run_ref is None:
+            return []
+        out = []
+        for i, other in enumerate(self._state.data.umap_results.get(self.run_ref.key, [])):
+            if i == self.run_ref.index or other.get("clusters") is None:
+                continue
+            scope = build_scope(sample, other, events)
+            method = method_of(other)
+            label = f"{method.name} {method.setting_text(other)}".strip()
+            out.append(OtherRun(label, scope, audit(scope)))
+        return out
 
     def _sample_events(self) -> list[tuple[Sample, pd.DataFrame]]:
         """The samples to compare across: controls are left out, unless one is open."""

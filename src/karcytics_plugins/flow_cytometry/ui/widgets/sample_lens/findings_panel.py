@@ -23,7 +23,9 @@ class _FindingCard(ModuleCard):
     clicked = Signal(object)
     fix_requested = Signal(object)
 
-    def __init__(self, finding: Finding | None, title: str = "", detail: str = "") -> None:
+    def __init__(
+        self, finding: Finding | None, title: str = "", detail: str = "", agreement: str = ""
+    ) -> None:
         super().__init__()
         self._finding = finding
         if finding is not None:
@@ -43,6 +45,15 @@ class _FindingCard(ModuleCard):
         text.setSpacing(2)
         text.addWidget(SubtitleLabel(finding.title if finding else title))
         text.addWidget(BioCaptionLabel(finding.detail if finding else detail))
+        if agreement:
+            other = QLabel(agreement)
+            other.setObjectName("SampleLensAgreement")
+            other.setWordWrap(True)
+            tone = "ACCENT_SUCCESS" if agreement.startswith("Also") else "FG_SECONDARY"
+            theme_manager.apply_style(
+                other, f"color: {{{tone}}}; font-size: 11px; font-style: italic; background: none;"
+            )
+            text.addWidget(other)
         if finding is not None and finding.kind is FindingKind.MISSED:
             fix = SecondaryButton("Propose gates")
             fix.setObjectName("SampleLensProposeButton")
@@ -66,14 +77,22 @@ class FindingsPanel(QWidget):
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(8)
 
-    def show_findings(self, findings: list[Finding], empty_title: str, empty_detail: str) -> None:
+    def show_findings(
+        self,
+        findings: list[Finding],
+        empty_title: str,
+        empty_detail: str,
+        agreements: list[str] | None = None,
+    ) -> None:
+        """One card per finding; ``agreements`` (per finding) says what other runs think."""
         while self._layout.count():
             item = self._layout.takeAt(0)
             widget = item.widget() if item is not None else None
             if widget is not None:
                 widget.hide()  # deleteLater lands next event-loop turn; don't paint until then
                 widget.deleteLater()
-        cards = [_FindingCard(f) for f in findings] or [
+        notes = agreements or [""] * len(findings)
+        cards = [_FindingCard(f, agreement=a) for f, a in zip(findings, notes, strict=True)] or [
             _FindingCard(None, empty_title, empty_detail)
         ]
         for card in cards:

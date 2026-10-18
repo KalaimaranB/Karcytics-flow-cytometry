@@ -3,6 +3,7 @@
 from dataclasses import replace
 
 import pytest
+from PySide6.QtWidgets import QLabel
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
@@ -493,3 +494,15 @@ def test_a_failed_recluster_says_so_and_keeps_the_run(qtbot, monkeypatch):
     assert "daemon gone" in tab._run_status.text()
     assert (tab._model.run["clusters"] == clusters).all()
     assert tab._res_spin.value() == 0.1  # noqa: PLR2004 - back to the run's own setting
+
+
+def test_findings_say_whether_another_run_of_the_population_agrees(lens):
+    from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
+    tab, state, _ = lens
+    run = state.data.umap_results["s0::root"][0]
+    experiment_edits.add_umap_run(state, dict(run, name="Second look"))
+    tab._model.refresh()
+    notes = [label.text() for label in tab._findings.findChildren(QLabel, "SampleLensAgreement")]
+    assert len(notes) == len(tab._model.findings)
+    assert all(n == "Also found by UMAP + HDBSCAN" for n in notes)
