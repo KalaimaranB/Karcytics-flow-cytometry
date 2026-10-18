@@ -493,13 +493,13 @@ course_5_sample_lens = Course(
         VerificationStep(
             id="c5_s17c_columns",
             text=(
-                "Set **Plots per row** to **2**. Each plot grows to half the width; "
+                "Pick **2** in **Plots per row**. Each plot grows to half the width; "
                 "scroll down for the rest of the path."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            target_widget_names=["SampleLensColumnsSpin"],
+            target_widget_names=["SampleLensColumnsCombo"],
             validator=LensColumnsValidator(2),
             on_success_step_id="c5_s17d_view",
         ),
@@ -536,16 +536,16 @@ course_5_sample_lens = Course(
         VerificationStep(
             id="c5_s17f_unfocus",
             text=(
-                "Set **Plots per row** back to **All**, then click **Exit focus** "
+                "Pick **All** in **Plots per row** again, then click **Exit focus** "
                 "(or press Esc). The maps are next."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
-            target_widget_names=["SampleLensColumnsSpin", "SampleLensFocusButton"],
+            target_widget_names=["SampleLensColumnsCombo", "SampleLensFocusButton"],
             validator=AllOf(LensColumnsValidator(0), LensFocusValidator(False)),
             on_success_step_id="c5_s18_map_intro",
-            failure_hint="Turn **Plots per row** down to **All**, then click **Exit focus**.",
+            failure_hint="Open **Plots per row**, pick **All**, then click **Exit focus**.",
         ),
         # ── The run, twice ──────────────────────────────────────────────────────
         InfoStep(

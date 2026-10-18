@@ -23,7 +23,6 @@ import numpy as np
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioComboBox,
-    BioSpinBox,
     SecondaryButton,
     SubtitleLabel,
 )
@@ -279,12 +278,15 @@ class GatingPathStrip(QWidget):
         row.addWidget(self._title)
         row.addStretch()
         row.addWidget(BioCaptionLabel("Plots per row:"))
-        self._columns = BioSpinBox()
-        self._columns.setObjectName("SampleLensColumnsSpin")
-        self._columns.setRange(0, MAX_COLUMNS)
-        self._columns.setSpecialValueText("All")  # 0: every plot in one row
+        # A dropdown, not a spin box: "All" is one of the choices, not a
+        # number to type (0), which nobody would guess.
+        self._columns = BioComboBox()
+        self._columns.setObjectName("SampleLensColumnsCombo")
+        self._columns.addItem("All", 0)  # every plot in one row
+        for n in range(1, MAX_COLUMNS + 1):
+            self._columns.addItem(str(n), n)
         self._columns.setToolTip("How many plots per row. 'All' keeps the path on one row.")
-        self._columns.valueChanged.connect(lambda _v: self._relayout())
+        self._columns.currentIndexChanged.connect(lambda _i: self._relayout())
         row.addWidget(self._columns)
         self._focus_btn = SecondaryButton("Focus")
         self._focus_btn.setObjectName("SampleLensFocusButton")
@@ -316,8 +318,13 @@ class GatingPathStrip(QWidget):
         self.focus_changed.emit(on)
         self._relayout()
 
+    @property
+    def columns(self) -> int:
+        """Plots per row; 0 for all in one row."""
+        return int(self._columns.currentData() or 0)
+
     def set_columns(self, columns: int) -> None:
-        self._columns.setValue(columns)
+        self._columns.setCurrentIndex(max(0, self._columns.findData(columns)))
 
     def _apply_height(self) -> None:
         if self._focus:  # take whatever the tab gives; scroll inside
@@ -328,7 +335,7 @@ class GatingPathStrip(QWidget):
             self._scroll.setFixedHeight(PLOT_H + CAPTION_H + 18)
             policy = (
                 Qt.ScrollBarPolicy.ScrollBarAsNeeded
-                if self._columns.value()
+                if self.columns
                 else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
             )
             self._scroll.setVerticalScrollBarPolicy(policy)
@@ -341,7 +348,7 @@ class GatingPathStrip(QWidget):
         return [p for p in self._plots if not p.isHidden()]
 
     def _per_row(self, count: int) -> int:
-        return min(self._columns.value() or count, count) or 1
+        return min(self.columns or count, count) or 1
 
     def _relayout(self) -> None:
         """Place the shown plots in rows of ``Plots per row``, then size them."""

@@ -2637,7 +2637,7 @@ class LensColumnsValidator(_LensValidator):
         self._columns = columns
 
     def validate_lens(self, lens: Any) -> bool:
-        if lens._path._columns.value() != self._columns:
+        if lens._path.columns != self._columns:
             return self.log_failure(f"Plots per row isn't {self._columns or 'All'}.")
         return True
 

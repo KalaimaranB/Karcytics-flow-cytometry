@@ -562,3 +562,17 @@ def test_plots_waiting_to_resize_say_so(lens, qtbot):
     assert all(p.canvas._overlay_manager._loading_label.isVisible() for p in waiting)
     assert "Loading plot" in waiting[0].canvas._overlay_manager._loading_label.text()
     qtbot.waitUntil(lambda: not tab._path._resizing)
+
+
+def test_plots_per_row_offers_all_as_a_choice(lens):
+    """'All' is picked from the list, not typed as a number."""
+    from karcytics_plugins.flow_cytometry.tutorials.validators import LensColumnsValidator
+
+    tab, state, _ = lens
+    state.view._sample_lens = tab
+    combo = tab._path._columns
+    assert combo.itemText(0) == "All"
+    combo.setCurrentIndex(combo.findText("2"))
+    assert LensColumnsValidator(2).validate(state)
+    combo.setCurrentIndex(combo.findText("All"))
+    assert LensColumnsValidator(0).validate(state)
