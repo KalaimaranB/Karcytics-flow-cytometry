@@ -2515,12 +2515,34 @@ class LensFindingFocusedValidator(_LensValidator):
 
 
 class LensProposalValidator(_LensValidator):
-    """The lens is previewing proposed gates."""
+    """The lens is previewing proposed gates; ``on_found`` gets their marker pairs."""
+
+    def __init__(self, on_found: Callable[[list[str]], None] | None = None) -> None:
+        self._on_found = on_found
 
     def validate_lens(self, lens: Any) -> bool:
         if lens._proposal is None or not lens._proposal.steps:
             return self.log_failure("No gate proposal shown.")
+        if self._on_found is not None:
+            self._on_found(proposal_axes(lens))
         return True
+
+
+def proposal_axes(lens: Any) -> list[str]:
+    """Each proposed gate's markers, in order: ["B220 vs CD3", "CD4 vs CD8"]."""
+    from ..analysis.clustering.describe import short_marker
+    from ..analysis.fcs_io import get_channel_marker_label
+
+    sample = lens._model.sample
+    fcs = sample.fcs_data if sample is not None else None
+
+    def marker(channel: str) -> str:
+        return short_marker(get_channel_marker_label(fcs, channel)) if fcs else channel
+
+    return [
+        " vs ".join(marker(c) for c in (step.gate.x_param, step.gate.y_param) if c)
+        for step in lens._proposal.steps
+    ]
 
 
 class LensProposalAddedValidator(_LensValidator):

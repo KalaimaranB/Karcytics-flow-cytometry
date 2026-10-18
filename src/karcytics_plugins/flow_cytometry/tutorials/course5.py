@@ -27,7 +27,7 @@ settings change):
 - One finding: a cluster of CD3− B220− leukocytes (NK or myeloid cells,
   ~3,200 events) that no final population holds. Course 3 points at that
   "double negative" corner in a question but never gates it. Propose gates
-  recovers it with 2 rectangles (B220 × CD3, then CD4 × CD8) at F1 ≈ 0.87.
+  recovers it with 2 rectangles (B220 × CD3, then CD4 × CD8; some runs add a 3rd) at F1 ≈ 0.87.
 - Across samples, Sample A (thymus) is an outlier on DP: 59% of its T cells
   are CD4+CD8+ against ~1% in B and C. That's biology, not a gating error.
 - Dragging the T-cells gate's top CD3 edge from 8,000 down to ~2,000 (where
@@ -91,6 +91,23 @@ def _cut_text(finding: Finding) -> str:
     )
 
 
+def _proposal_text(axes: list[str]) -> str:
+    steps = ", then ".join(f"**{a}**" for a in axes)
+    text = (
+        "The proposal 📐<br><br>"
+        "The gating path now shows the proposed gates, one plot per step, with the "
+        "cluster in colour. Each step narrows down what the one before kept.<br><br>"
+        f"Your run's cluster took **{len(axes)}**: {steps}. The search adds a step only "
+        "while it improves the match, so the count depends on the run (often two)."
+    )
+    if len(set(axes)) < len(axes):
+        text += (
+            "<br><br>A pair came back: drawn on fewer cells, the second box can sit "
+            "tighter around the cluster."
+        )
+    return text
+
+
 # Module-level so their validators can rewrite the text with the real
 # cluster number on every poll (cluster numbers aren't stable run to run).
 _missed_click_step: VerificationStep = VerificationStep(
@@ -115,6 +132,15 @@ _cut_read_step: InfoStep = InfoStep(
     allow_interaction=True,
     target_widget_names=["SampleLensFindings", "SampleLensMap"],
     next_step_id="c5_s47_cut_blame",
+)
+
+_proposal_read_step: InfoStep = InfoStep(
+    id="c5_s31_proposal_read",
+    text="The proposal 📐",
+    cyto_emotion="talking",
+    allow_interaction=True,
+    target_widget_names=["SampleLensPath"],
+    next_step_id="c5_s32_scores",
 )
 
 course_5_sample_lens = Course(
@@ -652,25 +678,13 @@ course_5_sample_lens = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["SampleLensProposeButton"],
-            validator=LensProposalValidator(),
+            validator=LensProposalValidator(
+                on_found=lambda axes: setattr(_proposal_read_step, "text", _proposal_text(axes))
+            ),
             on_success_step_id="c5_s31_proposal_read",
             failure_hint="Click **Propose gates** on the *isn't in any population* card.",
         ),
-        InfoStep(
-            id="c5_s31_proposal_read",
-            text=(
-                "The proposal 📐<br><br>"
-                "The gating path now shows the proposed gates, one plot per step, "
-                "with the cluster in colour. Each step narrows down what the one "
-                "before kept.<br><br>"
-                "On this data it usually finds two: **B220 vs CD3** (low on both), "
-                "then **CD4 vs CD8**."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["SampleLensPath"],
-            next_step_id="c5_s32_scores",
-        ),
+        _proposal_read_step,
         InfoStep(
             id="c5_s32_scores",
             text=(
@@ -1106,7 +1120,25 @@ course_5_sample_lens = Course(
             hide_next_button=True,
             target_widget_names=["SampleLensKSpin", "SampleLensFindings"],
             validator=LensKValidator(8),
-            on_success_step_id="c5_s50e_flowsom_weight",
+            on_success_step_id="c5_s50d2_flowsom_findings",
+        ),
+        InfoStep(
+            id="c5_s50d2_flowsom_findings",
+            text=(
+                "Why so many findings? 🤔<br><br>"
+                "Your gates didn't change. Most of these come from how FlowSOM works:<br>"
+                "• **No noise.** HDBSCAN leaves in-between cells out; FlowSOM puts "
+                "every cell in a metacluster. A gate that skips a population's sparse "
+                "edge then looks like a cut, keeping 75–90%.<br>"
+                "• **The proposed gates** (the *pre-gate* ones) were fitted to UMAP's "
+                "cluster, so FlowSOM's borders won't match them.<br>"
+                "• **Few, broad groups.** At low k a big metacluster's edge spills into "
+                "a small gate such as DN."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["SampleLensFindings"],
+            next_step_id="c5_s50e_flowsom_weight",
         ),
         InfoStep(
             id="c5_s50e_flowsom_weight",
@@ -1115,7 +1147,8 @@ course_5_sample_lens = Course(
                 "A finding that holds at several k values, and that UMAP + "
                 "HDBSCAN agrees with, is about your gates. One that shows up at "
                 "a single k is about the method.<br><br>"
-                "Like UMAP, FlowSOM is a second opinion, not the truth."
+                "Switch back to the UMAP run to compare: what it doesn't report too can "
+                "be set aside. Like UMAP, FlowSOM is a second opinion, not the truth."
             ),
             cyto_emotion="thinking",
             next_step_id="c5_s51_when",
