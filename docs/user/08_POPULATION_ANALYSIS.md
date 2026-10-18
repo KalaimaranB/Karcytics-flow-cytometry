@@ -1,9 +1,10 @@
 # Population Analysis
 
-The **Population Analysis** tab finds the structure in your data without deciding in advance where the gates should go. It has two methods:
+The **Population Analysis** tab finds the structure in your data without deciding in advance where the gates should go. It has three methods:
 
 - **UMAP + HDBSCAN.** UMAP (Uniform Manifold Approximation and Projection) takes every marker you measured on a cell and projects it onto a 2D map: cells that look similar across all their markers land near each other. HDBSCAN (optional) then finds dense groups and can leave scattered cells out as noise. Good for exploring continuous gradients and rare sub-populations.
 - **FlowSOM** (section 6). Sorts the cells into about 100 small groups of very similar cells, links them into a tree, and groups the tree into *k* populations. Every cell gets a population. Fast enough for every event, and a useful second opinion next to UMAP + HDBSCAN.
+- **PhenoGraph** (section 7). Links each cell to its most similar cells and finds groups of cells that link mostly to each other. You set a resolution instead of a number of clusters, and it shows which clusters are pieces of one population and which stand apart.
 
 This tab has no ribbon toolbar. Every control lives in the left panel of the workspace, which mirrors the same layout pattern as Statistics and Comparisons: a fixed sidebar for configuration, and a right-hand workspace for results.
 
@@ -13,7 +14,7 @@ This tab has no ribbon toolbar. Every control lives in the left panel of the wor
 
 ### Target data
 
-- **Algorithm** — **UMAP + HDBSCAN** or **FlowSOM**. The settings below the run name change with it; FlowSOM's are described in section 6.
+- **Algorithm** — **UMAP + HDBSCAN**, **FlowSOM** or **PhenoGraph**. The settings below the run name change with it; FlowSOM's are described in section 6, PhenoGraph's in section 7.
 - **Sample** — the sample to analyze.
 - **Population (Gate)** — optionally restrict the analysis to a specific gated population rather than the whole sample. This is strongly recommended: running UMAP on ungated debris and dead cells distorts the projection, so gating out Live/Singlets first and running UMAP on that population gives a much cleaner map.
 - **Select Channels** — the fluorescence parameters fed into the reduction. Uncheck anything already used for gating upstream (viability dyes, scatter parameters) — they add noise rather than useful biological variance to the clustering.
@@ -26,9 +27,9 @@ This tab has no ribbon toolbar. Every control lives in the left panel of the wor
 | Run Name | A label for this run, shown in the Run History dropdown afterward |
 | Neighbors | Balance between local and global structure. Lower (5–15) emphasizes fine local clusters; higher (30–50) preserves broader relationships between distant cell types |
 | Min Distance | How tightly points are packed in the final layout. Lower values (0.0–0.1) pack similar cells densely, useful for resolving rare or closely related sub-populations; higher values (0.3–0.5) spread points out to preserve topology across major lineages |
-| Events used | Percentage of the population's events the run uses, picked at random. UMAP slows down sharply on large data, so 10–20% (its default, 10%) is usually enough. FlowSOM defaults to all events; lower it to compare with a UMAP run on the same share |
+| Events used | Percentage of the population's events the run uses, picked at random. UMAP slows down sharply on large data, so 10–20% (its default, 10%) is usually enough. FlowSOM and PhenoGraph default to all events; lower it to compare with a UMAP run on the same share |
 | Distance Metric | How "distance" between two cells is measured: **euclidean** (straight-line, general default), **cosine** (angle rather than magnitude — useful if absolute intensity varies due to staining artifacts), or **manhattan** (grid-like, more robust to outliers) |
-| Random Seed | Fixes the run's random choices (which events are picked, UMAP's starting layout, FlowSOM's starting nodes), so the same data and settings reproduce the same result. Change it to see another valid result: a quick way to check a finding isn't a fluke |
+| Random Seed | Fixes the run's random choices (which events are picked, UMAP's starting layout, FlowSOM's starting nodes, PhenoGraph's neighbour search and grouping), so the same data and settings reproduce the same result. Change it to see another valid result: a quick way to check a finding isn't a fluke |
 
 
 !!! tip "Why the layout doesn't shuffle every run"
@@ -126,5 +127,50 @@ Hover a node to see its cell count and its metacluster's phenotype.
 !!! note "The other result tabs"
     FlowSOM has no per-cell map like UMAP's, so the **Plot Gallery** and **Interactive Map** draw each cell around its node in the tree. **Population Statistics** and **Export** work as for HDBSCAN; exported populations are named *Metacluster N* under a *FlowSOM* population.
 
-!!! tip "UMAP + HDBSCAN or FlowSOM?"
-    Run both. HDBSCAN finds dense groups and may leave rare or diffuse cells out as noise; FlowSOM puts every cell somewhere and is fast on all events. Where both agree, you can trust it more. The [Sample Lens](./16_SAMPLE_LENS.md) checks your gates against either.
+!!! tip "Which method?"
+    Run more than one: see the comparison at the end of section 7. Where methods agree, you can trust it more. The [Sample Lens](./16_SAMPLE_LENS.md) checks your gates against any of them, and says when other runs agree.
+
+## 7. PhenoGraph
+
+PhenoGraph (Levine et al., 2015) is graph-based clustering, widely used for mass and spectral cytometry. It works in three steps:
+
+1. **Neighbours.** Each cell is linked to its *k* most similar cells (30 by default), measured across all the run's markers.
+2. **Shared neighbours.** Two cells are linked more strongly the more of those neighbours they share. Cells inside one population share most of them; cells on either side of a gap share almost none.
+3. **Clusters.** The Leiden method finds groups of cells that link mostly to each other. The **resolution** sets how fine the groups are; you don't choose how many there will be.
+
+### Settings
+
+| Setting | Default | What it controls |
+|---|---|---|
+| Neighbours (k) | 30 | How many neighbours each cell links to. Lower finds smaller, finer groups; higher merges small groups into larger ones. 30 is PhenoGraph's own default |
+| Resolution | 1.0 | How finely the cells are divided. Higher gives more, smaller clusters; lower merges them. You can change it after the run |
+| Minimum cluster size | 10 | Smaller clusters are not kept; their cells are marked as outliers |
+
+On 200,000 events a run takes about 15 seconds; changing the resolution afterwards, a few. Above 250,000 events, the graph is built on 250,000 of them and every other cell takes the cluster of its nearest graph cells, which keeps memory in check. The run happens in the background process, so the window stays responsive.
+
+### Reading the Cluster Graph
+
+A PhenoGraph run opens on the **Cluster Graph** tab. Each circle is a cluster, sized by its cell count. A line joins two clusters whose cells are each other's neighbours, and the thicker the line, the more of the smaller cluster's links go to the other. Positions only keep linked clusters close.
+
+1. **Look at the families.** Clusters joined by thick lines are usually one population split along a gradient (a marker that rises gradually, a maturation stage). PhenoGraph does this to large populations, especially at a high resolution.
+2. **Look for clusters that stand apart.** A circle with no lines links to no other cluster: a distinct group, often small. The legend and the title say *stands apart*. It is worth a look: it can be a rare population, or something that isn't a cell type at all, such as two cells stuck together (a doublet). Its phenotype is the first clue; a singlet plot (FSC-H against FSC-A) is the usual check.
+3. **Colour by each marker and name the clusters** from their phenotype in the legend and heatmap, as for FlowSOM.
+
+Change **Resolution** to merge or split clusters. The graph, gallery, map and statistics update when the re-clustering finishes ("Re-clustering…" beside the control meanwhile).
+
+Hover a circle to see its cells, its phenotype and the clusters it links to most.
+
+!!! note "The other result tabs"
+    Like FlowSOM, PhenoGraph has no per-cell map, so the **Plot Gallery** and **Interactive Map** draw each cell around its cluster. Exported populations are named *PhenoGraph Cluster N* under a *PhenoGraph* population.
+
+### Three methods side by side
+
+| | UMAP + HDBSCAN | FlowSOM | PhenoGraph |
+|---|---|---|---|
+| Cells left out | Yes: sparse cells are noise | None | Only clusters under the minimum size |
+| You choose | Minimum cluster size | *k*, the number of metaclusters | Resolution |
+| Change it after the run | No (run again) | Yes, instantly | Yes, in a few seconds |
+| Events | 10–20% (UMAP slows down) | All, even a million | All (graph on up to 250,000) |
+| Its own view | The UMAP map | The node tree | The cluster graph |
+| Good at | Seeing gradients and shapes | Speed; lineages along branches | Rare, distinct groups; which splits are real |
+| Watch out for | Rare cells dropped as noise | Splits at a high *k* | Large populations split along gradients |

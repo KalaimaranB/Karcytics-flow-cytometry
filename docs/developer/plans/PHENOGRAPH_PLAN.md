@@ -220,7 +220,7 @@ PhenoGraph runs is left for later (see Decisions).
   - A finding is the same if it has the same kind and the same population
     path; clusters are not compared.
   - Tests: two runs agreeing, and one disagreeing.
-- [ ] **6. Docs.**
+- [x] **6. Docs.**
   - `08_POPULATION_ANALYSIS.md`: a PhenoGraph section (graph, resolution,
     reading connectivity, when to prefer it).
   - A three-method comparison table: noise, cluster count, speed, what each
