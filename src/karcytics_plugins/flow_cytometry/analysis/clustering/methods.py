@@ -21,7 +21,23 @@ class ClusteringMethod:
     short: str  # prefix of a cluster's default name ("UMAP Cluster 3", "Metacluster 3")
 
     def cluster_name(self, cluster: int) -> str:
+        """Default name of an exported cluster ("UMAP Cluster 3", "Metacluster 3")."""
         return f"{self.short} {cluster}"
+
+    def tag(self, cluster: int) -> str:
+        """How plots label a cluster ("3", "M3")."""
+        return f"M{cluster}" if self.recuttable else str(cluster)
+
+    def cluster_label(self, cluster: int) -> str:
+        """A cluster in a sentence ("cluster 3", "metacluster M3")."""
+        return f"{self.cluster_noun} {self.tag(cluster)}"
+
+    def clusters_label(self, clusters: tuple[int, ...]) -> str:
+        """One or more clusters in a sentence ("metaclusters M1, M8 and M9")."""
+        if len(clusters) == 1:
+            return self.cluster_label(clusters[0])
+        tags = [self.tag(c) for c in clusters]
+        return f"{self.cluster_noun}s {', '.join(tags[:-1])} and {tags[-1]}"
 
     def map_caption(self, run: dict[str, Any]) -> str:
         """Caption for the run's map coloured by cluster."""

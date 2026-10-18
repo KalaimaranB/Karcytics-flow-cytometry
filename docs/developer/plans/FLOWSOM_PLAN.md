@@ -170,18 +170,13 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
   - The run history shows the method. Export as populations is unchanged.
   - Tests: run FlowSOM from the tab with a fake service; re-cut updates the
     stats.
-- [ ] **4. Sample Lens.**
-  - The run picker shows the method.
-  - The map caption and finding wording come from the descriptor.
-  - For a tree-layout run the map draws the tree (nodes coloured by majority
-    final population, and by metacluster).
-  - Merge findings are hierarchy-aware for re-cuttable methods.
-  - The scope line names *k*, and a small *k* control in the lens re-cuts and
-    re-audits.
-  - Tests:
-    - the planted mistakes are found with a FlowSOM run;
-    - a deliberately high *k* does not create merge findings;
-    - a UMAP run behaves exactly as before.
+- [x] **4. Sample Lens.** Done phenotype-aware rather than hierarchy-aware (easier to
+  explain): for FlowSOM, a merge is only flagged when the metaclusters' phenotypes
+  clearly differ (+ against −), a cut only when the kept and lost cells share a
+  phenotype, and findings with one phenotype are grouped. Findings name metaclusters
+  and their phenotypes; the map draws the tree and rings a finding's nodes; the run
+  picker and scope line show k; a k control re-cuts and re-audits. UMAP runs are
+  unchanged.
 - [ ] **5. Docs.**
   - `08_POPULATION_ANALYSIS.md`: a FlowSOM section (what the results mean,
     choosing *k*, when to prefer it).

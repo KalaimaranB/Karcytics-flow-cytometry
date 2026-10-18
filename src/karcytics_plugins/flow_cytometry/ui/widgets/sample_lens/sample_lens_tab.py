@@ -17,6 +17,7 @@ from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioComboBox,
     BioScrollArea,
+    BioSpinBox,
     BioStatusLabel,
     HeaderLabel,
     PrimaryButton,
@@ -24,10 +25,12 @@ from karcytics_sdk.plugin.components import (
     repopulate_combo,
 )
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
+from ....analysis.clustering import method_of
 from ....analysis.sample_lens import Finding
+from ..flowsom_tree import K_RANGE, RECUT_DELAY_MS
 from ._style import Pill, card, palette_color, section_header
 from .across_samples import AcrossSamples
 from .findings_panel import FindingsPanel
@@ -119,9 +122,10 @@ class SampleLensTab(QWidget):
         layout.addWidget(
             section_header(
                 "Clustering run",
-                "The lens compares your gates with an unsupervised clustering (UMAP + HDBSCAN) "
-                "of the same events. Pick an existing run, or run one on the population selected "
-                "below — usually your last clean-up gate (e.g. Live singlets).",
+                "The lens compares your gates with an unsupervised clustering of the same events: "
+                "UMAP + HDBSCAN, or a FlowSOM run from Population Analysis. Pick an existing run, "
+                "or run UMAP + HDBSCAN on the population selected below, usually your last "
+                "clean-up gate (e.g. Live singlets).",
             )
         )
         self._run_combo = BioComboBox()
@@ -130,6 +134,7 @@ class SampleLensTab(QWidget):
             lambda _i: self._model.set_run(_run_ref(self._run_combo.currentData()))
         )
         layout.addWidget(self._run_combo)
+        layout.addWidget(self._build_k_row())
         self._run_btn = PrimaryButton("Run UMAP + clustering")
         self._run_btn.setObjectName("SampleLensRunButton")
         self._run_btn.clicked.connect(lambda: self._model.run_umap(self._model.selected_node_id))
@@ -170,6 +175,29 @@ class SampleLensTab(QWidget):
         scroll.setWidget(content)
         outer.addWidget(scroll)
         return sidebar
+
+    def _build_k_row(self) -> QWidget:
+        """FlowSOM only: how many metaclusters to judge against (re-cut instantly)."""
+        self._k_row = QWidget()
+        row = QHBoxLayout(self._k_row)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.addWidget(BioCaptionLabel("Metaclusters (k):"))
+        self._k_spin = BioSpinBox()
+        self._k_spin.setObjectName("SampleLensKSpin")
+        self._k_spin.setRange(*K_RANGE)
+        self._k_spin.setToolTip(
+            "FlowSOM groups its nodes into k metaclusters. Too high splits a population in two "
+            "(the lens ignores splits with the same phenotype); too low merges two."
+        )
+        self._k_timer = QTimer(self)
+        self._k_timer.setSingleShot(True)
+        self._k_timer.setInterval(RECUT_DELAY_MS)
+        self._k_timer.timeout.connect(lambda: self._model.recut(self._k_spin.value()))
+        self._k_spin.valueChanged.connect(lambda _v: self._k_timer.start())
+        row.addWidget(self._k_spin)
+        row.addStretch()
+        self._k_row.hide()
+        return self._k_row
 
     def _build_main(self, state: FlowState, controller: Any, axis_manager: Any) -> QWidget:
         main = QWidget()
@@ -257,6 +285,13 @@ class SampleLensTab(QWidget):
         self._run_btn.setText(
             f"Run UMAP + clustering on {model.population_name(model.selected_node_id)}"
         )
+        run = model.run
+        recuttable = run is not None and method_of(run).recuttable
+        self._k_row.setVisible(recuttable)
+        if recuttable and run is not None:
+            self._k_spin.blockSignals(True)
+            self._k_spin.setValue(int(run.get("k", K_RANGE[0])))
+            self._k_spin.blockSignals(False)
         self._run_btn.setEnabled(sample is not None)
 
         scope = model.scope
@@ -303,9 +338,12 @@ class SampleLensTab(QWidget):
                 "cluster (usually your clean-up gate) and press “Run UMAP + clustering”."
             )
         population = model.population_name(scope.run.get("node_id"))
+        method = method_of(scope.run)
+        against = f"{method.name}, k = {scope.run.get('k')}" if method.recuttable else method.name
         return (
             f"Judging {len(scope.final_populations)} final populations on {scope.n:,} events of "
-            f"{population} ({model.sample.display_name}), sampled by the selected run."
+            f"{population} ({model.sample.display_name}), sampled by the selected run "
+            f"({against})."
         )
 
     def _empty_findings_text(self) -> tuple[str, str]:
@@ -320,7 +358,8 @@ class SampleLensTab(QWidget):
                 "No clusters",
                 "This run was made without clustering; run one with the button above.",
             )
-        return "No disagreements", "Every cluster maps cleanly onto your final populations."
+        noun = method_of(scope.run).cluster_noun
+        return "No disagreements", f"Every {noun} maps cleanly onto your final populations."
 
     # ── Handlers ───────────────────────────────────────────────────────
 
@@ -354,11 +393,11 @@ class SampleLensTab(QWidget):
         self._accept_btn.setEnabled(bool(steps))
         events = self._model.events(sample)
         if events is not None:
-            self._path.show_proposal(sample, events, proposal, palette_color(proposal.cluster))
+            self._path.show_proposal(sample, events, proposal, palette_color(proposal.clusters[0]))
 
     def _on_fix_requested(self, finding: Finding) -> None:
         self._emphasis = finding.clusters
-        self._proposal = self._model.propose(finding.clusters[0])
+        self._proposal = self._model.propose(finding.clusters)
         self._render()
 
     def _accept_proposal(self) -> None:

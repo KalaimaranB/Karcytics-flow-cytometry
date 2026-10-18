@@ -1,4 +1,7 @@
-"""The run's UMAP twice: coloured by final population, and by cluster.
+"""The run's map twice: coloured by final population, and by cluster.
+
+The map is the run's embedding: a UMAP, or for FlowSOM each event drawn
+around its node in the tree (with the tree's lines behind).
 
 Where the two colourings disagree, the gating probably has a mistake; the
 findings are circled. Clicking a cluster emits ``cluster_clicked``.
@@ -10,12 +13,14 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
+from matplotlib.collections import LineCollection
 from matplotlib.colors import to_rgba_array
 from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
+from ....analysis.clustering import method_of
 from ....analysis.sample_lens import NOISE, Finding, RunScope
 from ...graph._mpl_compat import LockedFigureCanvas
 from ..cluster_scatter_draw import style_embedding_axes
@@ -25,6 +30,39 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
 _LABEL = {"missed": "missed", "merges": "merged", "cuts": "cut"}
+
+
+NODE_RING = 0.6  # tree-edge lengths: a ring around one FlowSOM node
+
+
+def _rings(scope: RunScope, cid: int, spread: float) -> list[tuple[np.ndarray, float]]:
+    """Where to circle a cluster: around its cells, or (FlowSOM tree) around each of its nodes.
+
+    A metacluster can sit on several branches, so one circle around all its
+    cells would cover most of the tree. Its biggest node comes first.
+    """
+    run = scope.run
+    if run.get("embedding_kind") == "tree" and run.get("node_metaclusters") is not None:
+        members = np.flatnonzero(np.asarray(run["node_metaclusters"]) == cid)
+        counts = np.bincount(np.asarray(run["nodes"]), minlength=len(run["layout"]))[members]
+        layout = np.asarray(run["layout"])
+        return [(layout[n], NODE_RING) for n in members[np.argsort(-counts)]]
+    assert scope.clusters is not None
+    points = scope.embedding[scope.clusters == cid]
+    center = np.median(points, axis=0)
+    radius = max(float(np.percentile(np.linalg.norm(points - center, axis=1), 90)), spread * 0.03)
+    return [(center, radius)]
+
+
+def _draw_tree(ax: Axes, run: dict[str, Any]) -> None:
+    """A FlowSOM run's node tree, behind its events (nothing for a UMAP run)."""
+    if run.get("embedding_kind") != "tree" or run.get("layout") is None:
+        return
+    layout = np.asarray(run["layout"])
+    edges = np.asarray(run["mst_edges"])
+    ax.add_collection(
+        LineCollection(layout[edges], colors=Colors.FG_SECONDARY, alpha=0.35, linewidths=0.8)
+    )
 
 
 class RunMap(QWidget):
@@ -71,6 +109,8 @@ class RunMap(QWidget):
             return
 
         gates_ax, clusters_ax = fig.subplots(1, 2)
+        for ax in (gates_ax, clusters_ax):
+            _draw_tree(ax, scope.run)
         self._draw_by_population(gates_ax, scope, population_colors, selected_path)
         if scope.clusters is not None:
             self._draw_by_cluster(clusters_ax, scope)
@@ -111,7 +151,8 @@ class RunMap(QWidget):
 
     def _draw_by_cluster(self, ax: Axes, scope: RunScope) -> None:
         assert scope.clusters is not None
-        style_embedding_axes(ax, "Coloured by cluster (HDBSCAN)")
+        method = method_of(scope.run)
+        style_embedding_axes(ax, method.map_caption(scope.run))
         colors = np.array(
             [Colors.BG_LIGHT if c == NOISE else palette_color(int(c)) for c in scope.clusters],
             dtype=object,
@@ -132,7 +173,7 @@ class RunMap(QWidget):
             ax.text(
                 cx,
                 cy,
-                str(cid),
+                method.tag(int(cid)),
                 color=Colors.FG_PRIMARY,
                 fontsize=9,
                 fontweight="bold",
@@ -151,23 +192,21 @@ class RunMap(QWidget):
         spread = float(np.ptp(scope.embedding, axis=0).max()) or 1.0
         for finding in findings:
             for cid in finding.clusters:
-                points = scope.embedding[scope.clusters == cid]
-                center = np.median(points, axis=0)
-                radius = max(
-                    float(np.percentile(np.linalg.norm(points - center, axis=1), 90)), spread * 0.03
-                )
+                rings = _rings(scope, cid, spread)
                 strong = cid in emphasis
                 for ax in axes:
-                    ax.add_patch(
-                        Circle(
-                            tuple(center),
-                            radius,
-                            fill=False,
-                            edgecolor=Colors.ACCENT_WARNING,
-                            linewidth=2.4 if strong else 1.1,
-                            linestyle="--",
+                    for center, radius in rings:
+                        ax.add_patch(
+                            Circle(
+                                tuple(center),
+                                radius,
+                                fill=False,
+                                edgecolor=Colors.ACCENT_WARNING,
+                                linewidth=2.4 if strong else 1.1,
+                                linestyle="--",
+                            )
                         )
-                    )
+                center, radius = rings[0]
                 axes[0].annotate(
                     _LABEL[finding.kind.value],
                     (center[0], center[1] + radius),

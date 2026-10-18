@@ -11,11 +11,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.timing import Debouncer
 from PySide6.QtCore import QObject, Signal
 
 from ....analysis import events as flow_events
+from ....analysis.clustering import method_of
+from ....analysis.flowsom_analysis import recut_run
 from ....analysis.population_matching import populations
 from ....analysis.sample_lens import (
     Finding,
@@ -31,7 +34,6 @@ from ....analysis.services import experiment_edits
 from ....analysis.services.umap_service import UmapParams
 
 if TYPE_CHECKING:
-    import numpy as np
     import pandas as pd
 
     from ....analysis.experiment import Sample
@@ -64,6 +66,9 @@ class RunRef:
 
     def label(self, run: dict[str, Any], population: str) -> str:
         name = run.get("name") or f"Run {self.index + 1}"
+        method = method_of(run)
+        if method.recuttable:
+            name += f" · {method.name} k={run.get('k')}"
         clusters = "" if run.get("clusters") is not None else " · no clusters"
         return f"{name} · {population} · {len(run.get('indices', [])):,} events{clusters}"
 
@@ -73,7 +78,8 @@ class Proposal:
     """Gates proposed for one cluster of the current run."""
 
     sample_id: str
-    cluster: int
+    clusters: tuple[int, ...]
+    label: str  # the clusters in a sentence ("cluster 3", "metaclusters M1 and M8")
     events: pd.DataFrame  # the run's events
     target: np.ndarray  # which of them are the cluster
     steps: list[ProposedGate]  # a chain: each gate is meant as the previous one's child
@@ -207,6 +213,15 @@ class SampleLensModel(QObject):
         self.selected_node_id = node_id
         self.refresh()
 
+    def recut(self, k: int) -> None:
+        """Re-cut the current run (FlowSOM) into ``k`` metaclusters and re-audit."""
+        run = self.run
+        if run is None or not method_of(run).recuttable or run.get("k") == k:
+            return
+        recut_run(run, k)
+        experiment_edits.announce_unsaved_change()
+        self.refresh()
+
     def run_umap(self, node_id: str | None) -> None:
         """UMAP + HDBSCAN on ``node_id``'s population of the current sample."""
         if self.sample_id is None:
@@ -226,8 +241,8 @@ class SampleLensModel(QObject):
             on_error_cb=lambda msg: self._run_finished.emit({"error": msg}),
         )
 
-    def propose(self, cluster: int) -> Proposal | None:
-        """Rectangle gates on the run's channels (+ scatter) that recover ``cluster``."""
+    def propose(self, clusters: tuple[int, ...]) -> Proposal | None:
+        """Rectangle gates on the run's channels (+ scatter) that recover ``clusters``."""
         sample, scope = self.sample, self.scope
         events = self.events(sample) if sample is not None else None
         if sample is None or scope is None or scope.clusters is None or events is None:
@@ -239,20 +254,18 @@ class SampleLensModel(QObject):
         scales = {
             ch: self._axis_manager.get_scale(ch, sample.sample_id) for ch in dict.fromkeys(channels)
         }
-        target = scope.clusters == cluster
+        target = np.isin(scope.clusters, clusters)
         steps = propose_gates(run_events, target, scales) if len(scales) >= 2 else []  # noqa: PLR2004
-        return Proposal(sample.sample_id, cluster, run_events, target, steps)
+        label = method_of(scope.run).clusters_label(clusters)
+        return Proposal(sample.sample_id, clusters, label, run_events, target, steps)
 
     def add_proposal(self, proposal: Proposal) -> None:
         """Add the proposed chain to the tree, under the run's population."""
         parent_id = self.scope.run.get("node_id") if self.scope is not None else None
         last = len(proposal.steps) - 1
+        label = proposal.label[:1].upper() + proposal.label[1:]
         for i, step in enumerate(proposal.steps):
-            name = (
-                f"Cluster {proposal.cluster}"
-                if i == last
-                else f"Cluster {proposal.cluster} · pre-gate {i + 1}"
-            )
+            name = label if i == last else f"{label} · pre-gate {i + 1}"
             parent_id = self._controller.add_gate(
                 step.gate, proposal.sample_id, name=name, parent_node_id=parent_id
             )

@@ -264,7 +264,7 @@ class GatingPathStrip(QWidget):
         self, sample: Sample, sample_events: pd.DataFrame, proposal: Proposal, color: str
     ) -> None:
         """Each proposed gate on the events left by the ones before it, cluster highlighted."""
-        self._own_ranges((sample.sample_id, "proposal", proposal.cluster))
+        self._own_ranges((sample.sample_id, "proposal", proposal.clusters))
         steps = []
         remaining = np.ones(len(proposal.events), dtype=bool)
         for i, proposed in enumerate(proposal.steps):
@@ -282,7 +282,7 @@ class GatingPathStrip(QWidget):
             )
             remaining &= proposed.gate.contains(proposal.events)
         self.show_steps(
-            f"Proposed gates · cluster {proposal.cluster}",
+            f"Proposed gates · {proposal.label}",
             "The cluster is highlighted; each step keeps only the events inside the one before. "
             "Nothing changes until you add them.",
             sample,

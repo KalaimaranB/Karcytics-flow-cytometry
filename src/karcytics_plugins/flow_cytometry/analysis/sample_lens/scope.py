@@ -48,6 +48,7 @@ class RunScope:
     # path -> (n,) membership of every population under the run's node, final
     # or not: lets a finding name the gate on a path where cells are lost.
     steps: dict[str, np.ndarray] = field(default_factory=dict)
+    x: np.ndarray | None = None  # (n, markers) the run's transformed values, if it kept them
 
     @property
     def n(self) -> int:
@@ -119,4 +120,6 @@ def build_scope(sample: Sample, run: dict[str, Any], events: pd.DataFrame) -> Ru
         if not is_cluster_population(node) and _descends_from(node, under)
     }
     masks = {pop.path: steps[pop.path] for pop in finals}
-    return RunScope(run, rows, embedding, clusters, finals, masks, steps)
+    x = run.get("intensities")
+    x = np.asarray(x)[kept] if x is not None and len(x) == len(kept) else None
+    return RunScope(run, rows, embedding, clusters, finals, masks, steps, x)

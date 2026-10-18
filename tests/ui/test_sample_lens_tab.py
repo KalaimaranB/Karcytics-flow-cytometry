@@ -220,3 +220,40 @@ def test_an_unchanged_plot_is_not_redrawn_and_a_drag_is_waited_out(lens, qtbot, 
 def test_the_wheel_scrolls_the_strip_instead_of_zooming(lens):
     tab, _, _ = lens
     assert tab._path._plot(0).canvas._wheel_zoom is False
+
+
+def test_a_flowsom_run_gets_a_k_control_that_recuts_the_audit(qtbot):
+    from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
+    from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+
+    state = build_lens_state()
+    analysis = FlowsomAnalysis()
+    analysis.target_sample_id = "s0"
+    analysis.n_events = 10**6
+    analysis.k = 5
+    analysis.channels = ["CD3", "CD4", "CD8", "CD56"]
+    experiment_edits.add_umap_run(state, analysis.run(state))
+    tab = SampleLensTab(
+        state,
+        PopulationService(state),
+        FakeUmapService(),
+        TreeController(state),
+        AxisManager(state),
+    )
+    qtbot.addWidget(tab)
+    tab.resize(1400, 900)
+    tab.show()
+    tab._run_combo.setCurrentIndex(tab._run_combo.count() - 1)
+
+    assert "FlowSOM k=5" in tab._run_combo.currentText()
+    assert tab._k_row.isVisibleTo(tab)
+    assert "(FlowSOM, k = 5)" in tab._scope_caption.text()
+
+    tab._k_spin.setValue(8)
+    tab._k_timer.timeout.emit()
+
+    assert tab._model.run["k"] == 8  # noqa: PLR2004
+    assert "(FlowSOM, k = 8)" in tab._scope_caption.text()
+    missed = next(f for f in tab._model.findings if f.kind.value == "missed")
+    tab._on_fix_requested(missed)
+    assert tab._path._title.text().startswith("Proposed gates · metacluster")
