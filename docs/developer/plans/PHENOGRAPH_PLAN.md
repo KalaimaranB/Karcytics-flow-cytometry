@@ -195,7 +195,13 @@ PhenoGraph runs is left for later (see Decisions).
   - Tests: run from the tab with a fake service; changing the resolution
     refreshes the statistics, the history and the export list.
   - User checks it live here (first runnable slice).
-- [ ] **4. Sample Lens.**
+- [x] **4. Sample Lens.** One re-cut row for both methods (`SampleLensKSpin`
+  for FlowSOM, `SampleLensResolutionSpin` for PhenoGraph); a PhenoGraph
+  re-cluster runs in the background with a status line and re-audits when done.
+  The map draws the cluster links behind the events. On the tutorial data
+  (Sample C, resolution 1.0) the lens reports that **DP holds the small
+  B220+ CD3+ cluster** (22% of DP): material for the Academy (the cluster
+  stands apart in the graph and lands in a T-cell quadrant).
   - PhenoGraph runs in the run picker.
   - The resolution row (generic re-cut row).
   - Findings name clusters with phenotypes and use the over-split rules.

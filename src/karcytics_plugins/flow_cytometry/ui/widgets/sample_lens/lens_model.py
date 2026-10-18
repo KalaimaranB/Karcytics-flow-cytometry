@@ -19,6 +19,7 @@ from PySide6.QtCore import QObject, Signal
 from ....analysis import events as flow_events
 from ....analysis.clustering import method_of
 from ....analysis.flowsom_analysis import recut_run
+from ....analysis.phenograph_analysis import apply_clusters
 from ....analysis.population_matching import populations
 from ....analysis.sample_lens import (
     Finding,
@@ -69,7 +70,7 @@ class RunRef:
         name = run.get("name") or f"Run {self.index + 1}"
         method = method_of(run)
         if method.recuttable:
-            name += f" · {method.name} k={run.get('k')}"
+            name += f" · {method.name} {method.setting_text(run)}"
         clusters = "" if run.get("clusters") is not None else " · no clusters"
         return f"{name} · {population} · {len(run.get('indices', [])):,} events{clusters}"
 
@@ -122,6 +123,7 @@ class SampleLensModel(QObject):
     changed = Signal()  # sample, run, populations, findings or checks changed
     run_progress = Signal(bool, str)  # running, status text
     _run_finished = Signal(object)  # results dict, delivered on this object's thread
+    _recut_finished = Signal(object)  # a PhenoGraph re-cluster's arrays, likewise
 
     def __init__(
         self,
@@ -145,10 +147,12 @@ class SampleLensModel(QObject):
         self.findings: list[Finding] = []
         self.checks: list[SampleCheck] = []
         self._chosen_runs: dict[str, RunRef] = {}  # sample -> run picked for it
+        self._reclustering: dict[str, Any] | None = None  # the run a re-cluster is for
 
         self._active = False
         self._debouncer = Debouncer(self.refresh)
         self._run_finished.connect(self._on_run_finished)
+        self._recut_finished.connect(self._on_recut_finished)
         self._on_gates_changed = lambda _data=None: self._schedule()
         for topic in _GATE_TOPICS:
             CentralEventBus.subscribe(topic, self._on_gates_changed)
@@ -248,13 +252,40 @@ class SampleLensModel(QObject):
         self.selected_node_id = node_id
         self.refresh()
 
-    def recut(self, k: int) -> None:
-        """Re-cut the current run (FlowSOM) into ``k`` metaclusters and re-audit."""
+    def recut(self, value: float) -> None:
+        """Re-cut the current run (FlowSOM's k, PhenoGraph's resolution) and re-audit.
+
+        FlowSOM re-cuts on the spot; PhenoGraph re-clusters in the background
+        (``run_progress`` says so) and re-audits when it's done.
+        """
         run = self.run
-        if run is None or not method_of(run).recuttable or run.get("k") == k:
+        setting = method_of(run).recut if run is not None else None
+        if run is None or setting is None or run.get(setting.key) == value:
             return
-        recut_run(run, k)
-        experiment_edits.announce_unsaved_change()
+        if setting.instant:
+            recut_run(run, int(value))
+            experiment_edits.announce_unsaved_change()
+            self.refresh()
+            return
+        self._reclustering = run
+        self.run_progress.emit(True, f"Re-clustering at {setting.text(value)}…")
+        self._umap_service.recluster_phenograph(
+            run,
+            value,
+            on_done=self._recut_finished.emit,
+            on_error_cb=lambda msg: self._recut_finished.emit({"error": msg}),
+        )
+
+    def _on_recut_finished(self, arrays: dict[str, Any]) -> None:
+        run, self._reclustering = self._reclustering, None
+        if "error" in arrays:
+            self.run_progress.emit(False, f"Re-clustering failed: {arrays['error']}")
+            self.changed.emit()  # the controls go back to the run's own setting
+            return
+        if run is not None:
+            apply_clusters(run, arrays)
+            experiment_edits.announce_unsaved_change()
+        self.run_progress.emit(False, "")
         self.refresh()
 
     def run_umap(self, node_id: str | None) -> None:

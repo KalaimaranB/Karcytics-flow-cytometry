@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioComboBox,
+    BioDoubleSpinBox,
     BioScrollArea,
     BioSpinBox,
     BioStatusLabel,
@@ -30,8 +31,9 @@ from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
 from ....analysis.clustering import method_of
+from ....analysis.clustering.methods import K_SETTING, RESOLUTION_SETTING
 from ....analysis.sample_lens import Finding
-from ..flowsom_tree import K_RANGE, RECUT_DELAY_MS
+from ..cluster_map_view import RECUT_DELAY_MS
 from ._style import Pill, card, palette_color, section_header
 from .across_samples import AcrossSamples
 from .findings_panel import FindingsPanel
@@ -182,27 +184,39 @@ class SampleLensTab(QWidget):
         return sidebar
 
     def _build_k_row(self) -> QWidget:
-        """FlowSOM only: how many metaclusters to judge against (re-cut instantly)."""
+        """FlowSOM's k or PhenoGraph's resolution: how finely the run is cut, changeable here."""
         self._k_row = QWidget()
         row = QHBoxLayout(self._k_row)
         row.setContentsMargins(0, 0, 0, 0)
-        row.addWidget(BioCaptionLabel("Metaclusters (k):"))
-        self._k_spin = BioSpinBox()
+        self._k_label = BioCaptionLabel(K_SETTING.label + ":")
+        row.addWidget(self._k_label)
+        self._k_spin = BioSpinBox()  # FlowSOM: re-cut instantly
         self._k_spin.setObjectName("SampleLensKSpin")
-        self._k_spin.setRange(*K_RANGE)
-        self._k_spin.setToolTip(
-            "FlowSOM groups its nodes into k metaclusters. Too high splits a population in two "
-            "(the lens ignores splits with the same phenotype); too low merges two."
-        )
+        self._k_spin.setRange(int(K_SETTING.minimum), int(K_SETTING.maximum))
+        self._k_spin.setToolTip(K_SETTING.help)
+        self._res_spin = BioDoubleSpinBox()  # PhenoGraph: re-clusters in the background
+        self._res_spin.setObjectName("SampleLensResolutionSpin")
+        self._res_spin.setDecimals(RESOLUTION_SETTING.decimals)
+        self._res_spin.setSingleStep(RESOLUTION_SETTING.step)
+        self._res_spin.setRange(RESOLUTION_SETTING.minimum, RESOLUTION_SETTING.maximum)
+        self._res_spin.setToolTip(RESOLUTION_SETTING.help)
         self._k_timer = QTimer(self)
         self._k_timer.setSingleShot(True)
         self._k_timer.setInterval(RECUT_DELAY_MS)
-        self._k_timer.timeout.connect(lambda: self._model.recut(self._k_spin.value()))
-        self._k_spin.valueChanged.connect(lambda _v: self._k_timer.start())
-        row.addWidget(self._k_spin)
+        self._k_timer.timeout.connect(self._recut)
+        for spin in (self._k_spin, self._res_spin):
+            spin.valueChanged.connect(lambda _v: self._k_timer.start())
+            row.addWidget(spin)
         row.addStretch()
         self._k_row.hide()
         return self._k_row
+
+    def _recut(self) -> None:
+        run = self._model.run
+        setting = method_of(run).recut if run is not None else None
+        if setting is not None:
+            spin = self._k_spin if setting is K_SETTING else self._res_spin
+            self._model.recut(round(spin.value(), 2))
 
     def _build_main(self, state: FlowState, controller: Any, axis_manager: Any) -> QWidget:
         main = QWidget()
@@ -301,12 +315,20 @@ class SampleLensTab(QWidget):
             f"Run UMAP + clustering on {model.population_name(model.selected_node_id)}"
         )
         run = model.run
-        recuttable = run is not None and method_of(run).recuttable
-        self._k_row.setVisible(recuttable)
-        if recuttable and run is not None:
-            self._k_spin.blockSignals(True)
-            self._k_spin.setValue(int(run.get("k", K_RANGE[0])))
-            self._k_spin.blockSignals(False)
+        setting = method_of(run).recut if run is not None else None
+        self._k_row.setVisible(setting is not None)
+        if setting is not None and run is not None:
+            self._k_label.setText(f"{setting.label}:")
+            self._k_spin.setVisible(setting is K_SETTING)
+            self._res_spin.setVisible(setting is RESOLUTION_SETTING)
+            for spin in (self._k_spin, self._res_spin):
+                spin.blockSignals(True)
+            if setting is K_SETTING:
+                self._k_spin.setValue(int(run.get("k", K_SETTING.minimum)))
+            else:
+                self._res_spin.setValue(float(run.get("resolution", 1.0)))
+            for spin in (self._k_spin, self._res_spin):
+                spin.blockSignals(False)
         self._run_btn.setEnabled(sample is not None)
 
         scope = model.scope
@@ -354,7 +376,8 @@ class SampleLensTab(QWidget):
             )
         population = model.population_name(scope.run.get("node_id"))
         method = method_of(scope.run)
-        against = f"{method.name}, k = {scope.run.get('k')}" if method.recuttable else method.name
+        setting = method.setting_text(scope.run).replace("=", " = ")
+        against = f"{method.name}, {setting}" if setting else method.name
         return (
             f"Judging {len(scope.final_populations)} final populations on {scope.n:,} events of "
             f"{population} ({model.sample.display_name}), sampled by the selected run "

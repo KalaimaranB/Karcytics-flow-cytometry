@@ -1,7 +1,8 @@
 """The run's map twice: coloured by final population, and by cluster.
 
 The map is the run's embedding: a UMAP, or for FlowSOM each event drawn
-around its node in the tree (with the tree's lines behind).
+around its node in the tree (with the tree's lines behind), or for PhenoGraph
+each event drawn around its cluster (with the cluster links behind).
 
 Where the two colourings disagree, the gating probably has a mistake; the
 findings are circled. Clicking a cluster emits ``cluster_clicked``.
@@ -55,14 +56,25 @@ def _rings(scope: RunScope, cid: int, spread: float) -> list[tuple[np.ndarray, f
 
 
 def _draw_tree(ax: Axes, run: dict[str, Any]) -> None:
-    """A FlowSOM run's node tree, behind its events (nothing for a UMAP run)."""
-    if run.get("embedding_kind") != "tree" or run.get("layout") is None:
+    """A FlowSOM run's node tree or a PhenoGraph run's cluster links, behind its events.
+
+    Nothing for a UMAP run. PhenoGraph's lines are as thick as the clusters are linked.
+    """
+    kind = run.get("embedding_kind")
+    if kind not in ("tree", "graph") or run.get("layout") is None:
         return
-    layout = np.asarray(run["layout"])
-    edges = np.asarray(run["mst_edges"])
-    ax.add_collection(
-        LineCollection(layout[edges], colors=Colors.FG_SECONDARY, alpha=0.35, linewidths=0.8)
-    )
+    layout = np.asarray(run["layout"]).reshape(-1, 2)
+    widths: Any = 0.8
+    if kind == "tree":
+        edges = np.asarray(run["mst_edges"])
+    else:
+        edges = np.asarray(run.get("cluster_edges", [])).reshape(-1, 2)
+        strength = np.asarray(run.get("cluster_connectivity", []), dtype=float)
+        widths = 0.5 + 3.0 * strength / max(float(strength.max()), 1e-12) if len(strength) else 0.8
+    if len(edges):
+        ax.add_collection(
+            LineCollection(layout[edges], colors=Colors.FG_SECONDARY, alpha=0.35, linewidths=widths)
+        )
 
 
 class RunMap(QWidget):

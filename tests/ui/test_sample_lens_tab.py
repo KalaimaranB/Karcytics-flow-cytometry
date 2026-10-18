@@ -426,3 +426,70 @@ def test_each_plot_switches_view_where_its_gate_allows(lens):
     tab._model.select(bright.node_id)
     assert _shown(tab)[0].canvas._display_mode is DisplayMode.CONTOUR  # remembered
     assert _shown(tab)[-1].canvas._y_param == "SSC-A"
+
+
+def _phenograph_lens(qtbot, monkeypatch, resolution=0.1):
+    from karcytics_plugins.flow_cytometry.analysis import phenograph_analysis
+    from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+    from tests.fixtures.phenograph import in_process_compute
+
+    monkeypatch.setattr(phenograph_analysis, "compute", in_process_compute)
+    state = build_lens_state()
+    analysis = phenograph_analysis.PhenographAnalysis()
+    analysis.target_sample_id = "s0"
+    analysis.n_events = 10**6
+    analysis.resolution = resolution
+    analysis.channels = ["CD3", "CD4", "CD8", "CD56"]
+    experiment_edits.add_umap_run(state, analysis.run(state))
+    umap = FakeUmapService()
+    tab = SampleLensTab(
+        state, PopulationService(state), umap, TreeController(state), AxisManager(state)
+    )
+    qtbot.addWidget(tab)
+    tab.resize(1400, 900)
+    tab.show()
+    tab._run_combo.setCurrentIndex(tab._run_combo.count() - 1)
+    return tab, state, umap
+
+
+def test_a_phenograph_run_gets_a_resolution_control_that_reclusters_the_audit(qtbot, monkeypatch):
+    tab, _state, umap = _phenograph_lens(qtbot, monkeypatch)
+
+    assert "PhenoGraph res=0.1" in tab._run_combo.currentText()
+    assert "(PhenoGraph, res = 0.1)" in tab._scope_caption.text()
+    assert tab._k_label.text() == "Resolution:"
+    assert tab._res_spin.isVisibleTo(tab) and not tab._k_spin.isVisibleTo(tab)
+    before = int(tab._model.run["clusters"].max()) + 1
+
+    tab._res_spin.setValue(2.0)
+    tab._k_timer.timeout.emit()
+
+    assert ("recluster", 2.0) in umap.calls
+    assert tab._model.run["resolution"] == 2.0  # noqa: PLR2004
+    assert int(tab._model.run["clusters"].max()) + 1 > before
+    assert "(PhenoGraph, res = 2.0)" in tab._scope_caption.text()
+    assert tab._run_status.text() == ""
+    assert tab._run_btn.isEnabled()
+
+
+def test_phenograph_findings_name_clusters_and_the_map_draws_their_links(qtbot, monkeypatch):
+    from matplotlib.collections import LineCollection
+
+    tab, _state, _umap = _phenograph_lens(qtbot, monkeypatch, resolution=2.0)
+    missed = next(f for f in tab._model.findings if f.kind.value == "missed")
+    assert missed.title.startswith("Cluster C")
+    axes = tab._map._canvas.figure.axes
+    assert any(isinstance(c, LineCollection) for ax in axes for c in ax.collections)
+    tab._on_fix_requested(missed)
+    assert tab._path._title.text().startswith("Proposed gates · cluster C")
+
+
+def test_a_failed_recluster_says_so_and_keeps_the_run(qtbot, monkeypatch):
+    tab, _state, umap = _phenograph_lens(qtbot, monkeypatch)
+    clusters = tab._model.run["clusters"].copy()
+    umap.recluster_phenograph = lambda run, res, on_done, on_error_cb: on_error_cb("daemon gone")
+    tab._res_spin.setValue(0.5)
+    tab._k_timer.timeout.emit()
+    assert "daemon gone" in tab._run_status.text()
+    assert (tab._model.run["clusters"] == clusters).all()
+    assert tab._res_spin.value() == 0.1  # noqa: PLR2004 - back to the run's own setting
