@@ -97,11 +97,34 @@ def test_recut_keeps_custom_population_cells_out(planted):
     assert run["cluster_names"] == {}
 
 
-def test_summaries_name_the_markers_that_set_a_metacluster_apart(planted):
+def test_summaries_give_each_metacluster_a_full_phenotype(planted):
     from karcytics_plugins.flow_cytometry.analysis.clustering import summarize_clusters
 
     *_, run = planted
     summaries = summarize_clusters(run["intensities"], run["clusters"], run["channel_labels"])
     assert len(summaries) == run["k"]
     assert sum(s.share for s in summaries) == pytest.approx(1.0)
-    assert any(s.up == ("CD4",) or "CD4↑" in s.signature for s in summaries)
+    phenotypes = {s.phenotype for s in summaries}
+    assert "CD3+ CD4+ CD8− CD56−" in phenotypes  # CD4 T cells
+    assert "CD3+ CD4− CD8+ CD56−" in phenotypes  # CD8 T cells
+    assert any(p.startswith("CD3− CD4− ") and p.endswith("CD56+") for p in phenotypes)  # NK
+
+
+def test_a_marker_that_does_not_differ_is_left_out():
+    import numpy as np
+
+    from karcytics_plugins.flow_cytometry.analysis.clustering import summarize_clusters
+
+    x = np.column_stack([np.r_[np.zeros(50), np.ones(50)], np.full(100, 0.8)])
+    clusters = np.r_[np.zeros(50, int), np.ones(50, int)]
+    phenotypes = sorted(
+        s.phenotype for s in summarize_clusters(x, clusters, ["CD4 (PE-A)", "CD45"])
+    )
+    assert phenotypes == ["CD4+", "CD4−"]
+
+
+def test_short_marker_drops_the_channel():
+    from karcytics_plugins.flow_cytometry.analysis.clustering import short_marker
+
+    assert short_marker("CD4 (PE-A)") == "CD4"
+    assert short_marker("FL1-A") == "FL1-A"

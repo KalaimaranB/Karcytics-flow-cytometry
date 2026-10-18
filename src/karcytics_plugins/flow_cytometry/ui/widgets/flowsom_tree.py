@@ -25,13 +25,17 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QListWidgetItem, QVBoxLayout, QWidget
 
-from ...analysis.clustering import summarize_clusters
+from ...analysis.clustering import call, short_marker, summarize_clusters
 
 GUIDE = (
-    "<b>How to read this.</b> Each circle is a <b>node</b>: a small group of very similar "
-    "cells. Bigger circle, more cells. Lines join each node to the nodes most like it, so a "
-    "branch is a family of related cells. A <b>metacluster</b> is a group of nodes FlowSOM "
-    "thinks is one population; colour by a marker to see why. Hover a circle for its cells."
+    "<b>How to read this.</b> Each circle is a <b>node</b>, a small group of very similar "
+    "cells (bigger circle, more cells). Lines join each node to the nodes most like it, so a "
+    "branch is a family of related cells; positions and line lengths mean nothing. "
+    "<b>1.</b> Colour by each marker to see which branches are bright for it. "
+    "<b>2.</b> Name each <b>metacluster</b> from its phenotype on the right "
+    "(e.g. CD3+ CD4+ is CD4 T cells). "
+    "<b>3.</b> Check k: one branch split into several colours means k is probably too high; "
+    "one colour across unrelated branches, too low."
 )
 K_HELP = (
     "Metaclusters (k): how many populations FlowSOM splits the nodes into. Too high splits "
@@ -40,6 +44,7 @@ K_HELP = (
 MIN_SIZE, MAX_SIZE = 30.0, 520.0  # circle area range, points²
 RECUT_DELAY_MS = 350
 K_RANGE = (2, 40)
+SIDE_WIDTH = 330
 
 
 def metacluster_colors(n: int) -> list[tuple[float, ...]]:
@@ -106,8 +111,8 @@ class FlowsomTreeView(QWidget):
         self._color_combo = BioComboBox()
         self._color_combo.setObjectName("FlowsomColorCombo")
         self._color_combo.addItem("Metacluster", None)
-        for i, label in enumerate(self._labels):
-            self._color_combo.addItem(f"Marker: {label}", i)
+        for i, marker in enumerate(self._markers):
+            self._color_combo.addItem(f"Marker: {marker}", i)
         self._color_combo.currentIndexChanged.connect(lambda _i: self._draw())
         toolbar.addWidget(self._color_combo)
         toolbar.addSpacing(16)
@@ -129,13 +134,25 @@ class FlowsomTreeView(QWidget):
         legend_title = QLabel("Metaclusters")
         legend_title.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-weight: bold;")
         side.addWidget(legend_title)
-        hint = QLabel("Share of cells · markers that set it apart (↑ brighter, ↓ dimmer)")
+        hint = QLabel(
+            "Share of cells and phenotype. Per marker, the dimmest metacluster is − and the "
+            "brightest +; lo is in between. Markers that barely differ are left out."
+        )
         hint.setWordWrap(True)
         hint.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 10px;")
         side.addWidget(hint)
         self._legend = BioListWidget()
         self._legend.setObjectName("FlowsomLegend")
+        self._legend.setWordWrap(True)
         side.addWidget(self._legend, stretch=1)
+        heat_title = QLabel("Phenotype heatmap")
+        heat_title.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-weight: bold;")
+        side.addWidget(heat_title)
+        self._heat_figure = Figure(facecolor=Colors.BG_DARK)
+        self._heat_canvas = LockedFigureCanvas(self._heat_figure)
+        self._heat_canvas.setObjectName("FlowsomHeatmap")
+        self._heat_canvas.setMinimumHeight(220)
+        side.addWidget(self._heat_canvas, stretch=1)
         self._hover_lbl = QLabel("Hover a circle to see its cells.")
         self._hover_lbl.setObjectName("FlowsomHoverLabel")
         self._hover_lbl.setWordWrap(True)
@@ -143,7 +160,7 @@ class FlowsomTreeView(QWidget):
         side.addWidget(self._hover_lbl)
         side_widget = QWidget()
         side_widget.setLayout(side)
-        side_widget.setFixedWidth(260)
+        side_widget.setFixedWidth(SIDE_WIDTH)
         return side_widget
 
     # ── Data ──────────────────────────────────────────────────────────
@@ -151,6 +168,10 @@ class FlowsomTreeView(QWidget):
     @property
     def _labels(self) -> list[str]:
         return list(self._run.get("channel_labels") or self._run.get("channels", []))
+
+    @property
+    def _markers(self) -> list[str]:
+        return [short_marker(label) for label in self._labels]
 
     def _array(self, key: str) -> np.ndarray:
         return np.asarray(self._run[key])
@@ -162,6 +183,9 @@ class FlowsomTreeView(QWidget):
         self._k_spin.blockSignals(True)
         self._k_spin.setValue(int(self._run.get("k", self._k_spin.value())))
         self._k_spin.blockSignals(False)
+        self._summaries = summarize_clusters(
+            self._array("intensities"), self._array("clusters"), self._labels
+        )
         self._fill_legend()
         self._draw()
 
@@ -169,12 +193,9 @@ class FlowsomTreeView(QWidget):
         self._legend.clear()
         names = self._run.get("cluster_names", {})
         colors = metacluster_colors(int(self._array("node_metaclusters").max()) + 1)
-        x = self._array("intensities")
-        for summary in summarize_clusters(x, self._array("clusters"), self._labels):
+        for summary in self._summaries:
             name = names.get(str(summary.cluster)) or f"M{summary.cluster}"
-            text = f"{name} · {summary.share:.0%}"
-            if summary.signature:
-                text += f" · {summary.signature}"
+            text = f"{name} · {summary.share:.0%} · {summary.phenotype}"
             item = QListWidgetItem(_dot(colors[summary.cluster]), text)
             item.setToolTip(text)
             self._legend.addItem(item)
@@ -198,7 +219,39 @@ class FlowsomTreeView(QWidget):
         # Agg is shared with the gallery's background renders: build under the lock.
         with MPL_RASTER_LOCK:
             self._draw_figure()
+            self._draw_heatmap()
         self._canvas.draw_idle()
+        self._heat_canvas.draw_idle()
+
+    def _draw_heatmap(self) -> None:
+        """Metaclusters × markers, coloured by where each median sits in the marker's range."""
+        self._heat_figure.clear()
+        ax = self._heat_figure.add_subplot(111)
+        names = self._run.get("cluster_names", {})
+        rows = [names.get(str(s.cluster)) or f"M{s.cluster}" for s in self._summaries]
+        levels = np.array([s.level for s in self._summaries])
+        if self._summaries:  # markers that don't differ: blank, as in the legend
+            levels[:, ~np.array(self._summaries[0].informative)] = np.nan
+        cmap = mpl.colormaps["viridis"].with_extremes(bad=Colors.BG_MEDIUM)
+        ax.imshow(levels, cmap=cmap, vmin=0, vmax=1, aspect="auto")
+        for (r, c), v in np.ndenumerate(levels):
+            if np.isnan(v):
+                continue
+            ax.text(
+                c,
+                r,
+                call(v),
+                ha="center",
+                va="center",
+                fontsize=7,
+                color="black" if v >= 0.5 else "white",  # noqa: PLR2004 (viridis midpoint)
+            )
+        ax.set_xticks(range(len(self._markers)), self._markers, rotation=45, ha="right")
+        ax.set_yticks(range(len(rows)), rows)
+        ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=7, length=0)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        self._heat_figure.tight_layout()
 
     def _draw_figure(self) -> None:
         self._figure.clear()
@@ -226,7 +279,7 @@ class FlowsomTreeView(QWidget):
             zorder=2,
         )
         if norm is not None:
-            marker = self._labels[self._color_combo.currentData()]
+            marker = self._markers[self._color_combo.currentData()]
             mappable = mpl.cm.ScalarMappable(cmap="viridis", norm=norm)
             cbar = self._figure.colorbar(mappable, ax=ax, fraction=0.04, pad=0.02)
             cbar.set_label(
@@ -274,12 +327,11 @@ class FlowsomTreeView(QWidget):
             return
         meta = int(self._array("node_metaclusters")[node])
         total = max(int(self._counts.sum()), 1)
-        codes = self._array("codes")[node]
-        top = np.argsort(-codes)[:3]
-        bright = ", ".join(f"{self._labels[i]} {codes[i]:.2f}" for i in top)
+        summary = next((s for s in self._summaries if s.cluster == meta), None)
+        phenotype = summary.phenotype if summary is not None else ""
         name = self._run.get("cluster_names", {}).get(str(meta)) or f"M{meta}"
         self._hover_lbl.setText(
             f"<b>Node {node}</b> · {name}<br>{self._counts[node]:,} cells "
-            f"({self._counts[node] / total:.1%})<br>Brightest: {bright}"
+            f"({self._counts[node] / total:.1%})<br>{phenotype}"
         )
         self._hover_lbl.setTextFormat(Qt.TextFormat.RichText)

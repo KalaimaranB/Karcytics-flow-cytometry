@@ -1,54 +1,77 @@
-"""Plain-language descriptions of clusters: how big, and which markers set them apart."""
+"""Plain-language descriptions of clusters: how big, and their phenotype.
+
+Each marker is called from the clusters' own medians, the way a scientist
+reads a heatmap: the dimmest cluster sets "−", the brightest "+", and a
+cluster in the middle third of that span is "lo" (dim). So every cluster
+reads like a gated population ("B220+ CD3− CD4− CD8lo").
+
+A marker whose medians barely differ between clusters says nothing about
+them (it is on every cell, or on none) and is left out of the phenotype.
+"""
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import numpy as np
 
-STANDS_OUT = 0.5  # a marker stands out when the cluster's median is this many IQRs off
-MAX_MARKERS = 3
+_CHANNEL_SUFFIX = re.compile(r"\s*\([^()]*\)$")
+MIN_SPREAD = 0.1  # transformed units (0-1): less between dimmest and brightest is no signal
+LO, HI = 1 / 3, 2 / 3  # level thresholds: below LO "−", from HI "+", between "lo"
+
+
+def short_marker(label: str) -> str:
+    """Drop the channel: "CD4 (PE-A)" becomes "CD4"; a label without a marker is kept."""
+    return _CHANNEL_SUFFIX.sub("", label) or label
+
+
+def call(level: float) -> str:
+    """The +/lo/− call for a level (0 = dimmest cluster, 1 = brightest)."""
+    if level >= HI:
+        return "+"
+    return "lo" if level >= LO else "−"
 
 
 @dataclass(frozen=True)
 class ClusterSummary:
     cluster: int
     share: float  # of all events in the run
-    up: tuple[str, ...]  # markers brighter than in the rest of the run
-    down: tuple[str, ...]  # markers dimmer than in the rest of the run
+    markers: tuple[str, ...]  # short marker names
+    level: tuple[float, ...]  # per marker: 0 = dimmest cluster's median, 1 = brightest's
+    informative: tuple[bool, ...]  # per marker: does it differ between clusters at all
 
     @property
-    def signature(self) -> str:
-        """e.g. "CD4↑ CD8↓"; empty when nothing stands out."""
-        return " ".join([f"{m}↑" for m in self.up] + [f"{m}↓" for m in self.down])
+    def phenotype(self) -> str:
+        """e.g. "B220+ CD3− CD4− CD8lo" (uninformative markers left out)."""
+        return " ".join(
+            f"{m}{call(v)}"
+            for m, v, keep in zip(self.markers, self.level, self.informative, strict=True)
+            if keep
+        )
 
 
 def summarize_clusters(
     x: np.ndarray, clusters: np.ndarray, labels: list[str]
 ) -> list[ClusterSummary]:
-    """One summary per cluster (noise, -1, left out), largest first.
-
-    A marker is listed when the cluster's median differs from the whole run's
-    median by more than half the run's interquartile range; the strongest few
-    are kept.
-    """
-    overall = np.median(x, axis=0)
-    q1, q3 = np.percentile(x, [25, 75], axis=0)
-    spread = np.maximum(q3 - q1, 1e-9)
-    out = []
-    for cid in np.unique(clusters):
-        if cid < 0:
-            continue
-        inside = clusters == cid
-        effect = (np.median(x[inside], axis=0) - overall) / spread
-        strongest = [i for i in np.argsort(-np.abs(effect)) if abs(effect[i]) > STANDS_OUT]
-        strongest = strongest[:MAX_MARKERS]
-        out.append(
-            ClusterSummary(
-                cluster=int(cid),
-                share=float(inside.mean()),
-                up=tuple(labels[i] for i in strongest if effect[i] > 0),
-                down=tuple(labels[i] for i in strongest if effect[i] < 0),
-            )
+    """One summary per cluster (noise, -1, left out), largest first."""
+    ids = [int(c) for c in np.unique(clusters) if c >= 0]
+    if not ids:
+        return []
+    medians = np.array([np.median(x[clusters == c], axis=0) for c in ids])
+    low, high = medians.min(axis=0), medians.max(axis=0)
+    spread = high - low
+    levels = (medians - low) / np.maximum(spread, 1e-9)
+    informative = tuple(bool(s >= MIN_SPREAD) for s in spread)
+    markers = tuple(short_marker(label) for label in labels)
+    out = [
+        ClusterSummary(
+            cid,
+            float((clusters == cid).mean()),
+            markers,
+            tuple(float(v) for v in level),
+            informative,
         )
+        for cid, level in zip(ids, levels, strict=True)
+    ]
     return sorted(out, key=lambda s: -s.share)

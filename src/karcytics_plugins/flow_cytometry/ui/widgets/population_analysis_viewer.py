@@ -370,7 +370,10 @@ class PopulationAnalysisViewer(QWidget):
 
         seed_help = BioHelpButton()
         seed_help.setHelpText(
-            "Controls the random number generator used by UMAP. Keeping this constant ensures the same data always produces the exact same layout. Change it to see different valid embedding variations.",
+            "Fixes the random choices a run makes: which events are picked when using fewer "
+            "than all of them, UMAP's starting layout, and FlowSOM's starting nodes. The same "
+            "seed on the same data gives the same result; another seed gives another valid "
+            "result, a quick way to check a finding isn't a fluke.",
             "Random Seed",
         )
 
