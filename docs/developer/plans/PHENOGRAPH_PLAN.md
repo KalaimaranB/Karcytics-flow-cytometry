@@ -226,7 +226,7 @@ PhenoGraph runs is left for later (see Decisions).
   - A three-method comparison table: noise, cluster count, speed, what each
     view shows.
   - `16_SAMPLE_LENS.md`: PhenoGraph and the agreement line.
-- [ ] **7. Academy.** See below. Dry runs on the tutorial data offscreen, then
+- [x] **7. Academy.** See below. Dry runs on the tutorial data offscreen, then
   step and word-limit tests. User plays it live.
 
 ## Academy: three methods across two courses

@@ -1378,12 +1378,12 @@ class LineageGatingCompleteValidator(FlowValidator):
 class PopulationAnalysisCompleteValidator(FlowValidator):
     """Verifies Course 4's population-analysis output — the exported
     "UMAP B Cells" gate and the AND node cross-checking it against the
-    manual B-cells gate — actually exists, before Course 6's Statistics/
+    manual B-cells gate — actually exists, before Course 7's Statistics/
     Comparisons walkthrough starts leaning on both.
 
     Checks every FULL_PANEL sample directly, the same "any sample, not
     just whichever one happens to be open" reach `GateExistsValidator`
-    uses — Course 6 can launch with a different sample selected than
+    uses — Course 7 can launch with a different sample selected than
     whichever one the UMAP run was on, and this shouldn't false-fail
     just because of that.
     """
@@ -1661,15 +1661,77 @@ class FlowsomKValidator(FlowValidator):
         return True
 
 
-def metaclusters_positive_for(tree: Any, marker: str) -> list[str]:
-    """Tags of the tree's metaclusters that are + for ``marker`` ("M0", ...), largest first."""
+def clusters_positive_for(view: Any, marker: str) -> list[str]:
+    """Tags of a cluster map's clusters that are + for ``marker`` ("M0", "C3", ...), largest first."""
     out = []
-    for summary in tree._summaries:
+    for summary in view._summaries:
         level = dict(zip(summary.markers, summary.level, strict=True))
         value = next((v for m, v in level.items() if m.casefold() == marker.casefold()), None)
         if value is not None and value >= 2 / 3:  # noqa: PLR2004 (the "+" call)
-            out.append(f"M{summary.cluster}")
+            out.append(view._method.tag(summary.cluster))
     return out
+
+
+metaclusters_positive_for = clusters_positive_for
+
+
+# ── PhenoGraph (Course 6) ─────────────────────────────────────────────────
+
+
+def _phenograph_graph(app_state: FlowState) -> Any | None:
+    """The Cluster Graph view of the results on screen, if a PhenoGraph run is showing."""
+    viewer = _pa_viewer(app_state)
+    panel = getattr(viewer, "_results_panel", None) if viewer else None
+    return getattr(panel, "_graph_view", None)
+
+
+class PhenographResultsReadyValidator(FlowValidator):
+    """A PhenoGraph run finished and its cluster graph is on screen; ``on_found`` gets the view."""
+
+    def __init__(self, on_found: Callable[[Any], None] | None = None) -> None:
+        self._on_found = on_found
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = _pa_viewer(app_state)
+        if viewer is None or getattr(viewer, "_is_analysis_running", False):
+            return self.log_failure("PhenoGraph is still running.")
+        graph = _phenograph_graph(app_state)
+        if graph is None:
+            return self.log_failure("No cluster graph on screen yet.")
+        if self._on_found is not None:
+            self._on_found(graph)
+        return True
+
+
+class PhenographColorValidator(FlowsomColorValidator):
+    """The cluster graph is coloured by ``marker``; ``on_found`` gets the graph view."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        graph = _phenograph_graph(app_state)
+        if graph is None:
+            return self.log_failure("No cluster graph on screen.")
+        if not graph._color_combo.currentText().casefold().endswith(self._marker):
+            return self.log_failure(f"Graph isn't coloured by '{self._marker}'.")
+        if self._on_found is not None:
+            self._on_found(graph)
+        return True
+
+
+class PhenographResolutionValidator(FlowValidator):
+    """The PhenoGraph run on screen is clustered at ``resolution``; ``on_found`` gets the graph."""
+
+    def __init__(self, resolution: float, on_found: Callable[[Any], None] | None = None) -> None:
+        self._resolution = resolution
+        self._on_found = on_found
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        graph = _phenograph_graph(app_state)
+        value = graph._run.get("resolution") if graph is not None else None
+        if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
+            return self.log_failure(f"The run isn't at resolution {self._resolution}.")
+        if self._on_found is not None:
+            self._on_found(graph)
+        return True
 
 
 class UmapBestBCellClusterValidator(FlowValidator):
@@ -1943,7 +2005,7 @@ class ComparisonsPlotGeneratedValidator(FlowValidator):
         return True
 
 
-# ── Derived parameters (Course 6) ─────────────────────────────────────────────
+# ── Derived parameters (Course 7) ─────────────────────────────────────────────
 
 
 def _is_ratio_formula(formula: str, numerator: str, denominator: str) -> bool:
@@ -2401,7 +2463,7 @@ class LensSampleValidator(_LensValidator):
 
 
 class LensRunMethodValidator(_LensValidator):
-    """The lens's run was made with ``method_key`` (``umap_hdbscan`` or ``flowsom``)."""
+    """The lens's run was made with ``method_key`` (``umap_hdbscan``, ``flowsom``, ``phenograph``)."""
 
     def __init__(self, method_key: str) -> None:
         self._key = method_key
@@ -2425,6 +2487,48 @@ class LensKValidator(_LensValidator):
         run = lens._model.run
         if run is None or run.get("k") != self._k:
             return self.log_failure(f"The lens's run isn't at k = {self._k}.")
+        return True
+
+
+class LensResolutionValidator(_LensValidator):
+    """The lens's PhenoGraph run is re-clustered at ``resolution`` and re-audited.
+
+    ``on_found`` gets the lens on every passing poll.
+    """
+
+    def __init__(self, resolution: float, on_found: Callable[[Any], None] | None = None) -> None:
+        self._resolution = resolution
+        self._on_found = on_found
+
+    def validate_lens(self, lens: Any) -> bool:
+        run = lens._model.run
+        value = run.get("resolution") if run is not None else None
+        if lens._model._reclustering is not None:
+            return self.log_failure("Still re-clustering.")
+        if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
+            return self.log_failure(f"The lens's run isn't at resolution {self._resolution}.")
+        if self._on_found is not None:
+            self._on_found(lens)
+        return True
+
+
+class LensAgreementValidator(_LensValidator):
+    """The lens compares its findings with other runs of the population.
+
+    ``on_found`` gets ``[(finding, agreement), ...]`` on every poll, so a
+    step's text can say which findings the other methods share.
+    """
+
+    def __init__(self, on_found: Callable[[list[tuple[Any, Any]]], None] | None = None) -> None:
+        self._on_found = on_found
+
+    def validate_lens(self, lens: Any) -> bool:
+        model = lens._model
+        pairs = list(zip(model.findings, model.agreements, strict=False))
+        if not pairs or not any(a.compared for _f, a in pairs):
+            return self.log_failure("No other run of this population to compare with.")
+        if self._on_found is not None:
+            self._on_found(pairs)
         return True
 
 

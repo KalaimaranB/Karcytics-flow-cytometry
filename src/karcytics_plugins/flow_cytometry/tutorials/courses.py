@@ -24,6 +24,7 @@ from .course3 import course_3_gating
 from .course4 import course_4_analysis
 from .course5 import course_5_sample_lens
 from .course6 import course_6_reporting
+from .course_second_opinions import course_second_opinions
 
 # Every flow course, in the order a learner takes them.
 COURSES = (
@@ -32,6 +33,7 @@ COURSES = (
     course_3_gating,
     course_4_analysis,
     course_5_sample_lens,
+    course_second_opinions,
     course_6_reporting,
 )
 
@@ -43,4 +45,5 @@ __all__ = [
     "course_4_analysis",
     "course_5_sample_lens",
     "course_6_reporting",
+    "course_second_opinions",
 ]

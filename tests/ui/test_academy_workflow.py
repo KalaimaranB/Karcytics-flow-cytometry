@@ -456,6 +456,16 @@ def test_resume_step_id_wins(shown):
     assert shown.manager.step_history == ["tabs"]
 
 
+def test_a_step_moved_to_another_course_resumes_on_the_latest_step_left(shown):
+    _pause_at(shown, "popup")
+    course = shown.manager.find_course(COURSE_1)
+    course.steps = [s for s in course.steps if s.id != "popup"]
+    shown._academy._card.primary_button.click()
+
+    assert shown.manager.current_step.id == "plain"
+    assert shown.manager.step_history == ["tabs", "plain"]
+
+
 def test_a_saved_workflow_converts_without_asking_for_a_name(panel):
     panel._current_workflow_filename = "mine.json"
     panel._current_workflow_metadata = {"name": "Mine", "tags": []}

@@ -35,7 +35,7 @@ Course 1 provisions ten realistic tutorial FCS files (a Blank, a PI viability si
 
 <!-- SCREENSHOT: docs/images/user/academy/file-provisioning.png — the provisioning step showing live download progress ("6/10 files done") -->
 
-## The six courses
+## The seven courses
 
 The courses build on each other in order: each one after the first opens the workflow you saved at the end of the one before, and checks it is loaded before starting.
 
@@ -102,18 +102,17 @@ No new manual gating anywhere in it — instead, you hand your existing gated da
 - Run the analysis and watch the real, data-driven UMAP animation play out live, built from your own Sample C data.
 - Explore the results in the **Plot Gallery** and the **Interactive Map** — hovering over populations to read their marker expression, and switching the map's marker dropdown to watch different lineages light up.
 - Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
-- Run **FlowSOM** on the same Leukocytes as a second opinion, with all events. Read its tree: colour it by CD3 and then B220 to find the T and B cell branches, see how many metaclusters split the B cells, re-cut *k* without re-running, and read each metacluster's +/− phenotype in the legend and heatmap.
 - Save your workspace again — required to continue into Course 5.
 
-Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you. Before running FlowSOM, you predict whether it will leave cells unclustered as noise, as HDBSCAN does; the end of the section answers it. You are also asked what a high *k* does to one population, and what an all-negative metacluster is.
+Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you.
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
 ### Course 5 — Sample Lens: Check Every Gate
 
-**~48 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
+**~44 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
 
-Course 4 checked one population against the clusters. Course 5 checks all of them in the **[Sample Lens](./16_SAMPLE_LENS.md)** tab, before Course 6 reports numbers from them. You predict at the start what the comparison will turn up. You:
+Course 4 checked one population against the clusters. Course 5 checks all of them in the **[Sample Lens](./16_SAMPLE_LENS.md)** tab, before Course 7 reports numbers from them. You predict at the start what the comparison will turn up. You:
 
 - Open the lens on Sample C and pick Course 4's UMAP run, and see exactly which populations it judges (and why UMAP exports and logic nodes are left out).
 - **Backgate**: follow B-cells and then CD4+ through every gate on their path, with the population highlighted on each gate's parent.
@@ -123,16 +122,29 @@ Course 4 checked one population against the clusters. Course 5 checks all of the
 - Read **Across samples**: why the thymus is flagged as an outlier on DP (biology, not a gating error), and what **On edge** says about how fragile a gate is.
 - Backgate on Sample A, which has no clustering run, to see that the gating path and Across samples don't need one.
 - Drag the T-cells gate's top edge into the CD4 T cells on purpose, watch the lens name the gate that cut them, then fix it.
-- Switch the lens to the FlowSOM run: findings are drawn on its tree, and changing *k* changes which merges and cuts it reports. Weigh what a finding that depends on *k* tells you.
 - Save your workspace again — required to continue into Course 6.
 
 Questions along the way: why the run clusters Leukocytes, what grey means on each map, whether a finding proves a gate wrong, what the missed cells are, why gates beat an exported cluster, what precision and recall say, why the lens blames T-cells for cells that would have been CD4+, and what "no findings" does and doesn't prove.
 
-### Course 6 — Derived Parameters, Statistics & Comparisons
+### Course 6 — Second Opinions: FlowSOM & PhenoGraph
+
+**~45 minutes · requires Course 5 · badge: 🩺 Second Opinion**
+
+Course 4 clustered Sample C with UMAP + HDBSCAN. Course 6 asks two methods that work differently, then lets the Sample Lens say which findings they agree on. Each method chooses its grain its own way: HDBSCAN by a minimum cluster size, FlowSOM by *k*, PhenoGraph by a resolution. You predict at the start whether the new methods will agree. You:
+
+- Run **FlowSOM** on the same Leukocytes, with all events. Read its tree: colour it by CD3 and then B220 to find the T and B cell branches, see how many metaclusters split the B cells, re-cut *k* without re-running, and read each metacluster's +/− phenotype in the legend and heatmap.
+- Run **[PhenoGraph](./08_POPULATION_ANALYSIS.md)** on the same cells. Read its **Cluster Graph**: circles are clusters, lines link clusters whose cells are neighbours, and a circle with no lines **stands apart**. Colour it by B220, find the small B220+ CD3+ groups standing apart, then lower the resolution and see which clusters merge and which stay apart.
+- Open the lens on the FlowSOM run, then on the PhenoGraph run, and read the line under each finding: *Also found by …* or *Only this run finds it*. Learn why both methods report cuts that UMAP didn't (they put nearly every cell in a cluster), why your proposed gates from Course 5 get flagged, what the shared **DN** finding says about the T-cells gate's lower edge, and what to do with a finding only one method reports.
+- Change the lens's resolution and watch findings come and go: those are about the method's grain, not your gates.
+- Save your workspace again — required to continue into Course 7.
+
+Questions along the way: what FlowSOM does with HDBSCAN's noise cells, what a high *k* does to one population, what an all-negative metacluster is, how many clusters PhenoGraph will find, what a B220+ CD3+ group standing apart could be (doublets are possible, but nothing here can test it), what lowering the resolution does, and how to weigh findings that one or two methods report.
+
+### Course 7 — Derived Parameters, Statistics & Comparisons
 
 **~35 minutes · requires Course 5 · badge: 📊 Insight Reporter**
 
-Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 6 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
+Course 4 showed that your hand-gated **B-cells** and the unsupervised **UMAP B Cells** are nearly the same cells. Course 7 asks the follow-up: are they also *measured* the same? You make a prediction at the start, and the course answers it. You:
 
 - Confirm your Course 4 export (the UMAP B Cells population and its AND-node cross-check) is actually in place before continuing.
 - Build your first **[derived parameter](./15_DERIVED_PARAMETERS.md)** — **B220 ÷ CD45**, the same idea as a GFP ÷ RFP reporter ratio — predict where T cells land in its live preview, then plot it as a histogram of Sample C's Leukocytes, where B and T cells form two peaks roughly 60× apart.
@@ -154,4 +166,4 @@ Each course awards a badge on completion, tracked on the course catalog card so 
 
 - **[Getting Started](./01_GETTING_STARTED.md)** — the same core workflow as Courses 1 and 2, written out for readers who'd rather read than click through a tutorial.
 - **[Overview](./00_OVERVIEW.md)** — the full map of every tab.
-- Once you've completed all six courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Sample Lens](./16_SAMPLE_LENS.md)**) are the best reference for details a guided course necessarily moves past quickly.
+- Once you've completed all seven courses, the individual tab guides (**[Workspace](./02_WORKSPACE.md)** through **[Sample Lens](./16_SAMPLE_LENS.md)**) are the best reference for details a guided course necessarily moves past quickly.

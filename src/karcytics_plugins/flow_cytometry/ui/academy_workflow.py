@@ -268,11 +268,27 @@ class AcademyWorkflowController(QObject):
         isn't saved with the workflow — would spotlight nothing. Resume
         instead on the latest step before it whose targets are all there
         (often the one that opens them). A step's own `resume_step_id`
-        is applied first.
+        is applied first. A step that has left the course (moved to another
+        course in an update) resumes on the latest visited step still in it,
+        or else on the course's first step.
         """
         course = self._manager.find_course(block.get("course_id", ""))
-        step = course.get_step(block.get("step_id", "")) if course else None
-        if course is None or step is None:
+        if course is None:
+            return block
+        step = course.get_step(block.get("step_id", ""))
+        if step is None:
+            kept = [s for s in block.get("step_history", []) if course.get_step(s)]
+            if not kept and not course.steps:
+                return block
+            fallback: str = kept[-1] if kept else course.steps[0].id
+            block = {
+                **block,
+                "step_id": fallback,
+                "step_history": kept or [fallback],
+                "subtask_progress": {},
+            }
+            step = course.get_step(fallback)
+        if step is None:
             return block
         if step.resume_step_id and course.get_step(step.resume_step_id):
             step = course.get_step(step.resume_step_id)

@@ -15,11 +15,11 @@ Spotlight convention:
 Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
 Statistics, Spectral, Population Analysis, Comparisons, Sample Lens.
 
-Course 6 reports from the gates Course 5 checked, and builds on Course 4: Course 4 ends with a real,
+Course 7 reports from the gates Course 5 checked, and builds on Course 4: Course 4 ends with a real,
 gate-tree population ("UMAP B Cells") exported from unsupervised
 clustering and cross-checked against the hand-gated "B-cells" population
 via a Pipeline AND node. That showed they are (nearly) the same cells;
-Course 6 asks the follow-up — *are they measured the same?* — as a
+Course 7 asks the follow-up — *are they measured the same?* — as a
 prediction at the start (`c6_same_measure`), and answers it with a
 **derived parameter** (B220 ÷ CD45, a per-cell ratio used like any
 channel), the **Statistics** tab and the **Comparisons** tab. The
@@ -91,7 +91,7 @@ course_6_reporting = Course(
         InfoStep(
             id="c6_s00_intro",
             text=(
-                "Welcome to Course 6! 📊<br><br>"
+                "Welcome to Course 7! 📊<br><br>"
                 "Course 4 left you with two independent ways of finding "
                 "B-cells — your own hand-gated **B-cells**, and the "
                 "unsupervised **UMAP B Cells** — plus an AND node showing "
@@ -165,10 +165,10 @@ course_6_reporting = Course(
             id="c6_s01b_incomplete_analysis",
             text=(
                 "Missing your Course 4 export 🔍<br><br>"
-                "Course 6 needs the **UMAP B Cells** population and the "
+                "Course 7 needs the **UMAP B Cells** population and the "
                 "**AND** node cross-checking it against **B-cells** — both "
                 "built in Course 4. Head back and finish that course first, "
-                "then relaunch Course 6."
+                "then relaunch Course 7."
             ),
             cyto_emotion="thinking",
             next_step_id="__abandon__",
@@ -1111,7 +1111,7 @@ course_6_reporting = Course(
             failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
-            # The true end of Course 6 — no next_step_id, so
+            # The true end of Course 7 — no next_step_id, so
             # AcademyManager.next_step() treats this as course completion
             # and awards badge_reward ("Insight Reporter") the moment the
             # user clicks Next. Matches Course 4's own ending convention
@@ -1120,7 +1120,7 @@ course_6_reporting = Course(
             # step to loop back to.
             id="c6_s27z_graduation",
             text=(
-                "Course 6 is complete — you're officially an **Insight "
+                "Course 7 is complete — you're officially an **Insight "
                 "Reporter**! 🏆<br><br>"
                 "**The verdict.** You predicted: *{answer:c6_same_measure}*. "
                 "The evidence:<br>"

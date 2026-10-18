@@ -24,15 +24,12 @@ on Sample C (the confirmed Spleen), walking every run parameter with real
 justification, the live animation, the Plot Gallery, and the Interactive
 Map — then proves that result out: export the real B-cell HDBSCAN cluster
 as a gate-tree population and cross-check it against the manual "B-cells"
-gate via a Pipeline AND node. In between, a FlowSOM run on the same cells
-teaches the tree: colour by marker, name metaclusters by phenotype, pick k. That's a complete arc (run an unsupervised
+gate via a Pipeline AND node. That's a complete arc (run an unsupervised
 analysis AND validate it), so Course 4 ends for real here — save workspace,
 badge, the works — handing off to Course 5, which checks every gate against
-this run, and Course 6, the Statistics/Comparisons reporting half of what
-used to be one oversized course.
+this run, Course 6, which gets second opinions from FlowSOM and PhenoGraph,
+and Course 7, the Statistics/Comparisons reporting course.
 """
-
-from typing import Any
 
 from karcytics_sdk.plugin.tutorial_models import (
     QUESTION_PREDICT,
@@ -46,17 +43,12 @@ from karcytics_sdk.plugin.tutorial_models import (
 
 from ..main_tabs import MainTab
 from .validators import (
-    ClusteringMethodValidator,
     ClusterResultsTabActiveValidator,
     ExactSampleOpenValidator,
-    FlowsomColorValidator,
-    FlowsomKValidator,
-    FlowsomResultsReadyValidator,
     GateExistsValidator,
     LineageGatingCompleteValidator,
     LogicGateExistsValidator,
     LogicNodeStatsReadyValidator,
-    NewRunSelectedValidator,
     PipelineOrientationValidator,
     TabActiveValidator,
     UmapBestBCellClusterValidator,
@@ -69,7 +61,6 @@ from .validators import (
     UmapSampleSelectedValidator,
     UmapSubsampleValueValidator,
     WorkflowSavedValidator,
-    metaclusters_positive_for,
 )
 
 # ==============================================================================
@@ -101,61 +92,14 @@ _best_bcell_step: VerificationStep = VerificationStep(
     on_success_step_id="c4_s43_create_populations",
 )
 
-# FlowSOM's metacluster numbers depend on the run, so the steps that name
-# them are filled in by their validators (like _best_bcell_step above).
-_B_CELL_SPLIT: dict[str, list[str]] = {}  # "k10" -> B220+ metaclusters at the default k
-
-
-def _b220_text(tree: Any) -> str:
-    tags = metaclusters_positive_for(tree, "B220")
-    _B_CELL_SPLIT["k10"] = tags
-    return (
-        "B220 lights up a big part of the tree: your B cells 🅱️<br><br>"
-        f"But look at the legend: they're split over **{len(tags)} metaclusters** "
-        f"({', '.join(tags)}), every one of them **B220+**."
-    )
-
-
-def _k5_text(tree: Any) -> str:
-    before = len(_B_CELL_SPLIT.get("k10", [])) or "several"
-    after = len(metaclusters_positive_for(tree, "B220"))
-    return (
-        "Fewer, cleaner populations 🎯<br><br>"
-        f"The B cells went from **{before}** B220+ metaclusters to **{after}**, "
-        "while the T-cell branches kept their own colours. Nothing reran: FlowSOM "
-        "just regrouped its 100 nodes.<br><br>"
-        "A good k gives each family of branches one colour. Keep k = 5: Course 5 "
-        "uses this run."
-    )
-
-
-_b220_read_step: InfoStep = InfoStep(
-    id="c4_f11_b220_read",
-    text="B220 lights up a big part of the tree: your B cells 🅱️",
-    cyto_emotion="surprised",
-    allow_interaction=True,
-    target_widget_names=["FlowsomTreeCanvas", "FlowsomLegend"],
-    next_step_id="c4_f12_k_high",
-)
-
-_k5_read_step: InfoStep = InfoStep(
-    id="c4_f16_k5_read",
-    text="Fewer, cleaner populations 🎯",
-    cyto_emotion="happy",
-    allow_interaction=True,
-    target_widget_names=["FlowsomTreeCanvas", "FlowsomLegend"],
-    next_step_id="c4_f17_noise_reveal",
-)
-
 course_4_analysis = Course(
     id="flow_course_4_analysis",
     title="Population Analysis: Run & Validate",
     description=(
         "Let UMAP and HDBSCAN independently cluster Sample C with zero "
-        "manual gates, prove the result out against your own hand-gating, "
-        "then get a second opinion from FlowSOM and learn to read its tree."
+        "manual gates, then prove the result out against your own hand-gating."
     ),
-    estimated_minutes=65,
+    estimated_minutes=55,
     badge_reward="Population Analyst",
     badge_icon="🧠",
     prerequisite_course_ids=["flow_course_3_gating"],
@@ -188,7 +132,7 @@ course_4_analysis = Course(
             # looping the user against a dead end — this step's
             # allow_interaction is unset (defaults False), so there's no way
             # to actually leave and go finish Course 3 without abandoning
-            # first. See Course 6's identical c6_s01b_incomplete_analysis
+            # first. See Course 7's identical c6_s01b_incomplete_analysis
             # and AcademyManager.abandon_course() for the full explanation.
             id="c4_s01b_incomplete_gating",
             text=(
@@ -831,257 +775,7 @@ course_4_analysis = Course(
             cyto_emotion="scanning",
             hide_next_button=True,
             validator=GateExistsValidator("UMAP B Cells"),
-            on_success_step_id="c4_f01_flowsom_intro",
-        ),
-        # ── A second method: FlowSOM ─────────────────────────────────────────────
-        InfoStep(
-            id="c4_f01_flowsom_intro",
-            text=(
-                "A second method 🌳<br><br>"
-                "HDBSCAN found clusters by **density** and set the scattered "
-                "cells aside as noise (cluster -1).<br><br>"
-                "**FlowSOM**, the method most used in cytometry, works "
-                "differently: it sorts the cells into about 100 small groups "
-                "called **nodes**, links similar nodes into a tree, and groups "
-                "the tree into **metaclusters**, its populations.<br><br>"
-                "Two methods on the same cells make a cheap second opinion."
-            ),
-            cyto_emotion="talking",
-            next_step_id="c4_f02_noise_predict",
-        ),
-        QuestionStep(
-            id="c4_f02_noise_predict",
-            text=(
-                "Make a prediction 🔮<br><br>"
-                "HDBSCAN set some cells aside as noise. What will FlowSOM do "
-                "with those same cells?"
-            ),
-            kind=QUESTION_PREDICT,
-            question_id="c4_flowsom_noise",
-            choices=[
-                AnswerChoice("Leave them out as noise too"),
-                AnswerChoice("Collect them in one noise metacluster"),
-                AnswerChoice("Put them in a metacluster, like every other cell"),
-            ],
-            cyto_emotion="thinking",
-            next_step_id="c4_f03_new_run",
-        ),
-        VerificationStep(
-            id="c4_f03_new_run",
-            text=(
-                "In **History**, pick **[ New Run ]**. The settings unlock again, "
-                "with your channels (PI and CD45 left out) still chosen."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["UmapHistoryCombo"],
-            validator=NewRunSelectedValidator(),
-            on_success_step_id="c4_f04_choose_flowsom",
-        ),
-        VerificationStep(
-            id="c4_f04_choose_flowsom",
-            text="Set **Algorithm** to **FlowSOM** (top of the left panel).",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["ClusteringMethodCombo"],
-            validator=ClusteringMethodValidator("flowsom"),
-            on_success_step_id="c4_f05_flowsom_settings",
-        ),
-        InfoStep(
-            id="c4_f05_flowsom_settings",
-            text=(
-                "FlowSOM's settings ⚙️<br><br>"
-                "**Grid size** 10 means 10 × 10 = 100 nodes.<br>"
-                "**Metaclusters (k)** is how many populations to make: roughly "
-                "how many cell types you expect. Leave it at 10 for now; you'll "
-                "change it after the run.<br>"
-                "**Training passes** can stay.<br><br>"
-                "**Events used** jumped to 100%: FlowSOM is fast enough for "
-                "every cell."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            allow_scroll=True,
-            target_widget_names=["FlowsomParams", "UmapSubsampleGroup"],
-            next_step_id="c4_f06_run_flowsom",
-        ),
-        VerificationStep(
-            id="c4_f06_run_flowsom",
-            text=(
-                "Name the run, e.g. **Sample C FlowSOM**, and click "
-                "**🧬 Run Analysis**. It takes a few seconds."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            allow_scroll=True,
-            hide_next_button=True,
-            target_widget_names=["UmapRunNameInput", "RunAnalysisButton"],
-            validator=FlowsomResultsReadyValidator(),
-            on_success_step_id="c4_f07_tree_anatomy",
-        ),
-        InfoStep(
-            id="c4_f07_tree_anatomy",
-            text=(
-                "The FlowSOM tree 🌳<br><br>"
-                "Each circle is a **node**: a small group of very similar cells. "
-                "Bigger circle, more cells.<br>"
-                "Lines join each node to the nodes most like it, so a branch is "
-                "a family of related cells.<br>"
-                "Colours are the metaclusters.<br><br>"
-                "Like UMAP's axes, positions and line lengths mean nothing. "
-                "Only the connections do."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["FlowsomTreeCanvas"],
-            next_step_id="c4_f08_colour_cd3",
-        ),
-        VerificationStep(
-            id="c4_f08_colour_cd3",
-            text=(
-                "Scientists read this tree one marker at a time. Open **Colour "
-                "by** and pick **CD3**, the T-cell marker."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["FlowsomColorCombo"],
-            validator=FlowsomColorValidator("CD3"),
-            on_success_step_id="c4_f09_cd3_read",
-        ),
-        InfoStep(
-            id="c4_f09_cd3_read",
-            text=(
-                "The bright nodes are your T cells 💡<br><br>"
-                "They sit together on their own branches: the tree keeps related "
-                "cells together. Colour runs from the dimmest node to the "
-                "brightest, so even small differences show.<br><br>"
-                "Hover a bright node: the bottom right shows its cells and its "
-                "metacluster's phenotype."
-            ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            target_widget_names=["FlowsomTreeCanvas"],
-            next_step_id="c4_f10_colour_b220",
-        ),
-        VerificationStep(
-            id="c4_f10_colour_b220",
-            text="Now colour by **B220**, the B-cell marker.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["FlowsomColorCombo"],
-            validator=FlowsomColorValidator(
-                "B220", on_found=lambda tree: setattr(_b220_read_step, "text", _b220_text(tree))
-            ),
-            on_success_step_id="c4_f11_b220_read",
-        ),
-        _b220_read_step,
-        QuestionStep(
-            id="c4_f12_k_high",
-            text=(
-                "Several metaclusters, one phenotype, one family of branches. "
-                "What does that most likely mean?"
-            ),
-            question_id="c4_flowsom_k_high",
-            choices=[
-                AnswerChoice(
-                    "FlowSOM found new B-cell subsets",
-                    feedback="Possible, but their phenotypes match. Same phenotype first suggests too many metaclusters.",
-                ),
-                AnswerChoice(
-                    "The run went wrong",
-                    feedback="It didn't. FlowSOM did exactly what k asked: it made 10 groups.",
-                ),
-                AnswerChoice(
-                    "k is higher than this panel needs",
-                    correct=True,
-                ),
-            ],
-            explanation=(
-                "FlowSOM always makes exactly k metaclusters. Four markers "
-                "describe about five populations here, so at k = 10 the "
-                "biggest one, the B cells, gets split."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c4_f13_phenotypes",
-        ),
-        InfoStep(
-            id="c4_f13_phenotypes",
-            text=(
-                "Naming metaclusters 🧬<br><br>"
-                "Each legend line gives a metacluster's share of cells and its "
-                "**phenotype**. Per marker, the dimmest metacluster is **−**, "
-                "the brightest **+**, and **lo** is in between. The heatmap "
-                "shows the same for every marker at once.<br><br>"
-                "**B220+ CD3−** is B cells, **CD3+ CD4+** CD4 T cells, "
-                "**CD3+ CD8+** CD8 T cells."
-            ),
-            cyto_emotion="talking",
-            allow_interaction=True,
-            target_widget_names=["FlowsomLegend", "FlowsomHeatmap"],
-            next_step_id="c4_f14_all_negative",
-        ),
-        QuestionStep(
-            id="c4_f14_all_negative",
-            text=(
-                "Find the metacluster that's **−** for all four markers. In "
-                "this panel, what could those cells be?"
-            ),
-            question_id="c4_flowsom_all_negative",
-            choices=[
-                AnswerChoice(
-                    "Dead cells",
-                    feedback="Course 3's PI gate removed dead cells before Leukocytes, so they aren't in this run.",
-                ),
-                AnswerChoice(
-                    "Cells none of these markers label, like NK or myeloid cells",
-                    correct=True,
-                ),
-                AnswerChoice(
-                    "B cells that lost their B220",
-                    feedback="B cells keep B220. These cells carry none of the four markers.",
-                ),
-            ],
-            explanation=(
-                "Four markers can't name every leukocyte: NK cells, monocytes "
-                "and others carry none of them. Remember this group. In "
-                "Course 5, the lens will ask about it."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            target_widget_names=["FlowsomLegend", "FlowsomHeatmap"],
-            next_step_id="c4_f15_set_k5",
-        ),
-        VerificationStep(
-            id="c4_f15_set_k5",
-            text=("Set **Metaclusters (k)** to **5** (above the tree) and watch the colours."),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["FlowsomKSpin"],
-            validator=FlowsomKValidator(
-                5, on_found=lambda tree: setattr(_k5_read_step, "text", _k5_text(tree))
-            ),
-            on_success_step_id="c4_f16_k5_read",
-        ),
-        _k5_read_step,
-        InfoStep(
-            id="c4_f17_noise_reveal",
-            text=(
-                "You predicted: **{answer:c4_flowsom_noise}**.<br><br>"
-                "FlowSOM put **every** cell in a metacluster: the legend's shares "
-                "add up to 100%. HDBSCAN's noise cells landed with whichever "
-                "population they're nearest.<br><br>"
-                "Neither method is the truth. Where both agree, trust it more; "
-                "Course 5's lens can check your gates against either run."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c4_s46_switch_pipeline",
+            on_success_step_id="c4_s46_switch_pipeline",
         ),
         # ── Switch to Pipeline ────────────────────────────────────────────────────
         VerificationStep(
@@ -1288,12 +982,12 @@ course_4_analysis = Course(
             metadata={"pipeline_highlight_node_names": ["AND Logic"]},
             next_step_id="c4_s57_save_workspace",
         ),
-        # ── Save workspace (Courses 5–6 need this run, export and AND node) ──
+        # ── Save workspace (Courses 5–7 need this run, export and AND node) ──
         VerificationStep(
             id="c4_s57_save_workspace",
             text=(
-                "The next two courses build on what you just made: these two "
-                "clustering runs, the **UMAP B Cells** population and the AND "
+                "The next two courses build on what you just made: the "
+                "clustering run, the **UMAP B Cells** population and the AND "
                 "node cross-checking it. We need to save our progress.<br><br>"
                 "Click the **⚠️ Save Workspace** button (highlighted) at the "
                 "top right."
@@ -1311,7 +1005,7 @@ course_4_analysis = Course(
             # AcademyManager.next_step() treats this as course completion
             # and awards badge_reward ("Population Analyst") the moment the
             # user clicks Next. Unlike the old Part 1/Part 2 soft-stops,
-            # this one is real: everything Courses 5–6 depend on (the
+            # this one is real: everything Courses 5–7 depend on (the
             # run, the exported population, the AND node, the saved workspace)
             # is genuinely in place by this point. What's next (Course 5) is
             # already shown on the Academy catalog card, so this doesn't
@@ -1321,7 +1015,7 @@ course_4_analysis = Course(
             text=(
                 "Your workspace is updated!<br><br>Course 4 is complete — "
                 "you're officially a **Population Analyst**! 🏆<br><br>"
-                "In Course 5 you'll use these runs to check every gate you drew."
+                "In Course 5 you'll use this run to check every gate you drew."
             ),
             cyto_emotion="cheering",
             cyto_animation="cheering",
