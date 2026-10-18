@@ -42,6 +42,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
+from ..main_tabs import MainTab
 from .validators import (
     ClusterResultsTabActiveValidator,
     ExactSampleOpenValidator,
@@ -155,7 +156,7 @@ course_4_analysis = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(6),
+            validator=TabActiveValidator(MainTab.POPULATION_ANALYSIS),
             on_success_step_id="c4_s04_umap_theory_1",
         ),
         # ── UMAP theory ──────────────────────────────────────────────────────────
@@ -848,7 +849,7 @@ course_4_analysis = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(3),
+            validator=TabActiveValidator(MainTab.PIPELINE),
             on_success_step_id="c4_s48_verify_sample_c",
         ),
         VerificationStep(

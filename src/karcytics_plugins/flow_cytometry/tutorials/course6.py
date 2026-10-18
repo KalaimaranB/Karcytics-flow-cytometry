@@ -51,6 +51,7 @@ from karcytics_sdk.plugin.tutorial_models import (
 )
 
 from ..analysis.statistics import StatType
+from ..main_tabs import MainTab
 from .validators import (
     ActiveGraphDerivedAxisValidator,
     AllOf,
@@ -247,7 +248,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),
+            validator=TabActiveValidator(MainTab.GATING),
             on_success_step_id="c6_d06_open_editor",
         ),
         InteractionStep(
@@ -495,7 +496,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(4),
+            validator=TabActiveValidator(MainTab.STATISTICS),
             on_success_step_id="c6_s04b_median_question",
         ),
         QuestionStep(
@@ -759,7 +760,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(7),
+            validator=TabActiveValidator(MainTab.COMPARISONS),
             on_success_step_id="c6_s17_comparisons_intro",
         ),
         InfoStep(

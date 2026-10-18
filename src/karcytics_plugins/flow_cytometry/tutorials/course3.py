@@ -32,6 +32,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
+from ..main_tabs import MainTab
 from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
 from .validators import (
     AxisChannelValidator,
@@ -188,7 +189,7 @@ course_3_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),
+            validator=TabActiveValidator(MainTab.GATING),
             on_success_step_id="c3_s02_open_sample",
         ),
         VerificationStep(
@@ -723,7 +724,7 @@ course_3_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(3),
+            validator=TabActiveValidator(MainTab.PIPELINE),
             on_success_step_id="c3_s25_pipeline_read",
         ),
         InfoStep(
@@ -806,7 +807,7 @@ course_3_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),
+            validator=TabActiveValidator(MainTab.GATING),
             on_success_step_id="c3_s30_reenter_tcells_intro",
         ),
         # ── CD4/CD8 quadrant split (still on Sample C) ──────────────────────────
@@ -1056,7 +1057,7 @@ course_3_gating = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),
+            validator=TabActiveValidator(MainTab.GATING),
             on_success_step_id="c3_s50b_quickstat_open",
         ),
         InteractionStep(

@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.ribbons.comparisons_ribbon import (
     ComparisonsRibbon,
 )
@@ -88,19 +89,8 @@ class WorkspaceBuilder:
         panel._tab_bar.setObjectName("MainTabBar")
         panel._tab_bar.setExpanding(False)
         panel._tab_bar.setDocumentMode(True)
-        tab_names = [
-            "Workspace",
-            "Gating",
-            "Compensation",
-            "Pipeline",
-            "Statistics",
-            "Spectral",
-            "Population Analysis",
-            "Comparisons",
-            "Sample Lens",
-        ]
-        for name in tab_names:
-            panel._tab_bar.addTab(name)
+        for tab in MainTab:
+            panel._tab_bar.addTab(tab.label)
 
         top_bar_layout.addWidget(panel._tab_bar)
 

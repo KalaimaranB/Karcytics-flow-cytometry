@@ -37,6 +37,7 @@ from PySide6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.controllers.derived_editor_controller import (
     DerivedEditorController,
 )
@@ -49,6 +50,20 @@ def _collect_descendants_into(node, result: set) -> None:
     result.add(node.node_id)
     for child in node.children:
         _collect_descendants_into(child, result)
+
+
+# Each tab's centre view and ribbon (None: no ribbon), as panel attribute names.
+_TAB_VIEWS: dict[MainTab, tuple[str, str | None]] = {
+    MainTab.WORKSPACE: ("_graph_manager", "_workspace_ribbon"),
+    MainTab.GATING: ("_graph_manager", "_gating_ribbon"),
+    MainTab.COMPENSATION: ("_compensation_view", None),
+    MainTab.PIPELINE: ("_node_canvas", "_pipeline_ribbon"),
+    MainTab.SPECTRAL: ("_spectral_viewer", None),
+    MainTab.POPULATION_ANALYSIS: ("_population_analysis_viewer", None),
+    MainTab.SAMPLE_LENS: ("_sample_lens", None),
+    MainTab.STATISTICS: ("_statistics_explorer", None),
+    MainTab.COMPARISONS: ("_comparisons_viewer", None),
+}
 
 
 class FlowCytometryPanel(PluginBase):
@@ -316,22 +331,23 @@ class FlowCytometryPanel(PluginBase):
         finally:
             self.setUpdatesEnabled(True)
 
-    def _on_tab_changed_locked(self, index: int) -> None:  # noqa: PLR0915
-        self._ribbon_stack.setCurrentIndex(index)
-
-        # 1=Gating, 2=Compensation, 3=Pipeline, 4=Statistics, 5=Spectral,
-        # 6=Population Analysis, 7=Comparisons, 8=Sample Lens
-        if index == 2:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(6)  # CompensationView
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
+    def _on_tab_changed_locked(self, index: int) -> None:
+        if not 0 <= index < len(MainTab):
+            return
+        tab = MainTab(index)
+        view, ribbon = _TAB_VIEWS[tab]
+        self._center_stack.setCurrentWidget(getattr(self, view))
+        # Workspace and Gating share the sidebars; every other tab takes over the window.
+        with_sidebars = tab in (MainTab.WORKSPACE, MainTab.GATING)
+        self._left_sidebar.setVisible(with_sidebars)
+        self._properties_panel.setVisible(with_sidebars)
+        if ribbon is None:
             self._ribbon_stack.hide()
-        elif index == 3:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(1)  # NodeCanvas
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
+        else:
+            self._ribbon_stack.setCurrentWidget(getattr(self, ribbon))
             self._ribbon_stack.show()
 
+        if tab is MainTab.PIPELINE:
             # Auto-select the currently active sample if possible
             if self.state.view.current_sample_id:
                 idx = self._pipeline_ribbon._sample_combo.findData(
@@ -344,39 +360,12 @@ class FlowCytometryPanel(PluginBase):
                     self._refresh_node_canvas()
             else:
                 self._refresh_node_canvas()
-        elif index == 4:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(4)  # StatisticsExplorer
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
-            self._ribbon_stack.hide()
+        elif tab is MainTab.STATISTICS:
             self._statistics_explorer.refresh_samples()
-        elif index == 5:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(2)  # SpectralViewer
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
-            self._ribbon_stack.hide()
-        elif index == 6:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(3)  # PopulationAnalysisViewer
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
-            self._ribbon_stack.hide()
+        elif tab is MainTab.POPULATION_ANALYSIS:
             self._population_analysis_viewer.refresh_samples()
-        elif index == 7:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(5)  # ComparisonsViewer
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
-            self._ribbon_stack.hide()
+        elif tab is MainTab.COMPARISONS:
             self._comparisons_viewer.refresh_samples()
-        elif index == 8:  # noqa: PLR2004
-            self._center_stack.setCurrentIndex(7)  # SampleLensTab
-            self._left_sidebar.hide()
-            self._properties_panel.hide()
-            self._ribbon_stack.hide()
-        else:
-            self._center_stack.setCurrentIndex(0)  # GraphManager
-            self._left_sidebar.show()
-            self._properties_panel.show()
-            self._ribbon_stack.show()
 
     def _get_project_manager(self):
         return self._workspace_io_handler._get_project_manager()
@@ -725,7 +714,7 @@ class FlowCytometryPanel(PluginBase):
         """
         if not hasattr(self, "_node_canvas"):
             return  # Phase 2 not yet complete
-        if self._tab_bar.currentIndex() == 3:  # Pipeline tab active  # noqa: PLR2004
+        if self._tab_bar.currentIndex() == MainTab.PIPELINE:
             sid = self._pipeline_ribbon._sample_combo.currentData()
             if sid:
                 self._node_canvas.set_sample(sid)
@@ -1034,7 +1023,7 @@ class FlowCytometryPanel(PluginBase):
     def _on_gate_double_clicked(self, node_id: str) -> None:  # noqa: PLR0912, PLR0915
         """Gate double clicked → open new graph viewing this population."""
         sample_id = None
-        if self._tab_bar.currentIndex() == 3:  # noqa: PLR2004
+        if self._tab_bar.currentIndex() == MainTab.PIPELINE:
             sample_id = self._node_canvas.current_sample_id
 
         if not sample_id:
@@ -1061,7 +1050,7 @@ class FlowCytometryPanel(PluginBase):
                                 break
 
                     if run_idx is not None:
-                        self._tab_bar.setCurrentIndex(6)  # Population Analysis
+                        self._tab_bar.setCurrentIndex(MainTab.POPULATION_ANALYSIS)
                         viewer = self._population_analysis_viewer
 
                         viewer._sample_combo.blockSignals(True)
@@ -1091,8 +1080,8 @@ class FlowCytometryPanel(PluginBase):
                     return
 
             # If we are in Pipeline view, switch back to Gating view automatically
-            if self._tab_bar.currentIndex() == 3:  # noqa: PLR2004
-                self._tab_bar.setCurrentIndex(1)
+            if self._tab_bar.currentIndex() == MainTab.PIPELINE:
+                self._tab_bar.setCurrentIndex(MainTab.GATING)
                 if self._gate_hierarchy._active_sample_id != sample_id:
                     self.state.view.current_sample_id = sample_id
                     self._gate_hierarchy.set_active_sample(sample_id)
@@ -1107,7 +1096,7 @@ class FlowCytometryPanel(PluginBase):
     def _on_gate_selected(self, node_id: str | None) -> None:
         """Central selection handler for populations across all UI components."""
         sample_id = None
-        if self._tab_bar.currentIndex() == 3:  # noqa: PLR2004
+        if self._tab_bar.currentIndex() == MainTab.PIPELINE:
             sample_id = self._node_canvas.current_sample_id
 
         if not sample_id:

@@ -38,6 +38,8 @@ from karcytics_sdk.plugin.dialogs import ask_yes_no, show_info, show_warning
 from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
+from ..main_tabs import MainTab
+
 logger = logging.getLogger(__name__)
 
 ACADEMY_KEY = "academy"
@@ -246,9 +248,9 @@ class AcademyWorkflowController(QObject):
         block = self.block
         if not block:
             return
-        tab = (block.get("ui") or {}).get("tab")
+        tab = MainTab.restore((block.get("ui") or {}).get("tab"))
         tab_bar = getattr(self._panel, "_tab_bar", None)
-        if isinstance(tab, int) and tab_bar is not None and 0 <= tab < tab_bar.count():
+        if tab is not None and tab_bar is not None:
             tab_bar.setCurrentIndex(tab)
         if self._card is not None:
             self._card.unlock()
@@ -556,7 +558,9 @@ class AcademyWorkflowController(QObject):
 
     def _ui_state(self) -> dict[str, Any]:
         tab_bar = getattr(self._panel, "_tab_bar", None)
-        return {"tab": tab_bar.currentIndex()} if tab_bar is not None else {}
+        if tab_bar is None or not 0 <= tab_bar.currentIndex() < len(MainTab):
+            return {}
+        return {"tab": MainTab(tab_bar.currentIndex()).name}
 
     def _stamp_numbers(self, block: dict[str, Any]) -> None:
         """Course numbers for readers that don't know the flow courses (the

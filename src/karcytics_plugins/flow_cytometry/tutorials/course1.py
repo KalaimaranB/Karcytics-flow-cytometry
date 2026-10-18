@@ -28,6 +28,7 @@ from karcytics_sdk.plugin.tutorial_models import (
 )
 
 from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
+from ..main_tabs import MainTab
 from .constants import PREVIEW_ALL_SAMPLES, PREVIEW_VIEW_BOTH
 from .tutorial_assets import start_provisioning
 from .validators import (
@@ -553,7 +554,7 @@ course_1_fundamentals = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),  # Gating
+            validator=TabActiveValidator(MainTab.GATING),
             on_success_step_id="c1_s22b_open_sample",
         ),
         # Open Blank Sample first — gate applies to whichever sample is open
@@ -852,7 +853,7 @@ course_1_fundamentals = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(5),
+            validator=TabActiveValidator(MainTab.SPECTRAL),
             on_success_step_id="c1_sp44_spectral_intro",
         ),
         InfoStep(
@@ -968,7 +969,7 @@ course_1_fundamentals = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),  # Compensation
+            validator=TabActiveValidator(MainTab.COMPENSATION),
             on_success_step_id="c1_m01_method_setup",
         ),
         # ── Judging the matrix you already have ───────────────────────────────

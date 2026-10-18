@@ -18,6 +18,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
+from ..main_tabs import MainTab
 from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
 from .validators import (
     AllOf,
@@ -136,7 +137,7 @@ course_2_compensation = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(2),  # Compensation
+            validator=TabActiveValidator(MainTab.COMPENSATION),
             on_success_step_id="c2_b03_pick_fmo",
         ),
         VerificationStep(
@@ -510,7 +511,7 @@ course_2_compensation = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(1),  # Gating
+            validator=TabActiveValidator(MainTab.GATING),
             on_success_step_id="c2_s26_live_intro",
         ),
         # Live gate

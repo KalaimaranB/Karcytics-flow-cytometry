@@ -125,7 +125,7 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
 
 ## Phases
 
-- [ ] **0. Tab reorder.**
+- [x] **0. Tab reorder.**
   - New order: Workspace, Gating, Compensation, Pipeline, Spectral,
     Population Analysis, **Sample Lens, Statistics, Comparisons**.
   - Add the `MainTab` enum and route table, and replace every literal index

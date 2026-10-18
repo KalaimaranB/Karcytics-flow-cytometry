@@ -49,6 +49,7 @@ from karcytics_sdk.plugin.tutorial_models import (
 )
 
 from ..analysis.sample_lens import Finding, FindingKind
+from ..main_tabs import MainTab
 from .validators import (
     AllOf,
     ClusteredRunValidator,
@@ -64,7 +65,6 @@ from .validators import (
     WorkflowSavedValidator,
 )
 
-SAMPLE_LENS_TAB = 8
 TCELL_AXES = ("FITC-A", "Pacific Blue-A")  # B220 x CD3, where the T-cells gate lives
 
 
@@ -205,7 +205,7 @@ course_5_sample_lens = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(SAMPLE_LENS_TAB),
+            validator=TabActiveValidator(MainTab.SAMPLE_LENS),
             on_success_step_id="c5_s05_layout",
         ),
         InfoStep(

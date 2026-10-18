@@ -5,7 +5,7 @@
 
 The **Sample Lens** tab is a single-sample check of your gating strategy. It answers the question manual gating never answers on its own: *is this strategy actually right?* It shows every gate on a population's path with that population highlighted (backgating), compares your gates with an unsupervised clustering of the same cells, and shows how a population behaves across every sample.
 
-It is the last tab of the module. Like Statistics and Population Analysis, it takes over the whole window: a sidebar on the left, results on the right.
+It sits between Population Analysis and Statistics: check your gates first, then report on them. Like Statistics and Population Analysis, it takes over the whole window: a sidebar on the left, results on the right.
 
 ## 1. Before you start: a clustering run
 

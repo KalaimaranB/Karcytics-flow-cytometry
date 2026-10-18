@@ -18,6 +18,7 @@ from karcytics_sdk.plugin.academy import AcademyManager
 from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry import register_courses
+from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.tutorials.courses import COURSES
 from karcytics_plugins.flow_cytometry.ui import academy_workflow
 from karcytics_plugins.flow_cytometry.ui.academy_workflow import (
@@ -181,6 +182,36 @@ def test_pause_saves_the_place_and_locks(panel):
     _filename, saved = panel.saves[-1]
     assert saved[ACADEMY_KEY]["state"] == PAUSED
     assert saved[ACADEMY_KEY]["step_id"] == step_id
+
+
+def test_a_tab_saved_by_index_in_the_old_order_resumes_on_the_same_tab(panel):
+    start_in_academy(panel)
+    panel._tab_bar.setCurrentIndex(MainTab.GATING)
+    panel.on_academy_pause_requested()
+    assert block(panel)["ui"]["tab"] == "GATING"
+    block(panel)["ui"]["tab"] = 4  # Statistics, before Sample Lens moved
+
+    panel._academy._card.primary_button.click()
+
+    assert panel._tab_bar.currentIndex() == MainTab.STATISTICS
+
+
+@pytest.mark.parametrize("tab", list(MainTab))
+def test_each_tab_shows_its_own_view(panel, tab):
+    from karcytics_plugins.flow_cytometry.ui.builders.workspace_builder import WorkspaceBuilder
+    from karcytics_plugins.flow_cytometry.ui.main_panel import _TAB_VIEWS
+
+    if not hasattr(panel, "_graph_manager"):
+        WorkspaceBuilder.build_heavy(panel)
+    panel._tab_bar.setCurrentIndex(tab)
+    panel._on_tab_changed(tab)  # also when the tab was already current
+
+    view, ribbon = _TAB_VIEWS[tab]
+    assert panel._tab_bar.tabText(tab) == tab.label
+    assert panel._center_stack.currentWidget() is getattr(panel, view)
+    assert panel._left_sidebar.isVisibleTo(panel) == (tab in (MainTab.WORKSPACE, MainTab.GATING))
+    if ribbon is not None:
+        assert panel._ribbon_stack.currentWidget() is getattr(panel, ribbon)
 
 
 def test_resume_returns_to_the_saved_step_and_tab(panel):

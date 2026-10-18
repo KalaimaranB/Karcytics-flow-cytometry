@@ -23,18 +23,18 @@ This page is a map of that workspace. If you'd rather learn by doing than by rea
 
 Every screen in the module shares the same skeleton:
 
-- **Tab bar** (top) — switches between the eight work areas described below. The **🎓 Cyto Academy** and **Save Workspace** buttons live at the right-hand end of this bar, always visible no matter which tab you're on.
+- **Tab bar** (top) — switches between the nine work areas described below. The **🎓 Cyto Academy** and **Save Workspace** buttons live at the right-hand end of this bar, always visible no matter which tab you're on.
 - **Toolbar ribbon** (just under the tab bar) — a strip of buttons specific to whichever tab is active: importing files on Workspace, drawing tools on Gating, and so on.
 - **Left sidebar** — the **Groups** panel, the **Sample List**, and the **Gating Hierarchy** tree, so you always know which samples exist and which populations you've already carved out of them.
 - **Center canvas** — your plots. On most tabs this is a tabbed set of 2D graphs; on the Pipeline tab it becomes a flowchart of your gating strategy instead.
 - **Right sidebar** — the **Properties Panel**, showing live statistics and settings for whatever sample or gate is currently selected.
 - **Footer** — a thin status bar across the very bottom that quietly reports what just happened ("Samples loaded," "Gate created," "Compensation applied," …).
 
-Four tabs — **Workspace**, **Gating**, **Compensation**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other five — **Statistics**, **Spectral**, **Population Analysis**, **Comparisons**, and **Sample Lens** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
+Four tabs — **Workspace**, **Gating**, **Compensation**, and **Pipeline** — keep this sidebar-plus-canvas arrangement and swap in their own ribbon. The other five — **Spectral**, **Population Analysis**, **Sample Lens**, **Statistics**, and **Comparisons** — take over the full window as self-contained workspaces, hiding the sidebars entirely because they show data differently (tables, spectra, an analysis console, or comparison charts) rather than a per-sample plot.
 
 ![alt text](../images/00_overview/tabs.png)
 
-## The eight tabs
+## The nine tabs
 
 ### 1. Workspace
 This is home base and almost always the first tab you'll touch. Import your `.fcs` files here, organize them into **Groups**, and tag each one with a **Role** (Unstained, Single Stain, FMO Control, Full Panel) so the rest of the module knows how to treat it. Everything downstream — compensation, gating, propagation — depends on decisions made on this tab.
@@ -52,25 +52,25 @@ The heart of the module. Draw Rectangle, Polygon, Ellipse, Quadrant, or Range ga
 Your entire gating strategy, redrawn as a flowchart instead of a nested tree — the same view you'd screenshot to explain your analysis to a collaborator. Drag nodes around, reorient the whole layout, and build **AND / OR / NOT** logic nodes to combine populations — handy for cross-checking a manual gate against, say, an unsupervised cluster from Population Analysis.
 → [Pipeline guide](./05_PIPELINE.md)
 
-### 5. Statistics
-A dedicated, full-screen statistics explorer. Pick any combination of populations, samples, and metrics, and view the result as a sortable table or switch it to a Grouped Bar or Heatmap chart for an at-a-glance read.
-→ [Statistics guide](./06_STATISTICS.md)
-
-### 6. Spectral
+### 5. Spectral
 An interactive viewer pulling real fluorophore excitation/emission spectra live from [FPbase](https://www.fpbase.org/), so you can see exactly why (or whether) two dyes in your panel actually overlap — hover between two curves for a real overlap-integral percentage. Its **Learning Compensation** sub-tab is a self-paced interactive slideshow that walks through spillover and matrix math using your own panel's real numbers.
 → [Spectral guide](./07_SPECTRAL.md)
 
-### 7. Population Analysis
+### 6. Population Analysis
 Where you step outside manual gating. Pick a root population and a set of channels, run **UMAP** to flatten your multi-dimensional marker data into a 2D map you can color by any channel, and optionally layer on **HDBSCAN** clustering to let the data group itself with zero manual input. Any resulting cluster can be exported straight back into your gating hierarchy as a real, usable population.
 → [Population Analysis guide](./08_POPULATION_ANALYSIS.md)
 
-### 8. Comparisons
-Five dedicated chart types for putting populations and samples side by side: Violin, Channel Heatmap, Radar, and Histogram Overlay (with a Ridge alternative for a handful of series) — each one better suited to a different kind of question than a plain statistics table.
-→ [Comparisons guide](./09_COMPARISONS.md)
-
-### 9. Sample Lens
+### 7. Sample Lens
 A check of one sample's gating strategy. Pick a population to see every gate above it with the population backgated; the lens compares your gates with a UMAP + HDBSCAN clustering of the same cells and flags populations you missed, gates that merge two clusters, and gates that cut one; and it shows the population across every sample, flagging fragile gate edges and outliers. A missed population can be turned into ordinary gates in one click.
 → [Sample Lens guide](./16_SAMPLE_LENS.md)
+
+### 8. Statistics
+A dedicated, full-screen statistics explorer. Pick any combination of populations, samples, and metrics, and view the result as a sortable table or switch it to a Grouped Bar or Heatmap chart for an at-a-glance read.
+→ [Statistics guide](./06_STATISTICS.md)
+
+### 9. Comparisons
+Five dedicated chart types for putting populations and samples side by side: Violin, Channel Heatmap, Radar, and Histogram Overlay (with a Ridge alternative for a handful of series) — each one better suited to a different kind of question than a plain statistics table.
+→ [Comparisons guide](./09_COMPARISONS.md)
 
 ## Learn by doing: the Academy
 

@@ -16,6 +16,7 @@ from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.tutorial_models import IValidator, ValidationFailure
 
 from ..analysis.state import FlowState
+from ..main_tabs import MainTab
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -60,15 +61,16 @@ class FlowValidator(LoggingValidator):
 
 
 class TabActiveValidator(FlowValidator):
-    """Verifies that the user has navigated to a specific main tab index."""
+    """Verifies that the user has navigated to a specific main tab."""
 
-    def __init__(self, expected_tab_index: int) -> None:
-        self.expected = expected_tab_index
+    def __init__(self, expected: MainTab) -> None:
+        self.expected = expected
 
     def validate_flow(self, app_state: FlowState) -> bool:
         if app_state.view.active_main_tab_index != self.expected:
             return self.log_failure(
-                f"Expected tab index {self.expected}, but got {app_state.view.active_main_tab_index}."
+                f"Expected the {self.expected.label} tab, but tab "
+                f"{app_state.view.active_main_tab_index} is open."
             )
         return True
 
