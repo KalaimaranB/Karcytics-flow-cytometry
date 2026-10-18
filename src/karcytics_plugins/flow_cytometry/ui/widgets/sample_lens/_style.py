@@ -83,3 +83,18 @@ class Pill(QLabel):
             f" border-radius: 9px; padding: 2px 8px; font-size: {Fonts.SIZE_SMALL}px;"
             " font-weight: 600; }",
         )
+
+
+def banner(object_name: str, text: str, tone: str = "warning") -> QLabel:
+    """A full-width notice: tinted border, readable text, wraps."""
+    label = QLabel(text)
+    label.setObjectName(object_name)
+    label.setWordWrap(True)
+    edge = _TONES[tone]
+    theme_manager.apply_style(
+        label,
+        f"QLabel#{object_name} {{ color: {{FG_PRIMARY}}; background: {{BG_MEDIUM}};"
+        f" border: 1px solid {{{edge}}}; border-left: 4px solid {{{edge}}};"
+        f" border-radius: 6px; padding: 8px 12px; font-size: {Fonts.SIZE_SMALL}px; }}",
+    )
+    return label

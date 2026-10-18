@@ -636,7 +636,24 @@ class FlowCytometryPanel(PluginBase):
         global_tutorial_manager.start_course_confirmed(course_id)
 
     def _apply_theme_styles(self) -> None:
-        """Dynamically refresh all UI colors based on the current theme."""
+        """Dynamically refresh all UI colors based on the current theme.
+
+        Skips a palette it has already applied: the isolated runtime both
+        emits ``theme_changed`` (connected here) and calls this directly, and
+        each pass restyles every widget and redraws every plot.
+        """
+        palette = (
+            Colors.BG_DARKEST,
+            Colors.BG_DARK,
+            Colors.BG_MEDIUM,
+            Colors.FG_PRIMARY,
+            Colors.FG_SECONDARY,
+            Colors.ACCENT_PRIMARY,
+            Colors.BORDER,
+        )
+        if palette == getattr(self, "_themed_palette", None):
+            return
+        self._themed_palette = palette
         # 1. Base Panel
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
 

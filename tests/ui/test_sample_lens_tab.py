@@ -30,6 +30,7 @@ def lens(qtbot):
     qtbot.addWidget(tab)
     tab.resize(1400, 900)
     tab.show()
+    qtbot.waitUntil(lambda: tab._model._active)  # catches up just after painting
     return tab, state, umap
 
 
@@ -187,7 +188,7 @@ def _shown(tab):
     return [p for p in tab._path._plots if not p.isHidden()]
 
 
-def test_the_path_plots_share_the_width_and_keep_whole_gates_in_view(lens):
+def test_the_path_plots_share_the_width_and_keep_whole_gates_in_view(lens, qtbot):
     from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens.gating_path import (
         PLOT_W_MAX,
         PLOT_W_MIN,
@@ -195,6 +196,7 @@ def test_the_path_plots_share_the_width_and_keep_whole_gates_in_view(lens):
 
     tab, state, _ = lens
     tab._model.select(_cd4_node(state).node_id)
+    qtbot.waitUntil(lambda: not tab._path._resizing)  # plots resize one at a time
     plots = _shown(tab)
     assert all(PLOT_W_MIN <= p.canvas.width() <= PLOT_W_MAX for p in plots)
     cd4 = _cd4_node(state)
@@ -246,6 +248,7 @@ def test_a_flowsom_run_gets_a_k_control_that_recuts_the_audit(qtbot):
     qtbot.addWidget(tab)
     tab.resize(1400, 900)
     tab.show()
+    qtbot.waitUntil(lambda: tab._model._active)  # catches up just after painting
     tab._run_combo.setCurrentIndex(tab._run_combo.count() - 1)
 
     assert "FlowSOM k=5" in tab._run_combo.currentText()
@@ -365,7 +368,7 @@ def test_clicking_a_sibling_gate_edits_it_on_that_plot_only(lens):
     assert canvas._selected_gate_id == nk.node_id
 
 
-def test_focus_mode_gives_the_plots_the_tab(lens):
+def test_focus_mode_gives_the_plots_the_tab(lens, qtbot):
     from karcytics_plugins.flow_cytometry.tutorials.validators import (
         LensColumnsValidator,
         LensFocusValidator,
@@ -374,6 +377,7 @@ def test_focus_mode_gives_the_plots_the_tab(lens):
     tab, state, _ = lens
     state.view._sample_lens = tab
     tab._model.select(_cd4_node(state).node_id)
+    qtbot.waitUntil(lambda: not tab._path._resizing)
     small = _shown(tab)[0].canvas.width()
     assert not LensFocusValidator().validate(state)
 
@@ -386,6 +390,9 @@ def test_focus_mode_gives_the_plots_the_tab(lens):
     rows = [grid.getItemPosition(grid.indexOf(p))[:2] for p in _shown(tab)]
     assert rows == [(0, 0), (0, 1), (1, 0)]
     plot = _shown(tab)[0]
+    assert plot.target is not None or plot.canvas.width() > small  # waits its turn, or done
+    qtbot.waitUntil(lambda: not tab._path._resizing)
+    assert not any(p.target for p in _shown(tab))
     assert plot.canvas.width() > small  # bigger, same shape
     assert plot.canvas.height() > plot.canvas.width() * 0.8  # noqa: PLR2004
 
@@ -449,6 +456,7 @@ def _phenograph_lens(qtbot, monkeypatch, resolution=0.1):
     qtbot.addWidget(tab)
     tab.resize(1400, 900)
     tab.show()
+    qtbot.waitUntil(lambda: tab._model._active)  # catches up just after painting
     tab._run_combo.setCurrentIndex(tab._run_combo.count() - 1)
     return tab, state, umap
 
@@ -506,3 +514,51 @@ def test_findings_say_whether_another_run_of_the_population_agrees(lens):
     notes = [label.text() for label in tab._findings.findChildren(QLabel, "SampleLensAgreement")]
     assert len(notes) == len(tab._model.findings)
     assert all(n == "Also found by UMAP + HDBSCAN" for n in notes)
+
+
+def test_the_tab_paints_before_catching_up(qtbot):
+    """Switching to the tab is instant: the audit and plots follow a moment later."""
+    state = build_lens_state()
+    tab = SampleLensTab(
+        state,
+        PopulationService(state),
+        FakeUmapService(),
+        TreeController(state),
+        AxisManager(state),
+    )
+    qtbot.addWidget(tab)
+    tab.show()
+    assert not tab._model._active  # nothing computed during the switch
+    qtbot.waitUntil(lambda: tab._model._active)
+    assert tab._model.scope is not None
+
+
+def test_a_theme_change_redraws_the_plots(lens, qtbot):
+    tab, state, _ = lens
+    tab._model.select(_cd4_node(state).node_id)
+    plots = _shown(tab)
+    assert all(p.drawn is not None for p in plots)
+    redrawn = []
+    tab._map.show_scope = lambda *a, **k: redrawn.append(a)  # type: ignore[method-assign]
+    tab._apply_theme_styles()
+    assert redrawn  # the map, drawn with the new colours
+    assert all(p.drawn is not None for p in plots)  # and every path plot, again
+
+
+def test_the_lens_says_it_is_under_construction(lens):
+    tab, _, _ = lens
+    banner = tab.findChild(QLabel, "SampleLensBetaBanner")
+    assert banner is not None and banner.isVisible()
+    assert "under construction" in banner.text().lower()
+
+
+def test_plots_waiting_to_resize_say_so(lens, qtbot):
+    tab, state, _ = lens
+    tab._model.select(_cd4_node(state).node_id)
+    qtbot.waitUntil(lambda: not tab._path._resizing)
+    tab._path.set_focus(True)
+    waiting = [p for p in _shown(tab) if p.target]
+    assert waiting  # resized one per turn of the event loop
+    assert all(p.canvas._overlay_manager._loading_label.isVisible() for p in waiting)
+    assert "Loading plot" in waiting[0].canvas._overlay_manager._loading_label.text()
+    qtbot.waitUntil(lambda: not tab._path._resizing)

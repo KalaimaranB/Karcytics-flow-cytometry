@@ -34,7 +34,7 @@ from ....analysis.clustering import method_of
 from ....analysis.clustering.methods import K_SETTING, RESOLUTION_SETTING
 from ....analysis.sample_lens import Finding
 from ..cluster_map_view import RECUT_DELAY_MS
-from ._style import Pill, card, palette_color, section_header
+from ._style import Pill, banner, card, palette_color, section_header
 from .across_samples import AcrossSamples
 from .findings_panel import FindingsPanel
 from .gating_path import GatingPathStrip
@@ -63,6 +63,9 @@ def _run_ref(data: str | None) -> RunRef | None:
         return None
     key, index = data.rsplit(_RUN_SEP, 1)
     return RunRef(key, int(index))
+
+
+SHOW_DELAY_MS = 30  # let the tab paint before catching up
 
 
 class SampleLensTab(QWidget):
@@ -224,6 +227,14 @@ class SampleLensTab(QWidget):
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(12)
         layout.addWidget(HeaderLabel("Sample Lens"))
+        layout.addWidget(
+            banner(
+                "SampleLensBetaBanner",
+                "🚧 <b>Under construction.</b> The Sample Lens is still being validated: "
+                "treat its findings and proposed gates as leads to check, not as results, "
+                "until it has been validated on your kind of data.",
+            )
+        )
         self._scope_caption = BioCaptionLabel("")
         self._scope_caption.setObjectName("SampleLensScope")
         layout.addWidget(self._scope_caption)
@@ -279,12 +290,31 @@ class SampleLensTab(QWidget):
 
     def showEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
         super().showEvent(event)
+        # Catch up after the tab has painted, so switching to it is instant
+        # (the audit and the plots take a moment; plots show "Loading plot…").
+        QTimer.singleShot(SHOW_DELAY_MS, self._activate)
+
+    def _activate(self) -> None:
+        if not self.isVisible():
+            return  # switched away again before catching up
         self._populate_samples()
         self._model.set_active(True)
 
     def hideEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
         self._model.set_active(False)
         super().hideEvent(event)
+
+    def _apply_theme_styles(self) -> None:
+        """Redraw the plots in the new theme's colours (now if shown, else when shown).
+
+        Styled widgets follow the theme by themselves; the matplotlib plots
+        bake colours in when drawn, and the path plots skip a redraw of what
+        they already show.
+        """
+        self._path.forget_drawn()
+        self._map.forget_drawn()
+        if self.isVisible():
+            self._render()
 
     def _populate_samples(self) -> None:
         samples = self._model.samples()

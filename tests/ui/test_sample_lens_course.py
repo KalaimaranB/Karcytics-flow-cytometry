@@ -32,6 +32,7 @@ def lens(qtbot):
     state.view._sample_lens = tab  # as the workspace builder registers it
     qtbot.addWidget(tab)
     tab.show()
+    qtbot.waitUntil(lambda: tab._model._active)  # catches up just after painting
     return tab, state
 
 

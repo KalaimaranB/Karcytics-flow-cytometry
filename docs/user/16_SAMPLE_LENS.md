@@ -1,7 +1,10 @@
 # Sample Lens
 
 !!! tip "Learn it hands-on"
-    Academy **Course 5 — Sample Lens: Check Every Gate** walks through every part of this tab on the tutorial data.
+    Academy **Course 5 — Sample Lens: Check Every Gate** walks through every part of this tab on the tutorial data. **Course 6 — Second Opinions** uses it with FlowSOM and PhenoGraph runs.
+
+!!! warning "Under construction"
+    The Sample Lens is still being validated, and the tab says so in a banner at the top. Treat its findings and proposed gates as leads to check, not as results, until it has been validated on your kind of data.
 
 The **Sample Lens** tab is a single-sample check of your gating strategy. It answers the question manual gating never answers on its own: *is this strategy actually right?* It shows every gate on a population's path with that population highlighted (backgating), compares your gates with an unsupervised clustering of the same cells, and shows how a population behaves across every sample.
 

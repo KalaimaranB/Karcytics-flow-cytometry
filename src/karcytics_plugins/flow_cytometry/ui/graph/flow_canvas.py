@@ -805,6 +805,16 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._hide_loading()
         self._show_error(f"Render error: {message}")
 
+    def set_loading_text(self, text: str) -> None:
+        """What the pill over the plot says while it renders ("Rendering…")."""
+        if hasattr(self, "_overlay_manager"):
+            self._overlay_manager.show_loading(text)
+            self._overlay_manager.hide_loading()
+
+    def set_loading(self, on: bool) -> None:
+        """Show or hide the loading pill, e.g. while a resize waits its turn."""
+        (self._show_loading if on else self._hide_loading)()
+
     def _show_loading(self) -> None:
         """Show the loading overlay, keeping it on top."""
         if hasattr(self, "_overlay_manager"):

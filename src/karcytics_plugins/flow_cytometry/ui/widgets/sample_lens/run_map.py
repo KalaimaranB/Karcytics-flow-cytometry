@@ -10,6 +10,7 @@ findings are circled. Clicking a cluster emits ``cluster_clicked``.
 
 from __future__ import annotations
 
+import hashlib
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -77,6 +78,31 @@ def _draw_tree(ax: Axes, run: dict[str, Any]) -> None:
         )
 
 
+def _scope_key(
+    scope: RunScope | None,
+    population_colors: dict[str, str],
+    selected_path: str | None,
+    findings: list[Finding],
+    emphasis: tuple[int, ...],
+) -> tuple:
+    """Everything the map's picture depends on (a new scope object can draw the same)."""
+    if scope is None:
+        return (None,)
+    digest = hashlib.blake2b(digest_size=16)
+    for array in (scope.rows, scope.embedding, scope.clusters, *scope.masks.values()):
+        if array is not None:
+            digest.update(np.ascontiguousarray(array).tobytes())
+    return (
+        id(scope.run),
+        tuple(scope.masks),
+        digest.hexdigest(),
+        tuple(sorted(population_colors.items())),
+        selected_path,
+        tuple(f.title for f in findings),
+        emphasis,
+    )
+
+
 class RunMap(QWidget):
     cluster_clicked = Signal(int)
 
@@ -93,6 +119,11 @@ class RunMap(QWidget):
         layout.addWidget(frame)
         self._scope: RunScope | None = None
         self._cluster_ax: Axes | None = None
+        self._shown: tuple | None = None  # what the figure shows, to skip a repeat
+
+    def forget_drawn(self) -> None:
+        """Make the next show_scope redraw (a theme change, say)."""
+        self._shown = None
 
     def show_scope(
         self,
@@ -103,6 +134,10 @@ class RunMap(QWidget):
         emphasis: tuple[int, ...] = (),
     ) -> None:
         self._scope = scope
+        shown = _scope_key(scope, population_colors, selected_path, findings, emphasis)
+        if shown == self._shown:
+            return  # redrawing tens of thousands of points to the same picture
+        self._shown = shown
         fig = self._canvas.figure
         fig.clear()
         fig.set_facecolor(Colors.BG_DARK)
@@ -157,7 +192,7 @@ class RunMap(QWidget):
             for p in scope.final_populations
         ]
         handles.append(ax.scatter([], [], c=Colors.BG_LIGHT, s=14, label="in no final population"))
-        legend = ax.legend(handles=handles, fontsize=7, loc="best", frameon=False)
+        legend = ax.legend(handles=handles, fontsize=7, loc="upper right", frameon=False)
         for text in legend.get_texts():
             text.set_color(Colors.FG_SECONDARY)
 

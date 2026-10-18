@@ -15,6 +15,7 @@ inputs haven't changed isn't redrawn, and nothing is redrawn mid-drag.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -64,6 +65,8 @@ PLOT_SPACING = 12
 PLOT_MARGINS = {"left": 0.21, "bottom": 0.17, "right": 0.96, "top": 0.95}
 VIEW_PAD = 0.04  # share of the display range kept clear around a gate
 RETRY_MS = 300  # wait this long to redraw when a gate is being dragged
+RESIZE_GAP_MS = 15  # between resizing one plot and the next, so each paints on its own
+LOADING_TEXT = "Loading plot…"
 
 
 SCATTER = ("SSC-A", "FSC-A")  # what a 1-D gate can be plotted against as a dot plot
@@ -129,6 +132,14 @@ def _digest(*arrays: np.ndarray) -> str:
     return h.hexdigest()
 
 
+def _gates_key(gates: list[Gate], nodes: list[GateNode]) -> tuple:
+    """What the gate overlays show: each gate's shape and each node's name."""
+    return (
+        tuple(json.dumps(g.to_dict(), sort_keys=True, default=str) for g in gates),
+        tuple((n.node_id, n.name) for n in nodes),
+    )
+
+
 def _scale_key(scale: AxisScale) -> tuple:
     return (
         scale.transform_type,
@@ -182,8 +193,11 @@ class _PathPlot(QWidget):
         # Clicking a sibling gate makes it editable on this plot alone; the
         # app-wide selection would take every other plot's handles.
         self.canvas.set_local_selection(True)
+        self.canvas.set_loading_text(LOADING_TEXT)
         layout.addWidget(self.canvas)
+        self.target: tuple[int, int] | None = None  # a size waiting its turn (see _resize_next)
         self.drawn: tuple | None = None  # what the canvas last drew, to skip repeats
+        self.gates_drawn: tuple | None = None  # the same, for the gates drawn over it
         # Whose gate this plot shows, to keep a click's selection across redraws.
         self.step_key: tuple | None = None
         self.options: list[tuple[str, str, bool]] = []  # the view combo's items
@@ -206,8 +220,12 @@ class _PathPlot(QWidget):
         self.view.setCurrentIndex(max(0, self.view.findData(current)))
         self.view.blockSignals(False)
 
+    def needs_size(self, width: int, height: int) -> bool:
+        return (self.canvas.width(), self.canvas.height()) != (width, height)
+
     def set_size(self, width: int, height: int) -> None:
-        if (self.canvas.width(), self.canvas.height()) != (width, height):
+        self.target = None
+        if self.needs_size(width, height):
             self.canvas.setFixedSize(width, height)
 
 
@@ -228,6 +246,7 @@ class GatingPathStrip(QWidget):
         self._pending: tuple | None = None  # a redraw put off while a gate is dragged
         self._views: dict[str, str] = {}  # gate id -> chosen view, kept across selections
         self._focus = False
+        self._resizing = False  # a _resize_next is scheduled
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -348,7 +367,31 @@ class GatingPathStrip(QWidget):
         width = max(PLOT_W_MIN, min(widest, free // per_row))
         height = round(width * ASPECT) if self._focus else PLOT_H
         for plot in shown:
-            plot.set_size(width, height)
+            if plot.needs_size(width, height):
+                plot.target = (width, height)
+                plot.canvas.set_loading(True)
+            else:
+                plot.target = None
+        if not self._resizing and any(p.target for p in shown):
+            self._resizing = True
+            QTimer.singleShot(0, self._resize_next)
+
+    def _resize_next(self) -> None:
+        """Resize one waiting plot, then come back for the next.
+
+        A resized plot redraws all its points (~0.15 s); resizing them all at
+        once froze the tab for the whole batch with nothing painted. One per
+        turn of the event loop shows each as it's ready, the rest keep their
+        "Loading plot…" pill until their turn.
+        """
+        plot = next((p for p in self._shown() if p.target), None)
+        if plot is None:
+            self._resizing = False
+            return
+        assert plot.target is not None
+        plot.set_size(*plot.target)
+        plot.canvas.set_loading(False)
+        QTimer.singleShot(RESIZE_GAP_MS, self._resize_next)
 
     def _plot(self, i: int) -> _PathPlot:
         while len(self._plots) <= i:  # canvases are reused, never rebuilt per selection
@@ -367,6 +410,11 @@ class GatingPathStrip(QWidget):
         sample, sample_events, step = plot.last
         self._views[step.gate.gate_id] = plot.view.currentData()
         self._draw(plot, sample, sample_events, step)
+
+    def forget_drawn(self) -> None:
+        """Make the next show redraw every plot (a theme change, say)."""
+        for plot in self._plots:
+            plot.drawn = plot.gates_drawn = None
 
     # ── Showing a path ─────────────────────────────────────────────────
 
@@ -551,7 +599,10 @@ class GatingPathStrip(QWidget):
             canvas.set_backgate(step.backgate, step.color)
             canvas.set_data(step.events)
             canvas.end_update()  # one redraw with axes, scales, data and backgate together
-        canvas.set_gates(step.gates, step.nodes)  # cheap: overlays only
+        gates_key = (drawn, _gates_key(step.gates, step.nodes))
+        if gates_key != plot.gates_drawn:  # each set_gates redraws the whole figure
+            plot.gates_drawn = gates_key
+            canvas.set_gates(step.gates, step.nodes)
         plot.toggle.setVisible(step.kept is not None)
         if step.kept is not None:
             plot.toggle.blockSignals(True)  # showing the state isn't a toggle

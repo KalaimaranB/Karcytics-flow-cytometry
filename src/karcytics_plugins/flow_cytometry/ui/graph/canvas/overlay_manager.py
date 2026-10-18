@@ -54,14 +54,19 @@ class OverlayManager:
         y = max(0, (height - lh) // 2)
         self._loading_label.setGeometry(x, y, lw, lh)
 
-    def show_loading(self) -> None:
-        """Show the loading overlay, keeping it on top."""
+    def show_loading(self, text: str | None = None) -> None:
+        """Show the loading overlay, keeping it on top.
+
+        The render it covers is asynchronous, so the label paints on the next
+        turn of the event loop. Pumping events here instead made every
+        pending canvas render on the spot, one after another, freezing a
+        window of several plots for the whole batch.
+        """
+        if text is not None:
+            self._loading_label.setText(f"  {text}  ")
         self.resize_loading(self.canvas.width(), self.canvas.height())
         self._loading_label.setVisible(True)
         self._loading_label.raise_()
-        from PySide6.QtWidgets import QApplication
-
-        QApplication.processEvents()
 
     def hide_loading(self) -> None:
         """Hide the loading overlay."""
