@@ -58,6 +58,15 @@ class RunMap(QWidget):
         fig.set_facecolor(Colors.BG_DARK)
         self._cluster_ax = None
         if scope is None or scope.n == 0:
+            fig.text(
+                0.5,
+                0.5,
+                "The map needs a clustering run.\nBackgating above works without one.",
+                ha="center",
+                va="center",
+                color=Colors.FG_SECONDARY,
+                fontsize=10,
+            )
             self._canvas.draw_idle()
             return
 

@@ -849,7 +849,67 @@ course_5_sample_lens = Course(
                 "through a crowd swings with every change in staining or gate."
             ),
             cyto_emotion="thinking",
-            next_step_id="c5_s43_break_intro",
+            next_step_id="c5_s42b_no_run_switch",
+        ),
+        # ── Backgating without a clustering run ─────────────────────────────────
+        VerificationStep(
+            id="c5_s42b_no_run_switch",
+            text=(
+                "No clustering? Still useful 🧭<br><br>"
+                "Backgating and Across samples don't need a clustering run. "
+                "Course 4 only clustered Sample C, so let's try a sample "
+                "without one.<br><br>"
+                "Choose **Sample A** in the **Sample** dropdown."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensSampleCombo"],
+            validator=LensSampleValidator("sample a"),
+            on_success_step_id="c5_s42c_no_run_backgate",
+            failure_hint="Open the **Sample** dropdown at the top left and pick **Sample A**.",
+        ),
+        VerificationStep(
+            id="c5_s42c_no_run_backgate",
+            text=(
+                "The caption says Sample A has no clustering run, and the map "
+                "and findings wait for one.<br><br>"
+                "Now click **CD4+** in Populations."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensHierarchy", "SampleLensScope"],
+            validator=AllOf(
+                LensSampleValidator("sample a"), LensPopulationSelectedValidator("CD4+")
+            ),
+            on_success_step_id="c5_s42d_no_run_read",
+            failure_hint="Click the **CD4+** row in the Populations list.",
+        ),
+        InfoStep(
+            id="c5_s42d_no_run_read",
+            text=(
+                "Backgating, no clustering needed ✅<br><br>"
+                "The gating path and **Across samples** work exactly as on "
+                "Sample C: the thymus' CD4 T cells, gate by gate.<br><br>"
+                "So you can open the lens just to check a population's path, "
+                "on any sample, before or without clustering."
+            ),
+            cyto_emotion="happy",
+            allow_interaction=True,
+            target_widget_names=["SampleLensPath", "SampleLensAcross"],
+            next_step_id="c5_s42e_back_to_c",
+        ),
+        VerificationStep(
+            id="c5_s42e_back_to_c",
+            text="Switch the **Sample** dropdown back to **Sample C** for the last exercise.",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensSampleCombo"],
+            validator=AllOf(LensSampleValidator("sample c"), LensRunReadyValidator()),
+            on_success_step_id="c5_s43_break_intro",
+            failure_hint="Open the **Sample** dropdown and pick **Sample C** again.",
         ),
         # ── Break it, then catch it ─────────────────────────────────────────────
         InfoStep(
@@ -1002,7 +1062,8 @@ course_5_sample_lens = Course(
                 "When to use the lens 🗓️<br><br>"
                 "• After building a new gating strategy, before reporting.<br>"
                 "• When one sample's numbers look odd: check its path and flags.<br>"
-                "• After adjusting a gate: findings update as you drag."
+                "• After adjusting a gate: findings update as you drag.<br>"
+                "• Any time, just to backgate: no clustering run needed."
             ),
             cyto_emotion="talking",
             next_step_id="c5_s52_limits",

@@ -119,6 +119,7 @@ Course 4 checked one population against the clusters. Course 5 checks all of the
 - Read the run's map twice, coloured by your final populations and by cluster, and learn the three kinds of audit finding.
 - Find the cells none of your gates holds (leukocytes that are neither T nor B cells), let **Propose gates** turn the cluster into ordinary rectangle gates, read its precision, recall and F1, and add them to your tree.
 - Read **Across samples**: why the thymus is flagged as an outlier on DP (biology, not a gating error), and what **On edge** says about how fragile a gate is.
+- Backgate on Sample A, which has no clustering run, to see that the gating path and Across samples don't need one.
 - Drag the T-cells gate's top edge into the CD4 T cells on purpose, watch the lens name the gate that cut them, then fix it.
 - Save your workspace again — required to continue into Course 6.
 

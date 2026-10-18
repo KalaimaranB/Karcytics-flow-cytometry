@@ -298,8 +298,9 @@ class SampleLensTab(QWidget):
             return "Load samples in the Workspace tab to use the lens."
         if scope is None:
             return (
-                "No clustering run for this sample yet. Select the population to cluster in the "
-                "hierarchy (usually your clean-up gate), then press “Run UMAP + clustering”."
+                "No clustering run for this sample yet. Backgating and Across samples work "
+                "without one: click a population. For audit findings, select the population to "
+                "cluster (usually your clean-up gate) and press “Run UMAP + clustering”."
             )
         population = model.population_name(scope.run.get("node_id"))
         return (
@@ -310,7 +311,10 @@ class SampleLensTab(QWidget):
     def _empty_findings_text(self) -> tuple[str, str]:
         scope = self._model.scope
         if scope is None:
-            return "No run yet", "Findings appear once the sample has a clustering run."
+            return (
+                "No run yet",
+                "Findings need a clustering run. Backgating and Across samples work without one.",
+            )
         if not scope.has_clusters:
             return (
                 "No clusters",

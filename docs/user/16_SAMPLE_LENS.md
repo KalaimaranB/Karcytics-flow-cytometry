@@ -9,6 +9,9 @@ It is the last tab of the module. Like Statistics and Population Analysis, it ta
 
 ## 1. Before you start: a clustering run
 
+!!! tip "Just backgating? No run needed"
+    The gating path (section 3) and **Across samples** (section 4) work on any sample, with or without a clustering run. Only the audit findings and the map need one.
+
 The lens judges your gates against a **UMAP + HDBSCAN** run of the sample (see [Population Analysis](./08_POPULATION_ANALYSIS.md)). Any run made with **Run HDBSCAN Auto-Clustering** checked works, including ones you made in Population Analysis.
 
 If the sample has none:

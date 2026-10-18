@@ -99,6 +99,17 @@ def test_a_sample_without_a_run_says_how_to_get_one(lens):
     assert len(_visible_cards(tab)) == 1
 
 
+def test_backgating_works_without_a_run(lens):
+    tab, state, _ = lens
+    tab._sample_combo.setCurrentIndex(tab._sample_combo.findData("s1"))
+    assert tab._model.scope is None
+    assert "Backgating and Across samples work" in tab._scope_caption.text()
+
+    tab._model.select(_cd4_node(state, "s1").node_id)
+    assert len(_shown(tab)) == 3  # noqa: PLR2004 - the CD4+ path
+    assert len(tab._model.checks) == 4  # noqa: PLR2004 - every sample
+
+
 def test_running_umap_stores_the_run_and_switches_to_it(lens, qtbot):
     tab, state, umap = lens
     tab._sample_combo.setCurrentIndex(tab._sample_combo.findData("s1"))
