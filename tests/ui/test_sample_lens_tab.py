@@ -1,5 +1,7 @@
 """The Sample Lens tab on planted samples (see tests/fixtures/lens.py)."""
 
+from dataclasses import replace
+
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
@@ -295,3 +297,68 @@ def test_the_lens_remembers_the_run_picked_for_each_sample(lens):
     tab._k_spin.setValue(8)
     tab._k_timer.timeout.emit()
     assert LensKValidator(8).validate(state)
+
+
+def test_unticking_a_proposed_step_leaves_its_gate_out(lens):
+    tab, _, _ = lens
+    missed = next(f for f in tab._model.findings if f.kind is FindingKind.MISSED)
+    tab._on_fix_requested(missed)
+    first = tab._proposal.steps[0]  # the planted cluster needs one gate: ask it twice
+    tab._proposal = proposal = replace(tab._proposal, steps=[first, first])
+    tab._render()
+    toggles = [p.toggle for p in _shown(tab)]
+    assert all(t.isVisibleTo(tab) and t.isChecked() for t in toggles)
+    assert len(_shown(tab)[1].canvas._current_data) < len(proposal.events)  # narrowed by step 1
+
+    toggles[0].setChecked(False)
+    assert tab._proposal.left_out == {0}
+    assert _shown(tab)[0].caption.text() == "Step 1 · left out"
+    assert tab._proposal_pills[0].text() == "1 of 2 gates"
+    assert tab._proposal_pills[1].text() == f"F1 {first.f1:.2f}"  # step 2 alone, same box
+    assert len(_shown(tab)[1].canvas._current_data) == len(proposal.events)  # no longer narrowed
+
+    toggles[1].setChecked(False)
+    assert not tab._accept_btn.isEnabled()
+    toggles[0].setChecked(True)
+    tab._accept_btn.click()
+    assert [name for name, _ in tab._model._controller.added] == [
+        f"Cluster {missed.clusters[0]}"  # the one kept step, named as the last
+    ]
+
+
+def test_clicking_a_sibling_gate_edits_it_on_that_plot_only(lens):
+    from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
+
+    tab, state, _ = lens
+    sample = state.data.experiment.samples["s0"]
+    lymph = sample.gate_tree.children[0]
+    nk = lymph.add_child(
+        RectangleGate("CD3", "CD56", x_min=0, x_max=1500, y_min=0, y_max=1500), "NK"
+    )
+
+    def gates_for_display(sample_id, parent_node_id=None):
+        parent = (
+            sample.gate_tree.find_node_by_id(parent_node_id) if parent_node_id else sample.gate_tree
+        )
+        nodes = [c for c in parent.children if c.gate is not None]
+        return [c.gate for c in nodes], nodes
+
+    tab._model._controller.get_gates_for_display = gates_for_display
+    state.view.current_gate_id = None
+    tab._model.select(_cd4_node(state).node_id)
+    plots = _shown(tab)
+    t_plot = plots[1]  # Lymphocytes → T cells, where NK sits too
+    t_cells = lymph.children[0]
+    assert t_plot.canvas._selected_gate_id == t_cells.node_id
+
+    canvas = t_plot.canvas
+    canvas.draw()
+    box = canvas._gate_overlay_artists[nk.gate.gate_id]["patch"].get_window_extent()
+    x, y = canvas._ax.transData.inverted().transform(((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2))
+    assert canvas._try_select_gate(x, y)
+
+    assert canvas._selected_gate_id == nk.node_id
+    assert plots[2].canvas._selected_gate_id == _cd4_node(state).node_id  # kept its handles
+    assert state.view.current_gate_id is None  # the Gating tab's selection is untouched
+    tab._render()  # a redraw (as after an edit) keeps the click's choice
+    assert canvas._selected_gate_id == nk.node_id

@@ -20,8 +20,8 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from karcytics_sdk.plugin.components import BioCaptionLabel, SubtitleLabel
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
 from ....analysis._utils import project_to_display, project_to_raw
 from ....analysis.fcs_io import get_channel_marker_label
@@ -60,6 +60,7 @@ class PlotStep:
     gates: list[Gate]  # overlays to draw (the canvas keeps those on its axes)
     nodes: list[GateNode]  # their nodes: a gate is drawn only with a node
     selected_node_id: str | None = None  # whose handles to show (None: not editable here)
+    kept: bool | None = None  # a proposal step: ticked or not (None: no tick box)
 
 
 def gate_path(node: GateNode) -> list[GateNode]:
@@ -110,19 +111,36 @@ class _PathPlot(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
+        top = QHBoxLayout()
+        top.setContentsMargins(0, 0, 0, 0)
+        top.setSpacing(6)
+        self.toggle = QCheckBox()
+        self.toggle.setObjectName("SampleLensStepToggle")
+        self.toggle.setToolTip("Untick to leave this gate out of the proposal")
+        self.toggle.hide()
+        top.addWidget(self.toggle)
         self.caption = BioCaptionLabel("")
-        layout.addWidget(self.caption)
+        top.addWidget(self.caption, 1)
+        layout.addLayout(top)
         self.canvas = FlowCanvas(state=state, controller=controller)
         self.canvas.setFixedSize(PLOT_W_MAX, PLOT_H)
         self.canvas.set_margins(**PLOT_MARGINS)
         self.canvas.set_wheel_zoom(False)  # the wheel scrolls the strip
         self.canvas.set_compact_ticks(True)
+        # Clicking a sibling gate makes it editable on this plot alone; the
+        # app-wide selection would take every other plot's handles.
+        self.canvas.set_local_selection(True)
         layout.addWidget(self.canvas)
         self.drawn: tuple | None = None  # what the canvas last drew, to skip repeats
+        self.step_key: tuple | None = (
+            None  # whose gate this plot shows, to keep a click's selection
+        )
 
 
 class GatingPathStrip(QWidget):
     """A horizontal strip of the selected population's gating path."""
+
+    step_toggled = Signal(int, bool)  # a proposal step ticked or unticked
 
     def __init__(self, state: FlowState, controller: Any, axis_manager: Any) -> None:
         super().__init__()
@@ -180,6 +198,8 @@ class GatingPathStrip(QWidget):
     def _plot(self, i: int) -> _PathPlot:
         while len(self._plots) <= i:  # canvases are reused, never rebuilt per selection
             plot = _PathPlot(self._state, self._controller)
+            index = len(self._plots)
+            plot.toggle.toggled.connect(lambda on, i=index: self.step_toggled.emit(i, on))
             self._row.insertWidget(len(self._plots), plot)
             self._plots.append(plot)
         return self._plots[i]
@@ -266,25 +286,27 @@ class GatingPathStrip(QWidget):
         """Each proposed gate on the events left by the ones before it, cluster highlighted."""
         self._own_ranges((sample.sample_id, "proposal", proposal.clusters))
         steps = []
-        remaining = np.ones(len(proposal.events), dtype=bool)
-        for i, proposed in enumerate(proposal.steps):
+        for i, (proposed, (before, scores)) in enumerate(
+            zip(proposal.steps, proposal.walk(), strict=True)
+        ):
             preview = GateNode(gate=proposed.gate, name=f"Step {i + 1}")
             steps.append(
                 PlotStep(
-                    caption=f"Step {i + 1} · F1 {proposed.f1:.2f}",
-                    events=proposal.events.loc[remaining],
+                    caption=f"Step {i + 1} · "
+                    + (f"F1 {scores[0]:.2f}" if scores is not None else "left out"),
+                    events=proposal.events.loc[before],
                     gate=proposed.gate,
-                    backgate=proposal.target[remaining],
+                    backgate=proposal.target[before],
                     color=color,
                     gates=[proposed.gate],
                     nodes=[preview],
+                    kept=scores is not None,
                 )
             )
-            remaining &= proposed.gate.contains(proposal.events)
         self.show_steps(
             f"Proposed gates · {proposal.label}",
-            "The cluster is highlighted; each step keeps only the events inside the one before. "
-            "Nothing changes until you add them.",
+            "The cluster is highlighted; each step keeps only the events inside the ticked steps "
+            "before it. Untick a step to leave its gate out. Nothing changes until you add them.",
             sample,
             sample_events,
             steps,
@@ -354,4 +376,15 @@ class GatingPathStrip(QWidget):
             canvas.set_data(step.events)
             canvas.end_update()  # one redraw with axes, scales, data and backgate together
         canvas.set_gates(step.gates, step.nodes)  # cheap: overlays only
-        canvas.select_gate(step.selected_node_id)
+        plot.toggle.setVisible(step.kept is not None)
+        if step.kept is not None:
+            plot.toggle.blockSignals(True)  # showing the state isn't a toggle
+            plot.toggle.setChecked(step.kept)
+            plot.toggle.blockSignals(False)
+        # Select the step's own gate, unless a click picked another gate of this
+        # same step (kept across the redraw an edit causes).
+        step_key = (sample.sample_id, step.gate.gate_id, step.selected_node_id)
+        shown = {node.node_id for node in step.nodes}
+        if step_key != plot.step_key or canvas._selected_gate_id not in shown:
+            plot.step_key = step_key
+            canvas.select_gate(step.selected_node_id)

@@ -105,6 +105,11 @@ def _proposal_text(axes: list[str]) -> str:
             "<br><br>A pair came back: drawn on fewer cells, the second box can sit "
             "tighter around the cluster."
         )
+    if len(axes) > 2:  # noqa: PLR2004
+        text += (
+            "<br><br>A step that barely helps can go: untick its box and the scores "
+            "update. Keep them all for now."
+        )
     return text
 
 

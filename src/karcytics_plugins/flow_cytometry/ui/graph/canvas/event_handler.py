@@ -187,7 +187,7 @@ class CanvasEventHandler:
 
         node_id = canvas._find_node_id_for_gate(hit_id) if hit_id else None
 
-        if canvas._controller:
+        if canvas._controller and not canvas._local_selection:
             canvas._controller.select_gate(canvas._sample_id, node_id)  # type: ignore
         else:
             old_selected = canvas._selected_gate_id

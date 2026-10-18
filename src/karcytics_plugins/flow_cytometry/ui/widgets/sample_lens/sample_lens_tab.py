@@ -211,6 +211,7 @@ class SampleLensTab(QWidget):
 
         layout.addWidget(self._build_proposal_bar())
         self._path = GatingPathStrip(state, controller, axis_manager)
+        self._path.step_toggled.connect(self._on_step_toggled)
         self._path.setObjectName("SampleLensPath")
         layout.addWidget(self._path)
 
@@ -376,21 +377,25 @@ class SampleLensTab(QWidget):
         self._render()
 
     def _show_proposal(self, sample: Sample, proposal: Proposal) -> None:
-        steps = proposal.steps
-        if not steps:
+        total, kept = len(proposal.steps), len(proposal.chosen)
+        scores = [s for _, s in proposal.walk() if s is not None]
+        if not total:
             texts = ["No gates found", "", "", ""]
+        elif not scores:
+            texts = [f"0 of {total} gates", "Tick a step to keep its gate", "", ""]
         else:
-            last = steps[-1]
+            f1, precision, recall = scores[-1]
+            count = f"{kept} gate{'s' if kept > 1 else ''}"
             texts = [
-                f"{len(steps)} gate{'s' if len(steps) > 1 else ''}",
-                f"F1 {last.f1:.2f}",
-                f"Precision {last.precision:.0%}",
-                f"Recall {last.recall:.0%}",
+                count if kept == total else f"{kept} of {total} gates",
+                f"F1 {f1:.2f}",
+                f"Precision {precision:.0%}",
+                f"Recall {recall:.0%}",
             ]
         for pill, text in zip(self._proposal_pills, texts, strict=True):
             pill.setText(text)
             pill.setVisible(bool(text))
-        self._accept_btn.setEnabled(bool(steps))
+        self._accept_btn.setEnabled(bool(scores))
         events = self._model.events(sample)
         if events is not None:
             self._path.show_proposal(sample, events, proposal, palette_color(proposal.clusters[0]))
@@ -399,6 +404,12 @@ class SampleLensTab(QWidget):
         self._emphasis = finding.clusters
         self._proposal = self._model.propose(finding.clusters)
         self._render()
+
+    def _on_step_toggled(self, index: int, keep: bool) -> None:
+        if self._proposal is not None and index < len(self._proposal.steps):
+            self._proposal = self._proposal.toggled(index, keep)
+            if self._model.sample is not None:
+                self._show_proposal(self._model.sample, self._proposal)  # the rest is unchanged
 
     def _accept_proposal(self) -> None:
         proposal, self._proposal = self._proposal, None

@@ -217,6 +217,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._active_gates: list[Gate] = []
         self._gate_nodes: list[GateNode] = []  # for stat labels
         self._selected_gate_id: str | None = None
+        self._local_selection = False  # see set_local_selection
         self._instruction_text = None  # on-canvas drawing hint
 
         # ── Setup ──────────────────────────────────────────────────────
@@ -648,6 +649,14 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def set_wheel_zoom(self, enabled: bool) -> None:
         """Off: the wheel scrolls whatever holds the canvas instead of zooming the plot."""
         self._wheel_zoom = enabled
+
+    def set_local_selection(self, local: bool) -> None:
+        """On: a click selects a gate on this canvas only, not across the app.
+
+        For a canvas that sits beside others showing the same sample (the Sample
+        Lens path): the global selection would take every other canvas's handles.
+        """
+        self._local_selection = local
 
     def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
         if not self._wheel_zoom:
@@ -1103,7 +1112,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Update selection highlight when changed globally."""
         if not shiboken6.isValid(self):
             return
-        if sample_id != self._sample_id:
+        if sample_id != self._sample_id or self._local_selection:
             return
 
         self._selected_gate_id = node_id if node_id else None

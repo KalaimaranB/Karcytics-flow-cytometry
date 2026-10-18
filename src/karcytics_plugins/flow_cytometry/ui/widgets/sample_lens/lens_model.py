@@ -8,7 +8,7 @@ the current gates.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -30,6 +30,7 @@ from ....analysis.sample_lens import (
     check_across,
     propose_gates,
 )
+from ....analysis.sample_lens.synthesis import match_scores
 from ....analysis.services import experiment_edits
 from ....analysis.services.umap_service import UmapParams
 
@@ -83,6 +84,33 @@ class Proposal:
     events: pd.DataFrame  # the run's events
     target: np.ndarray  # which of them are the cluster
     steps: list[ProposedGate]  # a chain: each gate is meant as the previous one's child
+    left_out: frozenset[int] = frozenset()  # steps the user unticked
+
+    def kept(self, i: int) -> bool:
+        return i not in self.left_out
+
+    def toggled(self, i: int, keep: bool) -> Proposal:
+        return replace(self, left_out=self.left_out - {i} if keep else self.left_out | {i})
+
+    @property
+    def chosen(self) -> list[ProposedGate]:
+        return [step for i, step in enumerate(self.steps) if self.kept(i)]
+
+    def walk(self) -> list[tuple[np.ndarray, tuple[float, float, float] | None]]:
+        """Per step: the events the kept steps above it leave, and its scores.
+
+        The scores (F1, precision, recall) are of the kept gates down to that
+        step; a step that was left out has none.
+        """
+        out = []
+        current = np.ones(len(self.events), dtype=bool)
+        for i, step in enumerate(self.steps):
+            before, scores = current, None
+            if self.kept(i):
+                current = current & step.gate.contains(self.events)
+                scores = match_scores(current, self.target)
+            out.append((before, scores))
+        return out
 
 
 SCATTER_CHANNELS = ("FSC-A", "SSC-A")
@@ -267,11 +295,12 @@ class SampleLensModel(QObject):
         return Proposal(sample.sample_id, clusters, label, run_events, target, steps)
 
     def add_proposal(self, proposal: Proposal) -> None:
-        """Add the proposed chain to the tree, under the run's population."""
+        """Add the kept steps of the chain to the tree, under the run's population."""
         parent_id = self.scope.run.get("node_id") if self.scope is not None else None
-        last = len(proposal.steps) - 1
+        chosen = proposal.chosen
+        last = len(chosen) - 1
         label = proposal.label[:1].upper() + proposal.label[1:]
-        for i, step in enumerate(proposal.steps):
+        for i, step in enumerate(chosen):
             name = label if i == last else f"{label} · pre-gate {i + 1}"
             parent_id = self._controller.add_gate(
                 step.gate, proposal.sample_id, name=name, parent_node_id=parent_id

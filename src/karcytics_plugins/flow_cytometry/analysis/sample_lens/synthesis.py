@@ -41,7 +41,8 @@ class ProposedGate:
     recall: float
 
 
-def _scores(selected: np.ndarray, target: np.ndarray) -> tuple[float, float, float]:
+def match_scores(selected: np.ndarray, target: np.ndarray) -> tuple[float, float, float]:
+    """F1, precision and recall of ``selected`` against ``target``."""
     tp = float((selected & target).sum())
     if tp == 0:
         return 0.0, 0.0, 0.0
@@ -118,7 +119,7 @@ def propose_gates(
     """
     data = _DisplayData(events, scales)
     current = np.ones(len(events), dtype=bool)
-    best_f1 = _scores(current, target)[0]
+    best_f1 = match_scores(current, target)[0]
     boxes: list[tuple[_Box, float, float, float]] = []
     for _ in range(MAX_STEPS):
         best: tuple[float, float, float, _Box, np.ndarray] | None = None
@@ -126,7 +127,7 @@ def propose_gates(
         for x, y in combinations(scales, 2):
             box = data.fit(x, y, pool)
             selected = current & data.inside(box)
-            f1, precision, recall = _scores(selected, target)
+            f1, precision, recall = match_scores(selected, target)
             if best is None or f1 > best[0]:
                 best = (f1, precision, recall, box, selected)
         if best is None or best[0] < best_f1 + MIN_GAIN:

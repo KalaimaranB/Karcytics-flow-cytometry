@@ -53,7 +53,7 @@ A **Metaclusters (k)** control appears under the run: change it and the lens re-
 
 Click a population in **Populations**. The strip at the top shows one plot per gate on its path: each plot shows that gate's **parent** population on the gate's own axes, in grey, with the selected population drawn on top in colour. This shows at a glance where the population sits at every step.
 
-These are live plots of the real gates. Drag a gate here and it is edited exactly as on the Gating tab: statistics are recounted, the change propagates to the other samples in the group, and it can be undone. The lens refreshes on its own after any gate change anywhere in the app.
+These are live plots of the real gates. Each plot starts with its own path gate selected; click another gate drawn on the same plot (a sibling, such as B-cells next to T-cells) to select it there. The selection stays on that plot and doesn't change the Gating tab's. Drag a selected gate and it is edited exactly as on the Gating tab: statistics are recounted, the change propagates to the other samples in the group, and it can be undone. The lens refreshes on its own after any gate change anywhere in the app.
 
 ## 4. The map, twice, and Across samples
 
@@ -72,7 +72,9 @@ For a FlowSOM run, the map is the FlowSOM tree: each cell is drawn around its no
 
 On a *Cluster N isn't in any population* finding, press **Propose gates**. The lens searches your run's channels (and forward/side scatter) for a short chain of ordinary rectangle gates that recovers the cluster, and previews each step with the cluster highlighted. The bar above shows the number of gates and how well they match the cluster (F1, precision, recall).
 
-- **Add gates to tree** creates the chain under the run's population, named *Cluster N* (FlowSOM: *Metacluster MN*). They are ordinary gates: rename them, edit them, and they propagate to the rest of the group like any gate you draw.
+Every step has a tick box. Untick a step you don't want, for example a third gate that barely raises F1: the steps after it are redrawn on the cells the remaining gates keep, and the scores update. A search step is only added when it raises F1, so leaving one out usually costs a little precision; the bar shows how much.
+
+- **Add gates to tree** creates the ticked steps as a chain under the run's population, named *Cluster N* (FlowSOM: *Metacluster MN*). They are ordinary gates: rename them, edit them, and they propagate to the rest of the group like any gate you draw.
 - **Cancel** discards the proposal; nothing is changed until you add it.
 
 Unlike a population exported from UMAP (a list of specific cells), these gates are geometry on real markers, so they mean the same thing on every sample.
