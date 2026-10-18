@@ -111,12 +111,13 @@ Questions along the way: what a cell's position on a UMAP axis tells you, why UM
 
 ### Course 5 — Sample Lens: Check Every Gate
 
-**~45 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
+**~48 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
 
 Course 4 checked one population against the clusters. Course 5 checks all of them in the **[Sample Lens](./16_SAMPLE_LENS.md)** tab, before Course 6 reports numbers from them. You predict at the start what the comparison will turn up. You:
 
 - Open the lens on Sample C and pick Course 4's UMAP run, and see exactly which populations it judges (and why UMAP exports and logic nodes are left out).
 - **Backgate**: follow B-cells and then CD4+ through every gate on their path, with the population highlighted on each gate's parent.
+- Open **Focus** mode for bigger plots, set two plots per row, and show the Live Cells range gate as a dot plot vs SSC-A instead of a histogram.
 - Read the run's map twice, coloured by your final populations and by cluster, and learn the three kinds of audit finding.
 - Find the cells none of your gates holds (leukocytes that are neither T nor B cells), let **Propose gates** turn the cluster into ordinary rectangle gates, read its precision, recall and F1, and add them to your tree.
 - Read **Across samples**: why the thymus is flagged as an outlier on DP (biology, not a gating error), and what **On edge** says about how fragile a gate is.

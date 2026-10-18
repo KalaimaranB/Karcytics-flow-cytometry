@@ -2514,6 +2514,46 @@ class LensFindingFocusedValidator(_LensValidator):
         return True
 
 
+class LensFocusValidator(_LensValidator):
+    """The gating path is (or isn't) in focus mode."""
+
+    def __init__(self, on: bool = True) -> None:
+        self._on = on
+
+    def validate_lens(self, lens: Any) -> bool:
+        if lens._path.focused != self._on:
+            return self.log_failure(f"Focus mode isn't {'on' if self._on else 'off'}.")
+        return True
+
+
+class LensColumnsValidator(_LensValidator):
+    """The gating path shows ``columns`` plots per row (0: all in one row)."""
+
+    def __init__(self, columns: int) -> None:
+        self._columns = columns
+
+    def validate_lens(self, lens: Any) -> bool:
+        if lens._path._columns.value() != self._columns:
+            return self.log_failure(f"Plots per row isn't {self._columns or 'All'}.")
+        return True
+
+
+class LensPlotViewValidator(_LensValidator):
+    """The path plot whose caption ends in ``target`` is shown as ``view``."""
+
+    def __init__(self, target: str, view: str) -> None:
+        self._target = target.casefold()
+        self._view = view
+
+    def validate_lens(self, lens: Any) -> bool:
+        for plot in lens._path._shown():
+            if plot.caption.text().casefold().endswith(self._target):
+                if plot.view.currentData() == self._view:
+                    return True
+                return self.log_failure(f"'{self._target}' plot isn't shown as {self._view}.")
+        return self.log_failure(f"No '{self._target}' plot on the path.")
+
+
 class LensProposalValidator(_LensValidator):
     """The lens is previewing proposed gates; ``on_found`` gets their marker pairs."""
 

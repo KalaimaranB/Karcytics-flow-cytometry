@@ -26,6 +26,7 @@ from karcytics_sdk.plugin.components import (
 )
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
 from ....analysis.clustering import method_of
@@ -84,8 +85,12 @@ class SampleLensTab(QWidget):
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
         theme_manager.apply_style(self, "QWidget#SampleLensTab { background: {BG_DARK}; }")
-        root.addWidget(self._build_sidebar())
+        self._sidebar = self._build_sidebar()
+        root.addWidget(self._sidebar)
         root.addWidget(self._build_main(state, controller, axis_manager), 1)
+        leave = QShortcut(QKeySequence(Qt.Key.Key_Escape), self)
+        leave.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        leave.activated.connect(lambda: self._path.set_focus(False))
 
         self._model.changed.connect(self._render)
         self._model.run_progress.connect(self._on_run_progress)
@@ -213,6 +218,7 @@ class SampleLensTab(QWidget):
         self._path = GatingPathStrip(state, controller, axis_manager)
         self._path.step_toggled.connect(self._on_step_toggled)
         self._path.setObjectName("SampleLensPath")
+        self._path.focus_changed.connect(self._on_focus_changed)
         layout.addWidget(self._path)
 
         lower = QSplitter(Qt.Orientation.Horizontal)
@@ -226,7 +232,15 @@ class SampleLensTab(QWidget):
         lower.setStretchFactor(0, 1)
         lower.setStretchFactor(1, 1)
         layout.addWidget(lower, 1)
+        self._main_layout, self._lower = layout, lower
         return main
+
+    def _on_focus_changed(self, on: bool) -> None:
+        """Focus mode: the gating path takes the whole tab."""
+        self._sidebar.setVisible(not on)
+        self._lower.setVisible(not on)
+        self._main_layout.setStretchFactor(self._path, 1 if on else 0)
+        self._main_layout.setStretchFactor(self._lower, 0 if on else 1)
 
     def _build_proposal_bar(self) -> QWidget:
         self._proposal_bar = card("lens_proposal_bar", "BG_MEDIUM")

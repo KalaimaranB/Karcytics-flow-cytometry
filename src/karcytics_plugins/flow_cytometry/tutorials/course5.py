@@ -53,9 +53,12 @@ from ..main_tabs import MainTab
 from .validators import (
     AllOf,
     ClusteredRunValidator,
+    LensColumnsValidator,
     LensFindingFocusedValidator,
     LensFindingValidator,
+    LensFocusValidator,
     LensKValidator,
+    LensPlotViewValidator,
     LensPopulationSelectedValidator,
     LensProposalAddedValidator,
     LensProposalValidator,
@@ -153,11 +156,12 @@ course_5_sample_lens = Course(
     title="Sample Lens: Check Every Gate",
     description=(
         "Hold your whole gating strategy up against Course 4's clusters: "
-        "backgate every population, find the cells no gate holds and turn "
+        "backgate every population (in a focus view built for it), find the "
+        "cells no gate holds and turn "
         "them into real gates, read flags across samples, and catch a bad "
         "gate edge the moment you draw it."
     ),
-    estimated_minutes=45,
+    estimated_minutes=48,
     badge_reward="Gate Auditor",
     badge_icon="🔎",
     prerequisite_course_ids=["flow_course_4_analysis"],
@@ -468,7 +472,80 @@ course_5_sample_lens = Course(
             ),
             cyto_emotion="talking",
             target_widget_names=["SampleLensPath"],
-            next_step_id="c5_s18_map_intro",
+            next_step_id="c5_s17b_focus",
+        ),
+        # ── Focus mode: bigger plots, other views ───────────────────────────────
+        VerificationStep(
+            id="c5_s17b_focus",
+            text=(
+                "Room to look 🔍<br><br>"
+                "These plots are small. Click **Focus** above the path: the sidebar "
+                "and maps step aside and the plots get the whole tab."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensFocusButton"],
+            validator=LensFocusValidator(True),
+            on_success_step_id="c5_s17c_columns",
+            failure_hint="Click **Focus**, at the right of the *Gating path* title.",
+        ),
+        VerificationStep(
+            id="c5_s17c_columns",
+            text=(
+                "Set **Plots per row** to **2**. Each plot grows to half the width; "
+                "scroll down for the rest of the path."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensColumnsSpin"],
+            validator=LensColumnsValidator(2),
+            on_success_step_id="c5_s17d_view",
+        ),
+        VerificationStep(
+            id="c5_s17d_view",
+            text=(
+                "**Cells → Live Cells** is a histogram: its gate is a range on PI.<br><br>"
+                "In that plot's view menu (top right of the plot), pick "
+                "**Dot plot vs SSC-A**."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensPlotView"],
+            validator=LensPlotViewValidator("live cells", "vs:SSC-A"),
+            on_success_step_id="c5_s17e_view_read",
+            failure_hint="Open the menu above the **Cells → Live Cells** plot and pick **Dot plot vs SSC-A**.",
+        ),
+        InfoStep(
+            id="c5_s17e_view_read",
+            text=(
+                "Same gate, another view 🔁<br><br>"
+                "A range gate only needs PI, so it fits a histogram or any dot plot "
+                "with PI across. Here it's a band, still draggable.<br><br>"
+                "The other plots offer Pseudocolor, Dot plot and Contour. Their "
+                "**Histogram** is greyed out: a 2-D gate on one axis would drop "
+                "half of what it selects."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            target_widget_names=["SampleLensPath"],
+            next_step_id="c5_s17f_unfocus",
+        ),
+        VerificationStep(
+            id="c5_s17f_unfocus",
+            text=(
+                "Set **Plots per row** back to **All**, then click **Exit focus** "
+                "(or press Esc). The maps are next."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensColumnsSpin", "SampleLensFocusButton"],
+            validator=AllOf(LensColumnsValidator(0), LensFocusValidator(False)),
+            on_success_step_id="c5_s18_map_intro",
+            failure_hint="Turn **Plots per row** down to **All**, then click **Exit focus**.",
         ),
         # ── The run, twice ──────────────────────────────────────────────────────
         InfoStep(

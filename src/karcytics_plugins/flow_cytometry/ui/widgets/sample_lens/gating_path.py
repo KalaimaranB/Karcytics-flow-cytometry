@@ -19,9 +19,23 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from karcytics_sdk.plugin.components import BioCaptionLabel, SubtitleLabel
+from karcytics_sdk.plugin.components import (
+    BioCaptionLabel,
+    BioComboBox,
+    BioSpinBox,
+    SecondaryButton,
+    SubtitleLabel,
+)
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtGui import QStandardItemModel
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QGridLayout,
+    QHBoxLayout,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ....analysis._utils import project_to_display, project_to_raw
 from ....analysis.fcs_io import get_channel_marker_label
@@ -41,11 +55,45 @@ if TYPE_CHECKING:
 
 PLOT_H = 290
 PLOT_W_MIN, PLOT_W_MAX = 250, 340  # plots share the strip's width within these
+FOCUS_W_MAX = 900  # in focus mode plots grow to fill the width, up to this
+ASPECT = PLOT_H / PLOT_W_MAX  # height per width, kept when focus mode grows a plot
+MAX_COLUMNS = 8  # "plots per row"; 0 means all in one row
+CAPTION_H = 30  # a plot's caption row, above its canvas
 PLOT_SPACING = 12
 # Room for tick labels and axis titles on a small plot (figure fractions).
 PLOT_MARGINS = {"left": 0.21, "bottom": 0.17, "right": 0.96, "top": 0.95}
 VIEW_PAD = 0.04  # share of the display range kept clear around a gate
 RETRY_MS = 300  # wait this long to redraw when a gate is being dragged
+
+
+SCATTER = ("SSC-A", "FSC-A")  # what a 1-D gate can be plotted against as a dot plot
+VIEWS_2D = {
+    "pseudocolor": DisplayMode.PSEUDOCOLOR,
+    "dot": DisplayMode.DOT_PLOT,
+    "contour": DisplayMode.CONTOUR,
+}
+VIEW_LABELS = {"pseudocolor": "Pseudocolor", "dot": "Dot plot", "contour": "Contour"}
+HISTOGRAM = "histogram"
+NO_HISTOGRAM = (
+    "A 2-D gate can't be drawn on a histogram: one axis would drop half of what it selects."
+)
+
+
+def view_options(gate: Gate, channels: pd.Index) -> list[tuple[str, str, bool]]:
+    """(key, label, enabled) for each way this gate's plot can be shown.
+
+    A 1-D (range) gate keeps its meaning on any plot with its channel on X:
+    histogram, or a dot plot against a scatter channel. A 2-D gate needs both
+    of its axes, so it gets the 2-D modes and a disabled histogram.
+    """
+    axes = gate_axes(gate)
+    if len(axes) == 1:
+        return [(HISTOGRAM, "Histogram", True)] + [
+            (f"vs:{ch}", f"Dot plot vs {ch}", True)
+            for ch in SCATTER
+            if ch in channels and ch != axes[0][0]
+        ]
+    return [(key, VIEW_LABELS[key], True) for key in VIEWS_2D] + [(HISTOGRAM, "Histogram", False)]
 
 
 @dataclass
@@ -121,6 +169,10 @@ class _PathPlot(QWidget):
         top.addWidget(self.toggle)
         self.caption = BioCaptionLabel("")
         top.addWidget(self.caption, 1)
+        self.view = BioComboBox()
+        self.view.setObjectName("SampleLensPlotView")
+        self.view.setToolTip("How to show this plot. Gates stay editable in every view.")
+        top.addWidget(self.view)
         layout.addLayout(top)
         self.canvas = FlowCanvas(state=state, controller=controller)
         self.canvas.setFixedSize(PLOT_W_MAX, PLOT_H)
@@ -132,15 +184,38 @@ class _PathPlot(QWidget):
         self.canvas.set_local_selection(True)
         layout.addWidget(self.canvas)
         self.drawn: tuple | None = None  # what the canvas last drew, to skip repeats
-        self.step_key: tuple | None = (
-            None  # whose gate this plot shows, to keep a click's selection
-        )
+        # Whose gate this plot shows, to keep a click's selection across redraws.
+        self.step_key: tuple | None = None
+        self.options: list[tuple[str, str, bool]] = []  # the view combo's items
+        self.last: tuple | None = None  # (sample, sample events, step): to redraw on a view change
+
+    def show_options(self, options: list[tuple[str, str, bool]], current: str) -> None:
+        """Fill the view combo (only when the options change) and show ``current``."""
+        self.view.blockSignals(True)
+        if options != self.options:
+            self.options = options
+            self.view.clear()
+            model = self.view.model()
+            assert isinstance(model, QStandardItemModel)  # QComboBox's own
+            for i, (key, label, enabled) in enumerate(options):
+                self.view.addItem(label, key)
+                if not enabled:
+                    item = model.item(i)
+                    item.setEnabled(False)
+                    item.setToolTip(NO_HISTOGRAM)
+        self.view.setCurrentIndex(max(0, self.view.findData(current)))
+        self.view.blockSignals(False)
+
+    def set_size(self, width: int, height: int) -> None:
+        if (self.canvas.width(), self.canvas.height()) != (width, height):
+            self.canvas.setFixedSize(width, height)
 
 
 class GatingPathStrip(QWidget):
     """A horizontal strip of the selected population's gating path."""
 
     step_toggled = Signal(int, bool)  # a proposal step ticked or unticked
+    focus_changed = Signal(bool)  # focus mode: the plots get the whole tab
 
     def __init__(self, state: FlowState, controller: Any, axis_manager: Any) -> None:
         super().__init__()
@@ -151,12 +226,13 @@ class GatingPathStrip(QWidget):
         self._ranges: dict[tuple[str, str], tuple[float, float]] = {}  # (gate id, channel)
         self._range_owner: tuple | None = None  # whose path the cached ranges belong to
         self._pending: tuple | None = None  # a redraw put off while a gate is dragged
+        self._views: dict[str, str] = {}  # gate id -> chosen view, kept across selections
+        self._focus = False
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(6)
-        self._title = SubtitleLabel("Gating path")
-        outer.addWidget(self._title)
+        outer.addLayout(self._build_header())
         self._hint = BioCaptionLabel("")
         outer.addWidget(self._hint)
 
@@ -166,43 +242,131 @@ class GatingPathStrip(QWidget):
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._scroll.setStyleSheet("background: transparent;")
-        row_widget = QWidget()
-        self._row = QHBoxLayout(row_widget)
-        self._row.setContentsMargins(0, 0, 0, 0)
-        self._row.setSpacing(PLOT_SPACING)
-        self._row.addStretch()
-        self._scroll.setWidget(row_widget)
-        self._scroll.setFixedHeight(PLOT_H + 48)
+        grid_widget = QWidget()
+        self._grid = QGridLayout(grid_widget)
+        self._grid.setContentsMargins(0, 0, 0, 0)
+        self._grid.setSpacing(PLOT_SPACING)
+        self._grid.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self._scroll.setWidget(grid_widget)
         frame_layout.addWidget(self._scroll)
-        outer.addWidget(frame)
+        outer.addWidget(frame, 1)
+        self._apply_height()
+
+    def _build_header(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        self._title = SubtitleLabel("Gating path")
+        row.addWidget(self._title)
+        row.addStretch()
+        row.addWidget(BioCaptionLabel("Plots per row:"))
+        self._columns = BioSpinBox()
+        self._columns.setObjectName("SampleLensColumnsSpin")
+        self._columns.setRange(0, MAX_COLUMNS)
+        self._columns.setSpecialValueText("All")  # 0: every plot in one row
+        self._columns.setToolTip("How many plots per row. 'All' keeps the path on one row.")
+        self._columns.valueChanged.connect(lambda _v: self._relayout())
+        row.addWidget(self._columns)
+        self._focus_btn = SecondaryButton("Focus")
+        self._focus_btn.setObjectName("SampleLensFocusButton")
+        self._focus_btn.setCheckable(True)
+        self._focus_btn.setToolTip(
+            "Give the plots the whole tab: hides the sidebar, the maps and Across samples "
+            "(Esc to leave)."
+        )
+        self._focus_btn.toggled.connect(self.set_focus)
+        row.addWidget(self._focus_btn)
+        return row
 
     # ── Layout ─────────────────────────────────────────────────────────
 
+    @property
+    def focused(self) -> bool:
+        return self._focus
+
+    def set_focus(self, on: bool) -> None:
+        """Focus mode: plots fill the width (and grow) and the strip takes the tab's height."""
+        if on == self._focus:
+            return
+        self._focus = on
+        self._focus_btn.blockSignals(True)
+        self._focus_btn.setChecked(on)
+        self._focus_btn.setText("Exit focus" if on else "Focus")
+        self._focus_btn.blockSignals(False)
+        self._apply_height()
+        self.focus_changed.emit(on)
+        self._relayout()
+
+    def set_columns(self, columns: int) -> None:
+        self._columns.setValue(columns)
+
+    def _apply_height(self) -> None:
+        if self._focus:  # take whatever the tab gives; scroll inside
+            self._scroll.setMinimumHeight(0)
+            self._scroll.setMaximumHeight(16_777_215)
+            self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        else:  # one row's height; more rows scroll
+            self._scroll.setFixedHeight(PLOT_H + CAPTION_H + 18)
+            policy = (
+                Qt.ScrollBarPolicy.ScrollBarAsNeeded
+                if self._columns.value()
+                else Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+            )
+            self._scroll.setVerticalScrollBarPolicy(policy)
+
     def resizeEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
         super().resizeEvent(event)
-        self._fit_widths()
+        self._fit_sizes()
 
-    def _fit_widths(self) -> None:
-        """Share the strip's width between the plots; scroll only past PLOT_W_MIN each."""
-        shown = [p for p in self._plots if not p.isHidden()]
+    def _shown(self) -> list[_PathPlot]:
+        return [p for p in self._plots if not p.isHidden()]
+
+    def _per_row(self, count: int) -> int:
+        return min(self._columns.value() or count, count) or 1
+
+    def _relayout(self) -> None:
+        """Place the shown plots in rows of ``Plots per row``, then size them."""
+        per_row = self._per_row(len(self._shown()))
+        for i, plot in enumerate(self._plots):
+            self._grid.addWidget(plot, i // per_row, i % per_row)  # re-adding moves it
+        self._apply_height()
+        self._fit_sizes()
+
+    def _fit_sizes(self) -> None:
+        """Share the width between a row's plots; scroll only past PLOT_W_MIN each.
+
+        Outside focus mode plots keep the strip's height (PLOT_H) and stop at
+        PLOT_W_MAX; in focus mode they grow, keeping their shape.
+        """
+        shown = self._shown()
         if not shown:
             return
-        free = self._scroll.viewport().width() - PLOT_SPACING * (len(shown) - 1)
-        width = max(PLOT_W_MIN, min(PLOT_W_MAX, free // len(shown)))
+        per_row = self._per_row(len(shown))
+        scrollbar = self._scroll.verticalScrollBar().sizeHint().width()
+        free = self._scroll.viewport().width() - scrollbar - PLOT_SPACING * (per_row - 1)
+        widest = FOCUS_W_MAX if self._focus else PLOT_W_MAX
+        width = max(PLOT_W_MIN, min(widest, free // per_row))
+        height = round(width * ASPECT) if self._focus else PLOT_H
         for plot in shown:
-            if plot.canvas.width() != width:
-                plot.canvas.setFixedWidth(width)
+            plot.set_size(width, height)
 
     def _plot(self, i: int) -> _PathPlot:
         while len(self._plots) <= i:  # canvases are reused, never rebuilt per selection
             plot = _PathPlot(self._state, self._controller)
             index = len(self._plots)
             plot.toggle.toggled.connect(lambda on, i=index: self.step_toggled.emit(i, on))
-            self._row.insertWidget(len(self._plots), plot)
+            plot.view.currentIndexChanged.connect(lambda _i, i=index: self._on_view_chosen(i))
             self._plots.append(plot)
+            self._relayout()
         return self._plots[i]
+
+    def _on_view_chosen(self, index: int) -> None:
+        plot = self._plots[index]
+        if plot.last is None:
+            return
+        sample, sample_events, step = plot.last
+        self._views[step.gate.gate_id] = plot.view.currentData()
+        self._draw(plot, sample, sample_events, step)
 
     # ── Showing a path ─────────────────────────────────────────────────
 
@@ -231,7 +395,7 @@ class GatingPathStrip(QWidget):
             plot = self._plot(i)
             plot.show()
             self._draw(plot, sample, sample_events, step)
-        self._fit_widths()
+        self._relayout()
 
     def _show_pending(self) -> None:
         if self._pending is not None:
@@ -342,9 +506,20 @@ class GatingPathStrip(QWidget):
     def _draw(
         self, plot: _PathPlot, sample: Sample, sample_events: pd.DataFrame, step: PlotStep
     ) -> None:
+        plot.last = (sample, sample_events, step)
+        options = view_options(step.gate, step.events.columns)
+        usable = [key for key, _, enabled in options if enabled]
+        view = self._views.get(step.gate.gate_id, usable[0])
+        view = view if view in usable else usable[0]
+        plot.show_options(options, view)
         params = [param for param, _ in gate_axes(step.gate)]
         x = params[0]
-        y = params[1] if len(params) > 1 else x
+        if len(params) > 1:
+            y, mode = params[1], VIEWS_2D[view]
+        elif view.startswith("vs:"):
+            y, mode = view[3:], DisplayMode.PSEUDOCOLOR
+        else:
+            y, mode = x, DisplayMode.HISTOGRAM
         x_scale = self._scale(sample, sample_events, step, x)
         y_scale = self._scale(sample, sample_events, step, y)
         plot.caption.setText(step.caption)
@@ -357,6 +532,7 @@ class GatingPathStrip(QWidget):
             _scale_key(x_scale),
             _scale_key(y_scale),
             step.color,
+            mode,
             _digest(step.events.index.to_numpy(), np.packbits(step.backgate)),
         )
         if drawn != plot.drawn:  # parent events, highlight or axes changed
@@ -364,7 +540,7 @@ class GatingPathStrip(QWidget):
             fcs = sample.fcs_data
             canvas.begin_update()
             canvas.set_sample_id(sample.sample_id)
-            canvas.set_display_mode(DisplayMode.PSEUDOCOLOR if y != x else DisplayMode.HISTOGRAM)
+            canvas.set_display_mode(mode)
             canvas.set_axes(
                 x,
                 y,

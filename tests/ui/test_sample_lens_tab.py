@@ -362,3 +362,67 @@ def test_clicking_a_sibling_gate_edits_it_on_that_plot_only(lens):
     assert state.view.current_gate_id is None  # the Gating tab's selection is untouched
     tab._render()  # a redraw (as after an edit) keeps the click's choice
     assert canvas._selected_gate_id == nk.node_id
+
+
+def test_focus_mode_gives_the_plots_the_tab(lens):
+    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+        LensColumnsValidator,
+        LensFocusValidator,
+    )
+
+    tab, state, _ = lens
+    state.view._sample_lens = tab
+    tab._model.select(_cd4_node(state).node_id)
+    small = _shown(tab)[0].canvas.width()
+    assert not LensFocusValidator().validate(state)
+
+    tab._path._focus_btn.click()
+    assert LensFocusValidator().validate(state)
+    assert tab._sidebar.isHidden() and tab._lower.isHidden()
+    tab._path.set_columns(2)
+    assert LensColumnsValidator(2).validate(state)
+    grid = tab._path._grid
+    rows = [grid.getItemPosition(grid.indexOf(p))[:2] for p in _shown(tab)]
+    assert rows == [(0, 0), (0, 1), (1, 0)]
+    plot = _shown(tab)[0]
+    assert plot.canvas.width() > small  # bigger, same shape
+    assert plot.canvas.height() > plot.canvas.width() * 0.8  # noqa: PLR2004
+
+    tab._path.set_focus(False)
+    assert not tab._sidebar.isHidden() and not tab._lower.isHidden()
+    assert tab._path._focus_btn.text() == "Focus"
+
+
+def test_each_plot_switches_view_where_its_gate_allows(lens):
+    from karcytics_plugins.flow_cytometry.analysis.gating import RangeGate
+    from karcytics_plugins.flow_cytometry.tutorials.validators import LensPlotViewValidator
+    from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
+
+    tab, state, _ = lens
+    state.view._sample_lens = tab
+    t_cells = state.data.experiment.samples["s0"].gate_tree.children[0].children[0]
+    bright = t_cells.add_child(RangeGate("CD56", low=2000, high=10**5), "CD56 bright")
+    tab._model.select(bright.node_id)
+    plot = _shown(tab)[-1]
+    assert plot.canvas._display_mode is DisplayMode.HISTOGRAM
+    assert [plot.view.itemData(i) for i in range(plot.view.count())] == [
+        "histogram",
+        "vs:SSC-A",
+        "vs:FSC-A",
+    ]
+    plot.view.setCurrentIndex(plot.view.findData("vs:SSC-A"))
+    assert plot.canvas._display_mode is DisplayMode.PSEUDOCOLOR
+    assert plot.canvas._y_param == "SSC-A"
+    assert LensPlotViewValidator("cd56 bright", "vs:SSC-A").validate(state)
+
+    two_d = _shown(tab)[0]  # a rectangle: 2-D views, histogram greyed out
+    model = two_d.view.model()
+    histogram = two_d.view.findData("histogram")
+    assert not model.item(histogram).isEnabled()
+    two_d.view.setCurrentIndex(two_d.view.findData("contour"))
+    assert two_d.canvas._display_mode is DisplayMode.CONTOUR
+
+    tab._model.select(_cd4_node(state).node_id)  # another population, same upstream gates
+    tab._model.select(bright.node_id)
+    assert _shown(tab)[0].canvas._display_mode is DisplayMode.CONTOUR  # remembered
+    assert _shown(tab)[-1].canvas._y_param == "SSC-A"

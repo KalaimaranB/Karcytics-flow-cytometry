@@ -55,6 +55,16 @@ Click a population in **Populations**. The strip at the top shows one plot per g
 
 These are live plots of the real gates. Each plot starts with its own path gate selected; click another gate drawn on the same plot (a sibling, such as B-cells next to T-cells) to select it there. The selection stays on that plot and doesn't change the Gating tab's. Drag a selected gate and it is edited exactly as on the Gating tab: statistics are recounted, the change propagates to the other samples in the group, and it can be undone. The lens refreshes on its own after any gate change anywhere in the app.
 
+**Focus mode and plot views.** Above the path, **Focus** gives the plots the whole tab: the sidebar, the maps and Across samples are hidden until you click **Exit focus** or press Esc. **Plots per row** sets how many plots share a row (*All* keeps the path on one row). In focus mode plots grow to fill the width, and the path scrolls both ways when it doesn't fit. Both settings work outside focus mode too.
+
+Each plot has its own view menu, remembered per gate while you move between populations:
+
+| Gate | Views |
+| --- | --- |
+| 1-D (range, e.g. Live Cells on PI) | **Histogram**, or **Dot plot vs SSC-A / FSC-A**: the range is drawn as a band, still editable |
+| 2-D (rectangle, polygon, ellipse, quadrant) | **Pseudocolor**, **Dot plot**, **Contour**. **Histogram** is greyed out: on one axis the gate would drop half of what it selects |
+
+
 ## 4. The map, twice, and Across samples
 
 - **Coloured by your final populations**: each cell in the colour of the final population it ended up in; grey if none. A grey slice through a coloured island is a gate edge cutting a population.
