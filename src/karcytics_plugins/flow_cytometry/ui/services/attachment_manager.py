@@ -12,7 +12,23 @@ from typing import Any
 import numpy as np
 from karcytics_sdk.plugin import get_logger
 
+from ...analysis.clustering import FLOWSOM, method_of, tree_embedding
+
 logger = get_logger(__name__, "flow_cytometry")
+
+# A FlowSOM run's node-level arrays (stored in the metadata as lists).
+FLOWSOM_NODE_ARRAYS = ("codes", "grid", "mst_edges", "layout", "linkage", "node_metaclusters")
+# Event-level arrays: saved as attachments, or rebuilt on load.
+_FLOWSOM_REBUILT = (
+    "indices",
+    "nodes",
+    "embedding",
+    "clusters",
+    "intensities",
+    "cluster_stats",
+    "marker_heatmap",
+    "cluster_heatmap",
+)
 
 
 class AttachmentManager:
@@ -48,6 +64,9 @@ class AttachmentManager:
         for key, runs in umap_results.items():
             meta_dict[key] = []
             for res in runs:
+                if method_of(res) is FLOWSOM:
+                    meta_dict[key].append(self._serialize_flowsom(res, context))
+                    continue
                 emb_key = res.get("emb_key")
                 idx_key = res.get("idx_key")
                 cls_key = res.get("cls_key")
@@ -117,6 +136,11 @@ class AttachmentManager:
         for key, runs_meta in meta_dict.items():
             results[key] = []
             for meta in runs_meta:
+                if method_of(meta) is FLOWSOM:
+                    run = self._hydrate_flowsom(meta, state, context)
+                    if run is not None:
+                        results[key].append(run)
+                    continue
                 emb_path = context.get_path(meta.get("emb_key"))
                 idx_path = context.get_path(meta.get("idx_key"))
 
@@ -137,6 +161,43 @@ class AttachmentManager:
 
         return results
 
+    def _attach(self, context: Any, key: str, array: np.ndarray, label: str) -> None:
+        path = self.temp_dir / f"{key}.npy"
+        if not path.exists():
+            np.save(path, array)
+        context.add_attachment(key, path, label)
+
+    def _serialize_flowsom(self, res: dict, context: Any) -> dict:
+        """Indices and each event's node go to attachments; node-level arrays are small,
+        so they stay in the metadata; the map and labels are rebuilt from them on load.
+        """
+        if not res.get("idx_key"):
+            run_uuid = uuid.uuid4().hex[:8]
+            res["idx_key"], res["nodes_key"] = f"umap_idx_{run_uuid}", f"flowsom_nodes_{run_uuid}"
+        self._attach(context, res["idx_key"], res["indices"], "FlowSOM Indices")
+        nodes = np.asarray(res["nodes"]).astype(np.int32)
+        self._attach(context, res["nodes_key"], nodes, "FlowSOM Nodes")
+        meta = {k: v for k, v in res.items() if k not in _FLOWSOM_REBUILT}
+        for k in FLOWSOM_NODE_ARRAYS:
+            meta[k] = np.asarray(res[k]).tolist()
+        return meta
+
+    def _hydrate_flowsom(self, meta: dict, state: Any, context: Any) -> dict | None:
+        idx_path = context.get_path(meta.get("idx_key"))
+        nodes_path = context.get_path(meta.get("nodes_key"))
+        if not (idx_path and idx_path.exists() and nodes_path and nodes_path.exists()):
+            return None
+        res = meta.copy()
+        for k in FLOWSOM_NODE_ARRAYS:
+            res[k] = np.asarray(meta[k])
+        res["indices"] = np.load(idx_path)
+        res["nodes"] = np.load(nodes_path).astype(np.int64)
+        res["embedding"] = tree_embedding(res["layout"], res["nodes"], meta.get("random_seed", 0))
+        res["clusters"] = res["node_metaclusters"][res["nodes"]]
+        self._reconstruct_intensities(res, meta, state)
+        self._reconstruct_cluster_stats(res)
+        return res
+
     def _reconstruct_intensities(self, res: dict, meta: dict, state: Any):
         """Dynamically reconstruct transformed intensities."""
         sample_id = meta["sample_id"]
@@ -144,14 +205,10 @@ class AttachmentManager:
         if sample and sample.fcs_data is not None:
             from ...analysis.transforms import biexponential_transform
 
-            events_arr = (
-                sample.fcs_data.events.values
-                if hasattr(sample.fcs_data.events, "values")
-                else sample.fcs_data.events
-            )
-            channels = list(sample.fcs_data.channels)
-
-            sub_events = events_arr[res["indices"]]
+            events_df = sample.fcs_data.events
+            channels = list(events_df.columns)
+            # Runs store event row labels, not positions.
+            sub_events = events_df.to_numpy()[events_df.index.get_indexer(res["indices"])]
 
             transformed_cols = []
             for ch in meta["channels"]:

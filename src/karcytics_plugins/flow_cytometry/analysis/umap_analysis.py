@@ -7,9 +7,9 @@ from typing import Any
 import numpy as np
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
+from .clustering.methods import UMAP_HDBSCAN
+from .clustering.run_input import cluster_tables, prepare_run_input
 from .constants import UMAP_MIN_EVENTS
-from .fcs_io import get_channel_marker_label, get_fluorescence_channels
-from .transforms import biexponential_transform
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -57,7 +57,7 @@ class UmapAnalysis(AnalysisBase):
 
         return True, ""
 
-    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: C901, PLR0911, PLR0912, PLR0915
+    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: C901, PLR0911
         """Transforms FCS data with Logicle, subsamples, runs UMAP."""
         if state is None:
             return {"error": "No state provided"}
@@ -76,92 +76,24 @@ class UmapAnalysis(AnalysisBase):
             return {"error": "Invalid or missing sample ID"}
 
         logger.info(f"UmapAnalysis: Starting run for sample {sample_id}")
-
-        sample = flow_state.data.experiment.samples[sample_id]
-        fcs_data = sample.fcs_data
-
-        if fcs_data is None:
-            logger.error("No FCS data found for UMAP analysis.")
-            return {"error": "No FCS data loaded for this sample."}
-
-        # 1. Get fluorescence channels
-        fluo_channels = get_fluorescence_channels(fcs_data)
-        if not fluo_channels:
-            logger.error("No fluorescence channels found for UMAP analysis.")
-            return {"error": "No fluorescence channels found in this sample."}
-
-        selected_channels = getattr(self, "channels", None)
-        if selected_channels:
-            fluo_channels = [ch for ch in fluo_channels if ch in selected_channels]
-            if not fluo_channels:
-                return {"error": "None of the selected channels are available in this sample."}
-
-        logger.info(f"UmapAnalysis: Analyzing {len(fluo_channels)} fluorescence channels")
-
-        # 2. Extract events DataFrame — apply gate filter if requested
-        events_df = fcs_data.events
-        if events_df is None:
-            return {"error": "FCS events data is None."}
-
-        if self.target_node_id and sample.gate_tree is not None:
-            gate_node = sample.gate_tree.find_node_by_id(self.target_node_id)
-            if gate_node is not None:
-                filtered_df = gate_node.apply_hierarchy(events_df)
-                n_in_gate = len(filtered_df)
-                logger.info(
-                    f"UmapAnalysis: Gate '{gate_node.name}' contains "
-                    f"{n_in_gate}/{len(events_df)} events"
-                )
-                if n_in_gate < UMAP_MIN_EVENTS:
-                    return {
-                        "error": f"Gate '{gate_node.name}' contains too few events ({n_in_gate}) for UMAP."
-                    }
-                events_df = filtered_df
-            else:
-                logger.warning(
-                    f"UmapAnalysis: node_id '{self.target_node_id}' not found — using all events"
-                )
-
-        num_total_events = len(events_df)
-
-        # 3. Subsample to self.n_events
-        n_events = min(self.n_events, num_total_events)
-        if n_events <= 0:
-            return {"error": "No events available for analysis."}
-
         self.signals.analysis_progress.emit(5)
-
-        # Determinstic subsampling
-        np.random.seed(self.random_seed)
-        subsample_idx = np.random.choice(num_total_events, size=n_events, replace=False)
-        subsample_df = events_df.iloc[subsample_idx].copy()
-
-        self.signals.analysis_progress.emit(10)
-        if self.is_cancelled():
-            return {"error": "Task cancelled."}
-
-        # 4. Transform channels with Logicle
-        transformed_columns = []
-        for ch in fluo_channels:
-            if self.is_cancelled():
-                return {"error": "Task cancelled."}
-
-            raw_vals = subsample_df[ch].values.astype(np.float64)
-            scale = None
-            if flow_state.axis_manager is not None:
-                scale = flow_state.axis_manager.get_scale(ch, sample_id)
-
-            top = getattr(scale, "logicle_t", 262144.0)
-            width = getattr(scale, "logicle_w", 1.0)
-            positive = getattr(scale, "logicle_m", 4.5)
-            negative = getattr(scale, "logicle_a", 0.0)
-
-            trans_vals = biexponential_transform(
-                raw_vals, top=top, width=width, positive=positive, negative=negative
-            )
-            transformed_columns.append(trans_vals)
-
-        x_mat = np.column_stack(transformed_columns)
+        prepared = prepare_run_input(
+            flow_state,
+            sample_id,
+            self.target_node_id,
+            self.channels,
+            self.n_events,
+            self.random_seed,
+            UMAP_MIN_EVENTS,
+            cancelled=self.is_cancelled,
+        )
+        if isinstance(prepared, str):
+            logger.error(f"UmapAnalysis: {prepared}")
+            return {"error": prepared}
+        fluo_channels = prepared.channels
+        x_mat = prepared.x
+        n_events = len(x_mat)
+        num_total_events = prepared.parent_total
 
         self.signals.analysis_progress.emit(20)
         if self.is_cancelled():
@@ -220,13 +152,11 @@ class UmapAnalysis(AnalysisBase):
         if self.is_cancelled():
             return {"error": "Task cancelled."}
 
-        # Display names for the fluorescence channels
-        channel_labels = [get_channel_marker_label(fcs_data, ch) for ch in fluo_channels]
-
         logger.info("UmapAnalysis: Completed run successfully")
         self.signals.analysis_progress.emit(100)
 
         result_dict = {
+            "method": UMAP_HDBSCAN.key,
             "name": getattr(self, "name", ""),
             "percentage": getattr(self, "percentage", 10.0),
             "n_neighbors": self.n_neighbors,
@@ -237,39 +167,17 @@ class UmapAnalysis(AnalysisBase):
             "hdbscan_space": getattr(self, "hdbscan_space", "high_dim"),
             "min_cluster_size": getattr(self, "min_cluster_size", 100),
             "channels": fluo_channels,
-            "channel_labels": channel_labels,
-            "embedding": embedding if embedding is not None else None,
-            "intensities": x_mat if x_mat is not None else None,
+            "channel_labels": prepared.channel_labels,
+            "embedding": embedding,
+            "intensities": x_mat,
             "sample_id": sample_id,
             "node_id": self.target_node_id,
             "n_events": n_events,
             "parent_total_events": num_total_events,
-            "indices": np.array(subsample_df.index),
+            "indices": prepared.indices,
         }
         if clusters is not None:
-            import pandas as pd
-
             result_dict["clusters"] = clusters
-
-            # Create a DataFrame for the raw expression data and the cluster labels
-            df = pd.DataFrame(x_mat, columns=channel_labels)
-            df["Cluster_ID"] = clusters
-
-            # Compute Cluster Statistics
-            counts = df["Cluster_ID"].value_counts().sort_index()
-            percentages = (counts / len(df)) * 100
-
-            stats_df = pd.DataFrame(
-                {
-                    "Cluster ID": counts.index,
-                    "Cell Count": counts.values,
-                    "% of Total": percentages.values,
-                }
-            )
-            result_dict["cluster_stats"] = stats_df.to_dict(orient="split")
-
-            # Compute Marker Heatmap (Median intensity per channel per cluster)
-            heatmap_df = df.groupby("Cluster_ID").median()
-            result_dict["marker_heatmap"] = heatmap_df.to_dict(orient="split")
+            result_dict.update(cluster_tables(x_mat, clusters, prepared.channel_labels))
 
         return result_dict

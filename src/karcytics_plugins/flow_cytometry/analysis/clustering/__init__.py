@@ -1,6 +1,6 @@
 """Clustering methods for Population Analysis (Qt-free)."""
 
-from .flowsom import FlowsomResult, fit_flowsom, nearest_nodes, recut
+from .flowsom import FlowsomResult, fit_flowsom, nearest_nodes, recut, tree_embedding
 from .methods import FLOWSOM, METHODS, UMAP_HDBSCAN, ClusteringMethod, method_of
 
 __all__ = [
@@ -13,4 +13,5 @@ __all__ = [
     "method_of",
     "nearest_nodes",
     "recut",
+    "tree_embedding",
 ]

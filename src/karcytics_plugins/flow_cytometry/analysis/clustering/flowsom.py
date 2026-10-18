@@ -27,6 +27,7 @@ CHUNK = 50_000  # events per nearest-node chunk (bounds memory)
 START_RADIUS_QUANTILE = 0.67  # FlowSOM's starting neighbourhood (of grid distances)
 END_RADIUS = 0.5  # grid units: by the last pass a node barely pulls its neighbours
 LAYOUT_ITERATIONS = 300
+NODE_SPREAD = 0.4  # the biggest node's radius, in tree-edge lengths
 
 
 @dataclass
@@ -108,6 +109,20 @@ def recut(tree: np.ndarray, k: int, nodes: np.ndarray | None = None) -> np.ndarr
     rank = np.empty_like(order)
     rank[order] = np.arange(len(order))
     return rank[raw]
+
+
+def tree_embedding(layout: np.ndarray, nodes: np.ndarray, seed: int = 0) -> np.ndarray:
+    """A 2-D point per event: around its node in the tree layout, spread by node size.
+
+    FlowSOM has no per-event map; this draws each event inside its node's
+    circle (bigger nodes, wider circles), so event scatter plots work.
+    """
+    counts = np.bincount(nodes, minlength=len(layout))
+    radius = NODE_SPREAD * np.sqrt(counts / max(counts.max(), 1))
+    rng = np.random.default_rng(seed)
+    angle = rng.uniform(0, 2 * np.pi, len(nodes))
+    r = radius[nodes] * np.sqrt(rng.uniform(0, 1, len(nodes)))
+    return layout[nodes] + np.column_stack([r * np.cos(angle), r * np.sin(angle)])
 
 
 def nearest_nodes(x: np.ndarray, codes: np.ndarray) -> np.ndarray:

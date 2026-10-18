@@ -54,7 +54,6 @@ How it compares with HDBSCAN, as a second opinion:
 | Metaclusters (*k*) | 10 | expected number of populations; can be changed after the run |
 | Training passes | 10 | passes over the data while the SOM learns |
 | Random seed | 42 | makes a run reproducible |
-| Also compute UMAP for display | off | adds a per-event map (slower) |
 
 Every parameter but the seed gets a help button in plain language, like the
 UMAP ones.
@@ -146,7 +145,10 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
     them (adjusted Rand index above a threshold); a seeded run is
     reproducible; re-cutting gives exactly *k* labels; 1M events stays under
     a time budget.
-- [ ] **2. Run plumbing.**
+- [x] **2. Run plumbing.** FlowSOM runs in the task worker thread, not the daemon
+  (numpy/scipy only). A saved run keeps indices + each event's node; the map and
+  labels are rebuilt on load. Also fixed: reloading a run read event labels as
+  row positions.
   - Pull UMAP's preprocessing out into a shared function (gate filter,
     subsample, transform, channel labels, stats and heatmap).
   - Add `FlowsomAnalysis`, the `run_flowsom` daemon handler, and a

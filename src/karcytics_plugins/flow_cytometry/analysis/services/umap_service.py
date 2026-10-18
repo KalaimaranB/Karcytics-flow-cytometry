@@ -1,4 +1,4 @@
-"""UMAP Service — Service facade managing task scheduling for UMAP analysis."""
+"""Clustering run service — schedules UMAP + HDBSCAN and FlowSOM runs (one at a time)."""
 
 from __future__ import annotations
 
@@ -8,10 +8,11 @@ from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import get_logger
 
+from ..flowsom_analysis import FlowsomAnalysis
 from ..umap_analysis import UmapAnalysis
 
 if TYPE_CHECKING:
-    from karcytics_sdk.plugin import AnalysisWorker
+    from karcytics_sdk.plugin import AnalysisBase, AnalysisWorker
 
     from ..state import FlowState
 
@@ -37,6 +38,23 @@ class UmapParams:
     channels: list[str] | None = None
 
 
+@dataclass
+class FlowsomParams:
+    """Parameters for a FlowSOM run."""
+
+    target_sample_id: str
+    target_node_id: str | None = None  # None = All Events (no gate filter)
+    name: str = ""
+    percentage: float = 100.0
+    n_events: int = 0
+    xdim: int = 10
+    ydim: int = 10
+    k: int = 10
+    passes: int = 10
+    random_seed: int = 42
+    channels: list[str] | None = None
+
+
 class UmapService:
     """Facade for submitting and managing background UMAP tasks using TaskScheduler."""
 
@@ -46,7 +64,7 @@ class UmapService:
         self._current_worker: AnalysisWorker | None = None
         self._current_task_id: str | None = None
 
-    def run_analysis(  # noqa: C901, PLR0915
+    def run_analysis(
         self,
         params: UmapParams,
         on_done: Callable[[dict], None],
@@ -54,9 +72,6 @@ class UmapService:
         on_progress: Callable[[int], None] | None = None,
     ) -> None:
         """Cancel any in-flight task, and submit a new UMAP analysis."""
-        self.cancel()
-
-        # Instantiate analyzer
         analyzer = UmapAnalysis()
         analyzer.target_sample_id = params.target_sample_id
         analyzer.target_node_id = params.target_node_id
@@ -71,8 +86,30 @@ class UmapService:
         analyzer.hdbscan_space = params.hdbscan_space
         analyzer.min_cluster_size = params.min_cluster_size
         analyzer.channels = params.channels or []
+        self._submit(analyzer, on_done, on_error_cb, on_progress)
 
-        # Submit task
+    def run_flowsom(
+        self,
+        params: FlowsomParams,
+        on_done: Callable[[dict], None],
+        on_error_cb: Callable[[str], None],
+        on_progress: Callable[[int], None] | None = None,
+    ) -> None:
+        """Cancel any in-flight task, and submit a new FlowSOM run."""
+        analyzer = FlowsomAnalysis()
+        for name, value in vars(params).items():
+            setattr(analyzer, name, value)
+        analyzer.channels = params.channels or []
+        self._submit(analyzer, on_done, on_error_cb, on_progress)
+
+    def _submit(  # noqa: C901
+        self,
+        analyzer: AnalysisBase,
+        on_done: Callable[[dict], None],
+        on_error_cb: Callable[[str], None],
+        on_progress: Callable[[int], None] | None,
+    ) -> None:
+        self.cancel()
         try:
             worker = self._scheduler.submit(analyzer, self._state)
             self._current_worker = worker
@@ -80,7 +117,7 @@ class UmapService:
             self._current_task_id = task_id
 
             logger.info(
-                f"UmapService: Submitted UMAP task {self._current_task_id} for sample {params.target_sample_id}"
+                f"UmapService: Submitted {type(analyzer).__name__} task {self._current_task_id}"
             )
 
             # Connect signals
