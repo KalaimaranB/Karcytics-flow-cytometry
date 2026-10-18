@@ -35,11 +35,12 @@ from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
 
-from ...analysis.clustering import FLOWSOM, method_of
+from ...analysis.clustering import FLOWSOM, PHENOGRAPH, method_of
 from ...analysis.flowsom_analysis import recut_run
 from .cluster_plot_render_task import ClusterPlotRenderTask
 from .cluster_scatter_draw import draw_cluster_scatter
 from .flowsom_tree import FlowsomTreeView
+from .phenograph_graph import PhenographGraphView
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -188,6 +189,7 @@ class ClusterResultsPanel(QWidget):
     """A multi-tabbed panel displaying UMAP plot gallery and statistical tables."""
 
     results_modified = Signal()
+    recluster_requested = Signal(float)  # PhenoGraph: re-cluster at this resolution
 
     def __init__(
         self,
@@ -245,10 +247,15 @@ class ClusterResultsPanel(QWidget):
 
         self._method = method_of(self._results)
         self._tree_view: FlowsomTreeView | None = None
+        self._graph_view: PhenographGraphView | None = None
         if self._method is FLOWSOM:
             self._tree_view = FlowsomTreeView(self._results)
             self._tree_view.k_changed.connect(self._on_k_changed)
             self._tabs.addTab(self._tree_view, "FlowSOM Tree")
+        elif self._method is PHENOGRAPH:
+            self._graph_view = PhenographGraphView(self._results)
+            self._graph_view.resolution_changed.connect(self._on_resolution_changed)
+            self._tabs.addTab(self._graph_view, "Cluster Graph")
         self._build_result_tabs()
 
     def _build_result_tabs(self) -> None:
@@ -263,16 +270,41 @@ class ClusterResultsPanel(QWidget):
         if k == self._results.get("k"):
             return
         recut_run(self._results, k)
+        self._rebuild_after_recut()
+
+    def _on_resolution_changed(self, resolution: float) -> None:
+        """Ask for a PhenoGraph re-cluster (seconds, in the background); see apply_recluster."""
+        if resolution == self._results.get("resolution") or self._graph_view is None:
+            return
+        self._graph_view.set_busy("Re-clustering…")
+        self.recluster_requested.emit(resolution)
+
+    def apply_recluster(self, arrays: dict[str, Any]) -> None:
+        """Show a finished PhenoGraph re-cluster (or say why it failed)."""
+        from ...analysis.phenograph_analysis import apply_clusters
+
+        if self._graph_view is None:
+            return
+        self._graph_view.set_busy("")
+        if "error" in arrays:
+            self._graph_view.show_error(str(arrays["error"]))
+            return
+        apply_clusters(self._results, arrays)
+        self._rebuild_after_recut()
+
+    def _rebuild_after_recut(self) -> None:
+        """Rebuild what shows the clusters after a re-cut, keeping the method's own view."""
         current = self._tabs.currentIndex()
-        while self._tabs.count() > 1:  # keep the tree (tab 0)
+        while self._tabs.count() > 1:  # keep the tree or graph (tab 0)
             widget = self._tabs.widget(1)
             self._tabs.removeTab(1)
             if widget is not None:
                 widget.deleteLater()
         self._pending_gallery_tiles.clear()
         self._build_result_tabs()
-        if self._tree_view is not None:
-            self._tree_view.refresh()
+        for view in (self._tree_view, self._graph_view):
+            if view is not None:
+                view.refresh()
         self._tabs.setCurrentIndex(current)
         self.results_modified.emit()
 
@@ -361,7 +393,9 @@ class ClusterResultsPanel(QWidget):
         return {
             "embedding": embedding,
             "color_data": clusters,
-            "title": "Metacluster" if self._method is FLOWSOM else "Auto-Cluster ID",
+            "title": {FLOWSOM: "Metacluster", PHENOGRAPH: "PhenoGraph Cluster"}.get(
+                self._method, "Auto-Cluster ID"
+            ),
             "cmap": cmap,
             "norm": norm,
             "is_discrete": True,

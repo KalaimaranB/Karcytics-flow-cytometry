@@ -1,4 +1,4 @@
-"""Population Analysis Viewer — set up and view clustering runs (UMAP + HDBSCAN or FlowSOM)."""
+"""Population Analysis Viewer — set up and view clustering runs (UMAP + HDBSCAN, FlowSOM, PhenoGraph)."""
 
 from __future__ import annotations
 
@@ -39,12 +39,14 @@ from karcytics_plugins.flow_cytometry.analysis.animation.animation_prep import (
 from karcytics_plugins.flow_cytometry.analysis.clustering import (
     FLOWSOM,
     METHODS,
+    PHENOGRAPH,
     UMAP_HDBSCAN,
     ClusteringMethod,
     method_of,
 )
 from karcytics_plugins.flow_cytometry.analysis.services.umap_service import (
     FlowsomParams,
+    PhenographParams,
     UmapParams,
     UmapService,
 )
@@ -52,7 +54,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .checkbox_style import checkbox_qss
 from .cluster_results_panel import ClusterResultsPanel
-from .flowsom_params import FlowsomParamsPanel
+from .flowsom_params import FlowsomParamsPanel, PhenographParamsPanel
 from .umap_animator_widget import UmapAnimatorWidget, build_umap_animation_frames
 
 logger = logging.getLogger(__name__)
@@ -122,7 +124,7 @@ class PopulationAnalysisViewer(QWidget):
 
         self._algo_combo = BioComboBox()
         self._algo_combo.setObjectName("ClusteringMethodCombo")
-        for method in (UMAP_HDBSCAN, FLOWSOM):
+        for method in (UMAP_HDBSCAN, FLOWSOM, PHENOGRAPH):
             self._algo_combo.addItem(method.name, method.key)
         self._algo_combo.currentIndexChanged.connect(self._on_method_changed)
         algo_layout = QHBoxLayout()
@@ -134,7 +136,10 @@ class PopulationAnalysisViewer(QWidget):
             "cells out as noise.\n\nFlowSOM: sorts the cells into about 100 small groups "
             "(nodes), links similar nodes into a tree, and groups the nodes into k "
             "populations (metaclusters). Every cell gets a population. Fast enough for all "
-            "events, and a useful second opinion next to UMAP + HDBSCAN.",
+            "events, and a useful second opinion next to UMAP + HDBSCAN.\n\nPhenoGraph: "
+            "links each cell to its most similar cells, then finds groups of cells that link "
+            "mostly to each other. You set a resolution, not a number of clusters; it shows "
+            "which clusters are linked (one population split) and which stand apart.",
             "Algorithm",
         )
         algo_layout.addWidget(algo_help)
@@ -310,8 +315,8 @@ class PopulationAnalysisViewer(QWidget):
         n_events_help.setHelpText(
             "The share of the population's events the run uses, picked at random.\n\n"
             "UMAP slows down sharply on large data: 10-20% is typical and keeps the "
-            "structure.\n\nFlowSOM is fast enough for all events, its default. Lower it "
-            "to compare with a UMAP run on the same share of events.",
+            "structure.\n\nFlowSOM and PhenoGraph are fast enough for all events, their "
+            "default. Lower it to compare with a UMAP run on the same share of events.",
             "Events used",
         )
 
@@ -371,7 +376,8 @@ class PopulationAnalysisViewer(QWidget):
         seed_help = BioHelpButton()
         seed_help.setHelpText(
             "Fixes the random choices a run makes: which events are picked when using fewer "
-            "than all of them, UMAP's starting layout, and FlowSOM's starting nodes. The same "
+            "than all of them, UMAP's starting layout, FlowSOM's starting nodes and "
+            "PhenoGraph's neighbour search and grouping. The same "
             "seed on the same data gives the same result; another seed gives another valid "
             "result, a quick way to check a finding isn't a fluke.",
             "Random Seed",
@@ -456,8 +462,11 @@ class PopulationAnalysisViewer(QWidget):
 
         self._flowsom_params = FlowsomParamsPanel(self._section_label("FlowSOM"))
         self._flowsom_params.hide()
+        self._phenograph_params = PhenographParamsPanel(self._section_label("PhenoGraph"))
+        self._phenograph_params.hide()
         scroll_layout.addWidget(self._umap_params)
         scroll_layout.addWidget(self._flowsom_params)
+        scroll_layout.addWidget(self._phenograph_params)
 
         scroll_layout.addSpacing(20)
 
@@ -718,14 +727,15 @@ class PopulationAnalysisViewer(QWidget):
     def _on_method_changed(self, _index: int) -> None:
         self._show_method_params()
         if not self._params_read_only:
-            # FlowSOM is fast enough for every event; UMAP needs a subsample.
-            self._n_events_slider.setValue(100 if self._method is FLOWSOM else 10)
+            # FlowSOM and PhenoGraph are fast enough for every event; UMAP needs a subsample.
+            self._n_events_slider.setValue(10 if self._method is UMAP_HDBSCAN else 100)
 
     def _show_method_params(self) -> None:
-        flowsom = self._method is FLOWSOM
-        self._umap_params.setVisible(not flowsom)
-        self._flowsom_params.setVisible(flowsom)
-        self._replay_anim_btn.setVisible(not flowsom)  # the animation is UMAP's
+        method = self._method
+        self._umap_params.setVisible(method is UMAP_HDBSCAN)
+        self._flowsom_params.setVisible(method is FLOWSOM)
+        self._phenograph_params.setVisible(method is PHENOGRAPH)
+        self._replay_anim_btn.setVisible(method is UMAP_HDBSCAN)  # the animation is UMAP's
 
     def _set_parameters_read_only(self, read_only: bool) -> None:
         self._params_read_only = read_only
@@ -744,6 +754,7 @@ class PopulationAnalysisViewer(QWidget):
         self._min_cluster_size_box.setEnabled(not read_only)
         self._min_cluster_container.setVisible(self._run_hdbscan_cb.isChecked())
         self._flowsom_params.set_read_only(read_only)
+        self._phenograph_params.set_read_only(read_only)
 
         for i in range(self._channel_list.count()):
             item = self._channel_list.item(i)
@@ -864,8 +875,9 @@ class PopulationAnalysisViewer(QWidget):
             runs = self._state.data.umap_results.get(key, [])
             for i, run in enumerate(runs, 1):
                 name = run.get("name")
-                if method_of(run) is FLOWSOM:
-                    label = f"{i}. {name or 'Run'} · FlowSOM k={run.get('k')}"
+                method = method_of(run)
+                if method.recuttable:
+                    label = f"{i}. {name or 'Run'} · {method.name} {method.setting_text(run)}"
                 elif name:
                     label = f"{i}. {name}"
                 else:
@@ -962,11 +974,14 @@ class PopulationAnalysisViewer(QWidget):
         self._show_method_params()
         if method is FLOWSOM:
             self._flowsom_params.show_run(run_data)
+        elif method is PHENOGRAPH:
+            self._phenograph_params.show_run(run_data)
 
         if "name" in run_data and run_data["name"]:
             self._run_name_input.setText(run_data["name"])
 
-        if "n_neighbors" in run_data:
+        umap = method is UMAP_HDBSCAN  # other methods reuse some key names for their own settings
+        if umap and "n_neighbors" in run_data:
             self._n_neigh_slider.setValue(run_data["n_neighbors"])
 
         if "min_dist" in run_data:
@@ -994,7 +1009,7 @@ class PopulationAnalysisViewer(QWidget):
         self._run_hdbscan_cb.setChecked(run_hdbscan)
         self._run_hdbscan_cb.blockSignals(False)
 
-        if "min_cluster_size" in run_data:
+        if umap and "min_cluster_size" in run_data:
             self._min_cluster_size_box.setValue(int(run_data["min_cluster_size"]))
 
         used_channels = run_data.get("channels", [])
@@ -1036,12 +1051,7 @@ class PopulationAnalysisViewer(QWidget):
         self._display_stack.removeWidget(self._results_panel)
         self._results_panel.deleteLater()
 
-        self._results_panel = ClusterResultsPanel(
-            self._last_results,  # type: ignore
-            state=self._state,
-            gate_coordinator=self._gate_coordinator,
-        )
-        self._results_panel.results_modified.connect(self._on_results_modified)
+        self._results_panel = self._make_results_panel(self._last_results)  # type: ignore[arg-type]
         self._display_stack.insertWidget(1, self._results_panel)
 
         self._animator.stop()
@@ -1116,6 +1126,9 @@ class PopulationAnalysisViewer(QWidget):
             return
         if self._method is FLOWSOM:
             self._start_flowsom(sample_id, node_id, name, selected_channels, n_events_to_sample)
+            return
+        if self._method is PHENOGRAPH:
+            self._start_phenograph(sample_id, node_id, name, selected_channels, n_events_to_sample)
             return
 
         params = UmapParams(
@@ -1296,6 +1309,65 @@ class PopulationAnalysisViewer(QWidget):
             on_progress=self._progress_bar.setValue,
         )
 
+    def _start_phenograph(
+        self,
+        sample_id: str,
+        node_id: str | None,
+        name: str,
+        channels: list[str],
+        n_events: int,
+    ) -> None:
+        params = PhenographParams(
+            target_sample_id=sample_id,
+            target_node_id=node_id,
+            name=name,
+            percentage=float(self._n_events_slider.value()),
+            n_events=n_events,
+            random_seed=int(self._seed_input.text() or "42"),
+            channels=channels,
+            **self._phenograph_params.values(),
+        )
+        self._last_prep_data = None  # no UMAP animation to align with
+        self._animator.stop()
+        self._display_stack.setCurrentIndex(0)
+        self._placeholder_lbl.setText(f"Running PhenoGraph on {n_events:,} events…")
+        self._progress_bar.setRange(0, 0)  # the daemon reports no progress: busy bar
+        self._progress_bar.show()
+        self.set_running(True)
+        self._status_lbl.setText("Running PhenoGraph (neighbours, then clusters)...")
+        self._umap_service.run_phenograph(
+            params=params,
+            on_done=lambda results: self._on_analysis_done(results),
+            on_error_cb=lambda err: self._on_analysis_error(err),
+        )
+
+    def _make_results_panel(self, results: dict[str, Any]) -> ClusterResultsPanel:
+        panel = ClusterResultsPanel(
+            results,
+            state=self._state,
+            gate_coordinator=self._gate_coordinator,
+        )
+        panel.results_modified.connect(self._on_results_modified)
+        panel.recluster_requested.connect(self._on_recluster_requested)
+        return panel
+
+    def _on_recluster_requested(self, resolution: float) -> None:
+        """Re-cluster the PhenoGraph run on screen; the panel shows the result."""
+        panel = self._results_panel
+        run = getattr(panel, "_results", None)
+        if run is None or not isinstance(panel, ClusterResultsPanel):
+            return
+        self._umap_service.recluster_phenograph(
+            run,
+            resolution,
+            on_done=lambda arrays: self._finish_recluster(panel, arrays),
+            on_error_cb=lambda err: self._finish_recluster(panel, {"error": err}),
+        )
+
+    def _finish_recluster(self, panel: ClusterResultsPanel, arrays: dict[str, Any]) -> None:
+        if panel is self._results_panel:  # still the run on screen
+            panel.apply_recluster(arrays)
+
     def _on_analysis_done(  # noqa: PLR0912, PLR0915
         self, results: dict[str, Any], params: UmapParams | None = None
     ) -> None:
@@ -1411,12 +1483,7 @@ class PopulationAnalysisViewer(QWidget):
             self._display_stack.removeWidget(self._results_panel)
             self._results_panel.deleteLater()
 
-            self._results_panel = ClusterResultsPanel(
-                self._last_results,
-                state=self._state,
-                gate_coordinator=self._gate_coordinator,
-            )
-            self._results_panel.results_modified.connect(self._on_results_modified)
+            self._results_panel = self._make_results_panel(self._last_results)  # type: ignore[arg-type]
             self._display_stack.insertWidget(1, self._results_panel)
 
             self._animator.stop()

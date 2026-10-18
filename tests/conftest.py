@@ -129,6 +129,7 @@ class DummyFooter(QWidget):
 
 from PySide6.QtWidgets import (  # noqa: E402
     QComboBox,
+    QDoubleSpinBox,
     QFrame,
     QLineEdit,
     QListWidget,
@@ -169,6 +170,10 @@ class DummyListWidget(QListWidget):
 
 
 class DummySpinBox(QSpinBox):
+    pass
+
+
+class DummyDoubleSpinBox(QDoubleSpinBox):
     pass
 
 
@@ -222,6 +227,7 @@ mock_components.BioLineEdit = DummyLineEdit
 mock_components.BioListWidget = DummyListWidget
 mock_components.BioToggleButton = DummyButton
 mock_components.BioSpinBox = DummySpinBox
+mock_components.BioDoubleSpinBox = DummyDoubleSpinBox
 mock_components.BioHelpButton = DummyButton
 mock_components.BioProgressDialog = DummyProgressDialog
 mock_components.AcademyButton = DummyButton

@@ -180,7 +180,12 @@ PhenoGraph runs is left for later (see Decisions).
   - Persistence in `attachment_manager`; the graph is rebuilt on demand.
   - Tests: run → save → load round trip; reclustering after load rebuilds the
     graph.
-- [ ] **3. Population Analysis UI.**
+- [x] **3. Population Analysis UI.** The FlowSOM tree's frame (guide, colour by,
+  re-cut control, legend, heatmap, hover) became `ClusterMapView`; the FlowSOM
+  tree and the PhenoGraph `Cluster Graph` are subclasses. A cluster with no
+  links is marked "stands apart" in the legend and title. The results panel asks
+  the viewer to re-cluster (`recluster_requested`) and shows the result
+  (`apply_recluster`); the spin waits with "Re-clustering…" meanwhile.
   - "PhenoGraph" in the method combo, with its own parameter panel.
   - Events slider at 100% for PhenoGraph.
   - The **Cluster Graph** tab: guide, colour by, resolution control, edge
