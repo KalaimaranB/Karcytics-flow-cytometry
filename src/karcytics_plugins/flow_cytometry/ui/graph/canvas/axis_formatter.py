@@ -1,13 +1,19 @@
 """Axis formatting for FlowCanvas."""
 
 import numpy as np
-from matplotlib.ticker import FixedFormatter, FixedLocator
+from matplotlib.ticker import FixedFormatter, FixedLocator, FuncFormatter, MaxNLocator
 
 from karcytics_plugins.flow_cytometry.analysis.transforms import (
     TransformType,
     biological_tick_values,
     log_decade_tick_values,
 )
+
+COMPACT_TICKS = 4  # linear ticks on a small canvas
+
+
+def _compact_label(value: float, _pos: int | None = None) -> str:
+    return f"{value / 1000:g}k" if abs(value) >= 1000 else f"{value:g}"  # noqa: PLR2004
 
 
 class AxisFormatter:
@@ -22,6 +28,13 @@ class AxisFormatter:
         mapper = self.canvas._coordinate_mapper
         display_mode = self.canvas._display_mode
         from ..flow_canvas import DisplayMode
+
+        if getattr(self.canvas, "_compact_ticks", False):
+            # A small canvas: few linear ticks, thousands as "50k" (log ticks stay).
+            for axis, scale in ((ax.xaxis, x_scale), (ax.yaxis, y_scale)):
+                if scale.transform_type == TransformType.LINEAR:
+                    axis.set_major_locator(MaxNLocator(COMPACT_TICKS))
+                    axis.set_major_formatter(FuncFormatter(_compact_label))
 
         if x_scale.transform_type != TransformType.LINEAR:
             raw_ticks, labels = self._build_ticks(

@@ -5,21 +5,29 @@ the gate's axes, the gate and its siblings drawn over it, and the selected
 population backgated on top. The canvases carry the gate coordinator, so a
 gate dragged here is edited, re-counted and propagated exactly as on the
 Gating tab.
+
+Plots are scaled as the Gating tab scales them (``fit_scale``), widened so the
+whole gate is in view, and keep that range while the same population stays
+selected, so an edit never moves the plot under the mouse. A plot whose
+inputs haven't changed isn't redrawn, and nothing is redrawn mid-drag.
 """
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from karcytics_sdk.plugin.components import BioCaptionLabel, SubtitleLabel
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
+from ....analysis._utils import project_to_display, project_to_raw
 from ....analysis.fcs_io import get_channel_marker_label
 from ....analysis.gating import GateNode
-from ....analysis.sample_lens.edges import gate_axes
+from ....analysis.sample_lens.edges import gate_axes, gate_extent
+from ....analysis.scaling import AxisScale, fit_scale
 from ...graph.flow_canvas import DisplayMode, FlowCanvas
 from ._style import card
 
@@ -31,7 +39,13 @@ if TYPE_CHECKING:
     from ....analysis.state import FlowState
     from .lens_model import Proposal
 
-PLOT_W, PLOT_H = 320, 290
+PLOT_H = 290
+PLOT_W_MIN, PLOT_W_MAX = 250, 340  # plots share the strip's width within these
+PLOT_SPACING = 12
+# Room for tick labels and axis titles on a small plot (figure fractions).
+PLOT_MARGINS = {"left": 0.21, "bottom": 0.17, "right": 0.96, "top": 0.95}
+VIEW_PAD = 0.04  # share of the display range kept clear around a gate
+RETRY_MS = 300  # wait this long to redraw when a gate is being dragged
 
 
 @dataclass
@@ -59,6 +73,35 @@ def gate_path(node: GateNode) -> list[GateNode]:
     return path[::-1]
 
 
+def _digest(*arrays: np.ndarray) -> str:
+    h = hashlib.blake2b(digest_size=16)
+    for array in arrays:
+        h.update(np.ascontiguousarray(array).tobytes())
+    return h.hexdigest()
+
+
+def _scale_key(scale: AxisScale) -> tuple:
+    return (
+        scale.transform_type,
+        scale.min_val,
+        scale.max_val,
+        scale.logicle_t,
+        scale.logicle_w,
+        scale.logicle_a,
+    )
+
+
+def _widen(scale: AxisScale, lo: float, hi: float) -> tuple[float, float]:
+    """``scale``'s range, widened in display space to hold ``lo``..``hi`` with a margin."""
+    assert scale.min_val is not None and scale.max_val is not None
+    d_min, d_max, d_lo, d_hi = project_to_display(
+        np.array([scale.min_val, scale.max_val, lo, hi], dtype=np.float64), scale
+    )
+    pad = VIEW_PAD * (d_max - d_min)
+    raw = project_to_raw(np.array([min(d_min, d_lo - pad), max(d_max, d_hi + pad)]), scale)
+    return float(raw[0]), float(raw[1])
+
+
 class _PathPlot(QWidget):
     """One step of the path: a caption over a canvas."""
 
@@ -70,8 +113,12 @@ class _PathPlot(QWidget):
         self.caption = BioCaptionLabel("")
         layout.addWidget(self.caption)
         self.canvas = FlowCanvas(state=state, controller=controller)
-        self.canvas.setFixedSize(PLOT_W, PLOT_H)
+        self.canvas.setFixedSize(PLOT_W_MAX, PLOT_H)
+        self.canvas.set_margins(**PLOT_MARGINS)
+        self.canvas.set_wheel_zoom(False)  # the wheel scrolls the strip
+        self.canvas.set_compact_ticks(True)
         layout.addWidget(self.canvas)
+        self.drawn: tuple | None = None  # what the canvas last drew, to skip repeats
 
 
 class GatingPathStrip(QWidget):
@@ -83,6 +130,9 @@ class GatingPathStrip(QWidget):
         self._controller = controller
         self._axis_manager = axis_manager
         self._plots: list[_PathPlot] = []
+        self._ranges: dict[tuple[str, str], tuple[float, float]] = {}  # (gate id, channel)
+        self._range_owner: tuple | None = None  # whose path the cached ranges belong to
+        self._pending: tuple | None = None  # a redraw put off while a gate is dragged
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -95,20 +145,37 @@ class GatingPathStrip(QWidget):
         frame = card("lens_path_card", "BG_DARKEST")
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(8, 8, 8, 8)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet("background: transparent;")
+        self._scroll = QScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setStyleSheet("background: transparent;")
         row_widget = QWidget()
         self._row = QHBoxLayout(row_widget)
         self._row.setContentsMargins(0, 0, 0, 0)
-        self._row.setSpacing(12)
+        self._row.setSpacing(PLOT_SPACING)
         self._row.addStretch()
-        scroll.setWidget(row_widget)
-        scroll.setFixedHeight(PLOT_H + 48)
-        frame_layout.addWidget(scroll)
+        self._scroll.setWidget(row_widget)
+        self._scroll.setFixedHeight(PLOT_H + 48)
+        frame_layout.addWidget(self._scroll)
         outer.addWidget(frame)
+
+    # ── Layout ─────────────────────────────────────────────────────────
+
+    def resizeEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        self._fit_widths()
+
+    def _fit_widths(self) -> None:
+        """Share the strip's width between the plots; scroll only past PLOT_W_MIN each."""
+        shown = [p for p in self._plots if not p.isHidden()]
+        if not shown:
+            return
+        free = self._scroll.viewport().width() - PLOT_SPACING * (len(shown) - 1)
+        width = max(PLOT_W_MIN, min(PLOT_W_MAX, free // len(shown)))
+        for plot in shown:
+            if plot.canvas.width() != width:
+                plot.canvas.setFixedWidth(width)
 
     def _plot(self, i: int) -> _PathPlot:
         while len(self._plots) <= i:  # canvases are reused, never rebuilt per selection
@@ -117,16 +184,39 @@ class GatingPathStrip(QWidget):
             self._plots.append(plot)
         return self._plots[i]
 
-    def show_steps(self, title: str, hint: str, sample: Sample, steps: list[PlotStep]) -> None:
+    # ── Showing a path ─────────────────────────────────────────────────
+
+    def show_steps(
+        self,
+        title: str,
+        hint: str,
+        sample: Sample,
+        sample_events: pd.DataFrame,
+        steps: list[PlotStep],
+    ) -> None:
         """Show one plot per step (extra canvases are hidden, never destroyed)."""
+        if any(p.canvas.is_interacting for p in self._plots if not p.isHidden()):
+            # Redrawing now would pull the gate from under the mouse: retry after the drag.
+            first_wait = self._pending is None
+            self._pending = (title, hint, sample, sample_events, steps)
+            if first_wait:
+                QTimer.singleShot(RETRY_MS, self._show_pending)
+            return
+        self._pending = None
         self._title.setText(title)
         self._hint.setText(hint)
         for plot in self._plots[len(steps) :]:
             plot.hide()
         for i, step in enumerate(steps):
             plot = self._plot(i)
-            self._draw(plot, sample, step)
             plot.show()
+            self._draw(plot, sample, sample_events, step)
+        self._fit_widths()
+
+    def _show_pending(self) -> None:
+        if self._pending is not None:
+            pending, self._pending = self._pending, None
+            self.show_steps(*pending)
 
     def show_population(
         self, sample: Sample | None, events: pd.DataFrame | None, node: GateNode | None, color: str
@@ -137,8 +227,9 @@ class GatingPathStrip(QWidget):
             for plot in self._plots:
                 plot.hide()
             self._title.setText("Gating path")
-            self._hint.setText("Pick a population in the hierarchy to see every gate above it.")
+            self._hint.setText("Pick a population on the left to see every gate above it.")
             return
+        self._own_ranges((sample.sample_id, node.node_id))
         selected = node.mask(events)
         steps = []
         for step_node in path:
@@ -165,11 +256,15 @@ class GatingPathStrip(QWidget):
             f"Each plot is the parent population on that gate's axes; {node.name} is highlighted. "
             "Drag a gate here to edit it — every sample in its group follows.",
             sample,
+            events,
             steps,
         )
 
-    def show_proposal(self, sample: Sample, proposal: Proposal, color: str) -> None:
+    def show_proposal(
+        self, sample: Sample, sample_events: pd.DataFrame, proposal: Proposal, color: str
+    ) -> None:
         """Each proposed gate on the events left by the ones before it, cluster highlighted."""
+        self._own_ranges((sample.sample_id, "proposal", proposal.cluster))
         steps = []
         remaining = np.ones(len(proposal.events), dtype=bool)
         for i, proposed in enumerate(proposal.steps):
@@ -191,31 +286,72 @@ class GatingPathStrip(QWidget):
             "The cluster is highlighted; each step keeps only the events inside the one before. "
             "Nothing changes until you add them.",
             sample,
+            sample_events,
             steps,
         )
 
-    def _draw(self, plot: _PathPlot, sample: Sample, step: PlotStep) -> None:
+    # ── Drawing ────────────────────────────────────────────────────────
+
+    def _own_ranges(self, owner: tuple) -> None:
+        """Keep plot ranges while the same path is shown; start afresh for another."""
+        if owner != self._range_owner:
+            self._range_owner = owner
+            self._ranges.clear()
+
+    def _scale(
+        self, sample: Sample, sample_events: pd.DataFrame, step: PlotStep, channel: str
+    ) -> AxisScale:
+        """As the Gating tab scales it, widened to hold the gate (range kept while shown)."""
+        scale = fit_scale(
+            self._axis_manager.get_scale(channel, sample.sample_id),
+            channel,
+            sample_events,
+            step.events,
+        )
+        if scale.min_val is None or scale.max_val is None:
+            return scale
+        key = (step.gate.gate_id, channel)
+        if key not in self._ranges:
+            lo, hi = gate_extent(step.gate).get(channel, (scale.min_val, scale.max_val))
+            self._ranges[key] = _widen(scale, lo, hi)
+        scale.min_val, scale.max_val = self._ranges[key]
+        return scale
+
+    def _draw(
+        self, plot: _PathPlot, sample: Sample, sample_events: pd.DataFrame, step: PlotStep
+    ) -> None:
         params = [param for param, _ in gate_axes(step.gate)]
         x = params[0]
         y = params[1] if len(params) > 1 else x
-        fcs = sample.fcs_data
+        x_scale = self._scale(sample, sample_events, step, x)
+        y_scale = self._scale(sample, sample_events, step, y)
         plot.caption.setText(step.caption)
         canvas = plot.canvas
-        canvas.begin_update()
-        canvas.set_sample_id(sample.sample_id)
-        canvas.set_display_mode(DisplayMode.PSEUDOCOLOR if y != x else DisplayMode.HISTOGRAM)
-        canvas.set_axes(
+
+        drawn = (
+            sample.sample_id,
             x,
             y,
-            get_channel_marker_label(fcs, x) if fcs else x,
-            get_channel_marker_label(fcs, y) if fcs else y,
+            _scale_key(x_scale),
+            _scale_key(y_scale),
+            step.color,
+            _digest(step.events.index.to_numpy(), np.packbits(step.backgate)),
         )
-        canvas.set_scales(
-            self._axis_manager.get_scale(x, sample.sample_id),
-            self._axis_manager.get_scale(y, sample.sample_id),
-        )
-        canvas.set_backgate(step.backgate, step.color)
-        canvas.set_data(step.events)
-        canvas.end_update()  # one redraw with axes, scales, data and backgate together
-        canvas.set_gates(step.gates, step.nodes)
+        if drawn != plot.drawn:  # parent events, highlight or axes changed
+            plot.drawn = drawn
+            fcs = sample.fcs_data
+            canvas.begin_update()
+            canvas.set_sample_id(sample.sample_id)
+            canvas.set_display_mode(DisplayMode.PSEUDOCOLOR if y != x else DisplayMode.HISTOGRAM)
+            canvas.set_axes(
+                x,
+                y,
+                get_channel_marker_label(fcs, x) if fcs else x,
+                get_channel_marker_label(fcs, y) if fcs else y,
+            )
+            canvas.set_scales(x_scale, y_scale)
+            canvas.set_backgate(step.backgate, step.color)
+            canvas.set_data(step.events)
+            canvas.end_update()  # one redraw with axes, scales, data and backgate together
+        canvas.set_gates(step.gates, step.nodes)  # cheap: overlays only
         canvas.select_gate(step.selected_node_id)

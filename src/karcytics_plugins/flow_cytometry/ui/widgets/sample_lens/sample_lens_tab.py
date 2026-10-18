@@ -348,7 +348,9 @@ class SampleLensTab(QWidget):
             pill.setText(text)
             pill.setVisible(bool(text))
         self._accept_btn.setEnabled(bool(steps))
-        self._path.show_proposal(sample, proposal, palette_color(proposal.cluster))
+        events = self._model.events(sample)
+        if events is not None:
+            self._path.show_proposal(sample, events, proposal, palette_color(proposal.cluster))
 
     def _on_fix_requested(self, finding: Finding) -> None:
         self._emphasis = finding.clusters

@@ -469,4 +469,4 @@ class FlowDataRasterizeStage(RasterizeStage):
         )
 
         ax.grid(True, color="#B0B0B0", alpha=0.35, linewidth=0.5)
-        self.canvas._fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.95)
+        self.canvas.apply_margins()

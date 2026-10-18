@@ -106,6 +106,9 @@ _MPL_STYLE = {
 }
 
 
+DEFAULT_MARGINS = {"left": 0.12, "bottom": 0.12, "right": 0.95, "top": 0.95}
+
+
 class FlowCanvas(LayeredMatplotlibCanvas):
     """Interactive matplotlib canvas for flow cytometry plots.
 
@@ -157,9 +160,13 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._ax.set_facecolor(_PLOT_BG)
         self._ax.grid(True, color="#B0B0B0", alpha=0.35, linewidth=0.5)
 
-        # Set fixed subplot margins once — avoids calling tight_layout()
-        # which inspects every artist and crashes with non-standard ones.
-        self._fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.95)
+        # Fixed subplot margins (fractions of the figure) — avoids calling
+        # tight_layout(), which inspects every artist and crashes with
+        # non-standard ones. Small canvases widen them with set_margins().
+        self._margins = dict(DEFAULT_MARGINS)
+        self._wheel_zoom = True
+        self._compact_ticks = False
+        self.apply_margins()
 
         # ── Data state ────────────────────────────────────────────────
         self._sample_id: str | None = None
@@ -349,6 +356,13 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self.set_guide_polygon(old_poly)
 
         if not step:
+            self.draw_idle()
+            return
+
+        # A guide naming its channels is drawn only on plots of those channels
+        # (the Sample Lens shows several plots at once).
+        guide_axes = (getattr(step, "metadata", None) or {}).get("guide_axes")
+        if guide_axes and tuple(guide_axes) != (self._x_param, self._y_param):
             self.draw_idle()
             return
 
@@ -618,6 +632,35 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._gate_nodes = gate_nodes or []
         # Only redraw the gate layer — never re-render the scatter data
         self._gate_renderer.render()
+
+    def set_margins(self, left: float, bottom: float, right: float, top: float) -> None:
+        """Subplot margins as figure fractions (a small canvas needs room for its labels)."""
+        self._margins = {"left": left, "bottom": bottom, "right": right, "top": top}
+        self.apply_margins()
+
+    def apply_margins(self) -> None:
+        self._fig.subplots_adjust(**self._margins)
+
+    def set_compact_ticks(self, enabled: bool) -> None:
+        """On: few linear ticks, thousands as "50k", for a small canvas."""
+        self._compact_ticks = enabled
+
+    def set_wheel_zoom(self, enabled: bool) -> None:
+        """Off: the wheel scrolls whatever holds the canvas instead of zooming the plot."""
+        self._wheel_zoom = enabled
+
+    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
+        if not self._wheel_zoom:
+            event.ignore()  # let the enclosing scroll area have it
+            return
+        super().wheelEvent(event)
+
+    @property
+    def is_interacting(self) -> bool:
+        """True while a gate is being drawn or dragged."""
+        from .gate_drawing_fsm import DrawingState
+
+        return self._fsm.state is not DrawingState.IDLE
 
     def select_gate(self, gate_id: str | None) -> None:
         """Programmatically select a gate overlay."""

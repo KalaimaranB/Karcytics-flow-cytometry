@@ -155,3 +155,20 @@ def test_a_cut_is_blamed_on_the_gate_that_loses_the_cells():
 
     assert cuts[1].population == "Lymphocytes / T cells"
     assert 0.3 < cuts[1].shares[0] < 0.7  # noqa: PLR2004
+
+
+def test_gate_extent_covers_each_gate_type():
+    from karcytics_plugins.flow_cytometry.analysis.gating import (
+        QuadrantGate,
+        RangeGate,
+        RectangleGate,
+    )
+    from karcytics_plugins.flow_cytometry.analysis.sample_lens.edges import gate_extent
+
+    rect = RectangleGate("B220", "CD3", x_min=-400, x_max=2000, y_min=300, y_max=8000)
+    assert gate_extent(rect) == {"B220": (-400, 2000), "CD3": (300, 8000)}
+    assert gate_extent(RangeGate("PI", low=-1000, high=float("inf"))) == {"PI": (-1000, -1000)}
+    poly = PolygonGate("FSC", "SSC", vertices=[(1, 5), (9, 2), (4, 8)])
+    assert gate_extent(poly) == {"FSC": (1, 9), "SSC": (2, 8)}
+    quad = QuadrantGate("CD4", "CD8", x_mid=5000, y_mid=6000)
+    assert gate_extent(quad) == {"CD4": (5000, 5000), "CD8": (6000, 6000)}

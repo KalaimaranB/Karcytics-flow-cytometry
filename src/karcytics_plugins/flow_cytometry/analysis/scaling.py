@@ -327,3 +327,31 @@ def estimate_logicle_params(
         a = 0.0
 
     return float(w), float(a)
+
+
+def fit_scale(scale: AxisScale, channel: str, sample_events: Any, parent_events: Any) -> AxisScale:
+    """A copy of ``scale`` fitted to plot ``channel`` of a gate's parent population.
+
+    How every gating plot is scaled (the Gating tab and the Sample Lens alike):
+
+    * Biexponential shape: T from the whole sample (the instrument's range),
+      W and A from the parent population, the events the gate is drawn on.
+      W from another depth splits one population in two.
+    * Range: kept once set, so the view never jumps; otherwise auto-ranged on
+      the whole sample, so a gate's edges stay in view at any depth.
+    """
+    fitted = scale.copy()
+    if (
+        fitted.transform_type == TransformType.BIEXPONENTIAL
+        and channel in sample_events.columns
+        and channel in parent_events.columns
+    ):
+        fitted.logicle_t = detect_logicle_top(sample_events[channel].values)
+        fitted.logicle_w, fitted.logicle_a = estimate_logicle_params(
+            parent_events[channel].values, t=fitted.logicle_t
+        )
+    if fitted.min_val is None and channel in sample_events.columns:
+        fitted.min_val, fitted.max_val = calculate_auto_range(
+            sample_events[channel].values, fitted.transform_type, fitted.outlier_percentile
+        )
+    return fitted

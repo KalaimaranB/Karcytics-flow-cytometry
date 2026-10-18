@@ -115,3 +115,22 @@ class TestLogicleParamsEstimation:
         assert w > 0.5
         assert w < 2.5
         assert isinstance(a, float)
+
+
+def test_fit_scale_ranges_on_the_sample_and_shapes_on_the_parent():
+    import pandas as pd
+
+    from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale, fit_scale
+
+    rng = np.random.default_rng(0)
+    sample = pd.DataFrame(
+        {"CD3": np.concatenate([rng.normal(0, 300, 5000), rng.normal(5e4, 5e3, 5000)])}
+    )
+    parent = sample[sample["CD3"] > 1000]  # a gated subset with no negative tail
+    fitted = fit_scale(AxisScale(TransformType.BIEXPONENTIAL), "CD3", sample, parent)
+
+    assert fitted.min_val < 0 and fitted.max_val > 4e4  # noqa: PLR2004 - the whole sample's range
+    assert fitted.logicle_w == pytest.approx(0.5)  # no negative tail in the parent
+
+    kept = AxisScale(TransformType.BIEXPONENTIAL, min_val=-10.0, max_val=10.0)
+    assert (fit_scale(kept, "CD3", sample, parent).min_val, kept.min_val) == (-10.0, -10.0)

@@ -15,7 +15,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from .._utils import project_to_display, project_to_raw
-from ..gating import QuadrantSubGate, SubsetGate
+from ..gating import (
+    EllipseGate,
+    PolygonGate,
+    QuadrantGate,
+    QuadrantSubGate,
+    RangeGate,
+    RectangleGate,
+    SubsetGate,
+)
 from ..population_matching import populations
 from ..scaling import AxisScale
 
@@ -40,6 +48,37 @@ def gate_axes(gate: Gate) -> list[tuple[str, AxisScale]]:
     if target.y_param:
         axes.append((target.y_param, getattr(target, "y_scale", None) or AxisScale()))
     return axes
+
+
+def gate_extent(gate: Gate) -> dict[str, tuple[float, float]]:
+    """The raw-value span a gate covers on each of its channels, to keep it in view.
+
+    An ellipse gets its centre plus its longest semi-axis either way (rotation
+    ignored); a quadrant its crosshair. Infinite (open) ends are left out.
+    """
+    target = gate.parent if isinstance(gate, QuadrantSubGate) else gate
+    spans: list[tuple[str | None, float, float]] = []
+    if isinstance(target, RangeGate):
+        spans.append((target.x_param, target.low, target.high))
+    elif isinstance(target, RectangleGate):
+        spans += [
+            (target.x_param, target.x_min, target.x_max),
+            (target.y_param, target.y_min, target.y_max),
+        ]
+    elif isinstance(target, PolygonGate) and target.vertices:
+        xs, ys = zip(*target.vertices, strict=True)
+        spans += [(target.x_param, min(xs), max(xs)), (target.y_param, min(ys), max(ys))]
+    elif isinstance(target, EllipseGate):
+        (cx, cy), r = target.center, max(target.width, target.height)
+        spans += [(target.x_param, cx - r, cx + r), (target.y_param, cy - r, cy + r)]
+    elif isinstance(target, QuadrantGate):
+        spans += [(target.x_param, target.x_mid, target.x_mid)]
+        spans += [(target.y_param, target.y_mid, target.y_mid)]
+    return {
+        param: (lo if np.isfinite(lo) else hi, hi if np.isfinite(hi) else lo)
+        for param, lo, hi in spans
+        if param and (np.isfinite(lo) or np.isfinite(hi))
+    }
 
 
 def edge_fraction(gate: Gate, parent_events: pd.DataFrame, seed: int = 0) -> float:

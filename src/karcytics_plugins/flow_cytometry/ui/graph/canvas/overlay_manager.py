@@ -91,7 +91,7 @@ class OverlayManager:
         )
         self.canvas._ax.set_xticks([])
         self.canvas._ax.set_yticks([])
-        self.canvas._fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.95)
+        self.canvas.apply_margins()
         self.canvas.draw()
 
     def show_error(self, msg: str) -> None:

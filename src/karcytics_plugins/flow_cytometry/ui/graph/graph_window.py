@@ -36,8 +36,7 @@ from karcytics_plugins.flow_cytometry.analysis.protocols import (
 from karcytics_plugins.flow_cytometry.analysis.scaling import (
     AxisScale,
     calculate_auto_range,
-    detect_logicle_top,
-    estimate_logicle_params,
+    fit_scale,
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
@@ -607,116 +606,9 @@ class GraphWindow(QWidget):
             len(gated_events),
         )
 
-        # ── LOGICLE SHAPE PARAMETERS (always recomputed from parent population) ─
-        # T, W, and A are re-estimated on every render, even when min_val is already
-        # set (e.g. restored from creation_view or group.channel_scales).
-        #
-        # Why parent population:  The axis range (min/max) is locked first-time-only
-        # so the view doesn't jump, but W determines the *shape* of the transform —
-        # how wide the linear region is around zero.  A W stored from an earlier
-        # render (full sample, or a different gate depth) is too small for a narrow
-        # gated subset, splitting one population into two apparent clusters — exactly
-        # the CD3 bug on spleen B/T gates.
-        #
-        # T is still taken from the full sample so it always reflects the
-        # instrument's true dynamic range regardless of gate depth.
-        _x_biexp_cond = (
-            x_scale_active.transform_type == TransformType.BIEXPONENTIAL
-            and x_ch in sample_events.columns
-            and x_ch in parent_events.columns
-        )
-        logger.info(
-            "[W-DIAG] X biexp condition: transform=%s  x_ch_in_sample=%s  x_ch_in_parent=%s  → will_estimate=%s",
-            x_scale_active.transform_type,
-            x_ch in sample_events.columns,
-            x_ch in parent_events.columns,
-            _x_biexp_cond,
-        )
-        if _x_biexp_cond:
-            x_scale_active.logicle_t = detect_logicle_top(sample_events[x_ch].values)
-            w_val, a_val = estimate_logicle_params(
-                parent_events[x_ch].values, t=x_scale_active.logicle_t
-            )
-            logger.info(
-                "[W-DIAG] X W/A estimated: channel=%s  w_before=%.4f  w_after=%.4f  a_after=%.4f  t=%.0f",
-                x_ch,
-                self._x_scale.logicle_w,
-                w_val,
-                a_val,
-                x_scale_active.logicle_t,
-            )
-            x_scale_active.logicle_w = w_val
-            x_scale_active.logicle_a = a_val
-
-        _y_biexp_cond = (
-            y_scale_active.transform_type == TransformType.BIEXPONENTIAL
-            and y_ch in sample_events.columns
-            and y_ch in parent_events.columns
-        )
-        logger.info(
-            "[W-DIAG] Y biexp condition: transform=%s  y_ch_in_sample=%s  y_ch_in_parent=%s  → will_estimate=%s",
-            y_scale_active.transform_type,
-            y_ch in sample_events.columns,
-            y_ch in parent_events.columns,
-            _y_biexp_cond,
-        )
-        if _y_biexp_cond:
-            # T from full sample; W and A from parent population (see above).
-            y_scale_active.logicle_t = detect_logicle_top(sample_events[y_ch].values)
-            w_val, a_val = estimate_logicle_params(
-                parent_events[y_ch].values, t=y_scale_active.logicle_t
-            )
-            logger.info(
-                "[W-DIAG] Y W/A estimated: channel=%s  w_before=%.4f  w_after=%.4f  a_after=%.4f  t=%.0f",
-                y_ch,
-                self._y_scale.logicle_w,
-                w_val,
-                a_val,
-                y_scale_active.logicle_t,
-            )
-            y_scale_active.logicle_w = w_val
-            y_scale_active.logicle_a = a_val
-
-        # ── AUTO-RANGE (first-time only) ──────────────────────────────────
-        # Only compute min/max when the channel has never been ranged before
-        # (min_val is None). If the user has manually set limits, or a previous
-        # render already established them, we preserve those values entirely.
-        # This is the single gate that prevents the view from jumping whenever
-        # the user switches channels, enters a gate, or changes transform type.
-        # ── AUTO-RANGE (first-time only) ──────────────────────────────────
-        if x_ch in sample_events.columns and x_scale_active.min_val is None:
-            vmin, vmax = calculate_auto_range(
-                sample_events[x_ch].values,
-                x_scale_active.transform_type,
-                x_scale_active.outlier_percentile,
-            )
-            x_scale_active.min_val = vmin
-            x_scale_active.max_val = vmax
-
-            # Also update the global state so it persists
-            assert self._axis_manager is not None
-            self._axis_manager.set_scale(
-                x_ch, x_scale_active, notify=False, sample_id=self._sample_id
-            )
-            # Update our reference
-            self._x_scale = x_scale_active.copy()
-
-        if y_ch in sample_events.columns and y_scale_active.min_val is None:
-            vmin, vmax = calculate_auto_range(
-                sample_events[y_ch].values,
-                y_scale_active.transform_type,
-                y_scale_active.outlier_percentile,
-            )
-            y_scale_active.min_val = vmin
-            y_scale_active.max_val = vmax
-
-            # Also update the global state so it persists
-            assert self._axis_manager is not None
-            self._axis_manager.set_scale(
-                y_ch, y_scale_active, notify=False, sample_id=self._sample_id
-            )
-            # Update our reference
-            self._y_scale = y_scale_active.copy()
+        # Shape from the parent population, range from the whole sample (see fit_scale).
+        x_scale_active = fit_scale(x_scale_active, x_ch, sample_events, parent_events)
+        y_scale_active = fit_scale(y_scale_active, y_ch, sample_events, parent_events)
 
         # ── PERSIST THE ESTIMATED SCALES ──
         # This ensures the global state (and thus the Group Preview)

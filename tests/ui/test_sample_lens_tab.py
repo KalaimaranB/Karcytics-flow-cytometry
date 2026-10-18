@@ -167,3 +167,45 @@ def test_cancelling_a_proposal_changes_nothing(lens):
     assert tab._proposal_bar.isHidden()
     assert tab._model._controller.added == []
     assert any(f.kind is FindingKind.MISSED for f in tab._model.findings)
+
+
+def _shown(tab):
+    return [p for p in tab._path._plots if not p.isHidden()]
+
+
+def test_the_path_plots_share_the_width_and_keep_whole_gates_in_view(lens):
+    from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens.gating_path import (
+        PLOT_W_MAX,
+        PLOT_W_MIN,
+    )
+
+    tab, state, _ = lens
+    tab._model.select(_cd4_node(state).node_id)
+    plots = _shown(tab)
+    assert all(PLOT_W_MIN <= p.canvas.width() <= PLOT_W_MAX for p in plots)
+    cd4 = _cd4_node(state)
+    x_scale = plots[-1].canvas._x_scale
+    assert x_scale.min_val < cd4.gate.x_min and cd4.gate.x_max < x_scale.max_val
+
+
+def test_an_unchanged_plot_is_not_redrawn_and_a_drag_is_waited_out(lens, qtbot, monkeypatch):
+    tab, state, _ = lens
+    tab._model.select(_cd4_node(state).node_id)
+    first = _shown(tab)[0].canvas
+    calls = []
+    monkeypatch.setattr(first, "set_data", lambda *a, **k: calls.append(a))
+
+    tab._render()  # nothing changed
+    assert calls == []
+
+    monkeypatch.setattr(type(first), "is_interacting", property(lambda self: self is first))
+    tab._model.select(state.data.experiment.samples["s0"].gate_tree.children[0].node_id)
+    assert tab._path._pending is not None  # held back while the gate is dragged
+    monkeypatch.setattr(type(first), "is_interacting", property(lambda self: False))
+    qtbot.waitUntil(lambda: tab._path._pending is None)
+    assert [p.caption.text() for p in _shown(tab)] == ["All Events  →  Lymphocytes"]
+
+
+def test_the_wheel_scrolls_the_strip_instead_of_zooming(lens):
+    tab, _, _ = lens
+    assert tab._path._plot(0).canvas._wheel_zoom is False
