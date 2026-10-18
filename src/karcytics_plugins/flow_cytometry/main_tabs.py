@@ -11,8 +11,8 @@ class MainTab(IntEnum):
     WORKSPACE = 0
     GATING = 1
     COMPENSATION = 2
-    PIPELINE = 3
-    SPECTRAL = 4
+    SPECTRAL = 3
+    PIPELINE = 4
     POPULATION_ANALYSIS = 5
     SAMPLE_LENS = 6
     STATISTICS = 7

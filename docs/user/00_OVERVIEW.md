@@ -40,21 +40,21 @@ Four tabs — **Workspace**, **Gating**, **Compensation**, and **Pipeline** — 
 This is home base and almost always the first tab you'll touch. Import your `.fcs` files here, organize them into **Groups**, and tag each one with a **Role** (Unstained, Single Stain, FMO Control, Full Panel) so the rest of the module knows how to treat it. Everything downstream — compensation, gating, propagation — depends on decisions made on this tab.
 → [Workspace guide](./02_WORKSPACE.md)
 
-### 2. Compensation
-Fluorescent dyes leak a little light into their neighbors' detectors, and this tab is where that gets corrected. Karcytics can extract a spillover matrix straight out of a file's own metadata with one click, or compute one algorithmically from your Single Stain controls — then apply it to every sample at once. Compensated samples get marked with a small **✦** tag so you always know at a glance whether you're looking at raw or corrected data.
-→ [Compensation guide](./03_COMPENSATION.md)
-
-### 3. Gating
+### 2. Gating
 The heart of the module. Draw Rectangle, Polygon, Ellipse, Quadrant, or Range gates directly on your plots to isolate the populations you care about, nested as deep as your biology requires. A live **Group Preview** shows your gate landing on every other sample in the group as you draw it, and an **Auto-Propagate** toggle controls whether that happens automatically.
 → [Gating guide](./04_GATING.md)
 
-### 4. Pipeline
-Your entire gating strategy, redrawn as a flowchart instead of a nested tree — the same view you'd screenshot to explain your analysis to a collaborator. Drag nodes around, reorient the whole layout, and build **AND / OR / NOT** logic nodes to combine populations — handy for cross-checking a manual gate against, say, an unsupervised cluster from Population Analysis.
-→ [Pipeline guide](./05_PIPELINE.md)
+### 3. Compensation
+Fluorescent dyes leak a little light into their neighbors' detectors, and this tab is where that gets corrected. Karcytics can extract a spillover matrix straight out of a file's own metadata with one click, or compute one algorithmically from your Single Stain controls — then apply it to every sample at once. Compensated samples get marked with a small **✦** tag so you always know at a glance whether you're looking at raw or corrected data.
+→ [Compensation guide](./03_COMPENSATION.md)
 
-### 5. Spectral
+### 4. Spectral
 An interactive viewer pulling real fluorophore excitation/emission spectra live from [FPbase](https://www.fpbase.org/), so you can see exactly why (or whether) two dyes in your panel actually overlap — hover between two curves for a real overlap-integral percentage. Its **Learning Compensation** sub-tab is a self-paced interactive slideshow that walks through spillover and matrix math using your own panel's real numbers.
 → [Spectral guide](./07_SPECTRAL.md)
+
+### 5. Pipeline
+Your entire gating strategy, redrawn as a flowchart instead of a nested tree — the same view you'd screenshot to explain your analysis to a collaborator. Drag nodes around, reorient the whole layout, and build **AND / OR / NOT** logic nodes to combine populations — handy for cross-checking a manual gate against, say, an unsupervised cluster from Population Analysis.
+→ [Pipeline guide](./05_PIPELINE.md)
 
 ### 6. Population Analysis
 Where you step outside manual gating. Pick a root population and a set of channels, run **UMAP** to flatten your multi-dimensional marker data into a 2D map you can color by any channel, and optionally layer on **HDBSCAN** clustering to let the data group itself with zero manual input. Any resulting cluster can be exported straight back into your gating hierarchy as a real, usable population.

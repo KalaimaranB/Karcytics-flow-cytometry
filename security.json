@@ -183,7 +183,7 @@
         "src/karcytics_plugins/flow_cytometry/analysis/workspace_document.py": "80a6322d719324d3d67a866c6943f38b0002910f287f788156599d7cef455ff5",
         "src/karcytics_plugins/flow_cytometry/icon.png": "ab917825c2cfe71db8a1cd337ba05f04fdd296ea05b371cd159ca3740be2e62e",
         "src/karcytics_plugins/flow_cytometry/logo_backup.png": "0cc11ffdf3d4f1fe1c7ac0ff5560d03270cacaf4953e3d8b0f014d204a81de99",
-        "src/karcytics_plugins/flow_cytometry/main_tabs.py": "72b993f22d308c92adc7ecc529f35b598bfdb81677720074fda0b7b1c40fa506",
+        "src/karcytics_plugins/flow_cytometry/main_tabs.py": "140aae41922e885ab69946c864a753e32315507521c0ce89c865c5386388b07d",
         "src/karcytics_plugins/flow_cytometry/tutorials/assets/demo_tutorial.fcs": "ae0248fb1d3a5d944a61a3ea83f3c8c8c2b8f2794ea6d1b17b6a009622e5bbd0",
         "src/karcytics_plugins/flow_cytometry/tutorials/constants.py": "1d2345de08c09f5fdc057934e80fde0aa7c12f83a75354e2c7c48bd99c9e0a93",
         "src/karcytics_plugins/flow_cytometry/tutorials/core_intro_handoff.py": "c10879003e6676378b2bb505364131cdce6d82503608356270eb07c3be799e3c",
