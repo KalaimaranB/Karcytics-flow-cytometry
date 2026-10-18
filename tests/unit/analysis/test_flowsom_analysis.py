@@ -83,3 +83,25 @@ def test_a_saved_run_loads_back_the_same(planted, tmp_path):
         np.testing.assert_allclose(again[key], run[key], err_msg=key)
     assert again["k"] == run["k"]
     assert again["cluster_stats"]["data"] == run["cluster_stats"]["data"]
+
+
+def test_recut_keeps_custom_population_cells_out(planted):
+    from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import recut_run
+
+    *_, run = planted
+    run = dict(run, custom_clusters=[{"name": "Mine", "mask": [0, 1, 2]}], cluster_names={"0": "x"})
+    recut_run(run, 3)
+    assert run["k"] == 3  # noqa: PLR2004
+    assert (run["clusters"][:3] == -1).all()
+    assert set(run["clusters"][3:]) == {0, 1, 2}
+    assert run["cluster_names"] == {}
+
+
+def test_summaries_name_the_markers_that_set_a_metacluster_apart(planted):
+    from karcytics_plugins.flow_cytometry.analysis.clustering import summarize_clusters
+
+    *_, run = planted
+    summaries = summarize_clusters(run["intensities"], run["clusters"], run["channel_labels"])
+    assert len(summaries) == run["k"]
+    assert sum(s.share for s in summaries) == pytest.approx(1.0)
+    assert any(s.up == ("CD4",) or "CD4↑" in s.signature for s in summaries)

@@ -106,8 +106,13 @@ def _population_events(sample: Any, node_id: str | None, min_events: int) -> pd.
     return events
 
 
-def cluster_tables(x: np.ndarray, clusters: np.ndarray, labels: list[str]) -> dict[str, Any]:
-    """Per-cluster event counts and median marker values, as stored on a run."""
+def cluster_tables(
+    x: np.ndarray, clusters: np.ndarray, labels: list[str], total: int | None = None
+) -> dict[str, Any]:
+    """Per-cluster event counts and median marker values, as stored on a run.
+
+    ``total`` is what "% of Total" is out of (default: the rows given).
+    """
     df = pd.DataFrame(x, columns=labels)
     df["Cluster_ID"] = clusters
     counts = df["Cluster_ID"].value_counts().sort_index()
@@ -115,7 +120,7 @@ def cluster_tables(x: np.ndarray, clusters: np.ndarray, labels: list[str]) -> di
         {
             "Cluster ID": counts.index,
             "Cell Count": counts.values,
-            "% of Total": (counts / len(df) * 100).values,
+            "% of Total": (counts / (total or len(df)) * 100).values,
         }
     )
     return {

@@ -433,7 +433,7 @@ course_4_analysis = Course(
         # ── Subsample = 25% ──────────────────────────────────────────────────────
         VerificationStep(
             id="c4_s16_subsample",
-            text="Set **Subsample Events** to 25%.",
+            text="Set **Events used** to 25%.",
             cyto_emotion="pointing",
             allow_interaction=True,
             allow_scroll=True,

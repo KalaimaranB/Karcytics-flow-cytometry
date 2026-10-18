@@ -23,6 +23,9 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 
+MAX_DRAWN = 150_000  # points per scatter; more only slows drawing (FlowSOM runs use every event)
+
+
 def style_embedding_axes(ax: Axes, title: str) -> None:
     """Theme an axes for a UMAP embedding: dark face, bottom/left spines, equal aspect."""
     ax.set_facecolor(Colors.BG_DARK)
@@ -49,6 +52,9 @@ def draw_cluster_scatter(  # noqa: PLR0913
     """Draw a themed UMAP scatter + colorbar onto `fig` (adds its one subplot)."""
     ax = fig.add_subplot(111)
     style_embedding_axes(ax, title)
+    if len(embedding) > MAX_DRAWN:
+        shown = np.random.default_rng(0).choice(len(embedding), MAX_DRAWN, replace=False)
+        embedding, color_data = embedding[shown], np.asarray(color_data)[shown]
 
     scatter = ax.scatter(
         embedding[:, 0],
@@ -67,7 +73,9 @@ def draw_cluster_scatter(  # noqa: PLR0913
 
     if is_discrete:
         cbar.set_ticks(np.arange(min_c, max_c + 1))  # type: ignore
-        cbar.set_label("Cluster ID", color=Colors.FG_SECONDARY, fontsize=8)
+        cbar.set_label(
+            title if title == "Metacluster" else "Cluster ID", color=Colors.FG_SECONDARY, fontsize=8
+        )
     else:
         cbar.set_label("Intensity", color=Colors.FG_SECONDARY, fontsize=8)
 

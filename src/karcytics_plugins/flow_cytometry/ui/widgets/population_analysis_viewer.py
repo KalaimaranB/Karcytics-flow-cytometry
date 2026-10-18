@@ -1,4 +1,4 @@
-"""Population Analysis Viewer — UI component for visualizing and configuring dimensionality reduction (UMAP)."""
+"""Population Analysis Viewer — set up and view clustering runs (UMAP + HDBSCAN or FlowSOM)."""
 
 from __future__ import annotations
 
@@ -36,7 +36,15 @@ from PySide6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis.animation.animation_prep import (
     UmapAnimationDataPrep,
 )
+from karcytics_plugins.flow_cytometry.analysis.clustering import (
+    FLOWSOM,
+    METHODS,
+    UMAP_HDBSCAN,
+    ClusteringMethod,
+    method_of,
+)
 from karcytics_plugins.flow_cytometry.analysis.services.umap_service import (
+    FlowsomParams,
     UmapParams,
     UmapService,
 )
@@ -44,6 +52,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .checkbox_style import checkbox_qss
 from .cluster_results_panel import ClusterResultsPanel
+from .flowsom_params import FlowsomParamsPanel
 from .umap_animator_widget import UmapAnimatorWidget, build_umap_animation_frames
 
 logger = logging.getLogger(__name__)
@@ -112,12 +121,20 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addWidget(self._section_label("Target Data"))
 
         self._algo_combo = BioComboBox()
-        self._algo_combo.addItem("UMAP", "umap")
+        self._algo_combo.setObjectName("ClusteringMethodCombo")
+        for method in (UMAP_HDBSCAN, FLOWSOM):
+            self._algo_combo.addItem(method.name, method.key)
+        self._algo_combo.currentIndexChanged.connect(self._on_method_changed)
         algo_layout = QHBoxLayout()
         algo_layout.addWidget(QLabel("Algorithm:"))
         algo_help = BioHelpButton()
         algo_help.setHelpText(
-            "UMAP (Uniform Manifold Approximation and Projection) is a dimension reduction technique that can be used for visualisation similarly to t-SNE, but also for general non-linear dimension reduction.",
+            "UMAP + HDBSCAN: UMAP draws every cell on a 2-D map where similar cells sit "
+            "together; HDBSCAN (optional) then finds dense groups and can leave scattered "
+            "cells out as noise.\n\nFlowSOM: sorts the cells into about 100 small groups "
+            "(nodes), links similar nodes into a tree, and groups the nodes into k "
+            "populations (metaclusters). Every cell gets a population. Fast enough for all "
+            "events, and a useful second opinion next to UMAP + HDBSCAN.",
             "Algorithm",
         )
         algo_layout.addWidget(algo_help)
@@ -188,6 +205,13 @@ class PopulationAnalysisViewer(QWidget):
         self._run_name_input.setPlaceholderText("e.g., Global Overview")
         scroll_layout.addWidget(self._run_name_input)
 
+        # UMAP + HDBSCAN's own settings (FlowSOM's are in _flowsom_params)
+        self._umap_params = QWidget()
+        self._umap_params.setObjectName("UmapParams")
+        umap_layout = QVBoxLayout(self._umap_params)
+        umap_layout.setContentsMargins(0, 0, 0, 0)
+        umap_layout.setSpacing(16)
+
         # n_neighbors
         n_neigh_lbl_layout = QHBoxLayout()
         n_neigh_title = QLabel("Neighbors:")
@@ -231,7 +255,7 @@ class PopulationAnalysisViewer(QWidget):
         n_neigh_group_layout.setContentsMargins(0, 0, 0, 0)
         n_neigh_group_layout.addLayout(n_neigh_lbl_layout)
         n_neigh_group_layout.addWidget(self._n_neigh_slider)
-        scroll_layout.addWidget(n_neigh_group)
+        umap_layout.addWidget(n_neigh_group)
 
         # min_dist
         min_dist_lbl_layout = QHBoxLayout()
@@ -272,11 +296,11 @@ class PopulationAnalysisViewer(QWidget):
         min_dist_group_layout.setContentsMargins(0, 0, 0, 0)
         min_dist_group_layout.addLayout(min_dist_lbl_layout)
         min_dist_group_layout.addWidget(self._min_dist_slider)
-        scroll_layout.addWidget(min_dist_group)
+        umap_layout.addWidget(min_dist_group)
 
         # n_events
         n_events_lbl_layout = QHBoxLayout()
-        self._n_events_title_lbl = QLabel("Subsample Events: 10% (0 events)")
+        self._n_events_title_lbl = QLabel("Events used: 10% (0 events)")
         self._n_events_title_lbl.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-size: 11px;")
         self._n_events_title_lbl.setToolTip(
             "Randomly downsample the input events before running analysis."
@@ -284,8 +308,11 @@ class PopulationAnalysisViewer(QWidget):
 
         n_events_help = BioHelpButton()
         n_events_help.setHelpText(
-            "UMAP scales non-linearly. Running it on >1,000,000 events can be very slow. Subsampling 10-20% is typically enough to preserve cluster relationships while running much faster.",
-            "Subsample Events",
+            "The share of the population's events the run uses, picked at random.\n\n"
+            "UMAP slows down sharply on large data: 10-20% is typical and keeps the "
+            "structure.\n\nFlowSOM is fast enough for all events, its default. Lower it "
+            "to compare with a UMAP run on the same share of events.",
+            "Events used",
         )
 
         n_events_lbl_layout.addWidget(self._n_events_title_lbl)
@@ -334,7 +361,7 @@ class PopulationAnalysisViewer(QWidget):
         metric_group_layout.setContentsMargins(0, 0, 0, 0)
         metric_group_layout.addLayout(metric_lbl_layout)
         metric_group_layout.addWidget(self._metric_combo)
-        scroll_layout.addWidget(metric_group)
+        umap_layout.addWidget(metric_group)
 
         # Random Seed
         seed_lbl_layout = QHBoxLayout()
@@ -367,7 +394,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addSpacing(10)
 
         # 3. Auto-Clustering
-        scroll_layout.addWidget(self._section_label("Clustering"))
+        umap_layout.addWidget(self._section_label("Clustering"))
 
         clustering_lbl_layout = QHBoxLayout()
         self._run_hdbscan_cb = QCheckBox("Run HDBSCAN Auto-Clustering")
@@ -393,7 +420,7 @@ class PopulationAnalysisViewer(QWidget):
         hdbscan_group_layout = QVBoxLayout(hdbscan_group)
         hdbscan_group_layout.setContentsMargins(0, 0, 0, 0)
         hdbscan_group_layout.addLayout(clustering_lbl_layout)
-        scroll_layout.addWidget(hdbscan_group)
+        umap_layout.addWidget(hdbscan_group)
 
         min_cluster_layout = QHBoxLayout()
         min_cluster_layout.setContentsMargins(0, 0, 0, 0)
@@ -420,9 +447,14 @@ class PopulationAnalysisViewer(QWidget):
         self._min_cluster_container.setObjectName("UmapMinClusterGroup")
         self._min_cluster_container.setLayout(min_cluster_layout)
         self._min_cluster_container.setVisible(False)
-        scroll_layout.addWidget(self._min_cluster_container)
+        umap_layout.addWidget(self._min_cluster_container)
 
         self._run_hdbscan_cb.toggled.connect(self._on_hdbscan_toggled)
+
+        self._flowsom_params = FlowsomParamsPanel(self._section_label("FlowSOM"))
+        self._flowsom_params.hide()
+        scroll_layout.addWidget(self._umap_params)
+        scroll_layout.addWidget(self._flowsom_params)
 
         scroll_layout.addSpacing(20)
 
@@ -647,7 +679,7 @@ class PopulationAnalysisViewer(QWidget):
                 )
             elif (
                 text.endswith(":")
-                or text.startswith("Subsample Events")
+                or text.startswith("Events used")
                 or text
                 in [
                     "Select a past run to view details.",
@@ -676,6 +708,22 @@ class PopulationAnalysisViewer(QWidget):
             return
         self._min_cluster_container.setVisible(checked)
 
+    @property
+    def _method(self) -> ClusteringMethod:
+        return METHODS.get(self._algo_combo.currentData(), UMAP_HDBSCAN)
+
+    def _on_method_changed(self, _index: int) -> None:
+        self._show_method_params()
+        if not self._params_read_only:
+            # FlowSOM is fast enough for every event; UMAP needs a subsample.
+            self._n_events_slider.setValue(100 if self._method is FLOWSOM else 10)
+
+    def _show_method_params(self) -> None:
+        flowsom = self._method is FLOWSOM
+        self._umap_params.setVisible(not flowsom)
+        self._flowsom_params.setVisible(flowsom)
+        self._replay_anim_btn.setVisible(not flowsom)  # the animation is UMAP's
+
     def _set_parameters_read_only(self, read_only: bool) -> None:
         self._params_read_only = read_only
         self._algo_combo.setEnabled(not read_only)
@@ -692,6 +740,7 @@ class PopulationAnalysisViewer(QWidget):
 
         self._min_cluster_size_box.setEnabled(not read_only)
         self._min_cluster_container.setVisible(self._run_hdbscan_cb.isChecked())
+        self._flowsom_params.set_read_only(read_only)
 
         for i in range(self._channel_list.count()):
             item = self._channel_list.item(i)
@@ -744,6 +793,8 @@ class PopulationAnalysisViewer(QWidget):
             and self._channel_list.count() == 0
         ):
             self._on_sample_changed_internal(current_id)
+        if current_id:
+            self._on_gate_changed_internal(current_id, self._gate_combo.currentData())
 
     def _refresh_gates(self) -> None:
         """Populate the gate combo with all named nodes in the selected sample's gate tree."""
@@ -810,7 +861,9 @@ class PopulationAnalysisViewer(QWidget):
             runs = self._state.data.umap_results.get(key, [])
             for i, run in enumerate(runs, 1):
                 name = run.get("name")
-                if name:
+                if method_of(run) is FLOWSOM:
+                    label = f"{i}. {name or 'Run'} · FlowSOM k={run.get('k')}"
+                elif name:
                     label = f"{i}. {name}"
                 else:
                     n = run.get("n_neighbors", 15)
@@ -843,7 +896,7 @@ class PopulationAnalysisViewer(QWidget):
 
     def _on_subsample_changed(self, value: int) -> None:
         num_events = int(self._total_events * (value / 100.0))
-        self._n_events_title_lbl.setText(f"Subsample Events: {value}% ({num_events:,} events)")
+        self._n_events_title_lbl.setText(f"Events used: {value}% ({num_events:,} events)")
 
     def _on_sample_changed_internal(self, sample_id: str) -> None:
         self._channel_list.clear()
@@ -898,6 +951,14 @@ class PopulationAnalysisViewer(QWidget):
         # widgets we avoid that repaint artifact entirely.
         self._set_parameters_read_only(True)
         self._run_details_lbl.setVisible(False)
+
+        method = method_of(run_data)
+        self._algo_combo.blockSignals(True)
+        self._algo_combo.setCurrentIndex(max(self._algo_combo.findData(method.key), 0))
+        self._algo_combo.blockSignals(False)
+        self._show_method_params()
+        if method is FLOWSOM:
+            self._flowsom_params.show_run(run_data)
 
         if "name" in run_data and run_data["name"]:
             self._run_name_input.setText(run_data["name"])
@@ -982,7 +1043,7 @@ class PopulationAnalysisViewer(QWidget):
 
         self._animator.stop()
         self._display_stack.setCurrentIndex(1)
-        self._replay_anim_btn.setEnabled(True)
+        self._replay_anim_btn.setEnabled(method_of(run_data) is UMAP_HDBSCAN)
 
     def _on_results_modified(self) -> None:
         # Cluster names / custom clusters live inside the run's result dict,
@@ -1046,6 +1107,9 @@ class PopulationAnalysisViewer(QWidget):
         name = self._run_name_input.text().strip()
         if not name:
             self._on_analysis_error("Please provide a name for this run.")
+            return
+        if self._method is FLOWSOM:
+            self._start_flowsom(sample_id, node_id, name, selected_channels, n_events_to_sample)
             return
 
         params = UmapParams(
@@ -1192,6 +1256,40 @@ class PopulationAnalysisViewer(QWidget):
             on_progress=self._progress_bar.setValue,
         )
 
+    def _start_flowsom(
+        self,
+        sample_id: str,
+        node_id: str | None,
+        name: str,
+        channels: list[str],
+        n_events: int,
+    ) -> None:
+        params = FlowsomParams(
+            target_sample_id=sample_id,
+            target_node_id=node_id,
+            name=name,
+            percentage=float(self._n_events_slider.value()),
+            n_events=n_events,
+            random_seed=int(self._seed_input.text() or "42"),
+            channels=channels,
+            **self._flowsom_params.values(),
+        )
+        self._last_prep_data = None  # no UMAP animation to align with
+        self._animator.stop()
+        self._display_stack.setCurrentIndex(0)
+        self._placeholder_lbl.setText(f"Running FlowSOM on {n_events:,} events…")
+        self._progress_bar.setRange(0, 100)
+        self._progress_bar.setValue(0)
+        self._progress_bar.show()
+        self.set_running(True)
+        self._status_lbl.setText("Running FlowSOM...")
+        self._umap_service.run_flowsom(
+            params=params,
+            on_done=lambda results: self._on_analysis_done(results),
+            on_error_cb=lambda err: self._on_analysis_error(err),
+            on_progress=self._progress_bar.setValue,
+        )
+
     def _on_analysis_done(  # noqa: PLR0912, PLR0915
         self, results: dict[str, Any], params: UmapParams | None = None
     ) -> None:
@@ -1208,7 +1306,7 @@ class PopulationAnalysisViewer(QWidget):
         self._status_lbl.setText(f"Completed — {results['n_events']:,} events")
 
         embedding = results.get("embedding")
-        if embedding is not None:
+        if embedding is not None and method_of(results) is UMAP_HDBSCAN:
             import numpy as np
 
             if isinstance(embedding, list):
@@ -1289,7 +1387,8 @@ class PopulationAnalysisViewer(QWidget):
         # still-running UMAP animation to freeze jarringly.
         # Instead, we defer it to _check_transition_to_results().
 
-        self._replay_anim_btn.setEnabled(True)
+        self._replay_anim_btn.setEnabled(method_of(results) is UMAP_HDBSCAN)
+        self._placeholder_lbl.setText("Configure a run in the left panel to begin.")
         self._check_transition_to_results()
 
     def _check_transition_to_results(self) -> None:
@@ -1334,7 +1433,7 @@ class PopulationAnalysisViewer(QWidget):
                 if 0 <= run_idx < len(runs):
                     self._restore_fields_from_run(runs[run_idx])
 
-            self._replay_anim_btn.setEnabled(True)
+            self._replay_anim_btn.setEnabled(method_of(self._last_results) is UMAP_HDBSCAN)
             self._update_delete_button_state()
 
     def _on_animation_finished(self) -> None:

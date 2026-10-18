@@ -156,7 +156,9 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
   - Persist the new arrays in `attachment_manager`; runs without `method` load
     as UMAP.
   - Tests: run → save → load round trip; old UMAP workspaces still load.
-- [ ] **3. Population Analysis UI.**
+- [x] **3. Population Analysis UI.** Tree tab has a reading guide, colour by
+  metacluster or marker (scaled to the nodes' range), a plain-language legend
+  (share + markers that set each metacluster apart) and hover details.
   - Algorithm combo: "UMAP + HDBSCAN" / "FlowSOM", with a stacked parameter
     panel per method.
   - Results:

@@ -5,9 +5,10 @@ from __future__ import annotations
 import typing
 from typing import Any
 
+import numpy as np
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
-from .clustering import FLOWSOM, fit_flowsom, tree_embedding
+from .clustering import FLOWSOM, fit_flowsom, recut, tree_embedding
 from .clustering.run_input import cluster_tables, prepare_run_input
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -125,3 +126,22 @@ def flowsom_arrays(result: Any) -> dict[str, Any]:
         "linkage": result.linkage,
         "node_metaclusters": result.node_metaclusters,
     }
+
+
+def recut_run(run: dict[str, Any], k: int) -> None:
+    """Re-cut a FlowSOM run into ``k`` metaclusters, in place.
+
+    Cells drawn into custom populations stay out of the metaclusters, and
+    metacluster names are cleared: they named the old cut's clusters.
+    """
+    nodes = np.asarray(run["nodes"])
+    run["node_metaclusters"] = recut(np.asarray(run["linkage"]), k, nodes)
+    clusters = run["node_metaclusters"][nodes]
+    for custom in run.get("custom_clusters", []):
+        clusters[np.asarray(custom["mask"], dtype=np.int64)] = -1
+    run["clusters"] = clusters
+    run["k"] = k
+    run["cluster_names"] = {}
+    x = np.asarray(run["intensities"])
+    keep = clusters >= 0
+    run.update(cluster_tables(x[keep], clusters[keep], run["channel_labels"], total=len(x)))

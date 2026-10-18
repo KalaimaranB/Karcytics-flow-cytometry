@@ -1,4 +1,4 @@
-"""Cluster Results Panel — Dedicated UI for analyzing HDBSCAN UMAP clusters."""
+"""Cluster Results Panel — results of a clustering run (UMAP + HDBSCAN or FlowSOM)."""
 
 from __future__ import annotations
 
@@ -35,8 +35,11 @@ from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
 
+from ...analysis.clustering import FLOWSOM, method_of
+from ...analysis.flowsom_analysis import recut_run
 from .cluster_plot_render_task import ClusterPlotRenderTask
 from .cluster_scatter_draw import draw_cluster_scatter
+from .flowsom_tree import FlowsomTreeView
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -240,11 +243,38 @@ class ClusterResultsPanel(QWidget):
 
         layout.addWidget(self._tabs)
 
+        self._method = method_of(self._results)
+        self._tree_view: FlowsomTreeView | None = None
+        if self._method is FLOWSOM:
+            self._tree_view = FlowsomTreeView(self._results)
+            self._tree_view.k_changed.connect(self._on_k_changed)
+            self._tabs.addTab(self._tree_view, "FlowSOM Tree")
+        self._build_result_tabs()
+
+    def _build_result_tabs(self) -> None:
         self._build_plot_gallery()
 
         if "clusters" in self._results:
             self._build_interactive_map_tab()
             self._build_unified_statistics_tab()
+
+    def _on_k_changed(self, k: int) -> None:
+        """Re-cut a FlowSOM run into ``k`` metaclusters and rebuild what shows them."""
+        if k == self._results.get("k"):
+            return
+        recut_run(self._results, k)
+        current = self._tabs.currentIndex()
+        while self._tabs.count() > 1:  # keep the tree (tab 0)
+            widget = self._tabs.widget(1)
+            self._tabs.removeTab(1)
+            if widget is not None:
+                widget.deleteLater()
+        self._pending_gallery_tiles.clear()
+        self._build_result_tabs()
+        if self._tree_view is not None:
+            self._tree_view.refresh()
+        self._tabs.setCurrentIndex(current)
+        self.results_modified.emit()
 
     def _apply_theme_styles(self) -> None:
         self._tabs.setStyleSheet(f"""
@@ -331,7 +361,7 @@ class ClusterResultsPanel(QWidget):
         return {
             "embedding": embedding,
             "color_data": clusters,
-            "title": "Auto-Cluster ID",
+            "title": "Metacluster" if self._method is FLOWSOM else "Auto-Cluster ID",
             "cmap": cmap,
             "norm": norm,
             "is_discrete": True,
@@ -1018,7 +1048,7 @@ class ClusterResultsPanel(QWidget):
                 if "cluster_names" not in self._results:
                     self._results["cluster_names"] = {}
                 saved_name = self._results["cluster_names"].get(
-                    str(cluster_id), f"UMAP Cluster {cluster_id}"
+                    str(cluster_id), self._method.cluster_name(cluster_id)
                 )
 
                 name_edit = BioLineEdit()
@@ -1159,7 +1189,7 @@ class ClusterResultsPanel(QWidget):
         # Create UMAP parent node — mark it as a subset node, not a geometric gate node
         umap_parent = target_node.add_child(
             gate=SubsetGate(indices=[int(x) for x in indices_arr]),
-            name="UMAP Reduction",
+            name=self._method.export_parent,
         )
         # Flag that this is a UMAP container — pipeline view will skip thumbnail
         umap_parent.is_umap_parent = True
@@ -1182,7 +1212,7 @@ class ClusterResultsPanel(QWidget):
                 clusters = np.array(clusters)
             for cluster_id, (checkbox, name_edit) in self._cluster_ui_elements.items():
                 if checkbox.isChecked():
-                    name = name_edit.text() or f"Cluster {cluster_id}"
+                    name = name_edit.text() or self._method.cluster_name(cluster_id)
                     mask = clusters == cluster_id
                     cluster_indices = indices_arr[mask]
 
@@ -1216,7 +1246,7 @@ class ClusterResultsPanel(QWidget):
         # One undo step named for the export; GATE_CREATED still drives the
         # usual refreshes (and joins the same step — same event-loop turn).
         experiment_edits.announce(
-            "Export UMAP Clusters", (events.GATE_CREATED, {"sample_id": sample_id})
+            f"Export {self._method.name} Clusters", (events.GATE_CREATED, {"sample_id": sample_id})
         )
 
         from karcytics_sdk.plugin.dialogs import show_info
@@ -1224,7 +1254,7 @@ class ClusterResultsPanel(QWidget):
         show_info(
             self,
             "Populations Created",
-            f"Successfully exported {created_count} UMAP clusters to the Pipeline.",
+            f"Successfully exported {created_count} {self._method.name} clusters to the Pipeline.",
         )
 
     def _activate_polygon_drawer(self) -> None:
