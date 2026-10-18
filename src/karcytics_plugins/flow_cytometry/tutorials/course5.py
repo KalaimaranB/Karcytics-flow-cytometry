@@ -65,6 +65,7 @@ from .validators import (
 )
 
 SAMPLE_LENS_TAB = 8
+TCELL_AXES = ("FITC-A", "Pacific Blue-A")  # B220 x CD3, where the T-cells gate lives
 
 
 def _missed_text(finding: Finding) -> str:
@@ -211,13 +212,20 @@ course_5_sample_lens = Course(
             id="c5_s05_layout",
             text=(
                 "The lens at a glance 🗺️<br><br>"
-                "**Left:** which sample, which clustering run, your populations, "
-                "and the audit findings.<br>"
-                "**Right:** the selected population's gating path, the run's "
-                "map, and the population across every sample."
+                "**Left column:** pick the sample and the clustering run; below "
+                "them, your populations and the audit findings.<br>"
+                "**Top right, Gating path:** empty for now. Click a population "
+                "and every gate above it appears here.<br>"
+                "**Bottom right:** the run's map, drawn twice, and **Across "
+                "samples**, the selected population in every sample."
             ),
             cyto_emotion="talking",
-            target_widget_names=["SampleLensTab"],
+            target_widget_names=[
+                "lens_sidebar",
+                "SampleLensPath",
+                "SampleLensMap",
+                "SampleLensAcross",
+            ],
             next_step_id="c5_s06_pick_sample",
         ),
         VerificationStep(
@@ -498,8 +506,9 @@ course_5_sample_lens = Course(
         QuestionStep(
             id="c5_s22_second_opinion",
             text=(
-                "The lens says a gate **holds 2 different clusters**. Does that "
-                "prove the gate is wrong?"
+                "A what-if, not your data: **suppose** the lens said a gate "
+                "**holds 2 different clusters**. Would that prove the gate is "
+                "wrong?"
             ),
             question_id="c5_second_opinion",
             choices=[
@@ -872,7 +881,8 @@ course_5_sample_lens = Course(
                 "In the gating path, find the last plot: **Leukocytes → T-cells** "
                 "(B220 vs CD3). Scroll the strip sideways if it's cut off.<br><br>"
                 "Click the T-cells rectangle, then drag its **top** edge down to "
-                "about **2,000** on CD3, into the upper cluster. Not lower.<br><br>"
+                "the dashed purple guide: about **2,000** on CD3, into the upper "
+                "cluster. Not lower.<br><br>"
                 "(Already see a cut on T-cells? Your gate came from the old guide, "
                 "and the lens caught it for you.)"
             ),
@@ -880,6 +890,7 @@ course_5_sample_lens = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["SampleLensPath"],
+            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0), "guide_axes": TCELL_AXES},
             validator=LensFindingValidator(
                 FindingKind.CUTS,
                 gate="T-cells",
@@ -925,13 +936,15 @@ course_5_sample_lens = Course(
             id="c5_s48_fix",
             text=(
                 "Now fix it: press **Ctrl+Z** until the edge is back, or drag the "
-                "top edge up above the upper cluster (about **8,000**).<br><br>"
+                "top edge up to the dashed guide, above the upper cluster (about "
+                "**8,000**).<br><br>"
                 "Watch the finding disappear."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["SampleLensPath", "SampleLensFindings"],
+            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 8000.0), "guide_axes": TCELL_AXES},
             validator=AllOf(
                 LensFindingValidator(FindingKind.CUTS, present=False),
                 LensFindingValidator(FindingKind.MISSED, present=False),
