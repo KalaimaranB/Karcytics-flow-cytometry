@@ -142,10 +142,16 @@ PhenoGraph runs is left for later (see Decisions).
 
 ## Phases
 
-- [ ] **0. Dependency.** Add `scikit-network==0.33.5` to `pyproject.toml`
+- [x] **0. Dependency.** Add `scikit-network==0.33.5` to `pyproject.toml`
   and lock it. Licence check, SBOM and pip-audit pass. A smoke test imports
   `sknetwork.clustering.Leiden` and clusters a toy graph.
-- [ ] **1. PhenoGraph core (Qt-free).** `analysis/clustering/phenograph.py`:
+- [x] **1. PhenoGraph core (Qt-free).** Found while building: scikit-network's
+  Leiden uses the C library's `rand()` (unseeded by `random_state`), so the
+  module seeds it under a lock; the Jaccard count is a numba merge (numba now a
+  direct dependency); the graph holds at most 250k events, the rest take the
+  majority cluster of their 5 nearest graph events (1M events: 25 s, 1.9 GB
+  peak, against 4.3 GB uncapped). Layout helpers moved to `layout.py`, shared
+  with FlowSOM. `analysis/clustering/phenograph.py`:
   - `knn_graph(x, k, seed)`: pynndescent, then chunked Jaccard, giving a
     symmetric CSR graph;
   - `leiden(graph, resolution, seed, min_size)`: labels numbered largest

@@ -3,6 +3,7 @@
 from .describe import ClusterSummary, call, short_marker, summarize_clusters
 from .flowsom import FlowsomResult, fit_flowsom, nearest_nodes, recut, tree_embedding
 from .methods import FLOWSOM, METHODS, UMAP_HDBSCAN, ClusteringMethod, method_of
+from .phenograph import PhenographGraph, PhenographResult, fit_phenograph, recluster
 
 __all__ = [
     "FLOWSOM",
@@ -13,8 +14,12 @@ __all__ = [
     "ClusteringMethod",
     "FlowsomResult",
     "fit_flowsom",
+    "fit_phenograph",
     "method_of",
     "nearest_nodes",
+    "PhenographGraph",
+    "PhenographResult",
+    "recluster",
     "recut",
     "short_marker",
     "summarize_clusters",

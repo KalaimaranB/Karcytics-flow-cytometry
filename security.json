@@ -1,7 +1,7 @@
 {
     "security_version": 1,
     "plugin_id": "flow_cytometry",
-    "manifest_hash": "c3a81caa3fd283e100bdb109aadfe93116749a4bb724ffbfcec518ed82e27f24",
+    "manifest_hash": "711a40f700e58cc39a0294ccbedc4c33cdb9cc1637ce8037c78c3ce08a4491a2",
     "exclusions": [
         "tests"
     ],
@@ -105,10 +105,12 @@
         "src/karcytics_plugins/flow_cytometry/analysis/axis_manager.py": "65bad97beb9f8b53a84db5ab33196e8a47835a7f27a6235d1ac9303d44ac95ec",
         "src/karcytics_plugins/flow_cytometry/analysis/biology_services.py": "362ae5328c34e34a5c95ba6d75ee4dd3be6824d1cc12c95df9e05064a274c8d4",
         "src/karcytics_plugins/flow_cytometry/analysis/channel_inference.py": "9cee4ab01726763244c0ae48c684efec4bb676cb0a2b869e69cef79392c9b987",
-        "src/karcytics_plugins/flow_cytometry/analysis/clustering/__init__.py": "9b12355f81f4f8d7fea7926a434459580929a82d0f70f8d96c25dbc5c54017be",
+        "src/karcytics_plugins/flow_cytometry/analysis/clustering/__init__.py": "f85bf270f4d532704f45a40e9498f2e4d028a3ffa09f83faf39bdb121d684e4e",
         "src/karcytics_plugins/flow_cytometry/analysis/clustering/describe.py": "696e7fe004452ee4bc42adda185d2a5014993d95e40186c7eceeb90334369511",
-        "src/karcytics_plugins/flow_cytometry/analysis/clustering/flowsom.py": "ed197a08e47acb36ae0cb9b2c594b09251a3afbbb6b6ddbc7a88eb28f4eee6ad",
+        "src/karcytics_plugins/flow_cytometry/analysis/clustering/flowsom.py": "c7d86676819b109556936e3328964205fd0ec2247867160f78d1c60bdef39b0b",
+        "src/karcytics_plugins/flow_cytometry/analysis/clustering/layout.py": "6f70f5151615ebf9477edf30a693682f5c9a4b3c178998cba903841a874318af",
         "src/karcytics_plugins/flow_cytometry/analysis/clustering/methods.py": "ec560dab3003a3a3088627eb7cb41e38c2b06a4a1eef71a08778a84921c05492",
+        "src/karcytics_plugins/flow_cytometry/analysis/clustering/phenograph.py": "d761169e8815f2a16559110c2ca8d34db7a84af74f81554f2db923518da78708",
         "src/karcytics_plugins/flow_cytometry/analysis/clustering/run_input.py": "85ba320b8aeb1d5caab85bec0d314b7b53ca3d2f28968945cb416f9c1321824a",
         "src/karcytics_plugins/flow_cytometry/analysis/compensation.py": "ecaf55785acdb0e2c556f4c5e3df9657f59e969d536babf0ad90f50665b16e33",
         "src/karcytics_plugins/flow_cytometry/analysis/compute/__init__.py": "33904cb7dccbddec763aa0bcd2971327559956f8eec33b53c59e9baf50bbd055",

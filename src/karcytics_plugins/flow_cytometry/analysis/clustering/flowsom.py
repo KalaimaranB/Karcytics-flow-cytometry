@@ -22,12 +22,12 @@ from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.sparse.csgraph import minimum_spanning_tree, shortest_path
 from scipy.spatial.distance import cdist
 
+from .layout import jitter_around, stress_layout
+
 TRAIN_MAX = 200_000  # events the SOM is trained on; every event is then mapped
 CHUNK = 50_000  # events per nearest-node chunk (bounds memory)
 START_RADIUS_QUANTILE = 0.67  # FlowSOM's starting neighbourhood (of grid distances)
 END_RADIUS = 0.5  # grid units: by the last pass a node barely pulls its neighbours
-LAYOUT_ITERATIONS = 300
-NODE_SPREAD = 0.4  # the biggest node's radius, in tree-edge lengths
 
 
 @dataclass
@@ -117,12 +117,7 @@ def tree_embedding(layout: np.ndarray, nodes: np.ndarray, seed: int = 0) -> np.n
     FlowSOM has no per-event map; this draws each event inside its node's
     circle (bigger nodes, wider circles), so event scatter plots work.
     """
-    counts = np.bincount(nodes, minlength=len(layout))
-    radius = NODE_SPREAD * np.sqrt(counts / max(counts.max(), 1))
-    rng = np.random.default_rng(seed)
-    angle = rng.uniform(0, 2 * np.pi, len(nodes))
-    r = radius[nodes] * np.sqrt(rng.uniform(0, 1, len(nodes)))
-    return layout[nodes] + np.column_stack([r * np.cos(angle), r * np.sin(angle)])
+    return jitter_around(layout, nodes, seed)
 
 
 def nearest_nodes(x: np.ndarray, codes: np.ndarray) -> np.ndarray:
@@ -153,24 +148,7 @@ def _mst(codes: np.ndarray) -> np.ndarray:
 
 
 def _tree_layout(edges: np.ndarray, n_nodes: int) -> np.ndarray:
-    """2-D node positions whose distances follow tree distances (SMACOF stress majorization)."""
+    """2-D node positions whose distances follow tree distances."""
     adjacency = np.zeros((n_nodes, n_nodes))
     adjacency[edges[:, 0], edges[:, 1]] = adjacency[edges[:, 1], edges[:, 0]] = 1.0
-    target = shortest_path(adjacency, unweighted=True)
-
-    # Classical MDS start, then majorize: deterministic and untangled.
-    centring = np.eye(n_nodes) - 1.0 / n_nodes
-    values, vectors = np.linalg.eigh(-0.5 * centring @ (target**2) @ centring)
-    top = np.argsort(values)[::-1][:2]
-    pos = vectors[:, top] * np.sqrt(np.maximum(values[top], 1e-9))
-
-    weights = np.where(target > 0, 1.0 / np.maximum(target, 1e-9) ** 2, 0.0)
-    v = -weights
-    np.fill_diagonal(v, weights.sum(axis=1))
-    v_inv = np.linalg.pinv(v)
-    for _ in range(LAYOUT_ITERATIONS):
-        dist = cdist(pos, pos)
-        b = np.where(dist > 0, -weights * target / np.maximum(dist, 1e-9), 0.0)
-        np.fill_diagonal(b, -b.sum(axis=1))
-        pos = v_inv @ b @ pos
-    return pos - pos.mean(axis=0)
+    return stress_layout(shortest_path(adjacency, unweighted=True))
