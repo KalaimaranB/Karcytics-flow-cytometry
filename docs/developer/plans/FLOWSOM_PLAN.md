@@ -177,7 +177,7 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
   and their phenotypes; the map draws the tree and rings a finding's nodes; the run
   picker and scope line show k; a k control re-cuts and re-audits. UMAP runs are
   unchanged.
-- [ ] **5. Docs.**
+- [x] **5. Docs.**
   - `08_POPULATION_ANALYSIS.md`: a FlowSOM section (what the results mean,
     choosing *k*, when to prefer it).
   - `16_SAMPLE_LENS.md`: auditing with FlowSOM, *k* and merges.

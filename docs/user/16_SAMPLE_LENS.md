@@ -12,12 +12,12 @@ It sits between Population Analysis and Statistics: check your gates first, then
 !!! tip "Just backgating? No run needed"
     The gating path (section 3) and **Across samples** (section 4) work on any sample, with or without a clustering run. Only the audit findings and the map need one.
 
-The lens judges your gates against a **UMAP + HDBSCAN** run of the sample (see [Population Analysis](./08_POPULATION_ANALYSIS.md)). Any run made with **Run HDBSCAN Auto-Clustering** checked works, including ones you made in Population Analysis.
+The lens judges your gates against a clustering run of the sample (see [Population Analysis](./08_POPULATION_ANALYSIS.md)): a **UMAP + HDBSCAN** run made with **Run HDBSCAN Auto-Clustering** checked, or a **FlowSOM** run. Runs made in Population Analysis appear in the **Clustering run** list.
 
 If the sample has none:
 
 1. In **Populations**, click the population to cluster. Use your last clean-up gate (for example *Live singlets*), not All Events: debris and dead cells form clusters of their own that you excluded on purpose.
-2. Press **Run UMAP + clustering on …**. It runs in the background with the default settings (10,000 events) and selects the new run when it finishes.
+2. Press **Run UMAP + clustering on …**. It runs in the background with the default settings (10,000 events) and selects the new run when it finishes. For FlowSOM, make the run in Population Analysis.
 
 !!! note "What the lens judges"
     Only the events of the selected run, and only the **final populations** under the run's population, the ones with no gates below them. Populations exported from a UMAP run are left out, because they come from the clustering itself. The line under the title always says what is being judged, for example *"Judging 6 final populations on 10,000 events of Live singlets"*.
@@ -37,6 +37,16 @@ Click a finding to select its population and circle its clusters on the UMAP.
 !!! warning "A second opinion, not ground truth"
     Clustering can split one population in two or merge two similar ones, depending on its settings. Treat a finding as a prompt to look, not as a verdict.
 
+### With a FlowSOM run
+
+Findings speak of **metaclusters** (M0, M1, …) and give each one's phenotype, as in the FlowSOM Tree (for example *Metacluster M8 (B220− CD4− CD3− CD8−) isn't in any population*). FlowSOM always makes *k* metaclusters, so at a high *k* one population is split into several, and at a low *k* two are lumped together. The lens allows for both:
+
+- **Merges** are only flagged when the metaclusters' phenotypes clearly differ (a marker is + in one and − in the other). Two metaclusters with the same phenotype are one population split by a high *k*, not a gate mistake.
+- **Cuts** are only flagged when the cells the gate keeps and the cells it drops have the same phenotype. If they differ, the gate is rightly separating two populations the metacluster lumped together.
+- Findings with the same phenotype on the same population are shown once, naming all their metaclusters.
+
+A **Metaclusters (k)** control appears under the run: change it and the lens re-audits at once. A finding that only appears at one *k* deserves less weight than one that holds across several.
+
 ## 3. Gating path (backgating)
 
 **Populations** lists the sample's populations as an indented tree. **Bold** ones are the final populations the lens judges; *italic* ones (UMAP exports and logic nodes) it leaves out.
@@ -45,10 +55,12 @@ Click a population in **Populations**. The strip at the top shows one plot per g
 
 These are live plots of the real gates. Drag a gate here and it is edited exactly as on the Gating tab: statistics are recounted, the change propagates to the other samples in the group, and it can be undone. The lens refreshes on its own after any gate change anywhere in the app.
 
-## 4. The UMAP, twice, and Across samples
+## 4. The map, twice, and Across samples
 
 - **Coloured by your final populations**: each cell in the colour of the final population it ended up in; grey if none. A grey slice through a coloured island is a gate edge cutting a population.
-- **Coloured by cluster (HDBSCAN)**: the same cells, coloured by cluster. Where the two pictures disagree, the findings circle the spot. Click a cluster to circle it.
+- **Coloured by cluster** (HDBSCAN) or **by metacluster** (FlowSOM): the same cells, coloured by cluster. Where the two pictures disagree, the findings circle the spot. Click a cluster to circle it.
+
+For a FlowSOM run, the map is the FlowSOM tree: each cell is drawn around its node, with the tree's lines behind, and a finding rings each node of its metaclusters.
 
 **Across samples** lists the selected population in every sample that has it (matched by its full path, e.g. *Lymphocytes / T cells / CD4+*). Controls (unstained, single-stain, FMO and isotype samples) are left out, because their stains differ from the panel:
 
@@ -60,7 +72,7 @@ These are live plots of the real gates. Drag a gate here and it is edited exactl
 
 On a *Cluster N isn't in any population* finding, press **Propose gates**. The lens searches your run's channels (and forward/side scatter) for a short chain of ordinary rectangle gates that recovers the cluster, and previews each step with the cluster highlighted. The bar above shows the number of gates and how well they match the cluster (F1, precision, recall).
 
-- **Add gates to tree** creates the chain under the run's population, named *Cluster N*. They are ordinary gates: rename them, edit them, and they propagate to the rest of the group like any gate you draw.
+- **Add gates to tree** creates the chain under the run's population, named *Cluster N* (FlowSOM: *Metacluster MN*). They are ordinary gates: rename them, edit them, and they propagate to the rest of the group like any gate you draw.
 - **Cancel** discards the proposal; nothing is changed until you add it.
 
 Unlike a population exported from UMAP (a list of specific cells), these gates are geometry on real markers, so they mean the same thing on every sample.

@@ -1,6 +1,9 @@
 # Population Analysis
 
-The **Population Analysis** tab runs UMAP (Uniform Manifold Approximation and Projection) — a dimensionality-reduction algorithm that takes every marker you measured on a cell and projects it down onto a single 2D map. Cells that look similar across all their markers land near each other; cells that look different land far apart. It's a way of exploring structure in your data — continuous gradients, rare sub-populations, unexpected clusters — without deciding in advance where the gates should go.
+The **Population Analysis** tab finds the structure in your data without deciding in advance where the gates should go. It has two methods:
+
+- **UMAP + HDBSCAN.** UMAP (Uniform Manifold Approximation and Projection) takes every marker you measured on a cell and projects it onto a 2D map: cells that look similar across all their markers land near each other. HDBSCAN (optional) then finds dense groups and can leave scattered cells out as noise. Good for exploring continuous gradients and rare sub-populations.
+- **FlowSOM** (section 6). Sorts the cells into about 100 small groups of very similar cells, links them into a tree, and groups the tree into *k* populations. Every cell gets a population. Fast enough for every event, and a useful second opinion next to UMAP + HDBSCAN.
 
 This tab has no ribbon toolbar. Every control lives in the left panel of the workspace, which mirrors the same layout pattern as Statistics and Comparisons: a fixed sidebar for configuration, and a right-hand workspace for results.
 
@@ -10,7 +13,7 @@ This tab has no ribbon toolbar. Every control lives in the left panel of the wor
 
 ### Target data
 
-- **Algorithm** — currently UMAP is the only option.
+- **Algorithm** — **UMAP + HDBSCAN** or **FlowSOM**. The settings below the run name change with it; FlowSOM's are described in section 6.
 - **Sample** — the sample to analyze.
 - **Population (Gate)** — optionally restrict the analysis to a specific gated population rather than the whole sample. This is strongly recommended: running UMAP on ungated debris and dead cells distorts the projection, so gating out Live/Singlets first and running UMAP on that population gives a much cleaner map.
 - **Select Channels** — the fluorescence parameters fed into the reduction. Uncheck anything already used for gating upstream (viability dyes, scatter parameters) — they add noise rather than useful biological variance to the clustering.
@@ -23,9 +26,9 @@ This tab has no ribbon toolbar. Every control lives in the left panel of the wor
 | Run Name | A label for this run, shown in the Run History dropdown afterward |
 | Neighbors | Balance between local and global structure. Lower (5–15) emphasizes fine local clusters; higher (30–50) preserves broader relationships between distant cell types |
 | Min Distance | How tightly points are packed in the final layout. Lower values (0.0–0.1) pack similar cells densely, useful for resolving rare or closely related sub-populations; higher values (0.3–0.5) spread points out to preserve topology across major lineages |
-| Subsample Events | Percentage of events to randomly downsample before running — UMAP scales non-linearly with event count, so subsampling 10–20% is usually enough to preserve structure while running much faster on very large samples |
+| Events used | Percentage of the population's events the run uses, picked at random. UMAP slows down sharply on large data, so 10–20% (its default, 10%) is usually enough. FlowSOM defaults to all events; lower it to compare with a UMAP run on the same share |
 | Distance Metric | How "distance" between two cells is measured: **euclidean** (straight-line, general default), **cosine** (angle rather than magnitude — useful if absolute intensity varies due to staining artifacts), or **manhattan** (grid-like, more robust to outliers) |
-| Random Seed | Fixes the algorithm's randomness so the same data and settings reproduce the exact same layout every time — change it deliberately to see an alternative valid embedding |
+| Random Seed | Fixes the run's random choices (which events are picked, UMAP's starting layout, FlowSOM's starting nodes), so the same data and settings reproduce the same result. Change it to see another valid result: a quick way to check a finding isn't a fluke |
 
 
 !!! tip "Why the layout doesn't shuffle every run"
@@ -89,3 +92,39 @@ On the right, each cluster has a checkbox and an editable name field. Rename clu
 ## 5. Run History
 
 Every completed run — its parameters, embedding, and cluster results — is saved automatically to the **History** dropdown, scoped to the specific sample and gate it was run on (running UMAP on a different population keeps a separate, parallel history). Selecting a past run restores its exact configuration in read-only form and redisplays its results, so you can compare how different neighbor/min-distance settings behaved without losing earlier work. **Delete Run** permanently removes a run from history.
+
+## 6. FlowSOM
+
+FlowSOM is the clustering method most used in cytometry. It works in three steps:
+
+1. **Nodes.** The cells are sorted into a grid of small groups of very similar cells, called nodes (10 × 10 = 100 by default). Every cell belongs to one node; none is left out.
+2. **Tree.** Each node is linked to the nodes most like it. The result is a tree whose branches are families of related cells, often a lineage or a maturation gradient.
+3. **Metaclusters.** The nodes are grouped into *k* metaclusters, FlowSOM's populations. Every cell gets the metacluster of its node.
+
+### Settings
+
+| Setting | Default | What it controls |
+|---|---|---|
+| Grid size | 10 (100 nodes) | More nodes show finer detail and rarer cells; 100 suits most panels |
+| Metaclusters (k) | 10 | How many populations to group the nodes into: roughly how many cell types you expect. You can change it after the run |
+| Training passes | 10 | How many times the grid learns from the cells; more rarely changes the result |
+
+A million events take a few seconds, so FlowSOM uses every event of the population by default.
+
+### Reading the FlowSOM Tree
+
+A FlowSOM run opens on the **FlowSOM Tree** tab. Each circle is a node, sized by its cell count; lines join similar nodes. Only the connections matter: positions, rotation and line lengths mean nothing.
+
+Read it the way scientists do:
+
+1. **Colour by each marker** (the *Colour by* menu). Which branches are bright for CD3, which for B220? This is like reading several gating plots at once. The colour scale runs from the dimmest node to the brightest, so small differences show.
+2. **Name each metacluster from its phenotype.** The legend gives each one its share of cells and a phenotype such as *B220+ CD3− CD4− CD8lo*, and the **phenotype heatmap** below it shows the same for every marker at once. Per marker, the dimmest metacluster is −, the brightest +, and *lo* is in between; markers that barely differ between metaclusters are left out. *CD3+ CD4+* is CD4 T cells, *B220+ CD3−* B cells, and so on.
+3. **Check k.** Good metaclusters follow the branches. One branch split into several colours (or several metaclusters with the same phenotype) means *k* is probably too high; one colour across unrelated branches, too low. Change **Metaclusters (k)**: the tree, the gallery, the map and the statistics update instantly.
+
+Hover a node to see its cell count and its metacluster's phenotype.
+
+!!! note "The other result tabs"
+    FlowSOM has no per-cell map like UMAP's, so the **Plot Gallery** and **Interactive Map** draw each cell around its node in the tree. **Population Statistics** and **Export** work as for HDBSCAN; exported populations are named *Metacluster N* under a *FlowSOM* population.
+
+!!! tip "UMAP + HDBSCAN or FlowSOM?"
+    Run both. HDBSCAN finds dense groups and may leave rare or diffuse cells out as noise; FlowSOM puts every cell somewhere and is fast on all events. Where both agree, you can trust it more. The [Sample Lens](./16_SAMPLE_LENS.md) checks your gates against either.
