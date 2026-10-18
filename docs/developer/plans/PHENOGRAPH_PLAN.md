@@ -49,9 +49,9 @@ Sample C, Leukocytes, 208,961 events, 4 markers, scratch benchmark:
 
 At 1.0 the B cells are split into many clusters along gradients (a known
 PhenoGraph trait). A 0.5% B220+ CD3+ CD8+ cluster appears, likely B–T
-doublets. The tutorial files have only area channels (FSC-A, SSC-A; no
-FSC-H/W), so this can't be confirmed with a singlet plot: the Academy must
-say "probably".
+doublets, but not confirmed. The tutorial files have only area channels
+(FSC-A, SSC-A; no FSC-H/W), so no singlet plot can check it: the Academy
+presents it as an open question.
 
 ## Licences
 
@@ -104,9 +104,8 @@ A **Cluster Graph** tab, first for PhenoGraph runs (like FlowSOM Tree):
 
 Gallery, interactive map, statistics and export work as for the other methods.
 The map's `embedding` is the cluster-graph layout with events jittered round
-their cluster (`embedding_kind` = `"graph"`), like FlowSOM's tree. An optional
-**"Also draw a UMAP map"** setting reuses the neighbour graph
-(`umap-learn`'s `precomputed_knn`), slower; later phase.
+their cluster (`embedding_kind` = `"graph"`), like FlowSOM's tree. A UMAP map for
+PhenoGraph runs is left for later (see Decisions).
 
 ## Design notes
 
@@ -223,9 +222,9 @@ New Course 6, after the lens so the lens is already known:
    - Prediction: will it find more or fewer clusters than FlowSOM's 10?
    - Run it on the same Leukocytes, then read the cluster graph: thick edges
      join split B cells; colour by B220.
-   - Find the isolated small cluster and read its phenotype (B220+ CD3+:
-     probably two cells stuck together, a doublet). Explain the FSC-H/W
-     check these files can't do.
+   - Find the isolated small cluster and read its phenotype (B220+ CD3+).
+     Ask what it could be; doublets are one possibility, not the answer.
+     Explain the FSC-H/W check these files can't do.
    - Change the resolution and watch the B-cell clusters merge.
 4. **Three opinions in the lens.** Switch runs and read "Also found by". Which
    finding do all three report? Which only one? Then the existing "Which
@@ -250,19 +249,28 @@ Mechanics:
   its history that still exists, or the course start. Test it with a saved
   block pointing at a removed FlowSOM step.
 
-## Open questions
+## Decisions (2026-10-18)
 
-- **Academy layout.** The table above (recommended), or keep FlowSOM in
-  Course 4 and give PhenoGraph a short course of its own?
-- **Doublets.** The tutorial files can't gate singlets (no FSC-H/W), so the
-  B220+ CD3+ cluster stays. Teach it as "probably doublets", or leave it out
-  if the claim feels too uncertain?
-- **UMAP map for PhenoGraph.** Is the cluster-graph view enough, or should a
-  UMAP map be in the first version?
-- **Default neighbours.** 30 (PhenoGraph's default), or 15 to match UMAP's
-  neighbours so the two graphs match?
+- **Academy layout:** the table above. FlowSOM moves to the new Course 6
+  with PhenoGraph; Reporting becomes Course 7.
+- **The B220+ CD3+ cluster:** the Academy may say it *could* be doublets, but
+  must not present it as fact. Treat it as a question for the learner, not an
+  answer.
+- **No UMAP map for PhenoGraph** in this plan. The cluster graph is the
+  method's own view, the gallery and lens use the jittered graph layout (as
+  FlowSOM does), and Course 4's UMAP run is already there to compare with.
+  The optional UMAP stays under *Later*.
+- **Neighbours default 30, not 15.** UMAP's 15 sets the map's local detail;
+  HDBSCAN then clusters the map, not that graph, so matching the number
+  doesn't make the methods comparable. In PhenoGraph *k* sets the grain:
+  on the tutorial data, k = 15 gave 46 clusters at resolution 1.0 against 32
+  at k = 30, splitting populations further, and saved only ~1.5 s. 30 is
+  PhenoGraph's published default; keep it, with help text saying lower means
+  finer.
 
 ## Later (not in this plan)
+
+- An optional UMAP map for PhenoGraph runs, reusing the neighbour graph.
 
 - t-SNE (openTSNE, BSD) as an alternative map for any method.
 - MILK (Yachie lab, bioRxiv Aug 2026) once peer-reviewed and packaged; check
