@@ -116,6 +116,7 @@ class SampleLensModel(QObject):
         self.scope: RunScope | None = None
         self.findings: list[Finding] = []
         self.checks: list[SampleCheck] = []
+        self._chosen_runs: dict[str, RunRef] = {}  # sample -> run picked for it
 
         self._active = False
         self._debouncer = Debouncer(self.refresh)
@@ -200,13 +201,19 @@ class SampleLensModel(QObject):
         self.sample_id = sample_id
         self.selected_node_id = None
         runs = self.runs()
-        clustered = [ref for ref, run in runs if run.get("clusters") is not None]
-        candidates = clustered or [ref for ref, _ in runs]
-        self.run_ref = candidates[-1] if candidates else None
+        chosen = self._chosen_runs.get(sample_id or "")
+        if chosen is not None and any(ref == chosen for ref, _ in runs):
+            self.run_ref = chosen  # back to the run picked for this sample before
+        else:
+            clustered = [ref for ref, run in runs if run.get("clusters") is not None]
+            candidates = clustered or [ref for ref, _ in runs]
+            self.run_ref = candidates[-1] if candidates else None
         self.refresh()
 
     def set_run(self, ref: RunRef | None) -> None:
         self.run_ref = ref
+        if self.sample_id is not None and ref is not None:
+            self._chosen_runs[self.sample_id] = ref
         self.refresh()
 
     def select(self, node_id: str | None) -> None:
@@ -280,9 +287,8 @@ class SampleLensModel(QObject):
             self.run_progress.emit(False, f"UMAP failed: {results['error']}")
             return
         key = experiment_edits.add_umap_run(self._state, results)
-        self.run_ref = RunRef(key, len(self._state.data.umap_results[key]) - 1)
         self.run_progress.emit(False, "")
-        self.refresh()
+        self.set_run(RunRef(key, len(self._state.data.umap_results[key]) - 1))
 
     def _schedule(self) -> None:
         if self._active:

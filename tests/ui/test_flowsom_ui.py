@@ -122,3 +122,41 @@ def test_reopening_a_run_from_history_shows_flowsom_and_its_settings(viewer):
     assert viewer._algo_combo.currentData() == "flowsom"
     assert viewer._flowsom_params.values()["k"] == 7  # noqa: PLR2004
     assert not viewer._flowsom_params._spins["k"].isEnabled()
+
+
+@pytest.mark.ui
+def test_course_4_flowsom_checks_follow_the_learner(viewer):
+    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+        ClusteringMethodValidator,
+        FlowsomColorValidator,
+        FlowsomKValidator,
+        FlowsomResultsReadyValidator,
+        NewRunSelectedValidator,
+        metaclusters_positive_for,
+    )
+
+    state = viewer._state
+    state.view._population_analysis_viewer = viewer
+    assert NewRunSelectedValidator().validate(state)
+    assert not ClusteringMethodValidator("flowsom").validate(state)
+    assert not FlowsomResultsReadyValidator().validate(state)
+
+    run_flowsom(viewer, k=5)
+    assert ClusteringMethodValidator("flowsom").validate(state)
+    assert FlowsomResultsReadyValidator().validate(state)
+    assert not NewRunSelectedValidator().validate(state)  # the run is showing
+
+    tree = viewer._results_panel._tree_view
+    seen = []
+    colour = FlowsomColorValidator("CD56", on_found=seen.append)
+    assert not colour.validate(state)
+    tree._color_combo.setCurrentIndex(tree._color_combo.findText("Marker: CD56"))
+    assert colour.validate(state)
+    assert seen == [tree]
+    assert metaclusters_positive_for(tree, "CD56")  # NK and NKT cells
+
+    assert not FlowsomKValidator(3).validate(state)
+    tree._k_spin.setValue(3)
+    tree._recut_timer.timeout.emit()
+    assert FlowsomKValidator(3).validate(state)
+    assert "k=3" in viewer._history_combo.currentText()

@@ -1054,6 +1054,9 @@ class PopulationAnalysisViewer(QWidget):
         from ...analysis.services import experiment_edits
 
         experiment_edits.announce_unsaved_change()
+        self._history_combo.blockSignals(True)  # a re-cut k shows in the run's label
+        self.refresh_history()
+        self._history_combo.blockSignals(False)
 
     def _on_delete_run_clicked(self) -> None:
         idx = self._history_combo.currentIndex()

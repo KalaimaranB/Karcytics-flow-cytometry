@@ -182,11 +182,17 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
     choosing *k*, when to prefer it).
   - `16_SAMPLE_LENS.md`: auditing with FlowSOM, *k* and merges.
   - Plan checked off.
-- [ ] **6. Academy.** Run FlowSOM on the tutorial data first, as was done for
-  the lens. Then add a short "second opinion" section to Course 5: run FlowSOM
-  on Sample C and check that the lens names the same missed population; change
-  *k* and see which findings depend on it. Course 4 gets one step pointing at
-  the algorithm picker. Dry run, then the step and word-limit tests.
+- [x] **6. Academy.** Done differently from the first draft: FlowSOM is taught
+  in Course 4 (the user's choice), with a short add-on in Course 5.
+  - Course 4: the UMAP settings walk is grouped (11 steps to 6). A FlowSOM
+    section after the B-cell cross-check runs FlowSOM on the same Leukocytes,
+    reads the tree (colour by CD3, then B220), re-cuts *k* high and to 5, and
+    reads the phenotypes. It opens with a prediction about noise, answered at
+    the end.
+  - Course 5: the learner picks the UMAP run explicitly (the lens now remembers
+    the run picked per sample). Four add-on steps switch the lens to the
+    FlowSOM run, read the tree map, set *k* = 8 and weigh the findings.
+  - Offscreen dry runs of both courses on the tutorial data; validator tests.
 
 ## Open questions (decide when the phase starts)
 

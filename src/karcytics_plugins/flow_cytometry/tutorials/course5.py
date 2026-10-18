@@ -55,9 +55,11 @@ from .validators import (
     ClusteredRunValidator,
     LensFindingFocusedValidator,
     LensFindingValidator,
+    LensKValidator,
     LensPopulationSelectedValidator,
     LensProposalAddedValidator,
     LensProposalValidator,
+    LensRunMethodValidator,
     LensRunReadyValidator,
     LensSampleValidator,
     LineageGatingCompleteValidator,
@@ -124,7 +126,7 @@ course_5_sample_lens = Course(
         "them into real gates, read flags across samples, and catch a bad "
         "gate edge the moment you draw it."
     ),
-    estimated_minutes=40,
+    estimated_minutes=45,
     badge_reward="Gate Auditor",
     badge_icon="🔎",
     prerequisite_course_ids=["flow_course_4_analysis"],
@@ -242,18 +244,24 @@ course_5_sample_lens = Course(
             on_success_step_id="c5_s07_run",
             failure_hint="Open the **Sample** dropdown at the top left and pick **Sample C**.",
         ),
-        InfoStep(
+        VerificationStep(
             id="c5_s07_run",
             text=(
-                "Your Course 4 run, reused ♻️<br><br>"
-                "The **Clustering run** dropdown already picked Course 4's run on "
-                "**Leukocytes**: the lens takes the newest run that has clusters.<br><br>"
-                "A sample without one gets a **Run UMAP + clustering** button "
+                "Your Course 4 runs, reused ♻️<br><br>"
+                "The **Clustering run** dropdown lists both Course 4 runs on "
+                "**Leukocytes**, and picked the newest, FlowSOM. Pick the "
+                "**UMAP + HDBSCAN** one (no 'FlowSOM' in its name) for now; "
+                "FlowSOM gets its turn later.<br><br>"
+                "A sample without a run gets a **Run UMAP + clustering** button "
                 "instead. You won't need it today."
             ),
-            cyto_emotion="talking",
-            target_widget_names=["SampleLensRunCombo", "SampleLensRunButton"],
-            next_step_id="c5_s08_why_leukocytes",
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensRunCombo"],
+            validator=LensRunMethodValidator("umap_hdbscan"),
+            on_success_step_id="c5_s08_why_leukocytes",
+            failure_hint="Open **Clustering run** and pick the run without 'FlowSOM' in its name.",
         ),
         QuestionStep(
             id="c5_s08_why_leukocytes",
@@ -1054,6 +1062,62 @@ course_5_sample_lens = Course(
                 "seconds."
             ),
             cyto_emotion="happy",
+            next_step_id="c5_s50b_flowsom_switch",
+        ),
+        # ── The same lens, against FlowSOM ──────────────────────────────────────
+        VerificationStep(
+            id="c5_s50b_flowsom_switch",
+            text=(
+                "One more opinion 🌳<br><br>"
+                "Course 4 also left a **FlowSOM** run on these cells. Pick it in "
+                "**Clustering run**."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensRunCombo"],
+            validator=LensRunMethodValidator("flowsom"),
+            on_success_step_id="c5_s50c_flowsom_read",
+            failure_hint="Open **Clustering run** and pick the run with 'FlowSOM' in its name.",
+        ),
+        InfoStep(
+            id="c5_s50c_flowsom_read",
+            text=(
+                "Same lens, another method 🔍<br><br>"
+                "Findings now name **metaclusters** and their phenotype, and the "
+                "map is the FlowSOM tree, with a finding's nodes ringed.<br><br>"
+                "FlowSOM always makes k groups, so the lens only calls it a merge "
+                "when the phenotypes clearly differ, and groups findings that "
+                "share a phenotype."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            target_widget_names=["SampleLensFindings", "SampleLensMap"],
+            next_step_id="c5_s50d_flowsom_k",
+        ),
+        VerificationStep(
+            id="c5_s50d_flowsom_k",
+            text=(
+                "Course 4 left this run at k = 5. Set **Metaclusters (k)** to "
+                "**8** and watch the findings."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensKSpin", "SampleLensFindings"],
+            validator=LensKValidator(8),
+            on_success_step_id="c5_s50e_flowsom_weight",
+        ),
+        InfoStep(
+            id="c5_s50e_flowsom_weight",
+            text=(
+                "Which findings to trust ⚖️<br><br>"
+                "A finding that holds at several k values, and that UMAP + "
+                "HDBSCAN agrees with, is about your gates. One that shows up at "
+                "a single k is about the method.<br><br>"
+                "Like UMAP, FlowSOM is a second opinion, not the truth."
+            ),
+            cyto_emotion="thinking",
             next_step_id="c5_s51_when",
         ),
         InfoStep(

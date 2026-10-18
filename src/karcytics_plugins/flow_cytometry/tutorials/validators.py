@@ -1578,6 +1578,100 @@ class UmapMarkerColoredValidator(FlowValidator):
         return True
 
 
+# ── FlowSOM (Course 4) ────────────────────────────────────────────────────
+
+
+def _pa_viewer(app_state: FlowState) -> Any | None:
+    return getattr(app_state.view, "_population_analysis_viewer", None)
+
+
+def _flowsom_tree(app_state: FlowState) -> Any | None:
+    """The FlowSOM Tree view of the results on screen, if a FlowSOM run is showing."""
+    viewer = _pa_viewer(app_state)
+    panel = getattr(viewer, "_results_panel", None) if viewer else None
+    return getattr(panel, "_tree_view", None)
+
+
+class ClusteringMethodValidator(FlowValidator):
+    """The Population Analysis Algorithm menu is set to ``method_key``."""
+
+    def __init__(self, method_key: str) -> None:
+        self._key = method_key
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = _pa_viewer(app_state)
+        if viewer is None or viewer._algo_combo.currentData() != self._key:
+            return self.log_failure(f"Algorithm isn't '{self._key}'.")
+        return True
+
+
+class NewRunSelectedValidator(FlowValidator):
+    """History shows [ New Run ]: the settings are editable again."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = _pa_viewer(app_state)
+        if viewer is None or viewer._history_combo.currentData() is not None:
+            return self.log_failure("A past run is selected in History.")
+        return True
+
+
+class FlowsomResultsReadyValidator(FlowValidator):
+    """A FlowSOM run finished and its tree is on screen."""
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        viewer = _pa_viewer(app_state)
+        if viewer is None or getattr(viewer, "_is_analysis_running", False):
+            return self.log_failure("FlowSOM is still running.")
+        if _flowsom_tree(app_state) is None:
+            return self.log_failure("No FlowSOM tree on screen yet.")
+        return True
+
+
+class FlowsomColorValidator(FlowValidator):
+    """The FlowSOM tree is coloured by ``marker``; ``on_found`` gets the tree view."""
+
+    def __init__(self, marker: str, on_found: Callable[[Any], None] | None = None) -> None:
+        self._marker = marker.casefold()
+        self._on_found = on_found
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        tree = _flowsom_tree(app_state)
+        if tree is None:
+            return self.log_failure("No FlowSOM tree on screen.")
+        if not tree._color_combo.currentText().casefold().endswith(self._marker):
+            return self.log_failure(f"Tree isn't coloured by '{self._marker}'.")
+        if self._on_found is not None:
+            self._on_found(tree)
+        return True
+
+
+class FlowsomKValidator(FlowValidator):
+    """The FlowSOM run on screen is cut into ``k`` metaclusters; ``on_found`` gets the tree."""
+
+    def __init__(self, k: int, on_found: Callable[[Any], None] | None = None) -> None:
+        self._k = k
+        self._on_found = on_found
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        tree = _flowsom_tree(app_state)
+        if tree is None or tree._run.get("k") != self._k:
+            return self.log_failure(f"The run isn't at k = {self._k}.")
+        if self._on_found is not None:
+            self._on_found(tree)
+        return True
+
+
+def metaclusters_positive_for(tree: Any, marker: str) -> list[str]:
+    """Tags of the tree's metaclusters that are + for ``marker`` ("M0", ...), largest first."""
+    out = []
+    for summary in tree._summaries:
+        level = dict(zip(summary.markers, summary.level, strict=True))
+        value = next((v for m, v in level.items() if m.casefold() == marker.casefold()), None)
+        if value is not None and value >= 2 / 3:  # noqa: PLR2004 (the "+" call)
+            out.append(f"M{summary.cluster}")
+    return out
+
+
 class UmapBestBCellClusterValidator(FlowValidator):
     """Computes which real HDBSCAN cluster is this run's B-cell population —
     the one with the largest *contrast* between the given marker and every
@@ -2303,6 +2397,34 @@ class LensSampleValidator(_LensValidator):
         sample = lens._model.sample
         if sample is None or self._sample_name not in sample.display_name.casefold():
             return self.log_failure(f"Lens isn't on '{self._sample_name}'.")
+        return True
+
+
+class LensRunMethodValidator(_LensValidator):
+    """The lens's run was made with ``method_key`` (``umap_hdbscan`` or ``flowsom``)."""
+
+    def __init__(self, method_key: str) -> None:
+        self._key = method_key
+
+    def validate_lens(self, lens: Any) -> bool:
+        from ..analysis.clustering import method_of
+
+        run = lens._model.run
+        if run is None or method_of(run).key != self._key:
+            return self.log_failure(f"The lens's run isn't a '{self._key}' run.")
+        return True
+
+
+class LensKValidator(_LensValidator):
+    """The lens's FlowSOM run is cut into ``k`` metaclusters."""
+
+    def __init__(self, k: int) -> None:
+        self._k = k
+
+    def validate_lens(self, lens: Any) -> bool:
+        run = lens._model.run
+        if run is None or run.get("k") != self._k:
+            return self.log_failure(f"The lens's run isn't at k = {self._k}.")
         return True
 
 

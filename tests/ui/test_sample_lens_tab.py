@@ -257,3 +257,41 @@ def test_a_flowsom_run_gets_a_k_control_that_recuts_the_audit(qtbot):
     missed = next(f for f in tab._model.findings if f.kind.value == "missed")
     tab._on_fix_requested(missed)
     assert tab._path._title.text().startswith("Proposed gates · metacluster")
+
+
+def test_the_lens_remembers_the_run_picked_for_each_sample(lens):
+    from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
+    from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+        LensKValidator,
+        LensRunMethodValidator,
+    )
+
+    tab, state, _ = lens
+    analysis = FlowsomAnalysis()
+    analysis.target_sample_id = "s0"
+    analysis.n_events = 10**6
+    analysis.channels = ["CD3", "CD4", "CD8", "CD56"]
+    experiment_edits.add_umap_run(state, analysis.run(state))
+    state.view._sample_lens = tab
+    tab._model.sample_id = None
+    tab._populate_samples()
+    assert LensRunMethodValidator("flowsom").validate(state)  # the newest
+
+    umap = next(
+        i for i in range(tab._run_combo.count()) if "FlowSOM" not in tab._run_combo.itemText(i)
+    )
+    tab._run_combo.setCurrentIndex(umap)
+    assert LensRunMethodValidator("umap_hdbscan").validate(state)
+    tab._sample_combo.setCurrentIndex(tab._sample_combo.findData("s1"))
+    tab._sample_combo.setCurrentIndex(tab._sample_combo.findData("s0"))
+    assert LensRunMethodValidator("umap_hdbscan").validate(state)
+
+    flowsom = next(
+        i for i in range(tab._run_combo.count()) if "FlowSOM" in tab._run_combo.itemText(i)
+    )
+    tab._run_combo.setCurrentIndex(flowsom)
+    assert not LensKValidator(8).validate(state)
+    tab._k_spin.setValue(8)
+    tab._k_timer.timeout.emit()
+    assert LensKValidator(8).validate(state)

@@ -91,36 +91,38 @@ Questions along the way: where the T cells sit on a B220 vs CD3 plot, what an ed
 
 ### Course 4 — Population Analysis: Run & Validate
 
-**~55 minutes · requires Course 3 · badge: 🧠 Population Analyst**
+**~65 minutes · requires Course 3 · badge: 🧠 Population Analyst**
 
 No new manual gating anywhere in it — instead, you hand your existing gated data to an algorithm that has never seen your gates, then prove its result out against your own hand-gating. You:
 
 - Validate that your Course 3 gating tree (Leukocytes, T-cells, B-cells) is actually in place before continuing.
 - Get a real explanation of what UMAP's axes do and don't mean, with a recommended external video for a deeper dive.
 - Select Sample C (the confirmed Spleen) and the Leukocytes gate, and exclude the PI and CD45 channels — each choice explained, not just instructed.
-- Walk every run parameter — Neighbors, Min Distance, Subsample %, Distance Metric, Seed, and HDBSCAN's Minimum Cluster Size — with a real justification for each.
+- Read the map settings as one group, then set the ones that matter here — Neighbors, Subsample % and HDBSCAN's Minimum Cluster Size — each with its reason.
 - Run the analysis and watch the real, data-driven UMAP animation play out live, built from your own Sample C data.
 - Explore the results in the **Plot Gallery** and the **Interactive Map** — hovering over populations to read their marker expression, and switching the map's marker dropdown to watch different lineages light up.
 - Let the course itself identify your run's real B-cell cluster from its marker profile (no two runs get the same cluster ID), export it as a genuine gate-tree population, and cross-check it against your own hand-gated B-cells with a Pipeline **AND** node.
+- Run **FlowSOM** on the same Leukocytes as a second opinion, with all events. Read its tree: colour it by CD3 and then B220 to find the T and B cell branches, see how many metaclusters split the B cells, re-cut *k* without re-running, and read each metacluster's +/− phenotype in the legend and heatmap.
 - Save your workspace again — required to continue into Course 5.
 
-Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you.
+Questions along the way: what a cell's position on a UMAP axis tells you, why UMAP runs on Leukocytes instead of All Events (select all that apply), why CD45 is left out, which way to turn Neighbors when hunting a rare population, and what data HDBSCAN actually clusters. Before wiring the AND node, you predict how many of UMAP's B cells will fall inside your own B-cells gate; the AND node shows you. Before running FlowSOM, you predict whether it will leave cells unclustered as noise, as HDBSCAN does; the end of the section answers it. You are also asked what a high *k* does to one population, and what an all-negative metacluster is.
 
 <!-- SCREENSHOT: docs/images/user/academy/course4-umap-plot.png — the Population Analysis tab showing a UMAP projection colored by marker expression, with distinct population "islands" visible -->
 
 ### Course 5 — Sample Lens: Check Every Gate
 
-**~40 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
+**~45 minutes · requires Course 4 · badge: 🔎 Gate Auditor**
 
 Course 4 checked one population against the clusters. Course 5 checks all of them in the **[Sample Lens](./16_SAMPLE_LENS.md)** tab, before Course 6 reports numbers from them. You predict at the start what the comparison will turn up. You:
 
-- Open the lens on Sample C with Course 4's clustering run, and see exactly which populations it judges (and why UMAP exports and logic nodes are left out).
+- Open the lens on Sample C and pick Course 4's UMAP run, and see exactly which populations it judges (and why UMAP exports and logic nodes are left out).
 - **Backgate**: follow B-cells and then CD4+ through every gate on their path, with the population highlighted on each gate's parent.
 - Read the run's map twice, coloured by your final populations and by cluster, and learn the three kinds of audit finding.
 - Find the cells none of your gates holds (leukocytes that are neither T nor B cells), let **Propose gates** turn the cluster into ordinary rectangle gates, read its precision, recall and F1, and add them to your tree.
 - Read **Across samples**: why the thymus is flagged as an outlier on DP (biology, not a gating error), and what **On edge** says about how fragile a gate is.
 - Backgate on Sample A, which has no clustering run, to see that the gating path and Across samples don't need one.
 - Drag the T-cells gate's top edge into the CD4 T cells on purpose, watch the lens name the gate that cut them, then fix it.
+- Switch the lens to the FlowSOM run: findings are drawn on its tree, and changing *k* changes which merges and cuts it reports. Weigh what a finding that depends on *k* tells you.
 - Save your workspace again — required to continue into Course 6.
 
 Questions along the way: why the run clusters Leukocytes, what grey means on each map, whether a finding proves a gate wrong, what the missed cells are, why gates beat an exported cluster, what precision and recall say, why the lens blames T-cells for cells that would have been CD4+, and what "no findings" does and doesn't prove.
