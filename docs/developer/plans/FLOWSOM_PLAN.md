@@ -53,7 +53,6 @@ How it compares with HDBSCAN, as a second opinion:
 | Grid size | 10 × 10 | number of nodes; more nodes gives finer detail |
 | Metaclusters (*k*) | 10 | expected number of populations; can be changed after the run |
 | Training passes | 10 | passes over the data while the SOM learns |
-| Learning rate | 0.05 → 0.01 | how far nodes move per update, shrinking during training |
 | Random seed | 42 | makes a run reproducible |
 | Also compute UMAP for display | off | adds a per-event map (slower) |
 
@@ -137,7 +136,8 @@ dependencies, and its licence has to be checked against PolyForm Noncommercial
     - every `MainTab` routes to the right page;
     - a saved int from the old order restores the right tab;
     - the course tests still pass.
-- [ ] **1. FlowSOM core (Qt-free).** New `analysis/clustering/`:
+- [x] **1. FlowSOM core (Qt-free).** Built as a batch SOM (deterministic, vectorized;
+  no learning rate to set), trained on up to 200k events, every event then mapped. New `analysis/clustering/`:
   - `flowsom.py` builds the SOM (batch, seeded), assigns nodes, builds the
     MST, lays the tree out in 2-D, metaclusters with Ward linkage, and
     provides `recut(linkage, k)`.
