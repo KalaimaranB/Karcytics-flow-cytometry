@@ -158,10 +158,6 @@ jobs:
         run: uv run karcytics-sdk doctor . --baseline --no-color
         shell: bash
 
-      - name: SDK contract test (real SDK, so without tests/conftest.py)
-        run: uv run pytest tests/contract --noconftest -q -p no:cacheprovider
-        shell: bash
-
   test:
     name: Tests (${{ matrix.os }})
     needs: [check_version, lint-and-audit]
@@ -244,6 +240,14 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
           MPLCONFIGDIR: ${{ runner.temp }}/mplconfig
+        shell: bash
+
+      # Here rather than in lint-and-audit: the real SDK imports Qt, and the
+      # Ubuntu lint runner has no libEGL.
+      - name: SDK contract test (real SDK, so without tests/conftest.py)
+        run: uv run pytest tests/contract --noconftest -q -p no:cacheprovider
+        env:
+          QT_QPA_PLATFORM: offscreen
         shell: bash
 
       # UI-mechanics tests (widget existence/appearance) still run for
