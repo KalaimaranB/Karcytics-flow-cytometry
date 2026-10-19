@@ -232,7 +232,7 @@ class TestFrozenEnvironmentSimulation:
         import bokeh.core.templates as bokeh_templates
 
         env = bokeh_templates.get_env()
-        assert env.get_template("file.html.jinja") is not None
+        assert env.get_template("file.html.jinja").name == "file.html.jinja"
 
     def test_patch_never_touches_sys_frozen_or_meipass(self, monkeypatch):
         """Regression guard for the actual production incident: an earlier version

@@ -90,6 +90,7 @@ class TestGateFactoryPolygon:
         vertices = [(0, 0), (100, 0), (50, 100)]
         gate = gate_factory_linear.create_polygon(vertices)
         assert isinstance(gate, PolygonGate)
+        assert len(gate.vertices) == 3
 
     @pytest.mark.unit
     def test_create_polygon_too_few_vertices(self, gate_factory_linear):
@@ -231,9 +232,9 @@ class TestGateFactoryParameterUpdates:
         gate_factory_linear.update_scales(scale_biexp, scale_biexp)
         gate2 = gate_factory_linear.create_rectangle(1000, 1000, 2000, 2000)
 
-        # Parameters might differ due to transform
-        # Just verify gate was created
         assert isinstance(gate2, RectangleGate)
+        assert gate2.x_scale.transform_type == TransformType.BIEXPONENTIAL
+        assert gate2.y_scale.transform_type == TransformType.BIEXPONENTIAL
 
 
 class TestGateFactoryEdgeCases:

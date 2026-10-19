@@ -6,10 +6,7 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
-from karcytics_plugins.flow_cytometry.analysis.history_recorder import (
-    CONNECTION_ADDED,
-    HistoryRecorder,
-)
+from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
 from karcytics_plugins.flow_cytometry.analysis.store import FlowStore
 from tests.fixtures.workspace import FakeBus, ManualDefer, build_rich_state
 
@@ -42,7 +39,7 @@ def _edit(state, name="G"):
         (events.GATE_DELETED, {}, "Delete Gate"),
         (events.GATE_RENAMED, {"new_name": "T"}, "Rename Gate to 'T'"),
         (events.GATE_MODIFIED, {}, "Edit Gate"),
-        (CONNECTION_ADDED, {}, "Connect Gates"),
+        (events.CONNECTION_ADDED, {}, "Connect Gates"),
         (events.SAMPLE_LOADED, {}, "Add Samples"),
         (events.COMPENSATION_APPLIED, {}, "Change Compensation"),
         (events.DERIVED_PARAMS_CHANGED, {"action": "created"}, "Add Derived Parameter"),

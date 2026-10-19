@@ -72,7 +72,7 @@ class CanvasManager(QObject):
         # get a cheap, targeted update here instead of the full structural
         # refresh (see MainPanelController) — no scene clear, no re-submitting
         # render tasks for every other node on the canvas.
-        for topic in ("flow.pipeline.connection_added", "flow.pipeline.connection_removed"):
+        for topic in (flow_events.CONNECTION_ADDED, flow_events.CONNECTION_REMOVED):
             try:
                 CentralEventBus.unsubscribe(topic, self._on_connection_pending)
             except Exception:
@@ -91,7 +91,7 @@ class CanvasManager(QObject):
             CentralEventBus.unsubscribe(flow_events.ALL_STATS_UPDATED, self._on_stats_updated)
         except Exception:
             pass
-        for topic in ("flow.pipeline.connection_added", "flow.pipeline.connection_removed"):
+        for topic in (flow_events.CONNECTION_ADDED, flow_events.CONNECTION_REMOVED):
             try:
                 CentralEventBus.unsubscribe(topic, self._on_connection_pending)
             except Exception:

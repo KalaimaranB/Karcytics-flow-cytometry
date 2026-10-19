@@ -204,10 +204,10 @@ def main() -> None:
         logger = get_logger(__name__, "flow_cytometry")
 
         context = _build_plugin_context()
-        logger.warning("[phase1] _build_panel: context built, calling initialize()")
+        logger.debug("[phase1] _build_panel: context built, calling initialize()")
         plugin_module = initialize(context)
 
-        logger.warning("[phase1] _build_panel: initialize() done, calling get_panel_class()")
+        logger.debug("[phase1] _build_panel: initialize() done, calling get_panel_class()")
         panel_class = plugin_module.get_panel_class()
 
         # The six Phase 2 view modules (GraphManager, NodeCanvas,
@@ -218,7 +218,7 @@ def main() -> None:
         # imports in workspace_builder.py are sys.modules cache hits by the
         # time Phase 2 runs; nothing left to front-load here.
         panel = panel_class()
-        logger.warning("[phase1] _build_panel: panel constructed")
+        logger.debug("[phase1] _build_panel: panel constructed")
 
         if hasattr(panel, "state_changed"):
             panel.state_changed.connect(

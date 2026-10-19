@@ -447,7 +447,6 @@ class GraphWindow(QWidget):
                                 default_x,
                                 AxisScale.from_dict(cv["x_scale"]),
                                 sample_id=self._sample_id,
-                                notify=False,
                             )
                         if cv.get("y_scale") is not None and default_y:
                             assert self._axis_manager is not None
@@ -455,7 +454,6 @@ class GraphWindow(QWidget):
                                 default_y,
                                 AxisScale.from_dict(cv["y_scale"]),
                                 sample_id=self._sample_id,
-                                notify=False,
                             )
 
                         if "plot_type" in cv:
@@ -556,7 +554,7 @@ class GraphWindow(QWidget):
         x_label = get_channel_marker_label(fcs, x_ch)
         y_label = get_channel_marker_label(fcs, y_ch)
 
-        logger.info(
+        logger.debug(
             "[W-DIAG] _render_initial: node=%s  x=%s  y=%s  "
             "_x_scale.transform=%s  _x_scale.min_val=%s  _x_scale.w=%.4f  "
             "_y_scale.transform=%s  _y_scale.min_val=%s  _y_scale.w=%.4f",
@@ -590,13 +588,13 @@ class GraphWindow(QWidget):
             parent_events = _parent_node.apply_hierarchy(sample_events)
             if len(parent_events) == 0:
                 logger.warning(
-                    "[W-DIAG] parent_events empty after apply_hierarchy — falling back to full sample"
+                    "parent_events empty after apply_hierarchy — falling back to full sample"
                 )
                 parent_events = sample_events  # safety fallback
         else:
             parent_events = sample_events  # root or ungated: full sample is the parent
 
-        logger.info(
+        logger.debug(
             "[W-DIAG] parent resolution: node=%s  parent_node=%s  "
             "full_sample_n=%d  parent_n=%d  gated_n=%d",
             _node.node_id if _node else None,
@@ -616,12 +614,8 @@ class GraphWindow(QWidget):
         self._x_scale = x_scale_active.copy()
         self._y_scale = y_scale_active.copy()
         if self._axis_manager is not None:
-            self._axis_manager.set_scale(
-                x_ch, self._x_scale.copy(), sample_id=self._sample_id, notify=False
-            )
-            self._axis_manager.set_scale(
-                y_ch, self._y_scale.copy(), sample_id=self._sample_id, notify=False
-            )
+            self._axis_manager.set_scale(x_ch, self._x_scale.copy(), sample_id=self._sample_id)
+            self._axis_manager.set_scale(y_ch, self._y_scale.copy(), sample_id=self._sample_id)
 
         self._canvas.begin_update()
         self._canvas.set_sample_id(self._sample_id)

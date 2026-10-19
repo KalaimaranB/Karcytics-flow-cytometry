@@ -254,7 +254,7 @@ Called from `main_panel.py._on_samples_loaded`: if `state.data.compensation is N
 
 ## 5. `GateCoordinator` — `analysis/gate_coordinator.py`
 
-The facade every UI surface (ribbons, canvas, hierarchy tree) calls into for gating operations. Constructed once by `ServiceFactory.build_all()` and exposed on `main_panel.py` as both `self._gate_coordinator` and `self._gate_controller` (same object — `main_panel.py` line 156: `self._gate_controller = self._gate_coordinator`).
+The facade every UI surface (ribbons, canvas, hierarchy tree) calls into for gating operations. Constructed once by `ServiceFactory.build_all()` and exposed on `main_panel.py` as `self._gate_coordinator`.
 
 ```python
 class GateCoordinator:
@@ -319,12 +319,12 @@ class PopulationService:
 class AxisManager:
     def __init__(self, state: FlowState, inference_strategy: ChannelInferenceStrategy | None = None): ...
     def get_scale(self, channel: str | None, sample_id: str | None = None, default_transform: TransformType | None = None) -> AxisScale
-    def set_scale(self, channel: str, scale: AxisScale, notify: bool = True, sample_id: str | None = None) -> None
+    def set_scale(self, channel: str, scale: AxisScale, sample_id: str | None = None) -> None
     def calculate_range(self, data: pd.Series, channel: str, sample_id: str | None = None) -> tuple[float, float]
     def update_auto_range(self, sample_id: str, channel: str, _axis_id: str = "x") -> tuple[float, float] | None
 ```
 
-Scales are stored per-**group** (`Group.channel_scales`), keyed off the sample's first `group_ids` entry — not per-sample. If a sample has no group, scales fall back to `state.view.fallback_scales`, keyed by channel only. `set_scale` publishes `events.AXIS_UPDATED` unless `notify=False`.
+Scales are stored per-**group** (`Group.channel_scales`), keyed off the sample's first `group_ids` entry — not per-sample. If a sample has no group, scales fall back to `state.view.fallback_scales`, keyed by channel only.
 
 ### `GateModifier` — `analysis/services/modifier.py`
 
@@ -435,15 +435,16 @@ All cross-component notification goes through the Karcytics SDK's `CentralEventB
 | Gate | `GATE_RENAMED` | `flow.gate.renamed` |
 | Gate | `GATE_DELETED` | `flow.gate.deleted` |
 | Gate | `GATE_MODIFIED` | `flow.gate.modified` |
-| Gate | `GATE_PROPAGATED` | `flow.gate.propagated` |
 | Gate | `GATE_SELECTED` | `flow.gate.selected` |
 | Gate | `GATE_PREVIEW` | `flow.gate.preview` |
-| Sample | `SAMPLE_SELECTED` / `SAMPLE_DESELECTED` / `SAMPLE_LOADED` | `flow.sample.*` |
-| Canvas | `RENDER_MODE_CHANGED`, `RENDER_CONFIG_CHANGED`, `AXIS_PARAMS_CHANGED`, `AXIS_RANGE_CHANGED`, `AXIS_RANGE_AUTO_UPDATED`, `TRANSFORM_CHANGED`, `DISPLAY_MODE_CHANGED`, `FMO_CHANGED` | `flow.render.*` / `flow.axis.*` / `flow.transform.changed` / `flow.display.mode_changed` / `flow.fmo.changed` |
-| Statistics | `STATS_COMPUTED`, `STATS_INVALIDATED` | `flow.stats.*` |
+| Sample | `SAMPLE_SELECTED` / `SAMPLE_LOADED` | `flow.sample.*` |
+| Canvas | `RENDER_CONFIG_CHANGED`, `AXIS_PARAMS_CHANGED`, `AXIS_RANGE_CHANGED`, `TRANSFORM_CHANGED`, `DISPLAY_MODE_CHANGED`, `FMO_CHANGED` | `flow.render.*` / `flow.axis.*` / `flow.transform.changed` / `flow.display.mode_changed` / `flow.fmo.changed` |
+| Statistics | `STATS_COMPUTED` | `flow.stats.computed` |
 | Compensation | `COMPENSATION_APPLIED` | `flow.compensation.applied` |
 | UMAP | `UMAP_COMPLETED` | `flow.umap.completed` |
-| Internal | `AXIS_UPDATED`, `GATE_STATS_UPDATED`, `ALL_STATS_UPDATED`, `PROPAGATION_REQUESTED`, `PROPAGATION_COMPLETE`, `SAMPLE_UPDATED` | `flow.axis.updated`, `flow.gate.stats_updated`, `flow.gate.all_stats_updated`, `flow.gate.propagation_requested`, `flow.gate.propagation_complete`, `flow.gate.sample_updated` |
+| Internal | `GATE_STATS_UPDATED`, `ALL_STATS_UPDATED`, `PROPAGATION_COMPLETE`, `SAMPLE_UPDATED` | `flow.gate.stats_updated`, `flow.gate.all_stats_updated`, `flow.gate.propagation_complete`, `flow.gate.sample_updated` |
+| Pipeline | `CONNECTION_ADDED`, `CONNECTION_REMOVED` | `flow.pipeline.connection_added`, `flow.pipeline.connection_removed` |
+| Workflow | `WORKFLOW_SAVED` | `flow.workflow.saved` |
 | Experiment | `EXPERIMENT_DATA_CHANGED` | `flow.experiment.data_changed` |
 
-Two topic strings are published as raw literals rather than named constants: `"flow.pipeline.connection_added"` and `"flow.pipeline.connection_removed"`, emitted by `GateMutationService.add_connection`/`remove_connection` when a logic node is still `is_incomplete` (under-wired) — a cheap "draw the wire" signal that intentionally skips the full stats-recompute + `GATE_STATS_UPDATED` path those methods otherwise take.
+`CONNECTION_ADDED`/`CONNECTION_REMOVED` are published by `GateMutationService.add_connection`/`remove_connection` when a logic node is still `is_incomplete` (under-wired) — a cheap "draw the wire" signal that intentionally skips the full stats-recompute + `GATE_STATS_UPDATED` path those methods otherwise take.

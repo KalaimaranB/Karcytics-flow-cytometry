@@ -251,21 +251,21 @@ class WorkspaceBuilder:
         # this exact leak stalled the Windows daemon for minutes with zero
         # progress, since the whole point of chaining Phase 2 via
         # QTimer.singleShot is to *not* block the event loop like this).
-        logger.warning(
+        logger.debug(
             "[phase2] build_step_graph_manager: importing GraphManager (pulls in matplotlib)"
         )
         from karcytics_plugins.flow_cytometry.ui.graph.graph_manager import GraphManager
 
-        logger.warning("[phase2] build_step_graph_manager: GraphManager imported, constructing")
+        logger.debug("[phase2] build_step_graph_manager: GraphManager imported, constructing")
         panel._graph_manager = GraphManager(
             panel.state,
             panel._factory.get("axis_manager"),
             panel._factory.get("population_service"),
-            controller=panel._gate_controller,
+            controller=panel._gate_coordinator,
         )
         panel._graph_manager.setObjectName("GraphManager")
         panel.state.view._graph_manager = panel._graph_manager
-        logger.warning("[phase2] build_step_graph_manager: done")
+        logger.debug("[phase2] build_step_graph_manager: done")
 
     @staticmethod
     def build_step_node_canvas(panel: FlowCytometryPanel) -> None:

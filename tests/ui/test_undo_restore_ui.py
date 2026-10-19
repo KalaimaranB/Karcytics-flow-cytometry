@@ -105,7 +105,7 @@ def test_panel_restore_handler_recomputes_stats_and_cancels_propagation(qapp, qt
     panel.state.data.experiment = rich.data.experiment
     recompute = MagicMock()
     cancel = MagicMock()
-    monkeypatch.setattr(panel._gate_controller, "recompute_all_stats", recompute)
+    monkeypatch.setattr(panel._gate_coordinator, "recompute_all_stats", recompute)
     monkeypatch.setattr(panel._gate_propagator, "cancel_pending", cancel)
 
     panel._on_state_restored({})

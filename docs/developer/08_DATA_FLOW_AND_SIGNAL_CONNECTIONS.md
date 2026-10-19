@@ -45,40 +45,31 @@ changes.
 | `GATE_RENAMED` | `flow.gate.renamed` | `GateMutationService.rename_population()` via `GateEventPublisher.publish_gate_renamed()` | `MainPanelController`, `GraphManager._on_bus_event` (tab label refresh), `FlowCanvas` |
 | `GATE_DELETED` | `flow.gate.deleted` | `GateMutationService.remove_population()` via `GateEventPublisher.publish_gate_deleted()` | `MainPanelController`, `FlowCanvas`, footer status |
 | `GATE_MODIFIED` | `flow.gate.modified` | `GateMutationService.modify_gate()` via `GateEventPublisher.publish_gate_modified()` — fires **once per completed drag gesture**, never during live preview (§4 in `02_UI_ENGINE.md`) | `HistoryRecorder` (one edit = one undo step), `MainPanelController` (`_on_structural_change`), `FlowCanvas` |
-| `GATE_PROPAGATED` | `flow.gate.propagated` | *(defined; not observed published in the read source — likely legacy/reserved)* | — |
 | `GATE_SELECTED` | `flow.gate.selected` | `GateSelectionService` (via `GateCoordinator.select_gate()`) using `GateEventPublisher.publish_gate_selected()` | `MainPanelController` (`_on_gate_selected_from_controller`), `FlowCanvas` (`_on_controller_selected`) |
 | `GATE_PREVIEW` | `flow.gate.preview` | `GateDrawingFSM` during live drag/edit/polygon/quadrant preview, and `FlowCanvas._clear_previews()` | `GroupPreviewPanel` (thumbnail overlays), `GateHistogramPanel` (highlighted gate) |
-| `SAMPLE_SELECTED` / `SAMPLE_DESELECTED` | `flow.sample.selected` / `flow.sample.deselected` | *(defined; selection is mostly handled via direct Qt signals — see §3)* | — |
+| `SAMPLE_SELECTED` | `flow.sample.selected` | *(defined; selection is mostly handled via direct Qt signals — see §3)* | — |
 | `SAMPLE_LOADED` | `flow.sample.loaded` | Sample loading path | Footer status message (`main_panel._setup_footer_events`) |
-| `RENDER_MODE_CHANGED` | `flow.render.mode_changed` | Display-mode changes | — |
 | `RENDER_CONFIG_CHANGED` | `flow.render.config_changed` | Render settings changes | — |
 | `AXIS_PARAMS_CHANGED` | `flow.axis.params_changed` | Axis parameter changes | — |
-| `AXIS_RANGE_CHANGED` / `AXIS_RANGE_AUTO_UPDATED` | `flow.axis.range_changed` / `flow.axis.range_auto_updated` | Axis manager | — |
+| `AXIS_RANGE_CHANGED` | `flow.axis.range_changed` | Axis manager | — |
 | `TRANSFORM_CHANGED` | `flow.transform.changed` | Transform dialog | — |
 | `DISPLAY_MODE_CHANGED` | `flow.display.mode_changed` | Display mode toggle | — |
 | `FMO_CHANGED` | `flow.fmo.changed` | FMO overlay selection | — |
 | `STATS_COMPUTED` | `flow.stats.computed` | `GateCoordinator._on_stats_finished()` via `GateEventPublisher.publish_stats_computed()` | Footer status message |
-| `STATS_INVALIDATED` | `flow.stats.invalidated` | *(defined; reserved)* | — |
 | `COMPENSATION_APPLIED` | `flow.compensation.applied` | Compensation service | `MainPanelController` (`_on_state_mutated`), footer status |
 | `UMAP_COMPLETED` | `flow.umap.completed` | `UmapService` | `MainPanelController` (`_on_state_mutated`), footer status |
-| `AXIS_UPDATED` | `flow.axis.updated` | Internal axis-layer replacement topic | — |
-| `GATE_STATS_UPDATED` | `flow.gate.stats_updated` | `GateCoordinator._on_stats_finished()` and `GateMutationService` (multiple sites) directly via `CentralEventBus.publish` (not through `GateEventPublisher`) | `MainPanelController` (`_on_stats_updated` — subscribed via the raw string `"flow.gate.stats_updated"`, not the constant) → `panel._on_gate_stats_updated` + `_refresh_node_canvas()` |
-| `ALL_STATS_UPDATED` | `flow.gate.all_stats_updated` | `GateCoordinator._on_stats_finished()` | `MainPanelController` (`_on_all_stats`, subscribed via the raw string) → `panel._on_all_stats_updated` + `_refresh_node_canvas()`; `CanvasManager._on_stats_updated` |
-| `PROPAGATION_REQUESTED` | `flow.gate.propagation_requested` | `GateCoordinator.request_propagation()` path | `GatePropagator` |
+| `GATE_STATS_UPDATED` | `flow.gate.stats_updated` | `GateCoordinator._on_stats_finished()` and `GateMutationService` (multiple sites) directly via `CentralEventBus.publish` (not through `GateEventPublisher`) | `MainPanelController` (`_on_stats_updated`) → `panel._on_gate_stats_updated` + `_refresh_node_canvas()` |
+| `ALL_STATS_UPDATED` | `flow.gate.all_stats_updated` | `GateCoordinator._on_stats_finished()` | `MainPanelController` (`_on_all_stats`) → `panel._on_all_stats_updated` + `_refresh_node_canvas()`; `CanvasManager._on_stats_updated` |
 | `PROPAGATION_COMPLETE` | `flow.gate.propagation_complete` | `GatePropagator` after cross-sample cloning finishes | `MainPanelController` (`_on_prop_complete`) → `panel._on_propagation_complete` + flash message on partial failure |
 | `SAMPLE_UPDATED` | `flow.gate.sample_updated` | `GatePropagator` per successfully-propagated sample | `MainPanelController` → `panel._on_propagated_sample_updated`, `_groups_panel.refresh()` |
+| `CONNECTION_ADDED` / `CONNECTION_REMOVED` | `flow.pipeline.connection_added` / `flow.pipeline.connection_removed` | `GateMutationService.add_connection`/`remove_connection` while a logic node is still under-wired (a cheap "draw the wire" signal that skips the stats recompute) | `CanvasManager`, `HistoryRecorder` (undo step) |
+| `WORKFLOW_SAVED` | `flow.workflow.saved` | `WorkspaceIOHandler` after a successful save | `AcademyWorkflowController`, `WorkflowSavedValidator` |
 | `EXPERIMENT_DATA_CHANGED` | `flow.experiment.data_changed` | Bulk experiment-level mutation (e.g. compensation across all samples) | — |
 
-!!! note "Two topics are subscribed by raw string, not by constant"
-    `MainPanelController.wire()` subscribes to `"flow.gate.stats_updated"`
-    and `"flow.gate.all_stats_updated"` as literal strings rather than
-    `events.GATE_STATS_UPDATED`/`events.ALL_STATS_UPDATED` — they happen to
-    match exactly today, but a rename of either constant in `events.py`
-    would silently desync this wiring without a type error. Same pattern in
-    `CanvasManager`, which uses `flow_events.ALL_STATS_UPDATED` (the
-    constant, correctly) but subscribes to `"flow.pipeline.connection_added"`/
-    `"flow.pipeline.connection_removed"` as raw strings that don't have
-    `events.py` constants at all.
+!!! note "Subscribe with the constant"
+    Every topic is a constant in `analysis/events.py`. Subscribing or
+    publishing with the string value instead hides the link from searches
+    and from the doctor's dead-topic check (KS350/KS351).
 
 ### `GateEventPublisher`
 

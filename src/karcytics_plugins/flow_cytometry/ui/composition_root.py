@@ -36,10 +36,10 @@ class ServiceFactory:
 
     def build_all(self) -> None:
         """Instantiates all services and wires them up."""
-        logger.warning("[phase1] ServiceFactory.build_all: importing task_scheduler")
+        logger.debug("[phase1] ServiceFactory.build_all: importing task_scheduler")
         from karcytics_sdk.plugin.runtime_services import task_scheduler
 
-        logger.warning("[phase1] ServiceFactory.build_all: importing service modules")
+        logger.debug("[phase1] ServiceFactory.build_all: importing service modules")
         from ..analysis.api_cache import CacheManager
         from ..analysis.axis_manager import AxisManager
         from ..analysis.biology_services import FluorophoreService, MarkerService
@@ -52,7 +52,7 @@ class ServiceFactory:
         from .services.workflow_service import WorkflowService
         from .services.workspace_io_handler import WorkspaceIOHandler
 
-        logger.warning("[phase1] ServiceFactory.build_all: service modules imported")
+        logger.debug("[phase1] ServiceFactory.build_all: service modules imported")
 
         # Domain Services
         # Domain Services
@@ -63,14 +63,14 @@ class ServiceFactory:
         self.state.population_service = population_service
 
         # Biology Cache & Services
-        logger.warning("[phase1] ServiceFactory.build_all: constructing CacheManager")
+        logger.debug("[phase1] ServiceFactory.build_all: constructing CacheManager")
         cache_dir = pathlib.Path.home() / ".karcytics" / "cache" / "biology"
         cache_manager = CacheManager(cache_dir)
         fluor_service = FluorophoreService(cache_manager)
         marker_service = MarkerService(cache_manager)
-        logger.warning("[phase1] ServiceFactory.build_all: CacheManager/bio services done")
+        logger.debug("[phase1] ServiceFactory.build_all: CacheManager/bio services done")
 
-        logger.warning("[phase1] ServiceFactory.build_all: constructing DerivedParameterService")
+        logger.debug("[phase1] ServiceFactory.build_all: constructing DerivedParameterService")
         derived_parameter_service = DerivedParameterService(self.state)
 
         # Gate Coordination
@@ -79,19 +79,19 @@ class ServiceFactory:
         )
 
         # Computation & Analysis
-        logger.warning("[phase1] ServiceFactory.build_all: constructing DataLoaderService")
+        logger.debug("[phase1] ServiceFactory.build_all: constructing DataLoaderService")
         data_loader_service = DataLoaderService(task_scheduler)
         attachment_manager = AttachmentManager(axis_manager)
         workflow_service = WorkflowService(self.state, data_loader_service, attachment_manager)
         umap_service = UmapService(self.state, task_scheduler)
-        logger.warning("[phase1] ServiceFactory.build_all: analysis services done")
+        logger.debug("[phase1] ServiceFactory.build_all: analysis services done")
 
         # UI Services
-        logger.warning("[phase1] ServiceFactory.build_all: constructing WorkspaceIOHandler")
+        logger.debug("[phase1] ServiceFactory.build_all: constructing WorkspaceIOHandler")
         workspace_io_handler = WorkspaceIOHandler(
             workflow_service=workflow_service, parent_widget=self.parent_widget
         )
-        logger.warning("[phase1] ServiceFactory.build_all: WorkspaceIOHandler done")
+        logger.debug("[phase1] ServiceFactory.build_all: WorkspaceIOHandler done")
 
         # Store in registry
         self._services["axis_manager"] = axis_manager

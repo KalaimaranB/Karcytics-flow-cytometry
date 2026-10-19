@@ -24,7 +24,6 @@ self._factory = ServiceFactory(self.state, self)
 self._factory.build_all()
 
 self._gate_coordinator = self._factory.get("gate_coordinator")
-self._gate_controller = self._gate_coordinator  # same object, two names
 self._gate_propagator = self._factory.get("gate_propagator")
 self._workflow_service = self._factory.get("workflow_service")
 self._umap_service = self._factory.get("umap_service")
@@ -343,7 +342,7 @@ Depends on the SDK `task_scheduler` (constructor param, from `ServiceFactory.bui
 
 | Service | File | Responsibility |
 |---|---|---|
-| `GateCoordinator` | `analysis/gate_coordinator.py` | Top-level gate-lifecycle facade — see [01_API_REFERENCE.md §5](01_API_REFERENCE.md#5-gatecoordinator--analysisgate_coordinatorpy). Exposed on `main_panel.py` as both `self._gate_coordinator` and `self._gate_controller` (same object). |
+| `GateCoordinator` | `analysis/gate_coordinator.py` | Top-level gate-lifecycle facade — see [01_API_REFERENCE.md §5](01_API_REFERENCE.md#5-gatecoordinator--analysisgate_coordinatorpy). Exposed on `main_panel.py` as `self._gate_coordinator`. |
 | `AxisManager` | `analysis/axis_manager.py` | Per-group channel scale storage + auto-range calculation. See [01_API_REFERENCE.md §6](01_API_REFERENCE.md#axismanager--analysisaxis_managerpy). |
 | `PopulationService` | `analysis/population_service.py` | Sample/node lookup and population add/remove — the lower-level model-manipulation layer that `GateMutationService` builds on. |
 | `FluorophoreService` / `MarkerService` | `analysis/biology_services.py` | External biology lookups: `FluorophoreService` queries FPbase's GraphQL API for fluorophore spectra (with local disk caching via `CacheManager`); `MarkerService` queries UniProt for CD-marker/protein metadata, falling back to a stub record if the network call fails or returns nothing. |

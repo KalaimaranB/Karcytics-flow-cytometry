@@ -205,7 +205,7 @@ class GateMutationService:
             # skip the (expensive) stats recompute and full canvas refresh — just
             # let the canvas draw the new wire and update this one card.
             CentralEventBus.publish(
-                "flow.pipeline.connection_added",
+                events.CONNECTION_ADDED,
                 {"sample_id": sample_id, "node_id": target_node_id},
             )
 
@@ -254,7 +254,7 @@ class GateMutationService:
                     "per_parent_pcts": {},
                 }
             CentralEventBus.publish(
-                "flow.pipeline.connection_removed",
+                events.CONNECTION_REMOVED,
                 {"sample_id": sample_id, "node_id": target_node_id},
             )
 

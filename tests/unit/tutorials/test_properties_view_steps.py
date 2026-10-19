@@ -62,9 +62,13 @@ def test_role_assignment_asks_for_a_switch_only_when_on_histogram(view, expected
 
 
 def test_router_ignores_an_unknown_step():
+    before = {step.id: step.next_step_id for step in course_1_fundamentals.steps}
+
     route_by_properties_view(
         SimpleNamespace(state=_state(PROPERTIES_VIEW_HISTOGRAM)), "nope", "a", "b"
     )
+
+    assert {step.id: step.next_step_id for step in course_1_fundamentals.steps} == before
 
 
 def test_switch_step_leads_into_role_assignment():

@@ -1172,7 +1172,7 @@ class PopulationAnalysisViewer(QWidget):
             state_ref = self._state
 
             def _prep_task():
-                logger.info("[ANIM-PREP] Starting UmapAnimationDataPrep in background thread")
+                logger.debug("[ANIM-PREP] Starting UmapAnimationDataPrep in background thread")
                 p = UmapAnimationDataPrep(
                     n_neighbors=params.n_neighbors,
                     random_seed=params.random_seed,
@@ -1185,7 +1185,7 @@ class PopulationAnalysisViewer(QWidget):
                     min_dist=params.min_dist,
                     color_marker_idx=0,
                 )
-                logger.info(f"[ANIM-PREP] prepare() returned success={success}")
+                logger.debug(f"[ANIM-PREP] prepare() returned success={success}")
                 if not success:
                     return {"success": False, "prep": None, "frames": None, "colors": None}
 
@@ -1196,7 +1196,7 @@ class PopulationAnalysisViewer(QWidget):
                 # after this "quick UMAP run", not the UMAP fit itself (which
                 # was already backgrounded).
                 frames, colors = build_umap_animation_frames(p, fps=self._animator.fps)
-                logger.info(f"[ANIM-PREP] Built {len(frames)} animation frames in background")
+                logger.debug(f"[ANIM-PREP] Built {len(frames)} animation frames in background")
                 return {"success": True, "prep": p, "frames": frames, "colors": colors}
 
             def _on_prep_done(results: dict):
@@ -1208,14 +1208,14 @@ class PopulationAnalysisViewer(QWidget):
                         worker.error.disconnect(_on_prep_error)
                 except Exception:
                     pass
-                logger.info(
+                logger.debug(
                     f"[ANIM-PREP] _on_prep_done called on main thread. success={results.get('success')}"
                 )
                 success = results.get("success", False)
                 if success:
                     self._last_prep_data = results.get("prep")
                     frames = results.get("frames")
-                    logger.info("[ANIM-PREP] Applying precomputed frames on main thread...")
+                    logger.debug("[ANIM-PREP] Applying precomputed frames on main thread...")
                     if frames:
                         self._animator.apply_precomputed_frames(frames, results.get("colors"))
                     else:
@@ -1223,27 +1223,25 @@ class PopulationAnalysisViewer(QWidget):
                         # background (e.g. prep_data lacked the arrays
                         # needed), so fall back to the synchronous path.
                         self._animator.prepare_animation(self._last_prep_data)  # type: ignore
-                    logger.info(
+                    logger.debug(
                         f"[ANIM-PREP] Frames applied. {len(self._animator._frames)} frames built."
                     )
                     self._is_animation_playing = True
                     self._display_stack.setCurrentIndex(2)
                     self._animator.start()
-                    logger.info("[ANIM-PREP] Animator started. Poll timer running.")
+                    logger.debug("[ANIM-PREP] Animator started. Poll timer running.")
                 else:
-                    logger.warning(
-                        "[ANIM-PREP] Prep failed — skipping animation, proceeding to UMAP only."
-                    )
+                    logger.warning("Prep failed — skipping animation, proceeding to UMAP only.")
                     self._display_stack.setCurrentIndex(0)
 
-                logger.info("[ANIM-PREP] Submitting full UMAP analysis task...")
+                logger.debug("[ANIM-PREP] Submitting full UMAP analysis task...")
                 self._umap_service.run_analysis(
                     params=params,
                     on_done=lambda res: self._on_analysis_done(res, params=params),
                     on_error_cb=lambda err: self._on_analysis_error(err),
                     on_progress=self._progress_bar.setValue,
                 )
-                logger.info("[ANIM-PREP] Full UMAP task submitted.")
+                logger.debug("[ANIM-PREP] Full UMAP task submitted.")
 
             def _on_prep_error(err: str):
                 try:
@@ -1470,13 +1468,13 @@ class PopulationAnalysisViewer(QWidget):
         self._check_transition_to_results()
 
     def _check_transition_to_results(self) -> None:
-        logger.info(
+        logger.debug(
             f"[TRANSITION] check_transition: anim_playing={self._is_animation_playing}, run={self._is_analysis_running}, results={self._last_results is not None}"
         )
         if self._is_animation_playing or self._is_analysis_running:
             return
         if self._last_results is not None:
-            logger.info("[TRANSITION] Conditions met! Building results panel and switching.")
+            logger.debug("[TRANSITION] Conditions met! Building results panel and switching.")
 
             # Now that animation is fully done, we can safely block the UI thread
             # for a few seconds to generate the matplotlib scatter plots.
@@ -1510,7 +1508,7 @@ class PopulationAnalysisViewer(QWidget):
             self._update_delete_button_state()
 
     def _on_animation_finished(self) -> None:
-        logger.info("[TRANSITION] _on_animation_finished called.")
+        logger.debug("[TRANSITION] _on_animation_finished called.")
         self._is_animation_playing = False
         self._check_transition_to_results()
 

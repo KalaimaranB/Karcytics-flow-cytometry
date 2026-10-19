@@ -26,8 +26,6 @@ if TYPE_CHECKING:
 
 Subscribe = Callable[[str, Callable[[Any], None]], None]
 
-CONNECTION_ADDED = "flow.pipeline.connection_added"
-CONNECTION_REMOVED = "flow.pipeline.connection_removed"
 
 _DERIVED_ACTION_LABELS = {
     "created": "Add Derived Parameter",
@@ -71,8 +69,8 @@ STEP_EVENTS: dict[str, str | Callable[[Any], str | None]] = {
     events.GATE_DELETED: "Delete Gate",
     events.GATE_RENAMED: _gate_renamed_label,
     events.GATE_MODIFIED: "Edit Gate",
-    CONNECTION_ADDED: "Connect Gates",
-    CONNECTION_REMOVED: "Disconnect Gates",
+    events.CONNECTION_ADDED: "Connect Gates",
+    events.CONNECTION_REMOVED: "Disconnect Gates",
     events.SAMPLE_LOADED: "Add Samples",
     events.COMPENSATION_APPLIED: "Change Compensation",
     events.DERIVED_PARAMS_CHANGED: _derived_label,

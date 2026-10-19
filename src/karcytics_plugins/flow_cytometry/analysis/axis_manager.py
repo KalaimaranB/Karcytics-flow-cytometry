@@ -9,9 +9,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
-from karcytics_sdk.plugin import CentralEventBus, get_logger
+from karcytics_sdk.plugin import get_logger
 
-from . import events
 from .channel_inference import ChannelInferenceStrategy, DerivedAwareChannelInference
 from .constants import DERIVED_LOG_FLOOR, DERIVED_PREFIX
 from .scaling import AxisScale, calculate_auto_range
@@ -32,12 +31,7 @@ def _new_scale(channel: str, transform: TransformType) -> AxisScale:
 
 
 class AxisManager:
-    """Coordinates axis scales and auto-ranging across the module.
-
-    Publishes:
-        events.AXIS_UPDATED(channel, scale):
-            Published when a channel's scale is modified.
-    """
+    """Coordinates axis scales and auto-ranging across the module."""
 
     def __init__(
         self,
@@ -81,10 +75,9 @@ class AxisManager:
         self,
         channel: str,
         scale: AxisScale,
-        notify: bool = True,
         sample_id: str | None = None,
     ):
-        """Update a channel's scale in the sample's primary group and notify listeners."""
+        """Update a channel's scale in the sample's primary group."""
         saved = False
         if sample_id:
             sample = self._state.data.experiment.samples.get(sample_id)
@@ -96,9 +89,6 @@ class AxisManager:
 
         if not saved:
             self._state.view.fallback_scales[channel] = scale.copy()
-
-        if notify:
-            CentralEventBus.publish(events.AXIS_UPDATED, {"channel": channel, "scale": scale})
 
     def calculate_range(
         self, data: pd.Series, channel: str, sample_id: str | None = None

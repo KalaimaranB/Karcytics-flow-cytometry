@@ -37,13 +37,13 @@ logger = get_logger(__name__, "flow_cytometry")
 # which one (if either) is where a stalled Windows CI daemon subprocess
 # never gets past. .warning() is the lowest level guaranteed visible in
 # captured stderr without a configured handler.
-logger.warning("[phase1] fcs_io: importing numpy")
+logger.debug("[phase1] fcs_io: importing numpy")
 import numpy as np  # noqa: E402
 
-logger.warning("[phase1] fcs_io: importing pandas")
+logger.debug("[phase1] fcs_io: importing pandas")
 import pandas as pd  # noqa: E402
 
-logger.warning("[phase1] fcs_io: numpy/pandas imported")
+logger.debug("[phase1] fcs_io: numpy/pandas imported")
 
 from .constants import (  # noqa: E402
     DERIVED_PREFIX,

@@ -12,9 +12,10 @@ from collections.abc import Callable
 from typing import Any
 
 import numpy as np
-from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.tutorial_models import IValidator, ValidationFailure
 
+from ..analysis import events
 from ..analysis.state import FlowState
 from ..main_tabs import MainTab
 
@@ -349,14 +350,7 @@ class CompensationAppliedValidator(FlowValidator):
                 applied_any = True
 
         if applied_any:
-            try:
-                from karcytics_sdk.plugin import CentralEventBus
-
-                from ..analysis.events import EXPERIMENT_DATA_CHANGED
-
-                CentralEventBus.publish(EXPERIMENT_DATA_CHANGED, {})
-            except Exception:
-                pass
+            CentralEventBus.publish(events.EXPERIMENT_DATA_CHANGED, {})
 
         return True
 
@@ -860,7 +854,7 @@ class WorkflowSavedValidator(FlowValidator):
         self._saved_at: float | None = None
         # Every course that ends on a "please save" step creates its own
         # instance of this validator, but ALL of them subscribe to the same
-        # process-wide "flow.workflow.saved" event as soon as the course
+        # process-wide WORKFLOW_SAVED event as soon as the course
         # module is imported (i.e. at plugin load, well before the user has
         # even started Course 1). Without arming, Course 3's instance would
         # already be sitting on a truthy `_saved_payload` the moment its step
@@ -874,13 +868,7 @@ class WorkflowSavedValidator(FlowValidator):
         # save.
         self._armed_at: float | None = None
 
-        # Subscribe to save event across the plugin process
-        try:
-            from karcytics_sdk.plugin import CentralEventBus
-
-            CentralEventBus.subscribe("flow.workflow.saved", self._on_workflow_saved)
-        except ImportError:
-            pass
+        CentralEventBus.subscribe(events.WORKFLOW_SAVED, self._on_workflow_saved)
 
     def _on_workflow_saved(self, payload: dict) -> None:
         self._saved_payload = payload

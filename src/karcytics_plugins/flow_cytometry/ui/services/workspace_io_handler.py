@@ -11,6 +11,7 @@ from typing import Any
 from karcytics_sdk.plugin import get_logger
 from PySide6.QtWidgets import QFileDialog
 
+from ...analysis import events
 from .workspace_save_service import WorkspaceSaveService
 from .zip_export_service import ZipExportService
 
@@ -75,7 +76,7 @@ class WorkspaceIOHandler:
         try:
             from karcytics_sdk.plugin import CentralEventBus
 
-            CentralEventBus.publish("flow.workflow.saved", {"filename": filename})
+            CentralEventBus.publish(events.WORKFLOW_SAVED, {"filename": filename})
         except Exception as e:
             logger.debug(f"Failed to publish workflow saved event: {e}")
 
@@ -128,7 +129,7 @@ class WorkspaceIOHandler:
                     try:
                         from karcytics_sdk.plugin import CentralEventBus
 
-                        CentralEventBus.publish("flow.workflow.saved", {"filename": new_filename})
+                        CentralEventBus.publish(events.WORKFLOW_SAVED, {"filename": new_filename})
                     except Exception as e:
                         logger.debug(f"Failed to publish workflow saved event: {e}")
 
@@ -195,7 +196,7 @@ class WorkspaceIOHandler:
             try:
                 from karcytics_sdk.plugin import CentralEventBus
 
-                CentralEventBus.publish("flow.workflow.saved", {"path": path})
+                CentralEventBus.publish(events.WORKFLOW_SAVED, {"path": path})
             except Exception as e:
                 logger.debug(f"Failed to publish workflow saved event: {e}")
 

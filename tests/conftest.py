@@ -1,4 +1,6 @@
+import importlib
 import os
+import pkgutil
 import sys
 import types
 
@@ -12,6 +14,10 @@ sys.path.insert(0, os.path.join(_repo_root, "src"))
 
 from unittest.mock import MagicMock  # noqa: E402
 
+# The mocks below replace the `karcytics_sdk.plugin` package itself, after
+# which `from karcytics_sdk.plugin.x import y` only resolves for submodules
+# already loaded. The SDK may load them lazily, so load them all now.
+import karcytics_sdk.plugin as _sdk_plugin  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import pytest  # noqa: E402
@@ -23,6 +29,9 @@ from karcytics_sdk.plugin.components import repopulate_combo  # noqa: E402
 from karcytics_sdk.plugin.history import UndoHistory  # noqa: E402
 from karcytics_sdk.plugin.timing import Debouncer  # noqa: E402
 from PySide6.QtWidgets import QLabel, QPushButton, QSplitter, QWidget  # noqa: E402
+
+for _submodule in pkgutil.iter_modules(_sdk_plugin.__path__):
+    importlib.import_module(f"karcytics_sdk.plugin.{_submodule.name}")
 
 # Mock karcytics_sdk before it gets imported
 mock_karcytics_sdk_plugin = MagicMock()

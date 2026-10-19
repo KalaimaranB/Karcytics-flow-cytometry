@@ -66,7 +66,7 @@ def test_pseudocolor_overlay_renderer_handles_empty_layers():
     fig = renderer.render(
         base_x=np.array([]), base_y=np.array([]), layers=[], x_label="X", y_label="Y"
     )
-    assert fig is not None
+    assert len(fig.axes) == 1
 
 
 @pytest.mark.ui

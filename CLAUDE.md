@@ -44,8 +44,8 @@ Test markers: `unit`, `functional`, `integration`, `ui` (needs Qt/display), `slo
 ## Structure
 
 `src/karcytics_plugins/flow_cytometry/`:
-- `analysis/` — pure compute, no Qt: `compute/` (transforms, compensation, stats), `gating/` (hierarchical gate tree logic), `services/`, `animation/` (UMAP step animations).
-- `ui/` — `builders/`, `controllers/`, `dialogs/`, `graph/` (canvas/plotting), `ribbons/`, `services/`, `widgets/`, `onboarding/`.
+- `analysis/` — pure compute, no Qt. Top-level modules hold the science (`transforms.py`, `compensation.py`, `statistics.py`, `fcs_io.py`, the clustering analyses); `gating/` (gate types and the gate tree), `compute/` (`dag_evaluator.py`, boolean logic nodes), `services/` (gate mutation helpers), `clustering/`, `derived/` (derived parameters), `sample_lens/`, `animation/` (UMAP step animations).
+- `ui/` — `builders/`, `controllers/`, `dialogs/`, `graph/` (canvas/plotting), `ribbons/`, `services/`, `widgets/`.
 - `workflows/` — JSON-serializable experiment templates.
 - `tutorials/` — Academy/guided-tutorial content and assets.
 

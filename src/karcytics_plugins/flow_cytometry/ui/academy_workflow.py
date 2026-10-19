@@ -38,6 +38,7 @@ from karcytics_sdk.plugin.dialogs import ask_yes_no, show_info, show_warning
 from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
+from ..analysis import events
 from ..main_tabs import MainTab
 
 logger = logging.getLogger(__name__)
@@ -49,9 +50,6 @@ BETWEEN_COURSES = "between_courses"
 GRADUATED = "graduated"
 
 DEFAULT_WORKFLOW_NAME = "Flow Academy"
-
-# Published by WorkspaceIOHandler after any successful workflow save.
-WORKFLOW_SAVED = "flow.workflow.saved"
 
 # What the lock card is asking; decides what its two buttons do.
 _MODE_CONVERT = "convert"
@@ -113,13 +111,13 @@ class AcademyWorkflowController(QObject):
         self._bus.subscribe(ACADEMY_COURSE_COMPLETED, self._on_course_completed)
         # The course's own Save steps, Update and autosave save the block
         # too; the catalog's progress follows whatever was last saved.
-        CentralEventBus.subscribe(WORKFLOW_SAVED, self._on_workflow_saved)
+        CentralEventBus.subscribe(events.WORKFLOW_SAVED, self._on_workflow_saved)
 
     def dispose(self) -> None:
         """Unsubscribes from the Academy bus (the panel is going away)."""
         self._bus.unsubscribe(ACADEMY_STEP_CHANGED, self._on_step_changed)
         self._bus.unsubscribe(ACADEMY_COURSE_COMPLETED, self._on_course_completed)
-        CentralEventBus.unsubscribe(WORKFLOW_SAVED, self._on_workflow_saved)
+        CentralEventBus.unsubscribe(events.WORKFLOW_SAVED, self._on_workflow_saved)
 
     # ── State ──────────────────────────────────────────────────────────
 

@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
@@ -139,9 +140,9 @@ class FlowCytometryPanel(PluginBase):
     gate_added_to_tree = Signal()
 
     def __init__(self, plugin_id: str = "flow_cytometry", parent=None) -> None:
-        logger.warning("[phase1] FlowCytometryPanel.__init__: super().__init__ start")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: super().__init__ start")
         super().__init__(plugin_id, parent)
-        logger.warning("[phase1] FlowCytometryPanel.__init__: super().__init__ done")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: super().__init__ done")
 
         # Academy InteractionSteps (course1/course2 gate steps) target this
         # panel by objectName to wire up gate_added_to_tree — without this,
@@ -154,9 +155,9 @@ class FlowCytometryPanel(PluginBase):
         self._propagation_active = True  # matches PropagationToggle default (ON)
 
         # ── Services ──────────────────────────────────────────────────
-        logger.warning("[phase1] FlowCytometryPanel.__init__: _setup_services start")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: _setup_services start")
         self._setup_services()
-        logger.warning("[phase1] FlowCytometryPanel.__init__: _setup_services done")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: _setup_services done")
 
         # ── Size policy ───────────────────────────────────────────────
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -164,11 +165,11 @@ class FlowCytometryPanel(PluginBase):
         # ── Build UI skeleton (Phase 1) ───────────────────────────────
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        logger.warning("[phase1] FlowCytometryPanel.__init__: _setup_ui start")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: _setup_ui start")
         self._setup_ui()
-        logger.warning("[phase1] FlowCytometryPanel.__init__: _setup_ui done")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: _setup_ui done")
         self._setup_footer_events()
-        logger.warning("[phase1] FlowCytometryPanel.__init__: _setup_footer_events done")
+        logger.debug("[phase1] FlowCytometryPanel.__init__: _setup_footer_events done")
 
         # Piped to the core status bar (see workspace_builder.connect_tab_bar
         # for the "Ready" message once Phase 2 completes).
@@ -181,16 +182,15 @@ class FlowCytometryPanel(PluginBase):
 
     def _setup_services(self) -> None:
         """Initialize and wire all core analysis and UI services."""
-        logger.warning("[phase1] _setup_services: importing composition_root")
+        logger.debug("[phase1] _setup_services: importing composition_root")
         from .composition_root import ServiceFactory
 
         self._factory = ServiceFactory(self.state, self)
-        logger.warning("[phase1] _setup_services: calling ServiceFactory.build_all()")
+        logger.debug("[phase1] _setup_services: calling ServiceFactory.build_all()")
         self._factory.build_all()
-        logger.warning("[phase1] _setup_services: ServiceFactory.build_all() done")
+        logger.debug("[phase1] _setup_services: ServiceFactory.build_all() done")
 
         self._gate_coordinator = self._factory.get("gate_coordinator")
-        self._gate_controller = self._gate_coordinator
         self._gate_propagator = self._factory.get("gate_propagator")
         self._workflow_service = self._factory.get("workflow_service")
         self._umap_service = self._factory.get("umap_service")
@@ -244,8 +244,6 @@ class FlowCytometryPanel(PluginBase):
     def _setup_footer_events(self) -> None:
         """Subscribe to events to update the footer message."""
         from karcytics_sdk.plugin import CentralEventBus
-
-        from karcytics_plugins.flow_cytometry.analysis import events
 
         def update_footer(msg: str) -> None:
             if hasattr(self, "_footer"):
@@ -390,12 +388,12 @@ class FlowCytometryPanel(PluginBase):
         views (GraphManager, NodeCanvas, etc.) are built in ``_phase2_build``
         after the GalacticLoader has signalled its warp peak.
         """
-        logger.warning("[phase1] _setup_ui: importing workspace_builder")
+        logger.debug("[phase1] _setup_ui: importing workspace_builder")
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
-        logger.warning("[phase1] _setup_ui: workspace_builder imported, calling build_skeleton()")
+        logger.debug("[phase1] _setup_ui: workspace_builder imported, calling build_skeleton()")
         WorkspaceBuilder.build_skeleton(self)
-        logger.warning("[phase1] _setup_ui: build_skeleton() done")
+        logger.debug("[phase1] _setup_ui: build_skeleton() done")
 
         # ── Theme Sync (skeleton widgets only) ────────────────────────
         self._apply_theme_styles()
@@ -444,7 +442,7 @@ class FlowCytometryPanel(PluginBase):
             display_name="Flow Cytometry",
         )
 
-        logger.warning("[phase2] begin_async_init: scheduling queue")
+        logger.debug("[phase2] begin_async_init: scheduling queue")
         self._phase2_queue = [
             ("graph_manager", lambda: WorkspaceBuilder.build_step_graph_manager(self)),
             ("node_canvas", lambda: WorkspaceBuilder.build_step_node_canvas(self)),
@@ -469,9 +467,9 @@ class FlowCytometryPanel(PluginBase):
         # daemon's captured stderr looked identical whether Phase 2 was
         # running fine or genuinely stuck. .warning() is the lowest level
         # guaranteed visible without any handler configuration.
-        logger.warning("[phase2] step start: %s", name)
+        logger.debug("[phase2] step start: %s", name)
         step()
-        logger.warning("[phase2] step done: %s", name)
+        logger.debug("[phase2] step done: %s", name)
         if self._phase2_queue:
             QTimer.singleShot(0, self._run_next_phase2_step)
 
@@ -491,15 +489,15 @@ class FlowCytometryPanel(PluginBase):
         """
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
-        logger.warning("[phase2] finalize: finalize_center_stack")
+        logger.debug("[phase2] finalize: finalize_center_stack")
         WorkspaceBuilder.finalize_center_stack(self)
-        logger.warning("[phase2] finalize: _wire_signals")
+        logger.debug("[phase2] finalize: _wire_signals")
         self._wire_signals()
-        logger.warning("[phase2] finalize: connect_tab_bar")
+        logger.debug("[phase2] finalize: connect_tab_bar")
         WorkspaceBuilder.connect_tab_bar(self)
-        logger.warning("[phase2] finalize: _apply_theme_styles")
+        logger.debug("[phase2] finalize: _apply_theme_styles")
         self._apply_theme_styles()
-        logger.warning("[phase2] finalize: done")
+        logger.debug("[phase2] finalize: done")
 
         # ── Deferred workflow injection (set up by PluginLoaderManager) ──────
         _has_deferred = (
@@ -1017,7 +1015,7 @@ class FlowCytometryPanel(PluginBase):
             # current_gate_id pointing at a stale population — so a later legitimate
             # select_gate() call for that same node_id gets silently swallowed by its
             # dedup guard, and GroupPreviewPanel never learns the population changed.
-            self._gate_controller.select_gate(sample_id, node_id)
+            self._gate_coordinator.select_gate(sample_id, node_id)
             self._gate_hierarchy.set_active_sample(sample_id)
             self._properties_panel.show_sample_properties(sample_id, node_id)
 
@@ -1108,7 +1106,7 @@ class FlowCytometryPanel(PluginBase):
             # Also select the gate so the properties panel and group preview
             # update their context to this node. Without this, GroupPreviewPanel
             # never receives the correct node_id and renders thumbnails with no gates.
-            self._gate_controller.select_gate(sample_id, node_id)
+            self._gate_coordinator.select_gate(sample_id, node_id)
 
     def _on_gate_selected(self, node_id: str | None) -> None:
         """Central selection handler for populations across all UI components."""
@@ -1121,7 +1119,7 @@ class FlowCytometryPanel(PluginBase):
             sample_id = graph.sample_id if graph else self._gate_hierarchy._active_sample_id
 
         if sample_id:
-            self._gate_controller.select_gate(sample_id, node_id)
+            self._gate_coordinator.select_gate(sample_id, node_id)
 
     def _on_gate_selected_from_controller(self, sample_id: str, node_id: str | None) -> None:
         """Global selection update from the model layer."""
@@ -1261,7 +1259,7 @@ class FlowCytometryPanel(PluginBase):
             try:
                 from karcytics_sdk.plugin import CentralEventBus as _CentralEventBus
 
-                _CentralEventBus.unsubscribe("flow.gate.all_stats_updated", self._startup_stats_cb)
+                _CentralEventBus.unsubscribe(events.ALL_STATS_UPDATED, self._startup_stats_cb)
             except Exception:
                 pass
             del self._startup_stats_cb
@@ -1356,7 +1354,7 @@ class FlowCytometryPanel(PluginBase):
         self._gate_propagator.cancel_pending()
         for sid, sample in self.state.data.experiment.samples.items():
             if sample.fcs_data is not None and sample.gate_tree.children:
-                self._gate_controller.recompute_all_stats(sid)
+                self._gate_coordinator.recompute_all_stats(sid)
         if hasattr(self, "_graph_manager"):
             self._graph_manager.reconcile_with_state()
             self._refresh_all()
@@ -1528,7 +1526,7 @@ class FlowCytometryPanel(PluginBase):
             for sid, sample in self.state.data.experiment.samples.items():
                 if sample.fcs_data is not None and sample.gate_tree is not None:
                     if len(sample.gate_tree.children) > 0:
-                        self._gate_controller.recompute_all_stats(sid)
+                        self._gate_coordinator.recompute_all_stats(sid)
 
             # 2. The loaded workspace is the new, saved baseline.
             self._finish_workflow_load(clean=True)

@@ -352,7 +352,7 @@ class UmapAnimatorWidget(QWidget):
         logger = logging.getLogger(__name__)
         logger.debug(f"[ANIM-POLL] total={total}, rendered={self._rendered_frame}")
         if total > 0 and self._rendered_frame >= total - 5:
-            logger.info("[ANIM-POLL] Animation finished! Stopping poll and emitting signal.")
+            logger.debug("[ANIM-POLL] Animation finished! Stopping poll and emitting signal.")
             self._poll.stop()
             self.animation_finished.emit()
 

@@ -246,14 +246,14 @@ class MainPanelController:
             panel._on_gate_stats_updated(sid, nid)
             panel._refresh_node_canvas()
 
-        _subscribe("flow.gate.stats_updated", _on_stats_updated)
+        _subscribe(events.GATE_STATS_UPDATED, _on_stats_updated)
 
         def _on_all_stats(payload):
             sid = payload.get("sample_id")
             panel._on_all_stats_updated(sid)
             panel._refresh_node_canvas()
 
-        _subscribe("flow.gate.all_stats_updated", _on_all_stats)
+        _subscribe(events.ALL_STATS_UPDATED, _on_all_stats)
 
         # ── Propagator → live UI updates ──────────────────────────────
         _subscribe(

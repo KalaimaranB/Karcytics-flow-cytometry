@@ -33,12 +33,10 @@ def dummy_data():
 
 def test_strategy_factory():
     """Verify the factory returns the correct strategies and falls back gracefully."""
-    pseudo = RenderStrategyFactory.get_strategy("Pseudocolor")
-    assert isinstance(pseudo, PseudocolorStrategy)
+    assert type(RenderStrategyFactory.get_strategy("Pseudocolor")) is PseudocolorStrategy
 
     # Unknown strategy falls back to Dot Plot
-    fallback = RenderStrategyFactory.get_strategy("UnknownStrategyName")
-    assert isinstance(fallback, DotPlotStrategy)
+    assert type(RenderStrategyFactory.get_strategy("UnknownStrategyName")) is DotPlotStrategy
 
 
 def test_pseudocolor_strategy_render(mock_ax, dummy_data):
