@@ -1232,7 +1232,7 @@ class ClusterResultsPanel(QWidget):
         # so every exported cluster population's raw count reads proportionally
         # low — record the correction factor so the Statistics tab and pipeline
         # canvas can show a scaled, clearly-marked estimate instead (see
-        # DagEvaluator._propagate_estimation for how this flows downstream).
+        # dag_evaluator._propagate_estimation for how this flows downstream).
         parent_total = self._results.get("parent_total_events")
         n_events = self._results.get("n_events")
         scale_factor = (parent_total / n_events) if parent_total and n_events else 1.0

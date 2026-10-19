@@ -749,11 +749,11 @@ class StatisticsExplorer(QWidget):
 
                 parent_count, gp_count, total_count = self._get_parent_counts(sample, node_id)
 
-                # Reuse DagEvaluator's already-computed estimation correction
+                # Reuse dag_evaluator's already-computed estimation correction
                 # (kept fresh by GateCoordinator.recompute_all_stats on every
                 # mutation) rather than re-deriving it here — one source of
                 # truth shared with the pipeline canvas. See
-                # DagEvaluator._propagate_estimation for is_scale_valid.
+                # dag_evaluator._propagate_estimation for is_scale_valid.
                 node = sample.gate_tree.find_node_by_id(node_id) if sample.gate_tree else None
                 node_stats: dict = (node.statistics if node is not None else {}) or {}
                 is_scale_valid = node_stats.get("is_estimated") and node_stats.get("is_scale_valid")

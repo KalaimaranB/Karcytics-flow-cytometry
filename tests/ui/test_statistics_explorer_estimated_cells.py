@@ -1,6 +1,6 @@
 """Tests for the Statistics tab honoring a UMAP-exported node's estimation
 correction (`node.statistics["is_estimated"/"is_scale_valid"/"estimated_count"
-/"estimated_pct_total"]`, populated by DagEvaluator — see its own
+/"estimated_pct_total"]`, populated by dag_evaluator — see its own
 `_propagate_estimation`). Only COUNT/%Total should read the corrected value;
 %Parent/CV/etc. must always come from `compute_statistic`'s raw computation.
 """
@@ -34,7 +34,7 @@ def sample_with_estimated_node():
     bcells = root.add_child(gate=SubsetGate(indices=list(range(5))), name="B-cells")
 
     umap_bcells = root.add_child(gate=SubsetGate(indices=list(range(3))), name="UMAP B Cells")
-    # Bypass DagEvaluator (covered separately in test_dag_evaluator.py) and set
+    # Bypass dag_evaluator (covered separately in test_dag_evaluator.py) and set
     # the estimation fields directly, to isolate what statistics_explorer.py
     # does with them.
     umap_bcells.statistics = {

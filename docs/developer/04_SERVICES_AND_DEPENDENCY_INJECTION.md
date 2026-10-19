@@ -96,18 +96,9 @@ graph TB
         MS["MarkerService"]
         GC["GateCoordinator"]
         GP["GatePropagator<br/>(built inside GateCoordinator)"]
-        SEL["GateSelectionService<br/>(built inside GateCoordinator)"]
-        MUT["GateMutationService<br/>(built inside GateCoordinator)"]
+        TE["gating.tree_edits<br/>(module functions)"]
         DLS["DataLoaderService"]
         US["UmapService"]
-    end
-
-    subgraph MutationDeps["Sub-services used by GateMutationService"]
-        MOD["GateModifier"]
-        NAM["NamingService"]
-        SPL["PopulationSplitter"]
-        GS["GatingService"]
-        PUB["GateEventPublisher"]
     end
 
     subgraph UI["UI (ui/services/)"]
@@ -116,10 +107,6 @@ graph TB
         WIO["WorkspaceIOHandler"]
         WSS["WorkspaceSaveService"]
         ZIP["ZipExportService"]
-    end
-
-    subgraph Stats["Stats"]
-        STS["StatsService<br/>(imported lazily by GateCoordinator)"]
     end
 
     SF -->|constructs| AM
@@ -135,19 +122,10 @@ graph TB
     SF -->|constructs, needs WF| WIO
 
     GC -->|builds internally| GP
-    GC -->|builds internally| SEL
-    GC -->|builds internally, needs AM+PS| MUT
+    GC -->|edits the tree with| TE
+    GC -->|submits stats jobs to| TS
     GP -->|submits jobs to| TS
     US -->|submits jobs to| TS
-
-    MUT --> MOD
-    MUT --> NAM
-    MUT --> SPL
-    MUT --> GS
-    MUT --> PUB
-    SEL --> PUB
-    GC -->|lazily imports| STS
-    STS -->|submits jobs to| TS
 
     WIO --> WSS
     WIO --> ZIP
@@ -241,85 +219,11 @@ Depends on the SDK `task_scheduler` (submits an `FCSLoaderAnalysis` worker for `
 !!! warning "One IPC lock serializes all single-file reloads"
     `reload_samples_batch` exists specifically because `reload_sample()` → `load_fcs()` serializes through a single process-wide daemon IPC lock (`_daemon_lock` in `fcs_io.py`). Calling `reload_sample()` per-sample from a thread pool does **not** parallelize — it collapses into one file at a time, and one slow file blocks every other sample behind it for up to its full IPC timeout. Always prefer `reload_samples_batch` for multi-sample reloads.
 
-### `GateEventPublisher` — `analysis/services/gate_event_publisher.py`
+### Gate-tree edits — `analysis/gating/tree_edits.py`
 
-**Responsibility:** the single choke point for every gating-related `CentralEventBus.publish()` call — decouples domain mutation code from the SDK's event-bus messaging concern. Pure static methods (`publish_gate_created`, `publish_gates_created`, `publish_gate_deleted`, `publish_gate_renamed`, `publish_gate_modified`, `publish_gate_selected`, `publish_stats_computed`) — stateless, not factory-registered, imported directly wherever needed.
+**Responsibility:** the pure edits to a sample's `GateNode` tree — `unique_name`, `gates_for_display`, `modify_gate` (with the per-type geometry checks; see [01_API_REFERENCE.md](01_API_REFERENCE.md)), `split_population`, `remove_subtree`, `clone_gate_tree`, `copy_gates_to_group`. Module functions over a `Sample`: no statistics, no event bus, no Qt.
 
-**Depended on by:** `GateMutationService`, `GateSelectionService`, `GateCoordinator._on_stats_finished`.
-
-### `GateMutationService` — `analysis/services/gate_mutation_service.py`
-
-**Responsibility:** the actual domain-model edits to the `GateNode` tree — add/remove/rename/modify/split populations, wire/unwire logic-node connections. Every mutation that changes a population's evaluated membership also triggers `coordinator.recompute_all_stats(sample_id)` and (except for pure renames) `coordinator.request_propagation(...)`.
-
-```python
-class GateMutationService:
-    def __init__(self, state, coordinator, selection_service, axis_manager, population_service): ...
-```
-
-Depends on: `FlowState`, the owning `GateCoordinator` (as `coordinator`, used only to call back into `recompute_all_stats`/`request_propagation` — this is the one place the sub-service holds a reference back to its facade), `GateSelectionService`, `AxisManager` (to snapshot `creation_view` — the axis scales in effect when a gate was drawn, so a saved pipeline thumbnail can reconstruct the original view), `PopulationService`. Internally also uses `NamingService`, `GatingService`, `GateModifier`, `PopulationSplitter`, `GateEventPublisher` (all imported directly, not injected).
-
-**Depended on by:** `GateCoordinator` (constructs and owns one instance).
-
-### `GateSelectionService` — `analysis/services/gate_selection_service.py`
-
-**Responsibility:** tracks which population node is currently selected (`state.view.current_gate_id`) and publishes `GATE_SELECTED` on change — a single method, `select_gate(sample_id, node_id)`, that no-ops if the id is unchanged.
-
-```python
-class GateSelectionService:
-    def __init__(self, state: FlowState, coordinator): ...
-```
-
-Depends on `FlowState` and holds a reference to the owning `coordinator` (unused directly in the current implementation beyond storage — `select_gate` reads/writes `self._state.view.current_gate_id` and calls `GateEventPublisher` directly).
-
-**Depended on by:** `GateCoordinator` (constructs and owns one instance), `GateMutationService` (calls `select_gate` after adding a gate, to auto-select the newly created population).
-
-### `GatingService` — `analysis/services/gating_service.py`
-
-**Responsibility:** cross-sample gate-tree operations that don't belong to a single population's mutation — cloning a full DAG onto another sample (`clone_gate_tree`), and copying a gate tree to every sample sharing a group (`copy_gates_to_group`). Static methods; stateless.
-
-```python
-class GatingService:
-    @staticmethod
-    def get_gates_for_display(sample, parent_node_id=None) -> tuple[list[Gate], list[GateNode]]
-    @staticmethod
-    def clone_gate_tree(source_root: GateNode, target: Sample) -> None
-    @staticmethod
-    def copy_gates_to_group(experiment: Experiment, source_sample_id: str) -> int
-```
-
-**Depended on by:** `GateMutationService` (`copy_gates_to_group`, `get_gates_for_display`).
-
-### `GateModifier` — `analysis/services/modifier.py`
-
-**Responsibility:** validated in-place mutation of a gate's geometric parameters (`x_min`/`x_max`, `vertices`, `width`/`height`, etc.) — see [01_API_REFERENCE.md](01_API_REFERENCE.md) for the per-type invariant table. Static, stateless.
-
-**Depended on by:** `GateMutationService` (`modify_gate`).
-
-### `NamingService` — `analysis/services/naming.py`
-
-**Responsibility:** generates a unique population display name (`"Gate 1"`, `"Gate 2"`, ...) that doesn't collide with existing node names in a sample's tree. Static, stateless.
-
-**Depended on by:** `GateMutationService` (`generate_unique_name`, used when `add_gate` is called without an explicit `name`).
-
-### `PopulationSplitter` — `analysis/services/splitter.py`
-
-**Responsibility:** creates the "Inside"/"Outside" sibling population for a node — a second `GateNode` sharing the same `Gate` instance with `negated` flipped, wired to all of the original's parents. Static, stateless.
-
-**Depended on by:** `GateMutationService` (`split_population`).
-
-### `StatsService` — `analysis/services/stats_service.py`
-
-**Responsibility:** submits a `StatisticsAnalysis` job to the SDK `task_scheduler` to recompute every population's count/%parent/%total for a sample, and wires up a one-shot callback when it finishes.
-
-```python
-class StatsService:
-    @staticmethod
-    def recompute_all_stats(state: FlowState, sample_id: str, callback: Callable | None = None) -> str | None
-```
-
-Depends on the SDK `task_scheduler` directly (module-level import from `karcytics_sdk.plugin.runtime_services`, not passed in) — this is the **one** analysis service that does not go through `ServiceFactory` at all: `GateCoordinator.recompute_all_stats` imports `StatsService` lazily, inline, at call time, rather than the factory constructing and registering an instance. There is no `stats_service` key in `ServiceFactory._services`.
-
-**Depended on by:** `GateCoordinator.recompute_all_stats` (lazy import, not constructor injection).
+**Depended on by:** `GateCoordinator`, which wraps each edit with the stats recompute, the events, and propagation. Tests and the derived-parameter code call the functions directly.
 
 ### `UmapService` / `UmapParams` — `analysis/services/umap_service.py`
 
@@ -342,9 +246,9 @@ Depends on the SDK `task_scheduler` (constructor param, from `ServiceFactory.bui
 
 | Service | File | Responsibility |
 |---|---|---|
-| `GateCoordinator` | `analysis/gate_coordinator.py` | Top-level gate-lifecycle facade — see [01_API_REFERENCE.md §5](01_API_REFERENCE.md#5-gatecoordinator--analysisgate_coordinatorpy). Exposed on `main_panel.py` as `self._gate_coordinator`. |
+| `GateCoordinator` | `analysis/gate_coordinator.py` | The one entry point for changing gates: each operation edits the tree (`gating.tree_edits`), recomputes statistics (submitting `StatisticsAnalysis` to the SDK `task_scheduler`), publishes the change, and asks `GatePropagator` to sync other samples — see [01_API_REFERENCE.md §5](01_API_REFERENCE.md#5-gatecoordinator--analysisgate_coordinatorpy). Exposed on `main_panel.py` as `self._gate_coordinator`. |
 | `AxisManager` | `analysis/axis_manager.py` | Per-group channel scale storage + auto-range calculation. See [01_API_REFERENCE.md §6](01_API_REFERENCE.md#axismanager--analysisaxis_managerpy). |
-| `PopulationService` | `analysis/population_service.py` | Sample/node lookup and population add/remove — the lower-level model-manipulation layer that `GateMutationService` builds on. |
+| `PopulationService` | `analysis/population_service.py` | Read-only: sample/node lookup and a population's gated events (`get_gated_events`). Changes go through `GateCoordinator`. |
 | `FluorophoreService` / `MarkerService` | `analysis/biology_services.py` | External biology lookups: `FluorophoreService` queries FPbase's GraphQL API for fluorophore spectra (with local disk caching via `CacheManager`); `MarkerService` queries UniProt for CD-marker/protein metadata, falling back to a stub record if the network call fails or returns nothing. |
 
 `GatePropagator` (`analysis/gate_propagator.py`) is documented separately here because, while central, it is **not independently constructed** by the factory — see §1 above. Its responsibility: debounced (200ms) re-application of a source sample's full gate tree to every other sample in scope (active group, or all samples, or explicit cross-group), run on the background `TaskScheduler` via `_PropagationWorker`, publishing `SAMPLE_UPDATED` per sample and `PROPAGATION_COMPLETE` once all targets finish. One bad sample's propagation failure is isolated and reported in `PROPAGATION_COMPLETE`'s `errors` dict rather than aborting the batch.

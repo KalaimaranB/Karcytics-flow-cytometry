@@ -30,6 +30,8 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import (
     WorkflowTemplate,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment_io import ExperimentSerializer
+from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
+from karcytics_plugins.flow_cytometry.analysis.gating import tree_edits
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_factory import gate_from_dict
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate
@@ -38,10 +40,6 @@ from karcytics_plugins.flow_cytometry.analysis.population_service import Populat
 from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_service import (
     DerivedParameterService,
 )
-from karcytics_plugins.flow_cytometry.analysis.services.gate_mutation_service import (
-    GateMutationService,
-)
-from karcytics_plugins.flow_cytometry.analysis.services.gating_service import GatingService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType, apply_transform
 from karcytics_plugins.flow_cytometry.ui.services.workflow_service import WorkflowService
@@ -191,17 +189,16 @@ def test_apply_transform_finite_input_unchanged():
 
 
 def test_gate_records_formula_and_survives_serialization_and_clone(state, ratio):
-    pop = PopulationService(state)
-    svc = GateMutationService(state, MagicMock(), MagicMock(), MagicMock(), pop)
+    coordinator = GateCoordinator(state, MagicMock(), PopulationService(state))
     gate = RangeGate(ratio.param_id, low=3.0, high=100.0)
-    svc.add_gate(gate, "a", name="Ratio hi")
+    coordinator.add_gate(gate, "a", name="Ratio hi")
     assert gate.derived_formulas == {ratio.param_id: RATIO_FORMULA}
 
     again = gate_from_dict(gate.to_dict())
     assert again.derived_formulas == {ratio.param_id: RATIO_FORMULA}
 
     target = Sample(sample_id="b", display_name="B")
-    GatingService.clone_gate_tree(state.data.experiment.samples["a"].gate_tree, target)
+    tree_edits.clone_gate_tree(state.data.experiment.samples["a"].gate_tree, target)
     cloned = next(c for c in target.gate_tree.children if c.name == "Ratio hi")
     assert cloned.gate.derived_formulas == {ratio.param_id: RATIO_FORMULA}
 

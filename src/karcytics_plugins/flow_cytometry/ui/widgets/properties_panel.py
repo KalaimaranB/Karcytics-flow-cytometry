@@ -548,7 +548,7 @@ class PropertiesPanel(QWidget):
         """Surface a node's UMAP-subsample correction, if any — never
         replacing the raw Event Count/% Total rows above, only adding to
         them, so a scientist sees both side by side. See
-        `DagEvaluator._propagate_estimation` for what `is_scale_valid`
+        `dag_evaluator._propagate_estimation` for what `is_scale_valid`
         means and why an OR/NOT-combined node can't get a corrected number.
         """
         if not statistics.get("is_estimated"):
@@ -600,7 +600,7 @@ class PropertiesPanel(QWidget):
         # A logic node (AND/OR/NOT) has no `gate` of its own but still has
         # real statistics worth showing here — most importantly whether it's
         # a scaled UMAP estimate, since that's exactly where "safely
-        # correctable" vs. "not" (see DagEvaluator._propagate_estimation)
+        # correctable" vs. "not" (see dag_evaluator._propagate_estimation)
         # matters most to a scientist reading this panel.
         if node is None or (node.gate is None and not node.is_logic_node):
             self._show_empty()

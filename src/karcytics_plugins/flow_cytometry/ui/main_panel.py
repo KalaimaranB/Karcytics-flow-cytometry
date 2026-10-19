@@ -46,13 +46,6 @@ from karcytics_plugins.flow_cytometry.ui.controllers.derived_editor_controller i
 logger = get_logger(__name__, "flow_cytometry")
 
 
-def _collect_descendants_into(node, result: set) -> None:
-    """Recursively collect node_ids of *node* and all its descendants."""
-    result.add(node.node_id)
-    for child in node.children:
-        _collect_descendants_into(child, result)
-
-
 # Each tab's centre view and ribbon (None: no ribbon), as panel attribute names.
 _TAB_VIEWS: dict[MainTab, tuple[str, str | None]] = {
     MainTab.WORKSPACE: ("_graph_manager", "_workspace_ribbon"),
@@ -739,14 +732,11 @@ class FlowCytometryPanel(PluginBase):
     def _on_gate_drawn(self, gate, sample_id: str, parent_node_id) -> None:
         """Handle a gate drawn on the canvas → add to model."""
         # Get a placeholder name for this gate (e.g., "Gate 1")
-        default_name = self._gate_coordinator._mutation_service.generate_unique_name(sample_id)
+        default_name = self._gate_coordinator.unique_name(sample_id)
 
-        if type(gate).__name__ == "QuadrantGate":
-            # QuadrantGate.create_nodes() always names its 4 leaves "Q1"-"Q4"
-            # and discards whatever name is passed here — prompting for a
-            # single name is meaningless (one gate becomes four), and a user
-            # who canceled that dialog would silently lose the whole gate.
-            # Skip the prompt; leaves get renamed individually afterward.
+        if not gate.takes_population_name:
+            # A quadrant gate names its own four leaves; prompting would be
+            # meaningless, and canceling the prompt would lose the gate.
             name = default_name
         else:
             from PySide6.QtWidgets import QInputDialog
@@ -926,17 +916,9 @@ class FlowCytometryPanel(PluginBase):
             scope, group_id, sample_id, self.state.data.experiment
         )
 
-        deleted_nodes_by_sample: dict[str, set[str]] = {}
-        for s_id in target_samples:
-            tgt_sample = self.state.data.experiment.samples.get(s_id)
-            if tgt_sample:
-                nodes = tgt_sample.gate_tree.find_nodes_by_gate(physical_gate_id)
-                deleted_ids: set[str] = set()
-                for n in nodes:
-                    _collect_descendants_into(n, deleted_ids)
-
-                if deleted_ids:
-                    deleted_nodes_by_sample[s_id] = deleted_ids
+        deleted_nodes_by_sample = self._gate_coordinator.populations_under_gate(
+            physical_gate_id, target_samples
+        )
 
         # If the active graph is viewing one of the deleted nodes,
         # open the parent graph (if any) first.
@@ -948,16 +930,10 @@ class FlowCytometryPanel(PluginBase):
                     parent_node_id = selected_node.parents[0].node_id
                 self._graph_manager.open_graph_for_sample(active_graph.sample_id, parent_node_id)
 
-        for s_id in target_samples:
-            tgt_sample = self.state.data.experiment.samples.get(s_id)
-            if tgt_sample:
-                # Delete ALL populations sharing this physical gate in this sample
-                nodes = tgt_sample.gate_tree.find_nodes_by_gate(physical_gate_id)
-                for n in nodes:
-                    self._gate_coordinator.remove_population(s_id, n.node_id)
+        removed = self._gate_coordinator.delete_gate(physical_gate_id, target_samples)
 
         if hasattr(self._graph_manager, "close_graphs_for_nodes"):
-            self._graph_manager.close_graphs_for_nodes(deleted_nodes_by_sample)
+            self._graph_manager.close_graphs_for_nodes(removed)
 
         scope_msg = "this sample" if scope == "sample" else "the group"
         self.status_message.emit(f"Gate deleted for {scope_msg}.")
@@ -1011,7 +987,7 @@ class FlowCytometryPanel(PluginBase):
         if sample_id:
             # Keep the global selected-gate state in sync with whatever tab is actually
             # visible. Without this, navigating via the parent/child breadcrumb buttons
-            # (which switch tabs without going through GateSelectionService) leaves
+            # (which switch tabs without going through GateCoordinator.select_gate) leaves
             # current_gate_id pointing at a stale population — so a later legitimate
             # select_gate() call for that same node_id gets silently swallowed by its
             # dedup guard, and GroupPreviewPanel never learns the population changed.

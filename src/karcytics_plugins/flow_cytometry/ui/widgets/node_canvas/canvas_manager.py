@@ -109,7 +109,7 @@ class CanvasManager(QObject):
         `item.event_count` shows `estimated_count` (not the raw `count`)
         whenever `is_scale_valid` — a scientist glancing at the canvas
         shouldn't have to mentally multiply. `pct_parent` is left alone
-        everywhere: see DagEvaluator's own docstring for why that ratio is
+        everywhere: see dag_evaluator's own docstring for why that ratio is
         already unbiased and never needs scaling.
         """
         is_estimated = statistics.get("is_estimated", False)

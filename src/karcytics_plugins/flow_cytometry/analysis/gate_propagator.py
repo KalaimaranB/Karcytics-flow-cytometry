@@ -39,9 +39,7 @@ class GatePropagator:
 
     DEBOUNCE_MS = 200
 
-    def __init__(
-        self, state: FlowState, task_scheduler: Any | None = None, _parent: object | None = None
-    ) -> None:
+    def __init__(self, state: FlowState, task_scheduler: Any | None = None) -> None:
         self._state = state
         self._task_scheduler = task_scheduler
         self._lock = threading.Lock()
@@ -107,7 +105,7 @@ class GatePropagator:
                 return
 
             tree_dict = source.gate_tree.to_dict()
-            targets = self._find_targets(source_id, current_state)
+            targets = self.find_targets(source_id)
 
             worker = _PropagationWorker()
             worker.configure(tree_dict, targets)
@@ -198,8 +196,9 @@ class GatePropagator:
             {"total": 0, "succeeded": 0, "failed": 0, "errors": {}, "fatal": error_msg},
         )
 
-    def _find_targets(self, source_id: str, state: FlowState) -> list[Sample]:
-        """Find all target samples for propagation."""
+    def find_targets(self, source_id: str) -> list[Sample]:
+        """The loaded samples a change on `source_id` propagates to."""
+        state = self._state
         source = state.data.experiment.samples.get(source_id)
         if source is None:
             return []

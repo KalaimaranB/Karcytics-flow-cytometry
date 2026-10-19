@@ -16,6 +16,7 @@ from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.tutorial_models import IValidator, ValidationFailure
 
 from ..analysis import events
+from ..analysis.gating import QuadrantSubGate
 from ..analysis.state import FlowState
 from ..main_tabs import MainTab
 
@@ -606,9 +607,9 @@ class GateShapeValidator(FlowValidator):
         with the tutorial), and imprecise (a coincidentally-matching node
         left over from an earlier step could satisfy it).
 
-        `GateMutationService.add_gate()` always ends by calling
-        `GateSelectionService.select_gate()` on the node(s) it just created
-        (see gate_mutation_service.py) — so `current_gate_id`/
+        `GateCoordinator.add_gate()` always ends by calling
+        `select_gate()` on the node(s) it just created
+        (see gate_coordinator.py) — so `current_gate_id`/
         `current_sample_id` on the view already name exactly the gate the
         user just drew, for free, via the same mechanism every other
         selection-based validator here already relies on. No separate
@@ -1251,15 +1252,10 @@ class QuadrantGateExistsValidator(FlowValidator):
         if not sample:
             return self.log_failure(f"Sample ID {sample_id} not found in experiment.")
 
-        def check_node(node: Any) -> bool:
-            # A QuadrantGate never lands in the tree as a node's own .gate —
-            # create_nodes() attaches 4 sibling leaves whose .gate is a
-            # QuadrantSubGate wrapping the parent QuadrantGate instead.
-            if type(getattr(node, "gate", None)).__name__ == "QuadrantSubGate":
-                return True
-            return any(check_node(child) for child in getattr(node, "children", []))
-
-        if not check_node(sample.gate_tree):
+        # A QuadrantGate never lands in the tree as a node's own .gate —
+        # create_nodes() attaches 4 sibling leaves whose .gate is a
+        # QuadrantSubGate wrapping the parent QuadrantGate instead.
+        if not any(isinstance(n.gate, QuadrantSubGate) for n in sample.gate_tree.iter_dag()):
             return self.log_failure("No QuadrantSubGate leaves found on active sample.")
         return True
 
@@ -1287,20 +1283,15 @@ class QuadrantPositionNamedValidator(FlowValidator):
         if not sample:
             return self.log_failure(f"Sample ID {sample_id} not found in experiment.")
 
-        def find_node(node: Any) -> Any | None:
-            gate = getattr(node, "gate", None)
-            if (
-                type(gate).__name__ == "QuadrantSubGate"
-                and getattr(gate, "quadrant", "").strip().upper() == self._quadrant
-            ):
-                return node
-            for child in getattr(node, "children", []):
-                found = find_node(child)
-                if found is not None:
-                    return found
-            return None
-
-        node = find_node(sample.gate_tree)
+        node = next(
+            (
+                n
+                for n in sample.gate_tree.iter_dag()
+                if isinstance(n.gate, QuadrantSubGate)
+                and n.gate.quadrant.strip().upper() == self._quadrant
+            ),
+            None,
+        )
         if node is None:
             return self.log_failure(f"No {self._quadrant} QuadrantSubGate leaf found.")
         actual = (getattr(node, "name", "") or "").strip().lower()

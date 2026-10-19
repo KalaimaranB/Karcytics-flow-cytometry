@@ -18,6 +18,8 @@ from .base import Gate
 class QuadrantGate(Gate):
     """Quadrant gate — divides the plot into 4 regions at (x_mid, y_mid)."""
 
+    takes_population_name = False
+
     def __init__(  # noqa: PLR0913
         self,
         x_param: str,

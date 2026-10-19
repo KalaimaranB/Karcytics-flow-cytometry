@@ -6,12 +6,10 @@ import pytest
 from karcytics_sdk.plugin import CentralEventBus
 
 from karcytics_plugins.flow_cytometry.analysis import events
-from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
+from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
+from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate, tree_edits
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
-from karcytics_plugins.flow_cytometry.analysis.services.gate_mutation_service import (
-    GateMutationService,
-)
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.canvas_view import NodeCanvas
 
@@ -30,13 +28,10 @@ def mock_flow_state():
 
 def test_add_logic_node_publishes_logic_node_created(mock_flow_state):
     """Verify add_logic_node publishes LOGIC_NODE_CREATED instead of GATE_CREATED."""
-    pop_service = PopulationService(mock_flow_state)
-    mutation_service = GateMutationService(
-        mock_flow_state, MagicMock(), MagicMock(), MagicMock(), pop_service
-    )
+    coordinator = GateCoordinator(mock_flow_state, MagicMock(), PopulationService(mock_flow_state))
 
     with patch.object(CentralEventBus, "publish") as mock_publish:
-        node_id = mutation_service.add_logic_node("sample-1", "AND", "Test AND")
+        node_id = coordinator.add_logic_node("sample-1", "AND", "Test AND")
         assert node_id is not None
 
         # Verify LOGIC_NODE_CREATED was fired and GATE_CREATED was not fired
@@ -46,9 +41,8 @@ def test_add_logic_node_publishes_logic_node_created(mock_flow_state):
 
 
 def test_remove_population_cleans_logic_node_and_references(mock_flow_state):
-    """Verify remove_population unhooks logic nodes from gate_tree.children and parent refs."""
+    """Verify remove_subtree unhooks logic nodes from gate_tree.children and parent refs."""
     sample = mock_flow_state.data.experiment.samples["sample-1"]
-    pop_service = PopulationService(mock_flow_state)
 
     # Add a normal gate child
     gate1 = RectangleGate(
@@ -67,16 +61,14 @@ def test_remove_population_cleans_logic_node_and_references(mock_flow_state):
     assert logic_node in node1.children
 
     # Remove the logic node
-    success = pop_service.remove_population("sample-1", logic_node.node_id)
-    assert success is True
+    assert tree_edits.remove_subtree(sample, logic_node.node_id) == {logic_node.node_id}
     assert logic_node not in sample.gate_tree.children
     assert logic_node not in node1.children
 
 
 def test_remove_population_with_child_populations(mock_flow_state):
-    """Verify remove_population removes parent and all child nodes."""
+    """Verify remove_subtree removes parent and all child nodes."""
     sample = mock_flow_state.data.experiment.samples["sample-1"]
-    pop_service = PopulationService(mock_flow_state)
 
     # Add Parent -> Child -> Grandchild
     gate1 = RectangleGate(
@@ -99,8 +91,7 @@ def test_remove_population_with_child_populations(mock_flow_state):
     assert sample.gate_tree.find_node_by_id(grandchild.node_id) is not None
 
     # Remove parent
-    success = pop_service.remove_population("sample-1", parent.node_id)
-    assert success is True
+    assert tree_edits.remove_subtree(sample, parent.node_id)
 
     # None of them should be in the tree anymore
     assert sample.gate_tree.find_node_by_id(parent.node_id) is None

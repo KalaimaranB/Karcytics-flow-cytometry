@@ -1,5 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
@@ -17,12 +18,12 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import (
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment_io import ExperimentSerializer
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
-from karcytics_plugins.flow_cytometry.analysis.gating import gate_from_dict
+from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
+from karcytics_plugins.flow_cytometry.analysis.gating import gate_from_dict, tree_edits
 from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
-from karcytics_plugins.flow_cytometry.analysis.services.gating_service import GatingService
-from karcytics_plugins.flow_cytometry.analysis.services.stats_service import StatsService
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 
 def test_sample_serialization_round_trip():
@@ -120,7 +121,7 @@ def test_gate_from_dict_raises_on_unknown_type_and_missing_keys():
         gate_from_dict({"type": "RectangleGate"})
 
 
-def test_population_service_add_and_remove_population():
+def test_population_service_finds_nodes_until_they_are_removed():
     sample = Sample(sample_id="s1", display_name="Sample 1")
     state = SimpleNamespace(
         data=SimpleNamespace(experiment=SimpleNamespace(samples={"s1": sample}, groups={}))
@@ -129,29 +130,21 @@ def test_population_service_add_and_remove_population():
 
     assert service.get_root_node("s1") is sample.gate_tree
     gate = RectangleGate("FSC-A", "SSC-A", x_min=0, x_max=1, y_min=0, y_max=2)
-    node = service.add_population("s1", gate, name="rect")
+    [node] = gate.create_nodes(sample.gate_tree, "rect")
 
-    assert node is not None
-    assert node.name == "rect"
     assert service.find_node("s1", node.node_id) is node
-    assert service.remove_population("s1", node.node_id)
+    assert tree_edits.remove_subtree(sample, node.node_id) == {node.node_id}
     assert service.find_node("s1", node.node_id) is None
 
 
-def test_population_service_add_quadrant_gate_creates_four_children():
+def test_quadrant_gate_creates_four_gated_children():
     sample = Sample(sample_id="s1", display_name="Sample 1")
-    state = SimpleNamespace(
-        data=SimpleNamespace(experiment=SimpleNamespace(samples={"s1": sample}, groups={}))
-    )
-    service = PopulationService(state)
-
     quad = QuadrantGate("FSC-A", "SSC-A", x_mid=0.0, y_mid=0.0)
-    quad_node = service.add_population("s1", quad, name="quadrants")
 
-    assert quad_node is not None
-    assert isinstance(quad_node, list)
-    assert len(quad_node) == 4
-    assert all(child.gate is not None for child in quad_node)
+    nodes = quad.create_nodes(sample.gate_tree, "quadrants")
+
+    assert [n.name for n in nodes] == ["Q1", "Q2", "Q3", "Q4"]
+    assert all(child.gate is not None for child in nodes)
 
 
 def test_get_gated_events_applies_gate_hierarchy_correctly():
@@ -163,18 +156,15 @@ def test_get_gated_events_applies_gate_hierarchy_correctly():
     )
     service = PopulationService(state)
 
-    node = service.add_population(
-        "s1",
-        RectangleGate("FSC-A", "SSC-A", x_min=0.0, x_max=1.0, y_min=0.0, y_max=1.5),
-        name="rect",
-    )
-    assert node is not None
+    [node] = RectangleGate(
+        "FSC-A", "SSC-A", x_min=0.0, x_max=1.0, y_min=0.0, y_max=1.5
+    ).create_nodes(sample.gate_tree, "rect")
 
     gated = service.get_gated_events("s1", node.node_id)
     assert list(gated["FSC-A"]) == [0.0, 0.5]
 
 
-def test_gating_service_copy_gates_to_group_and_clone():
+def test_copy_gates_to_group_clones_into_group_members():
     exp = Experiment()
     source = Sample(
         sample_id="source",
@@ -205,53 +195,45 @@ def test_gating_service_copy_gates_to_group_and_clone():
         name="rect",
     )
 
-    copied = GatingService.copy_gates_to_group(exp, "source")
-    assert copied == 1
+    assert tree_edits.copy_gates_to_group(exp, "source") == [target]
     assert len(target.gate_tree.children) == 1
     assert target.gate_tree.children[0].gate is not source.gate_tree.children[0].gate
 
 
-def test_stats_service_submits_background_task(monkeypatch):
-    class DummyWorker:
+def test_background_stats_land_on_the_node_when_their_task_finishes(monkeypatch):
+    import karcytics_plugins.flow_cytometry.analysis.gate_coordinator as coordinator_module
+
+    class Scheduler:
         def __init__(self):
-            self.task_id = "task-123"
-            self.finished = self
-
-        def connect(self, callback):
-            self.callback = callback
-
-    class DummyScheduler:
-        def __init__(self):
-            from unittest.mock import MagicMock
-
-            self.task_finished = MagicMock()
+            self.submitted = []
+            self.listeners = []
+            self.task_finished = SimpleNamespace(
+                connect=self.listeners.append, disconnect=self.listeners.remove
+            )
 
         def submit(self, analyzer, state):
-            assert analyzer is not None
-            return DummyWorker()
+            self.submitted.append(analyzer)
+            return SimpleNamespace(task_id="task-123")
 
-    import karcytics_plugins.flow_cytometry.analysis.services.stats_service as stats_module
-
-    monkeypatch.setattr(stats_module, "task_scheduler", DummyScheduler())
-
-    state = SimpleNamespace(
-        data=SimpleNamespace(
-            experiment=SimpleNamespace(
-                samples={
-                    "s1": Sample(
-                        sample_id="s1",
-                        display_name="Sample 1",
-                        fcs_data=FCSData(
-                            Path("a.fcs"),
-                            channels=["FSC-A"],
-                            markers=[""],
-                            events=pd.DataFrame({"FSC-A": [1.0]}),
-                        ),
-                    )
-                }
-            )
-        )
+    scheduler = Scheduler()
+    monkeypatch.setattr(coordinator_module, "task_scheduler", scheduler)
+    state = FlowState()
+    sample = Sample(
+        sample_id="s1",
+        display_name="Sample 1",
+        fcs_data=FCSData(
+            Path("a.fcs"), channels=["FSC-A"], markers=[""], events=pd.DataFrame({"FSC-A": [1.0]})
+        ),
     )
+    state.data.experiment.samples["s1"] = sample
+    coordinator = GateCoordinator(state, MagicMock(), PopulationService(state))
 
-    task_id = StatsService.recompute_all_stats(state, "s1", callback=lambda: None)
-    assert task_id == "task-123"
+    coordinator.recompute_all_stats("s1")
+
+    assert [a.target_sample_id for a in scheduler.submitted] == ["s1"]
+    stats = {"count": 1, "pct_parent": 100.0, "pct_total": 100.0}
+    root_id = sample.gate_tree.node_id
+    scheduler.listeners[0]("other-task", {"sample_id": "s1", "stats": {root_id: {"count": 9}}})
+    scheduler.listeners[0]("task-123", {"sample_id": "s1", "stats": {root_id: stats}})
+    assert sample.gate_tree.statistics == stats
+    assert scheduler.listeners == []

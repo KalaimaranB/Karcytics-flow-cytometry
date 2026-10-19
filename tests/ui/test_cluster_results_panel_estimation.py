@@ -1,6 +1,6 @@
 """Tests for `ClusterResultsPanel._create_populations`' scale_factor/is_estimated
 origin fields — a UMAP-exported population's correction factor for being
-built from a random subsample of its parent (see DagEvaluator's own
+built from a random subsample of its parent (see dag_evaluator's own
 `_propagate_estimation` for how this flows downstream through the tree).
 """
 

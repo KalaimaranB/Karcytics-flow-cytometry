@@ -39,7 +39,7 @@ class GateNode:
     scale_factor: float = 1.0  # origin correction for a UMAP-exported node built from a
     # random subsample (parent_total_events / n_events); 1.0 for every other node.
     is_estimated: bool = False  # True only for the origin UMAP-exported node itself — see
-    # DagEvaluator._propagate_estimation for how this flows downstream through the tree.
+    # dag_evaluator._propagate_estimation for how this flows downstream through the tree.
     _mask_cache: tuple[pd.DataFrame, np.ndarray] | None = field(
         default=None, init=False, repr=False, compare=False
     )
@@ -139,14 +139,10 @@ class GateNode:
         Returns:
             list[GateNode]: A list of nodes that wrap the specified gate.
         """
-        matches = []
-        if self.gate and self.gate.gate_id == gate_id:
-            matches.append(self)
-        for child in self.children:
-            matches.extend(child.find_nodes_by_gate(gate_id))
-        return matches
+        return [n for n in self.iter_dag() if n.gate is not None and n.gate.gate_id == gate_id]
 
-    def _combine_parent_masks(self, parent_masks: list[np.ndarray], total_count: int) -> np.ndarray:
+    def combine_parent_masks(self, parent_masks: list[np.ndarray], total_count: int) -> np.ndarray:
+        """Combine the parents' masks with this node's AND/OR/NOT operator."""
         if not parent_masks:
             return np.ones(total_count, dtype=bool)
 
@@ -179,20 +175,19 @@ class GateNode:
         # structural rewires don't change the events object at all, so
         # those invalidate explicitly via `invalidate_mask_cache()` (wired
         # into GateCoordinator.recompute_all_stats and
-        # PopulationService.remove_population, the only places the tree
-        # can change).
+        # tree_edits.remove_subtree, the only places the tree can change).
         if self._mask_cache is not None and self._mask_cache[0] is events:
             return self._mask_cache[1]
 
         if self.is_incomplete:
             # Unwired/under-wired logic node — has no valid population yet.
             # Without this, an empty parent list falls through to
-            # `_combine_parent_masks`' "no parents" branch, which returns an
+            # `combine_parent_masks`' "no parents" branch, which returns an
             # all-True mask (correct for the sentinel root, wrong here).
             mask = np.zeros(len(events), dtype=bool)
         else:
             parent_masks = [p._get_mask(events) for p in self.parents]
-            mask = self._combine_parent_masks(parent_masks, len(events))
+            mask = self.combine_parent_masks(parent_masks, len(events))
 
             if self.gate is not None:
                 gate_mask = self.gate.contains(events)
@@ -211,7 +206,7 @@ class GateNode:
         """Which of ``events`` reach this node: its parents combined, before its own gate."""
         if self.is_incomplete:
             return np.zeros(len(events), dtype=bool)
-        return self._combine_parent_masks([p._get_mask(events) for p in self.parents], len(events))
+        return self.combine_parent_masks([p._get_mask(events) for p in self.parents], len(events))
 
     def invalidate_mask_cache(self) -> None:
         """Clear this node's cached mask and every descendant's.

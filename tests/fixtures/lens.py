@@ -106,15 +106,15 @@ class TreeController:
     """Adds gates to the real tree, like the gate coordinator (minus events)."""
 
     def __init__(self, state) -> None:
-        from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
-
-        self._population_service = PopulationService(state)
+        self._state = state
         self.added: list = []
 
     def add_gate(self, gate, sample_id, name=None, parent_node_id=None):
-        node = self._population_service.add_population(sample_id, gate, parent_node_id, name)
+        root = self._state.data.experiment.samples[sample_id].gate_tree
+        parent = root.find_node_by_id(parent_node_id) if parent_node_id else root
+        nodes = gate.create_nodes(parent, name)
         self.added.append((name, parent_node_id))
-        return node.node_id
+        return nodes[0].node_id
 
     def get_gates_for_display(self, sample_id, parent_node_id=None):
         return [], []

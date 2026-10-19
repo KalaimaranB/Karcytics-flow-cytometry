@@ -39,13 +39,13 @@ changes.
 
 | Constant | String value | Published by | Notable subscribers |
 |---|---|---|---|
-| `GATE_CREATED` | `flow.gate.created` | `GateMutationService.add_gate()` via `GateEventPublisher.publish_gate_created()` | `HistoryRecorder` (undo step), `MainPanelController` (node canvas + tutorial-shape validation), `FlowCanvas` (`_on_controller_geometry_changed`) |
-| `LOGIC_NODE_CREATED` | `flow.gate.logic_node_created` | `GateMutationService.add_logic_node()` | `MainPanelController` (`_on_structural_change`) |
-| `GATES_CREATED` | `flow.gate.batch_created` | `GateMutationService` for multi-node creations (e.g. quadrant gates → 4 nodes in one action) via `GateEventPublisher.publish_gates_created()` | `MainPanelController` (`_on_structural_change`, `_handle_gates_created`), `FlowCanvas` |
-| `GATE_RENAMED` | `flow.gate.renamed` | `GateMutationService.rename_population()` via `GateEventPublisher.publish_gate_renamed()` | `MainPanelController`, `GraphManager._on_bus_event` (tab label refresh), `FlowCanvas` |
-| `GATE_DELETED` | `flow.gate.deleted` | `GateMutationService.remove_population()` via `GateEventPublisher.publish_gate_deleted()` | `MainPanelController`, `FlowCanvas`, footer status |
-| `GATE_MODIFIED` | `flow.gate.modified` | `GateMutationService.modify_gate()` via `GateEventPublisher.publish_gate_modified()` — fires **once per completed drag gesture**, never during live preview (§4 in `02_UI_ENGINE.md`) | `HistoryRecorder` (one edit = one undo step), `MainPanelController` (`_on_structural_change`), `FlowCanvas` |
-| `GATE_SELECTED` | `flow.gate.selected` | `GateSelectionService` (via `GateCoordinator.select_gate()`) using `GateEventPublisher.publish_gate_selected()` | `MainPanelController` (`_on_gate_selected_from_controller`), `FlowCanvas` (`_on_controller_selected`) |
+| `GATE_CREATED` | `flow.gate.created` | `GateCoordinator.add_gate()` (and `split_population()`, with `is_split`) | `HistoryRecorder` (undo step), `MainPanelController` (node canvas + tutorial-shape validation), `FlowCanvas` (`_on_controller_geometry_changed`) |
+| `LOGIC_NODE_CREATED` | `flow.gate.logic_node_created` | `GateCoordinator.add_logic_node()` | `MainPanelController` (`_on_structural_change`) |
+| `GATES_CREATED` | `flow.gate.batch_created` | `GateCoordinator.add_gate()` for multi-node creations (e.g. quadrant gates → 4 nodes in one action) | `MainPanelController` (`_on_structural_change`, `_handle_gates_created`), `FlowCanvas` |
+| `GATE_RENAMED` | `flow.gate.renamed` | `GateCoordinator.rename_population()` | `MainPanelController`, `GraphManager._on_bus_event` (tab label refresh), `FlowCanvas` |
+| `GATE_DELETED` | `flow.gate.deleted` | `GateCoordinator.remove_population()` / `delete_gate()` | `MainPanelController`, `FlowCanvas`, footer status |
+| `GATE_MODIFIED` | `flow.gate.modified` | `GateCoordinator.modify_gate()` — fires **once per completed drag gesture**, never during live preview (§4 in `02_UI_ENGINE.md`) | `HistoryRecorder` (one edit = one undo step), `MainPanelController` (`_on_structural_change`), `FlowCanvas` |
+| `GATE_SELECTED` | `flow.gate.selected` | `GateCoordinator.select_gate()` | `MainPanelController` (`_on_gate_selected_from_controller`), `FlowCanvas` (`_on_controller_selected`) |
 | `GATE_PREVIEW` | `flow.gate.preview` | `GateDrawingFSM` during live drag/edit/polygon/quadrant preview, and `FlowCanvas._clear_previews()` | `GroupPreviewPanel` (thumbnail overlays), `GateHistogramPanel` (highlighted gate) |
 | `SAMPLE_SELECTED` | `flow.sample.selected` | *(defined; selection is mostly handled via direct Qt signals — see §3)* | — |
 | `SAMPLE_LOADED` | `flow.sample.loaded` | Sample loading path | Footer status message (`main_panel._setup_footer_events`) |
@@ -55,14 +55,14 @@ changes.
 | `TRANSFORM_CHANGED` | `flow.transform.changed` | Transform dialog | — |
 | `DISPLAY_MODE_CHANGED` | `flow.display.mode_changed` | Display mode toggle | — |
 | `FMO_CHANGED` | `flow.fmo.changed` | FMO overlay selection | — |
-| `STATS_COMPUTED` | `flow.stats.computed` | `GateCoordinator._on_stats_finished()` via `GateEventPublisher.publish_stats_computed()` | Footer status message |
+| `STATS_COMPUTED` | `flow.stats.computed` | `GateCoordinator._on_stats_finished()` | Footer status message |
 | `COMPENSATION_APPLIED` | `flow.compensation.applied` | Compensation service | `MainPanelController` (`_on_state_mutated`), footer status |
 | `UMAP_COMPLETED` | `flow.umap.completed` | `UmapService` | `MainPanelController` (`_on_state_mutated`), footer status |
-| `GATE_STATS_UPDATED` | `flow.gate.stats_updated` | `GateCoordinator._on_stats_finished()` and `GateMutationService` (multiple sites) directly via `CentralEventBus.publish` (not through `GateEventPublisher`) | `MainPanelController` (`_on_stats_updated`) → `panel._on_gate_stats_updated` + `_refresh_node_canvas()` |
+| `GATE_STATS_UPDATED` | `flow.gate.stats_updated` | `GateCoordinator._on_stats_finished()`, and `modify_gate`/`split_population`/rewires right after their recompute | `MainPanelController` (`_on_stats_updated`) → `panel._on_gate_stats_updated` + `_refresh_node_canvas()` |
 | `ALL_STATS_UPDATED` | `flow.gate.all_stats_updated` | `GateCoordinator._on_stats_finished()` | `MainPanelController` (`_on_all_stats`) → `panel._on_all_stats_updated` + `_refresh_node_canvas()`; `CanvasManager._on_stats_updated` |
 | `PROPAGATION_COMPLETE` | `flow.gate.propagation_complete` | `GatePropagator` after cross-sample cloning finishes | `MainPanelController` (`_on_prop_complete`) → `panel._on_propagation_complete` + flash message on partial failure |
 | `SAMPLE_UPDATED` | `flow.gate.sample_updated` | `GatePropagator` per successfully-propagated sample | `MainPanelController` → `panel._on_propagated_sample_updated`, `_groups_panel.refresh()` |
-| `CONNECTION_ADDED` / `CONNECTION_REMOVED` | `flow.pipeline.connection_added` / `flow.pipeline.connection_removed` | `GateMutationService.add_connection`/`remove_connection` while a logic node is still under-wired (a cheap "draw the wire" signal that skips the stats recompute) | `CanvasManager`, `HistoryRecorder` (undo step) |
+| `CONNECTION_ADDED` / `CONNECTION_REMOVED` | `flow.pipeline.connection_added` / `flow.pipeline.connection_removed` | `GateCoordinator.add_connection`/`remove_connection` while a logic node is still under-wired (a cheap "draw the wire" signal that skips the stats recompute) | `CanvasManager`, `HistoryRecorder` (undo step) |
 | `WORKFLOW_SAVED` | `flow.workflow.saved` | `WorkspaceIOHandler` after a successful save | `AcademyWorkflowController`, `WorkflowSavedValidator` |
 | `EXPERIMENT_DATA_CHANGED` | `flow.experiment.data_changed` | Bulk experiment-level mutation (e.g. compensation across all samples) | — |
 
@@ -71,19 +71,11 @@ changes.
     publishing with the string value instead hides the link from searches
     and from the doctor's dead-topic check (KS350/KS351).
 
-### `GateEventPublisher`
+### Where gate events are published
 
-`analysis/services/gate_event_publisher.py` centralizes *some* — not all —
-`CentralEventBus.publish()` calls for gate events, specifically to
-"decouple domain mutation from external system messaging" (its own module
-docstring). It has no method for `GATE_STATS_UPDATED`/`ALL_STATS_UPDATED` —
-those are published directly via `CentralEventBus.publish(events.GATE_STATS_UPDATED, ...)`
-inline in `GateCoordinator._on_stats_finished()` and
-`GateMutationService`, not routed through the publisher. If you're adding a
-new gate-lifecycle event, prefer adding a method here for consistency with
-`GATE_CREATED`/`GATE_DELETED`/`GATE_RENAMED`/`GATE_MODIFIED`/`GATE_SELECTED`/
-`STATS_COMPUTED`; if you're touching stats events specifically, note the
-existing precedent already bypasses it.
+`GateCoordinator` publishes every gate-lifecycle and statistics event itself
+(through a small module-level `_publish(topic, **payload)` helper). Add a new
+gate event there, next to the edit that causes it.
 
 ---
 
@@ -174,7 +166,6 @@ sequenceDiagram
     participant GM as GraphManager
     participant Panel as FlowCytometryPanel
     participant GC as GateCoordinator
-    participant GMS as GateMutationService
     participant Bus as CentralEventBus
     participant MPC as MainPanelController
 
@@ -188,11 +179,10 @@ sequenceDiagram
     GM->>Panel: gate_drawn.emit(...) (forwarded)
     Panel->>Panel: _on_gate_drawn() — QInputDialog for name<br/>(skipped for QuadrantGate)
     Panel->>GC: add_gate(gate, sample_id, name, parent_node_id)
-    GC->>GMS: add_gate(...)
-    GMS->>GMS: create GateNode, wire into tree
-    GMS->>GC: recompute_all_stats(sample_id) [async, via StatsService]
-    GMS->>Bus: publish(GATE_CREATED, {sample_id, node_id, gate_id, name})
-    GMS->>GC: request_propagation(gate_id, sample_id)
+    GC->>GC: gate.create_nodes(parent, name) — wire into tree
+    GC->>GC: recompute_all_stats(sample_id, node_ids) [async StatisticsAnalysis]
+    GC->>Bus: publish(GATE_CREATED, {sample_id, node_id, gate_id, name})
+    GC->>GC: request_propagation(gate_id, sample_id)
 
     Bus-->>MPC: GATE_CREATED → HistoryRecorder (undo step at end of turn)<br/>+ _on_structural_change (refresh node canvas)
     Bus-->>MPC: GATE_CREATED → _handle_gate_created<br/>(tutorial shape validation)
@@ -208,10 +198,10 @@ sequenceDiagram
 
 Two things worth calling out explicitly:
 
-1. **`GATE_CREATED` fires before statistics are ready.** `GateMutationService.add_gate()`
-   calls `self._coordinator.recompute_all_stats(sample_id)` *before*
-   publishing `GATE_CREATED` — but `recompute_all_stats()` schedules an
-   async `StatisticsAnalysis` task via `StatsService` rather than blocking.
+1. **`GATE_CREATED` fires before statistics are ready.** `GateCoordinator.add_gate()`
+   calls `recompute_all_stats(sample_id, node_ids)` *before*
+   publishing `GATE_CREATED` — but `recompute_all_stats()` submits an
+   async `StatisticsAnalysis` task to the task scheduler rather than blocking.
    So the UI sees the new gate node (with count/percentage still at
    whatever default) immediately, and `GATE_STATS_UPDATED`/`ALL_STATS_UPDATED`
    land moments later once the background computation finishes and
@@ -312,8 +302,8 @@ natural step transition.
 ## 7. Gate Selection: One Global State, Many Readers
 
 Selection doesn't have its own dedicated widget-to-widget wiring the way
-gate creation does — instead, `GateSelectionService` (behind
-`GateCoordinator.select_gate()`) is the single source of truth for
+gate creation does — instead, `GateCoordinator.select_gate()` (which
+writes `state.view.current_gate_id`) is the single source of truth for
 "which population is currently selected", and every UI surface that cares
 subscribes to `GATE_SELECTED`:
 
@@ -357,5 +347,5 @@ gate only if that gate is drawn on it. It does not subscribe to
   (`GateDrawingFSM`, `CanvasManager`) whose internals this document treats
   as given.
 - [`04_SERVICES_AND_DEPENDENCY_INJECTION.md`](04_SERVICES_AND_DEPENDENCY_INJECTION.md) —
-  `GateCoordinator`/`GateMutationService`/`GatePropagator` construction and
+  `GateCoordinator`/`GatePropagator` construction and
   full responsibilities (not re-verified in this rewrite pass).

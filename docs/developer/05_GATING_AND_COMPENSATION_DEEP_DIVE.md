@@ -36,7 +36,7 @@ graph TD
 
 ### 1.2 Wiring a logic node: `add_connection` / `remove_connection`
 
-`add_logic_node(sample_id, operator, name=None)` (`GateMutationService`) creates a `GateNode` with **no parents** and does *not* attach it as a child of root in the normal sense — the comment in the source is explicit about why: attaching it directly to root and then hiding the root→logic edge in the canvas caused an "orphaned visual" bug. Instead the node is appended to `sample.gate_tree.children` (so `find_node_by_id` and the stats walker can still discover it) while its `.parents` list stays empty until the user drags real gate nodes onto it via `add_connection`.
+`GateCoordinator.add_logic_node(sample_id, operator, name=None)` creates a `GateNode` with **no parents** and does *not* attach it as a child of root in the normal sense — the comment in the source is explicit about why: attaching it directly to root and then hiding the root→logic edge in the canvas caused an "orphaned visual" bug. Instead the node is appended to `sample.gate_tree.children` (so `find_node_by_id` and the stats walker can still discover it) while its `.parents` list stays empty until the user drags real gate nodes onto it via `add_connection`.
 
 `add_connection(sample_id, source_node_id, target_node_id)`:
 
@@ -51,7 +51,7 @@ graph TD
 
 ### 1.3 Mask combination — `AND` / `OR` / `NOT`
 
-Both `DagEvaluator._combine_parent_masks` (batch tree evaluation) and `GateNode._combine_parent_masks` (single-node query, used by `apply_hierarchy`) implement the **same** algorithm independently — they are not shared code, so a change to one must be mirrored in the other:
+`GateNode.combine_parent_masks` is the one implementation, used by both the batch tree evaluation (`dag_evaluator`) and the single-node query behind `apply_hierarchy`:
 
 ```python
 if logic_operator == "AND":
@@ -71,21 +71,21 @@ elif logic_operator == "NOT":
             mask &= ~pm  # NOT with >1 parent = AND NOT of every parent
 ```
 
-For a **non-logic** node (`logic_operator` is irrelevant — a normal gate has exactly one parent in practice), `_combine_parent_masks` with a single parent mask just returns that parent's mask unchanged for `AND`/`OR` regardless of operator, since there's nothing to combine it with.
+For a **non-logic** node (`logic_operator` is irrelevant — a normal gate has exactly one parent in practice), `combine_parent_masks` with a single parent mask just returns that parent's mask unchanged for `AND`/`OR` regardless of operator, since there's nothing to combine it with.
 
-A node with **zero parents** (the root, or a not-yet-wired logic node) is handled specially, not through the operator switch: `_combine_parent_masks` short-circuits to `np.ones(total_count, dtype=bool)` when `not node.parents` — this is correct for the sentinel root ("all events pass") but would be **wrong** for an incomplete logic node ("no events should pass because there's no valid population yet"). That's exactly why `is_incomplete` exists as a **prior check** in both `DagEvaluator._combine_parent_masks` and `GateNode._get_mask`: an incomplete logic node returns `np.zeros(total_count, dtype=bool)` *before* the parent-count check ever runs.
+A node with **zero parents** (the root, or a not-yet-wired logic node) is handled specially, not through the operator switch: `combine_parent_masks` returns `np.ones(total_count, dtype=bool)` for an empty parent list — this is correct for the sentinel root ("all events pass") but would be **wrong** for an incomplete logic node ("no events should pass because there's no valid population yet"). That's exactly why `is_incomplete` exists as a **prior check** in both `dag_evaluator._parent_mask` and `GateNode._get_mask`: an incomplete logic node returns `np.zeros(total_count, dtype=bool)` *before* the parent-count check ever runs.
 
-### 1.4 `DagEvaluator.evaluate` — full-tree batch evaluation
+### 1.4 `dag_evaluator.evaluate` — full-tree batch evaluation
 
-`analysis/compute/dag_evaluator.py`'s `DagEvaluator.evaluate(root, events) -> dict[node_id, NodeStatistics]` is the engine behind `GateCoordinator.recompute_all_stats` (via `StatisticsAnalysis`). It's a textbook **Kahn's-algorithm topological sort**, adapted to compute masks and statistics in the same pass:
+`analysis/compute/dag_evaluator.py`'s `dag_evaluator.evaluate(root, events) -> dict[node_id, NodeStatistics]` is the engine behind `GateCoordinator.recompute_all_stats` (via `StatisticsAnalysis`). It's a textbook **Kahn's-algorithm topological sort**, adapted to compute masks and statistics in the same pass:
 
 ```mermaid
 flowchart TD
-    A["_collect_nodes(root): DFS collect all reachable nodes"] --> B["in_degrees[node] = len(node.parents)"]
+    A["root.iter_dag(): every reachable node"] --> B["in_degrees[node] = len(node.parents)"]
     B --> C["ready = [nodes with in_degree == 0]"]
     C --> D{"ready queue empty?"}
     D -- no --> E["pop node from ready"]
-    E --> F["mask = _combine_parent_masks(node, evaluated_masks)"]
+    E --> F["mask = _parent_mask(node, masks)"]
     F --> G["mask = _apply_gate(node, events, mask) — intersect with node's own gate, if any"]
     G --> H["record count / pct_parent / pct_total; store node.statistics"]
     H --> I["for each child: in_degree -= 1; if 0, add to ready"]
@@ -104,7 +104,7 @@ Key details:
 
 ### 1.5 `GateNode.apply_hierarchy` — single-path query evaluation
 
-`GateNode._get_mask(events)` and `apply_hierarchy(events) -> pd.DataFrame` implement the same AND/OR/NOT + gate-intersection logic as `DagEvaluator`, but **recursively from a single target node upward** rather than as one topological batch pass — used when only one population's actual gated events are needed (e.g. `PopulationService.get_gated_events`), not a full-tree stats recompute. Because it's a plain recursive walk (not memoized across sibling calls), calling it repeatedly for many nodes in the same tree re-evaluates shared ancestors redundantly — `DagEvaluator.evaluate` is the right choice whenever more than one node's result is needed at once, which is why `GateCoordinator.recompute_all_stats` uses `StatisticsAnalysis`/`DagEvaluator` rather than looping `apply_hierarchy` per node.
+`GateNode._get_mask(events)` and `apply_hierarchy(events) -> pd.DataFrame` implement the same AND/OR/NOT + gate-intersection logic as `dag_evaluator`, but **recursively from a single target node upward** rather than as one topological batch pass — used when only one population's actual gated events are needed (e.g. `PopulationService.get_gated_events`), not a full-tree stats recompute. Because it's a plain recursive walk (not memoized across sibling calls), calling it repeatedly for many nodes in the same tree re-evaluates shared ancestors redundantly — `dag_evaluator.evaluate` is the right choice whenever more than one node's result is needed at once, which is why `GateCoordinator.recompute_all_stats` uses `StatisticsAnalysis`/`dag_evaluator` rather than looping `apply_hierarchy` per node.
 
 ### 1.6 Coordinate spaces: raw vs. display
 
@@ -136,7 +136,7 @@ This matters for two reasons a maintainer needs to keep in mind:
 
 `QuadrantGate.contains()` always returns all-`True` — the parent geometry itself gates nothing; it only defines `(x_mid, y_mid)`. The actual per-quadrant boolean test lives in `get_quadrant(events, quadrant)`, and `QuadrantGate.create_nodes()` **overrides** the `Gate` base's default (create one node) to create **four** `GateNode`s, each wrapping a `QuadrantSubGate(parent, "Q1"/"Q2"/"Q3"/"Q4")` whose `contains()` just delegates to `parent.get_quadrant(events, quadrant)`. Quadrant boundaries are (like all other gates) computed in display space after projecting both the raw midpoint and the raw event values.
 
-Because all four sub-gates share the same underlying `QuadrantGate` instance (`gate.parent`), moving the crosshair via `GateModifier.modify_gate` on **any** quadrant sub-node's `gate_id` is redirected onto `gate.parent` (see `GateModifier.modify_gate`'s explicit `isinstance(gate, QuadrantSubGate)` check) — a single mutation updates all four populations' boundaries simultaneously, with no extra fan-out logic needed.
+Because all four sub-gates share the same underlying `QuadrantGate` instance (`gate.parent`), moving the crosshair via `tree_edits.modify_gate` on **any** quadrant sub-node's `gate_id` is redirected onto `gate.parent` (see `tree_edits.modify_gate`'s explicit `isinstance(gate, QuadrantSubGate)` check) — a single mutation updates all four populations' boundaries simultaneously, with no extra fan-out logic needed.
 
 ### 1.8 `SubsetGate`: index-based membership, not geometry
 

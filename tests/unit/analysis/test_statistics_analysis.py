@@ -1,11 +1,11 @@
 """Tests for `StatisticsAnalysis`, now a thin wrapper around the shared
-`DagEvaluator.evaluate` walk (Priority 1 analysis #2 — this used to be its
+`dag_evaluator.evaluate` walk (Priority 1 analysis #2 — this used to be its
 own independent recursive tree-walker, `_walk_and_compute`, duplicating the
-same AND/OR/NOT/gate-mask logic `DagEvaluator` and `GateNode._get_mask`
+same AND/OR/NOT/gate-mask logic `dag_evaluator` and `GateNode._get_mask`
 each implemented separately).
 
 The one behavior worth testing in its own right (rather than relying on
-`DagEvaluator`'s own suite) is that a gate-evaluation failure still emits
+`dag_evaluator`'s own suite) is that a gate-evaluation failure still emits
 the Qt `analysis_error` signal exactly as the old walker did — that's the
 part that would otherwise regress silently.
 """

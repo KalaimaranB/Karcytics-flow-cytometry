@@ -86,8 +86,8 @@ class _PropagationWorker(AnalysisBase):
             logger.error("Failed to deserialize DAG: %s", e)
             return {}, GateNode()
 
-        from .compute.dag_evaluator import DagEvaluator
+        from .compute import dag_evaluator
 
-        all_stats = DagEvaluator.evaluate(new_tree, events)
+        all_stats = dag_evaluator.evaluate(new_tree, events)
 
         return all_stats, new_tree

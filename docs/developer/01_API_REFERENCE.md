@@ -35,7 +35,7 @@ class Gate(ABC):
 | `contains(events: pd.DataFrame) -> np.ndarray` | abstract | Boolean mask, shape `(n_events,)`. Subclasses implement the geometry test. |
 | `apply(events) -> pd.DataFrame` | concrete | `events.loc[self.contains(events)].copy()`. |
 | `adapt(events) -> None` | concrete no-op | Only fires when `self.adaptive`; base implementation just logs — no subclass currently overrides it with real repositioning logic. |
-| `copy() -> Gate` | abstract | Deep copy with the **same** `gate_id` (used for cloning across samples where identity should be preserved, e.g. `GatingService._clone_dag`, which forces a new id itself). |
+| `copy() -> Gate` | abstract | Deep copy with the **same** `gate_id` (used for cloning across samples where identity should be preserved, e.g. `tree_edits.clone_gate_tree`, which forces a new id itself). |
 | `to_dict() / from_dict(data)` | concrete / classmethod | Base handles `type`, `gate_id`, `x_param`, `y_param`, `adaptive`; subclasses extend both. |
 | `create_nodes(parent_node, name=None) -> list[GateNode]` | concrete, overridable | Default: creates **one** `GateNode` child. `QuadrantGate` overrides this to create **four**. |
 
@@ -146,9 +146,9 @@ QuadrantGate(
 | `Q3` | lower-left: `x < x_mid, y < y_mid` |
 | `Q4` | lower-right: `x >= x_mid, y < y_mid` |
 
-`create_nodes(parent_node, _name=None)` **overrides** the base and creates **four** `GateNode`s (one per quadrant), each wrapping a `QuadrantSubGate(self, q_name)`. This is the one gate type where `GateCoordinator.add_gate` / `GateMutationService.add_gate` returns/publishes multiple node ids in one call (see `GateEventPublisher.publish_gates_created`).
+`create_nodes(parent_node, _name=None)` **overrides** the base and creates **four** `GateNode`s (one per quadrant), each wrapping a `QuadrantSubGate(self, q_name)`. This is the one gate type where `GateCoordinator.add_gate` creates several nodes in one call (published once as `GATES_CREATED`). It sets `takes_population_name = False`, so the UI doesn't prompt for a name it would discard.
 
-`QuadrantSubGate(parent: QuadrantGate, quadrant: str, gate_id=None)` — `contains()` delegates to `parent.get_quadrant(events, quadrant)`. Its `gate_id` defaults to `f"{parent.gate_id}_{quadrant}"`. `GateModifier.modify_gate` special-cases this: mutating a `QuadrantSubGate`'s geometry (`x_mid`/`y_mid`) actually redirects the mutation onto `gate.parent`, so editing any one quadrant's crosshair moves all four.
+`QuadrantSubGate(parent: QuadrantGate, quadrant: str, gate_id=None)` — `contains()` delegates to `parent.get_quadrant(events, quadrant)`. Its `gate_id` defaults to `f"{parent.gate_id}_{quadrant}"`. `tree_edits.modify_gate` special-cases this: mutating a `QuadrantSubGate`'s geometry (`x_mid`/`y_mid`) actually redirects the mutation onto `gate.parent`, so editing any one quadrant's crosshair moves all four.
 
 ### `SubsetGate` — `gating/subset.py`
 
@@ -198,7 +198,7 @@ class GateNode:
 | `remove_child(node_id)` | `-> bool` | Removes by id from `self.children` only (does not touch `parents` on the removed node). |
 | `find_node_by_id(node_id)` | `-> GateNode \| None` | Recursive DFS from this node down. |
 | `find_nodes_by_gate(gate_id)` | `-> list[GateNode]` | All nodes (recursively) whose `.gate.gate_id == gate_id` — e.g. all 4 quadrant sub-nodes share one parent `QuadrantGate.gate_id`-derived family. |
-| `apply_hierarchy(events)` | `-> pd.DataFrame` | Applies the full AND/OR/NOT + gate chain from this node up to root, returns the filtered events (see `_get_mask`, which is the single-node equivalent of `DagEvaluator.evaluate` — used for one-off queries rather than full-tree stats). |
+| `apply_hierarchy(events)` | `-> pd.DataFrame` | Applies the full AND/OR/NOT + gate chain from this node up to root, returns the filtered events (see `_get_mask`, which is the single-node equivalent of `dag_evaluator.evaluate` — used for one-off queries rather than full-tree stats). |
 | `adapt_all(events)` | `-> None` | Recursively calls `gate.adapt()` on every adaptive gate in the subtree, feeding each gate the already-filtered parent events. |
 | `to_dict()` / `from_dict(data)` | | Serializes/deserializes the **entire reachable DAG** as a flat `{"type": "dag", "nodes": [...]}` list (not a nested tree) — required because logic nodes can have multiple parents. `from_dict` requires the `"nodes"` key; anything else raises `ValueError("Invalid serialized DAG format")`. |
 
@@ -207,12 +207,11 @@ class GateNode:
 ## 3. DAG evaluation — `analysis/compute/dag_evaluator.py`
 
 ```python
-class DagEvaluator:
-    @staticmethod
-    def evaluate(root: GateNode, events: pd.DataFrame) -> dict[str, NodeStatistics]
+def evaluate(root: GateNode, events: pd.DataFrame, on_gate_error=None) -> dict[str, NodeStatistics]
+def evaluate_scoped(changed_nodes: list[GateNode], events: pd.DataFrame, on_gate_error=None) -> dict[str, NodeStatistics]
 ```
 
-Evaluates the **entire** gate DAG in one topological pass (Kahn's algorithm over in-degree = parent count) and returns a `node_id -> NodeStatistics` map. `NodeStatistics` is a `TypedDict`: `{"count": int, "pct_parent": float, "pct_total": float}` (percentages rounded to 2 dp). As a side effect it also writes `node.statistics` on every visited node. See [05_GATING_AND_COMPENSATION_DEEP_DIVE.md](05_GATING_AND_COMPENSATION_DEEP_DIVE.md) for the full mask-combination algorithm.
+`evaluate` walks the **entire** gate DAG in one topological pass (Kahn's algorithm over in-degree = parent count) and returns a `node_id -> NodeStatistics` map. `NodeStatistics` is a `TypedDict`: `{"count": int, "pct_parent": float, "pct_total": float}` (percentages rounded to 2 dp). As a side effect it also writes `node.statistics` on every visited node. `evaluate_scoped` walks only the changed nodes and their descendants, taking parents outside that set from `GateNode`'s mask cache and persisted statistics. Both share one walk, and combine parent masks with `GateNode.combine_parent_masks`. See [05_GATING_AND_COMPENSATION_DEEP_DIVE.md](05_GATING_AND_COMPENSATION_DEEP_DIVE.md) for the full mask-combination algorithm.
 
 ---
 
@@ -267,31 +266,33 @@ class GateCoordinator:
     ): ...
 ```
 
-Internally owns a `GatePropagator` (`self._propagator`, exposed via the `propagator` property) and a `GateSelectionService` (`self._selection_service`), and constructs one `GateMutationService` that most facade methods delegate straight to.
+Owns a `GatePropagator` (the `propagator` property). Each edit goes through `gating.tree_edits`, then the coordinator recomputes the affected statistics, publishes the change, and requests propagation where geometry changed.
 
-| Method | Signature | Delegates to |
+| Method | Signature | Notes |
 |---|---|---|
-| `add_gate` | `(gate: Gate, sample_id: str, name: str \| None = None, parent_node_id: str \| None = None) -> str \| None` | `GateMutationService.add_gate` — returns the **first** created node's id (quadrant gates create 4; only the first id is returned by the facade). |
-| `remove_population` | `(sample_id: str, node_id: str) -> bool` | `GateMutationService.remove_population` |
-| `select_gate` | `(sample_id: str, node_id: str \| None) -> None` | `GateSelectionService.select_gate` |
-| `add_logic_node` | `(sample_id: str, operator: str, name: str \| None = None) -> str \| None` | `GateMutationService.add_logic_node` — creates an AND/OR/NOT node with **no parents wired**; user must wire it via `add_connection`. |
-| `add_connection` | `(sample_id: str, source_node_id: str, target_node_id: str) -> bool` | `GateMutationService.add_connection` — rejects cycles and wiring into root. |
-| `remove_connection` | `(sample_id: str, source_node_id: str, target_node_id: str) -> bool` | `GateMutationService.remove_connection` |
-| `rename_population` | `(sample_id: str, node_id: str, new_name: str) -> bool` | `GateMutationService.rename_population` — does **not** trigger propagation or stats recompute (pure label change). |
-| `modify_gate` | `(gate_id: str, sample_id: str, **kwargs) -> bool` | `GateMutationService.modify_gate` → `GateModifier.modify_gate` (validated). |
-| `split_population` | `(sample_id: str, node_id: str) -> str \| None` | `GateMutationService.split_population` → `PopulationSplitter` |
-| `copy_gates_to_group` | `(source_sample_id: str) -> int` | `GateMutationService.copy_gates_to_group` → `GatingService.copy_gates_to_group`; returns count of samples updated. |
-| `get_gates_for_display` | `(sample_id: str, parent_node_id: str \| None = None) -> tuple[list[Gate], list[GateNode]]` | `GateMutationService.get_gates_for_display` |
-| `recompute_all_stats` | `(sample_id: str, sync: bool = False) -> None` | Runs `StatisticsAnalysis` — synchronously if `sync=True` or `self.sync_stats` is truthy, otherwise submitted via `StatsService.recompute_all_stats` on the background `TaskScheduler`, with `self._on_stats_finished` as the completion callback (publishes `GATE_STATS_UPDATED` per node then `ALL_STATS_UPDATED`). |
-| `set_propagation_enabled` | `(enabled: bool) -> None` | Sets `self._propagation_enabled` (defaults `True` via `getattr`). |
-| `request_propagation` | `(gate_id: str, source_sample_id: str) -> None` | No-ops if propagation is disabled; otherwise forwards to `self._propagator.request_propagation`. |
-| `propagate_to_all_groups` | `(sample_id: str, node_id: str) -> None` | Forwards to `self._propagator.request_cross_group_propagation` — bypasses the active group filter. |
+| `add_gate` | `(gate: Gate, sample_id: str, name: str \| None = None, parent_node_id: str \| None = None) -> str \| None` | Returns the **first** created node's id (quadrant gates create 4). Records `creation_view` on the parent, selects the new node, requests propagation. |
+| `remove_population` | `(sample_id: str, node_id: str) -> bool` | Removes the node and its subtree (`tree_edits.remove_subtree`), publishes `GATE_DELETED`. |
+| `delete_gate` | `(gate_id: str, sample_ids: list[str]) -> dict[str, set[str]]` | Removes every population drawn with `gate_id` in each sample; returns the ids that are gone. |
+| `populations_under_gate` | `(gate_id: str, sample_ids: list[str]) -> dict[str, set[str]]` | Preview for `delete_gate`: every population at or below a node using the gate. |
+| `select_gate` | `(sample_id: str, node_id: str \| None) -> None` | Sets `state.view.current_gate_id`, publishes `GATE_SELECTED` when it changed. |
+| `unique_name` | `(sample_id: str, prefix: str = "Gate") -> str` | First unused `"<prefix> N"`. |
+| `add_logic_node` | `(sample_id: str, operator: str, name: str \| None = None) -> str \| None` | Creates an AND/OR/NOT node with **no parents wired**; the user wires it via `add_connection`. |
+| `add_connection` | `(sample_id: str, source_node_id: str, target_node_id: str) -> bool` | Rejects cycles and wiring into root. |
+| `remove_connection` | `(sample_id: str, source_node_id: str, target_node_id: str) -> bool` | |
+| `remove_connection_for_samples` | `(source_node_id: str, target_node_id: str, sample_ids: list[str]) -> int` | Count removed. |
+| `rename_population` | `(sample_id: str, node_id: str, new_name: str, target_sample_ids: list[str] \| None = None) -> bool` | Renames here and in `target_sample_ids` (default: `propagator.find_targets`). No stats recompute or propagation. |
+| `modify_gate` | `(gate_id: str, sample_id: str, **kwargs) -> bool` | `tree_edits.modify_gate` (validated; see below). |
+| `split_population` | `(sample_id: str, node_id: str) -> str \| None` | Adds the inverse sibling (`tree_edits.split_population`). |
+| `copy_gates_to_group` | `(source_sample_id: str) -> int` | Count of samples updated. |
+| `get_gates_for_display` | `(sample_id: str, parent_node_id: str \| None = None) -> tuple[list[Gate], list[GateNode]]` | |
+| `recompute_all_stats` | `(sample_id: str, sync: bool = False, node_ids: list[str] \| None = None) -> None` | Invalidates the mask cache, then runs `StatisticsAnalysis` — inline if `sync` or `self.sync_stats`, otherwise on the SDK `task_scheduler`; on completion publishes `GATE_STATS_UPDATED` and `STATS_COMPUTED` per node, then `ALL_STATS_UPDATED`. |
+| `set_propagation_enabled` | `(enabled: bool) -> None` | |
+| `request_propagation` | `(gate_id: str, source_sample_id: str) -> None` | No-ops while propagation is disabled. |
+| `propagate_to_all_groups` | `(sample_id: str, node_id: str) -> None` | Forwards to `propagator.request_cross_group_propagation` — bypasses the active group filter. |
 | `cleanup` | `() -> None` | Cancels the propagator's pending debounce timer. |
 
 !!! note "Method-name mismatch to watch for"
     `GateCoordinator.propagate_to_all_groups(sample_id, node_id)` calls `self._propagator.request_cross_group_propagation(node_id, sample_id)` — the **argument order is swapped** between the two method signatures (`node_id` becomes the propagator's `gate_id` positional argument). This is intentional per the propagator's signature (`request_cross_group_propagation(self, gate_id, source_sample_id)`) but easy to get backwards when calling either method directly.
-
-This class matches the `IGateCoordinator` `Protocol` defined in `analysis/protocols.py` method-for-method (`add_gate`, `remove_population`, `add_logic_node`, `add_connection`, `remove_connection`, `rename_population`, `modify_gate`, `split_population`, `copy_gates_to_group`, `get_gates_for_display`, `recompute_all_stats`, `set_propagation_enabled`) — UI code should type-hint against the protocol where practical.
 
 ---
 
@@ -309,9 +310,9 @@ class PopulationService:
     def find_node(self, sample_id: str, node_id: str) -> GateNode | None
     def find_nodes_by_gate(self, sample_id: str, gate_id: str) -> list[GateNode]
     def get_gated_events(self, sample_id: str, node_id: str | None = None) -> pd.DataFrame | None
-    def add_population(self, sample_id: str, gate: Gate, parent_id: str | None = None, name: str | None = None) -> GateNode | list[GateNode] | None
-    def remove_population(self, sample_id: str, node_id: str) -> bool
 ```
+
+Read-only; changes go through `GateCoordinator`.
 
 ### `AxisManager` — `analysis/axis_manager.py`
 
@@ -326,49 +327,23 @@ class AxisManager:
 
 Scales are stored per-**group** (`Group.channel_scales`), keyed off the sample's first `group_ids` entry — not per-sample. If a sample has no group, scales fall back to `state.view.fallback_scales`, keyed by channel only.
 
-### `GateModifier` — `analysis/services/modifier.py`
+### Gate-tree edits — `analysis/gating/tree_edits.py`
 
 ```python
-class GateModifier:
-    @staticmethod
-    def modify_gate(experiment: Experiment, gate_id: str, sample_id: str, **kwargs) -> bool
+def unique_name(sample: Sample | None, prefix: str = "Gate") -> str
+def gates_for_display(sample: Sample, parent_node_id: str | None = None) -> tuple[list[Gate], list[GateNode]]
+def modify_gate(sample: Sample, gate_id: str, **kwargs) -> list[GateNode]
+def split_population(sample: Sample, node_id: str) -> GateNode | None
+def remove_subtree(sample: Sample, node_id: str) -> set[str]
+def clone_gate_tree(source_root: GateNode, target: Sample) -> None
+def copy_gates_to_group(experiment: Experiment, source_sample_id: str) -> list[Sample]
 ```
 
-Validates the merged (current + candidate) attribute state before mutating anything — a rejected edit never partially applies. Per-type invariants: `RectangleGate` requires `x_min < x_max` and `y_min < y_max`; `RangeGate` requires `low < high`; `EllipseGate` requires `width > 0` and `height > 0`; `PolygonGate` requires `len(vertices) >= POLYGON_MIN_VERTICES` (3). `QuadrantGate` has no geometric invariant on `x_mid`/`y_mid`. `QuadrantSubGate` targets are redirected to `gate.parent` before validation/mutation.
-
-### `NamingService` — `analysis/services/naming.py`
-
-```python
-class NamingService:
-    @staticmethod
-    def generate_unique_name(experiment: Experiment, sample_id: str, prefix: str = "Gate") -> str
-```
-
-Collects every non-root node name in the sample's tree, then returns the first `f"{prefix} {n}"` (n starting at 1) not already used.
-
-### `PopulationSplitter` — `analysis/services/splitter.py`
-
-```python
-class PopulationSplitter:
-    @staticmethod
-    def split_population(experiment: Experiment, sample_id: str, node_id: str) -> tuple[str, str, str] | None
-```
-
-Returns `(new_node_id, new_name, gate_id)`. Creates an inverse sibling (`negated = not node.negated`) sharing the **same** `Gate` instance and wired to all of the original node's parents, named `f"{node.name} (Outside)"` (or `(Inside)` if the source was already negated).
-
-### `GatingService` — `analysis/services/gating_service.py`
-
-```python
-class GatingService:
-    @staticmethod
-    def get_gates_for_display(sample: Sample, parent_node_id: str | None = None) -> tuple[list[Gate], list[GateNode]]
-    @staticmethod
-    def clone_gate_tree(source_root: GateNode, target: Sample) -> None
-    @staticmethod
-    def copy_gates_to_group(experiment: Experiment, source_sample_id: str) -> int
-```
-
-`clone_gate_tree` deep-clones **every** reachable node (including multi-parent logic nodes) and gives each cloned physical gate a fresh `gate_id`. `copy_gates_to_group` copies to all samples sharing a group with the source (or to every other sample if the source is ungrouped), returns the count copied to.
+- `unique_name` returns the first `f"{prefix} {n}"` (n from 1) no non-root node uses.
+- `modify_gate` validates the merged (current + candidate) attribute state before mutating anything, so a rejected edit never partially applies, and returns the nodes sharing the gate (`[]` when rejected). Per-type invariants: `RectangleGate` requires `x_min < x_max` and `y_min < y_max`; `RangeGate` requires `low < high`; `EllipseGate` requires `width > 0` and `height > 0`; `PolygonGate` requires `len(vertices) >= POLYGON_MIN_VERTICES` (3). `QuadrantGate` has no invariant on `x_mid`/`y_mid`. A `QuadrantSubGate` target is redirected to `gate.parent` first.
+- `split_population` adds an inverse sibling (`negated = not node.negated`) sharing the **same** `Gate` instance, wired to all of the original's parents, named `f"{node.name} (Outside)"` (or `(Inside)` if the source was already negated).
+- `remove_subtree` returns the ids no longer in the tree: a logic node below the removed node survives when it is still reachable through another parent.
+- `clone_gate_tree` deep-clones **every** reachable node (including multi-parent logic nodes) and gives each cloned physical gate a fresh `gate_id`. `copy_gates_to_group` copies to the loaded samples sharing a group with the source (or every other loaded sample if there are none) and returns them.
 
 ### `DataLoaderService` — `analysis/services/data_loader_service.py`
 
@@ -447,4 +422,4 @@ All cross-component notification goes through the Karcytics SDK's `CentralEventB
 | Workflow | `WORKFLOW_SAVED` | `flow.workflow.saved` |
 | Experiment | `EXPERIMENT_DATA_CHANGED` | `flow.experiment.data_changed` |
 
-`CONNECTION_ADDED`/`CONNECTION_REMOVED` are published by `GateMutationService.add_connection`/`remove_connection` when a logic node is still `is_incomplete` (under-wired) — a cheap "draw the wire" signal that intentionally skips the full stats-recompute + `GATE_STATS_UPDATED` path those methods otherwise take.
+`CONNECTION_ADDED`/`CONNECTION_REMOVED` are published by `GateCoordinator.add_connection`/`remove_connection` when a logic node is still `is_incomplete` (under-wired) — a cheap "draw the wire" signal that intentionally skips the full stats-recompute + `GATE_STATS_UPDATED` path those methods otherwise take.

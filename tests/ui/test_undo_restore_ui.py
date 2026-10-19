@@ -8,8 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
-from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
+from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate, tree_edits
 from karcytics_plugins.flow_cytometry.analysis.store import FlowStore
 from tests.fixtures.workspace import FakeBus, build_rich_state
 
@@ -75,7 +74,7 @@ def test_surviving_graphs_reload_their_gates_from_the_new_model(env):
     state, store, manager, controller = env
     lymph = state.data.experiment.samples["s0"].gate_tree.children[0]
     manager.open_graph_for_sample("s0", lymph.node_id)
-    PopulationService(state).remove_population("s0", lymph.children[0].node_id)
+    tree_edits.remove_subtree(state.data.experiment.samples["s0"], lymph.children[0].node_id)
     store.commit("Delete Gate")
 
     controller.get_gates_for_display.reset_mock()

@@ -25,7 +25,7 @@ import pandas as pd
 import pytest
 from karcytics_sdk.plugin.tutorial_models import QuestionStep
 
-from karcytics_plugins.flow_cytometry.analysis.compute.dag_evaluator import DagEvaluator
+from karcytics_plugins.flow_cytometry.analysis.compute import dag_evaluator
 from karcytics_plugins.flow_cytometry.analysis.derived.expression import parse_formula
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import load_fcs
 from karcytics_plugins.flow_cytometry.analysis.gating import PolygonGate, RangeGate, RectangleGate
@@ -97,7 +97,7 @@ def _build_tree() -> GateNode:
 def _measure_sample(events: pd.DataFrame) -> dict[str, float]:
     events = events.assign(ratio=RATIO.evaluate(events))
     root = _build_tree()
-    stats = DagEvaluator.evaluate(root, events)
+    stats = dag_evaluator.evaluate(root, events)
     nodes = {n.name: n for n in root.iter_dag()}
 
     def stat(name: str, key: str) -> float:

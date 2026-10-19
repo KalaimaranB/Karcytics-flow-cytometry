@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import numpy as np
 import pandas as pd
@@ -31,6 +31,10 @@ class Gate(ABC):
                    in effect when the gate was drawn (display/audit only —
                    evaluation always uses the current definition).
     """
+
+    # False for a gate that names the populations it creates itself
+    # (QuadrantGate's Q1-Q4), so asking the user for a name is pointless.
+    takes_population_name: ClassVar[bool] = True
 
     def __init__(
         self,

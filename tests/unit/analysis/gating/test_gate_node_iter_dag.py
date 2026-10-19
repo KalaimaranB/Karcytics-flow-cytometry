@@ -1,6 +1,5 @@
 """GateNode.iter_dag — the single DAG walk shared by stats, cloning and lookups."""
 
-from karcytics_plugins.flow_cytometry.analysis.compute.dag_evaluator import DagEvaluator
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 
 
@@ -28,11 +27,6 @@ def test_order_is_depth_first_stack_order():
     root, _ = _diamond()
     # Same order the pre-refactor stack walks produced: last child first.
     assert [n.name for n in root.iter_dag()] == ["All Events", "B", "AND", "Leaf", "A"]
-
-
-def test_dag_evaluator_collects_same_nodes():
-    root, _ = _diamond()
-    assert DagEvaluator._collect_nodes(root) == list(root.iter_dag())
 
 
 def test_subtree_walk_starts_at_node():

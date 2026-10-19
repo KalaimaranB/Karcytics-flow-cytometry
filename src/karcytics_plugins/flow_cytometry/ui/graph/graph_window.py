@@ -28,11 +28,9 @@ from PySide6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import get_channel_marker_label
+from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
-from karcytics_plugins.flow_cytometry.analysis.protocols import (
-    IGateCoordinator,
-    IPopulationService,
-)
+from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.scaling import (
     AxisScale,
     calculate_auto_range,
@@ -88,8 +86,8 @@ class GraphWindow(QWidget):
         sample_id: str,
         node_id: str | None = None,
         axis_manager: Any | None = None,
-        population_service: IPopulationService | None = None,
-        controller: IGateCoordinator | None = None,
+        population_service: PopulationService | None = None,
+        controller: GateCoordinator | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -99,7 +97,7 @@ class GraphWindow(QWidget):
         self._sample_id = sample_id
         self._node_id = node_id
         if controller is None:
-            raise ValueError("IGateCoordinator must be injected")
+            raise ValueError("GateCoordinator must be injected")
         self._controller = controller
 
         self._x_scale = AxisScale(TransformType.LINEAR)
@@ -422,7 +420,7 @@ class GraphWindow(QWidget):
             # 1. Prefer the "creation view" anchored to this exact node. A freshly
             # gated-out node never has its own creation_view — it's recorded on the
             # *parent* (the node that was actually being viewed when the gate was
-            # drawn — see GateMutationService.add_gate) — so fall back to the
+            # drawn — see GateCoordinator.add_gate) — so fall back to the
             # parent's record. This is what lets a child population inherit the
             # exact view (axes + plot type) it was carved out of, e.g. staying in
             # Pseudocolor after drawing a range gate on a 2D scatter, instead of

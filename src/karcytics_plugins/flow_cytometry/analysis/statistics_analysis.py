@@ -6,7 +6,7 @@ from typing import Any
 
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
-from .compute.dag_evaluator import DagEvaluator
+from .compute import dag_evaluator
 from .gating.gate_node import GateNode
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -15,7 +15,7 @@ logger = get_logger(__name__, "flow_cytometry")
 class StatisticsAnalysis(AnalysisBase):
     """Background analyzer for computing population statistics.
 
-    Thin wrapper around the shared `DagEvaluator.evaluate` walk (the same
+    Thin wrapper around the shared `dag_evaluator.evaluate` walk (the same
     one `propagation_worker.py` uses) — this used to be its own independent
     recursive tree-walker duplicating the same AND/OR/NOT/gate-mask logic.
     """
@@ -24,7 +24,7 @@ class StatisticsAnalysis(AnalysisBase):
         super().__init__(plugin_id)
         self.target_sample_id: str | None = None
         # When set, only these nodes (and their descendants) are recomputed —
-        # everything above them is untouched, so `DagEvaluator.evaluate_scoped`
+        # everything above them is untouched, so `dag_evaluator.evaluate_scoped`
         # reads their ancestors' masks from GateNode's own cache instead of
         # walking the whole tree. `None` (the default) recomputes everything,
         # as before.
@@ -63,11 +63,11 @@ class StatisticsAnalysis(AnalysisBase):
                 for nid in self.target_node_ids
                 if (node := sample.gate_tree.find_node_by_id(nid)) is not None
             ]
-            results = DagEvaluator.evaluate_scoped(
+            results = dag_evaluator.evaluate_scoped(
                 changed_nodes, events, on_gate_error=self._on_gate_error
             )
         else:
-            results = DagEvaluator.evaluate(
+            results = dag_evaluator.evaluate(
                 sample.gate_tree, events, on_gate_error=self._on_gate_error
             )
 

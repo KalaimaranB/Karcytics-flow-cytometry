@@ -33,13 +33,13 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QSizePolicy
 
 from karcytics_plugins.flow_cytometry.analysis import events
+from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating import (
     Gate,
     GateNode,
     QuadrantSubGate,
     RangeGate,
 )
-from karcytics_plugins.flow_cytometry.analysis.protocols import IGateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
@@ -133,7 +133,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def __init__(  # noqa: PLR0913, PLR0915
         self,
         state: FlowState | None = None,
-        controller: IGateCoordinator | None = None,
+        controller: GateCoordinator | None = None,
         parent=None,
         crash_reporter: ICrashReporter | None = None,
     ) -> None:

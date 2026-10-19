@@ -47,7 +47,7 @@ def _gate_matching_guide(metadata: dict):
         # Wrapped in a QuadrantSubGate, matching what's actually stored as
         # node.gate at runtime: QuadrantGate.create_nodes() only ever attaches
         # QuadrantSubGate leaves (see quadrant.py), never the parent
-        # QuadrantGate directly, and GateMutationService.add_gate() selects
+        # QuadrantGate directly, and GateCoordinator.add_gate() selects
         # one of those leaves after creation. A bare QuadrantGate here would
         # miss GateShapeValidator's QuadrantSubGate->parent unwrap step
         # entirely (see validators.py), which is exactly how a typo'd

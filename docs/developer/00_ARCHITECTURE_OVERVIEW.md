@@ -325,12 +325,12 @@ graph TD
 ```
 
 Each `Sample` owns its own independent `gate_tree` (a `GateNode` DAG, root
-named "All Events"). `analysis/compute/dag_evaluator.py`'s `DagEvaluator`
+named "All Events"). `analysis/compute/dag_evaluator.py`
 evaluates node membership via topological sort + boolean mask combination.
 Gate edits on one sample can be cloned to sibling samples in the same group
 by `GatePropagator` (`analysis/gate_propagator.py`), debounced — see
-`services/gate_mutation_service.py`'s calls to
-`coordinator.request_propagation()` after every structural edit.
+`GateCoordinator`'s calls to `request_propagation()` after every edit
+that changes geometry.
 
 ---
 

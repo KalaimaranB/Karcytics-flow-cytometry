@@ -1,7 +1,7 @@
 """Tests for how the pipeline canvas (`NodeItem` via `CanvasManager
 ._apply_stats_to_item`) and the properties panel (`PropertiesPanel
 ._add_estimation_rows`) surface a node's UMAP-subsample estimation
-correction — the same `node.statistics` fields DagEvaluator computes
+correction — the same `node.statistics` fields dag_evaluator computes
 (see test_dag_evaluator.py::TestEstimationPropagation) and
 statistics_explorer.py already consumes for the table (see
 test_statistics_explorer_estimated_cells.py). All three views must agree.

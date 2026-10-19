@@ -7,8 +7,7 @@ import pytest
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
 from karcytics_plugins.flow_cytometry.analysis.experiment import Group, Sample, SampleRole
-from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
-from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
+from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate, tree_edits
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
 from karcytics_plugins.flow_cytometry.analysis.store import UNRECORDED_CHANGE_LABEL, FlowStore
 from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
@@ -193,7 +192,9 @@ def _mutations(state):  # noqa: C901 - one closure per kind of edit
 
     def delete_gate():
         lymph = exp.samples["s1"].gate_tree.children[0]
-        assert PopulationService(state).remove_population("s1", lymph.children[0].node_id)
+        assert tree_edits.remove_subtree(
+            state.data.experiment.samples["s1"], lymph.children[0].node_id
+        )
 
     def rename_gate():
         exp.samples["s0"].gate_tree.children[0].name = "Lymphs"

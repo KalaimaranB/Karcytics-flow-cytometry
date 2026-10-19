@@ -1,4 +1,4 @@
-"""Tests for `DagEvaluator.evaluate` — the single tree-walker `StatisticsAnalysis`
+"""Tests for `dag_evaluator.evaluate` — the single tree-walker `StatisticsAnalysis`
 and `propagation_worker.py` now share (Priority 1 analysis #2: these used to be
 three independent implementations of the same AND/OR/NOT/gate-mask walk that
 could silently drift from each other).
@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from karcytics_plugins.flow_cytometry.analysis.compute.dag_evaluator import DagEvaluator
+from karcytics_plugins.flow_cytometry.analysis.compute import dag_evaluator
 from karcytics_plugins.flow_cytometry.analysis.gating.base import Gate
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 
@@ -50,7 +50,7 @@ def events():
 def test_root_gets_full_count_stats(events):
     root = GateNode(name="All Events")
 
-    stats = DagEvaluator.evaluate(root, events)
+    stats = dag_evaluator.evaluate(root, events)
 
     assert stats[root.node_id] == {"count": 10, "pct_parent": 100.0, "pct_total": 100.0}
 
@@ -60,7 +60,7 @@ def test_regular_node_stats_match_its_gate(events):
     node = GateNode(gate=FixedGate(np.array([True] * 6 + [False] * 4)), name="A", parents=[root])
     root.children.append(node)
 
-    stats = DagEvaluator.evaluate(root, events)
+    stats = dag_evaluator.evaluate(root, events)
 
     assert stats[node.node_id]["count"] == 6
     assert stats[node.node_id]["pct_parent"] == 60.0
@@ -79,7 +79,7 @@ def test_logic_node_gets_per_parent_overlap_percentages(events):
     node_a.children.append(node_and)
     node_b.children.append(node_and)
 
-    stats = DagEvaluator.evaluate(root, events)
+    stats = dag_evaluator.evaluate(root, events)
 
     per_parent = stats[node_and.node_id]["per_parent_pcts"]
     assert per_parent[node_a.node_id]["parent_count"] == 8
@@ -98,7 +98,7 @@ def test_gate_failure_without_callback_zero_masks_but_keeps_walking_descendants(
     child = GateNode(gate=FixedGate(np.array([True] * 10)), name="Child", parents=[failing])
     failing.children.append(child)
 
-    stats = DagEvaluator.evaluate(root, events)
+    stats = dag_evaluator.evaluate(root, events)
 
     assert stats[failing.node_id]["count"] == 0
     assert child.node_id in stats  # descendant still computed, per existing behavior
@@ -112,7 +112,7 @@ def test_gate_failure_with_callback_invokes_it_and_prunes_the_subtree(events):
     failing.children.append(child)
 
     errors = []
-    stats = DagEvaluator.evaluate(
+    stats = dag_evaluator.evaluate(
         root, events, on_gate_error=lambda node, exc: errors.append((node.node_id, exc))
     )
 
@@ -135,7 +135,7 @@ def test_a_sibling_unaffected_by_a_failing_nodes_pruning(events):
     )
     root.children.append(healthy)
 
-    stats = DagEvaluator.evaluate(root, events, on_gate_error=lambda node, exc: None)
+    stats = dag_evaluator.evaluate(root, events, on_gate_error=lambda node, exc: None)
 
     assert stats[healthy.node_id]["count"] == 7
 
@@ -160,7 +160,7 @@ class TestEvaluateScoped:
         sibling = GateNode(gate=FixedGate(np.array([True] * 10)), name="B", parents=[root])
         root.children.append(sibling)
 
-        stats = DagEvaluator.evaluate_scoped([changed], events)
+        stats = dag_evaluator.evaluate_scoped([changed], events)
 
         assert set(stats.keys()) == {changed.node_id, grandchild.node_id}
         assert root.node_id not in stats
@@ -180,7 +180,7 @@ class TestEvaluateScoped:
         assert parent_gate.call_count == 1
 
         changed.invalidate_mask_cache()
-        DagEvaluator.evaluate_scoped([changed], events)
+        dag_evaluator.evaluate_scoped([changed], events)
 
         assert parent_gate.call_count == 1  # still 1 — cache hit, not recomputed
 
@@ -195,9 +195,9 @@ class TestEvaluateScoped:
         )
         node_a.children.append(node_b)
 
-        full = DagEvaluator.evaluate(root, events)
+        full = dag_evaluator.evaluate(root, events)
         node_a.invalidate_mask_cache()
-        scoped = DagEvaluator.evaluate_scoped([node_a], events)
+        scoped = dag_evaluator.evaluate_scoped([node_a], events)
 
         assert scoped[node_a.node_id] == full[node_a.node_id]
         assert scoped[node_b.node_id] == full[node_b.node_id]
@@ -221,11 +221,11 @@ class TestEvaluateScoped:
         changed.children.append(or_node)
 
         # Establish a baseline (as if this had been computed before).
-        DagEvaluator.evaluate(root, events)
+        dag_evaluator.evaluate(root, events)
 
         changed.invalidate_mask_cache()
         or_node.invalidate_mask_cache()
-        stats = DagEvaluator.evaluate_scoped([changed, or_node], events)
+        stats = dag_evaluator.evaluate_scoped([changed, or_node], events)
 
         overlap = stats[or_node.node_id]["per_parent_pcts"]
         assert overlap[stable.node_id]["parent_count"] == 9  # persisted, not recomputed
@@ -242,7 +242,7 @@ class TestEvaluateScoped:
         changed.children.append(grandchild)
 
         errors = []
-        stats = DagEvaluator.evaluate_scoped(
+        stats = dag_evaluator.evaluate_scoped(
             [changed], events, on_gate_error=lambda node, exc: errors.append(node.node_id)
         )
 
@@ -266,7 +266,7 @@ class TestEstimationPropagation:
         )
         root.children.append(node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         assert "is_estimated" not in stats[node.node_id]
         assert "estimated_count" not in stats[node.node_id]
@@ -280,7 +280,7 @@ class TestEstimationPropagation:
         est.is_estimated = True
         est.scale_factor = 4.0
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[est.node_id]
         assert s["count"] == 3  # raw, unscaled
@@ -303,7 +303,7 @@ class TestEstimationPropagation:
         child = GateNode(gate=FixedGate(np.array([True] * 8)), name="UMAP B Cells", parents=[est])
         est.children.append(child)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[child.node_id]
         assert s["count"] == 8
@@ -330,7 +330,7 @@ class TestEstimationPropagation:
         est.children.append(and_node)
         exact.children.append(and_node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[and_node.node_id]
         assert s["count"] == 5  # AND of first-6-True & first-5-True
@@ -368,7 +368,7 @@ class TestEstimationPropagation:
         est.children.append(and_node)
         exact.children.append(and_node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         overlap = stats[and_node.node_id]["per_parent_pcts"]
         # "% of UMAP B Cells": raw AND count (5) / UMAP B Cells' own raw
@@ -397,7 +397,7 @@ class TestEstimationPropagation:
         est.children.append(or_node)
         exact.children.append(or_node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[or_node.node_id]
         assert s["is_estimated"] is True
@@ -415,7 +415,7 @@ class TestEstimationPropagation:
         not_node = GateNode(name="NOT", logic_operator="NOT", parents=[est], is_logic_node=True)
         est.children.append(not_node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[not_node.node_id]
         assert s["is_estimated"] is True
@@ -442,7 +442,7 @@ class TestEstimationPropagation:
         est_a.children.append(and_node)
         est_b.children.append(and_node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[and_node.node_id]
         assert s["is_estimated"] is True
@@ -469,7 +469,7 @@ class TestEstimationPropagation:
         est_a.children.append(and_node)
         est_b.children.append(and_node)
 
-        stats = DagEvaluator.evaluate(root, events)
+        stats = dag_evaluator.evaluate(root, events)
 
         s = stats[and_node.node_id]
         assert s["count"] == 7  # AND of first-8-True & first-7-True
@@ -496,10 +496,10 @@ class TestEstimationPropagation:
         est.children.append(and_node)
         exact.children.append(and_node)
 
-        DagEvaluator.evaluate(root, events)  # baseline — persists est's stats onto est.statistics
+        dag_evaluator.evaluate(root, events)  # baseline — persists est's stats onto est.statistics
 
         and_node.invalidate_mask_cache()
-        stats = DagEvaluator.evaluate_scoped([and_node], events)
+        stats = dag_evaluator.evaluate_scoped([and_node], events)
 
         s = stats[and_node.node_id]
         assert s["is_estimated"] is True

@@ -24,11 +24,9 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
+from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
-from karcytics_plugins.flow_cytometry.analysis.protocols import (
-    IGateCoordinator,
-    IPopulationService,
-)
+from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .graph_window import GraphWindow
@@ -60,8 +58,8 @@ class GraphManager(QWidget):
         self,
         state: FlowState,
         axis_manager: Any,
-        population_service: IPopulationService,
-        controller: IGateCoordinator | None = None,
+        population_service: PopulationService,
+        controller: GateCoordinator | None = None,
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -70,7 +68,7 @@ class GraphManager(QWidget):
         self._axis_manager = axis_manager
         self._population_service = population_service
         if controller is None:
-            raise ValueError("IGateCoordinator must be injected")
+            raise ValueError("GateCoordinator must be injected")
         self._controller = controller
         self._graphs: dict[str, GraphWindow] = {}  # key: "sample_id:gate_id"
         self._current_tool = "select"

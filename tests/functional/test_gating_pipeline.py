@@ -2,7 +2,7 @@
 
 One realistic gate tree (rectangle -> range -> quadrant, plus an AND logic
 node) is evaluated through the same code paths the app uses —
-`DagEvaluator.evaluate`, `GateNode.apply_hierarchy`, and
+`dag_evaluator.evaluate`, `GateNode.apply_hierarchy`, and
 `PopulationService.get_gated_events` — on the Specimen_001 files in
 `tests/data/fcs/` (loaded via `load_fcs`, so embedded spill compensation is
 applied exactly as it is for a user).
@@ -20,7 +20,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from karcytics_plugins.flow_cytometry.analysis.compute.dag_evaluator import DagEvaluator
+from karcytics_plugins.flow_cytometry.analysis.compute import dag_evaluator
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData, load_fcs
 from karcytics_plugins.flow_cytometry.analysis.gating import (
@@ -105,7 +105,7 @@ def _build_tree() -> GateNode:
 
 
 def _counts_by_name(root: GateNode, events: pd.DataFrame) -> dict[str, int]:
-    stats = DagEvaluator.evaluate(root, events)
+    stats = dag_evaluator.evaluate(root, events)
     return {node.name: stats[node.node_id]["count"] for node in root.iter_dag()}
 
 
@@ -158,21 +158,21 @@ def test_counts_match_an_independent_numpy_oracle(events_by_sample):
 @pytest.mark.parametrize("sample_name", list(GOLDEN_COUNTS))
 def test_quadrants_partition_their_parent(events_by_sample, sample_name):
     root = _build_tree()
-    stats = DagEvaluator.evaluate(root, events_by_sample[sample_name])
+    stats = dag_evaluator.evaluate(root, events_by_sample[sample_name])
     apc = _node(root, "APC+")
     quadrants = [_node(root, q) for q in ("Q1", "Q2", "Q3", "Q4")]
 
     assert sum(stats[q.node_id]["count"] for q in quadrants) == stats[apc.node_id]["count"]
     if stats[apc.node_id]["count"]:
         pct = sum(stats[q.node_id]["pct_parent"] for q in quadrants)
-        # DagEvaluator rounds each pct to 2 dp, so four of them can drift ±0.02.
+        # dag_evaluator rounds each pct to 2 dp, so four of them can drift ±0.02.
         assert pct == pytest.approx(100.0, abs=0.02)
 
 
 def test_percentages_are_relative_to_parent_and_total(events_by_sample):
     ev = events_by_sample["Sample A"]
     root = _build_tree()
-    stats = DagEvaluator.evaluate(root, ev)
+    stats = dag_evaluator.evaluate(root, ev)
     cells, apc = _node(root, "Cells"), _node(root, "APC+")
     golden = GOLDEN_COUNTS["Sample A"]
 
@@ -187,7 +187,7 @@ def test_percentages_are_relative_to_parent_and_total(events_by_sample):
 
 def test_every_gating_entry_point_agrees(events_by_sample):
     """The graph view (PopulationService), the per-node hierarchy walk
-    (apply_hierarchy), and the stats walk (DagEvaluator) are three separate
+    (apply_hierarchy), and the stats walk (dag_evaluator) are three separate
     ways the app turns a node into events — they must never disagree.
     """
     ev = events_by_sample["Sample A"]
@@ -198,7 +198,7 @@ def test_every_gating_entry_point_agrees(events_by_sample):
     state.data.experiment.samples["a"] = sample
     service = PopulationService(state)
 
-    stats = DagEvaluator.evaluate(sample.gate_tree, ev)
+    stats = dag_evaluator.evaluate(sample.gate_tree, ev)
     for node in sample.gate_tree.iter_dag():
         if node.is_root:
             continue

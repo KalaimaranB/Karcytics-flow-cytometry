@@ -213,8 +213,8 @@ def test_modify_gate_does_not_recompute_an_unrelated_siblings_gate(
     gate_coordinator, flow_state, gate_rectangle_singlet, gate_rectangle_lymph, monkeypatch
 ):
     """End-to-end proof of Priority 1 analysis #3 (scoped recompute) through
-    the real `GateCoordinator` → `gate_mutation_service` → `StatisticsAnalysis`
-    → `DagEvaluator.evaluate_scoped` pipeline, not just the DagEvaluator unit
+    the real `GateCoordinator` → `StatisticsAnalysis`
+    → `dag_evaluator.evaluate_scoped` pipeline, not just the dag_evaluator unit
     tests: an edit to one gate must never even *call* an unrelated sibling's
     `.contains()`, let alone get a different answer from it.
     """
@@ -265,7 +265,7 @@ def test_remove_population_invalidates_a_sibling_logic_nodes_mask_cache(
 
     sample = flow_state.data.experiment.samples[sample_id]
 
-    or_id = gate_coordinator._mutation_service.add_logic_node(sample_id, "OR")
+    or_id = gate_coordinator.add_logic_node(sample_id, "OR")
     or_node = sample.gate_tree.find_node_by_id(or_id)
     gate_coordinator.add_connection(sample_id, node_a_id, or_id)
     gate_coordinator.add_connection(sample_id, node_b_id, or_id)

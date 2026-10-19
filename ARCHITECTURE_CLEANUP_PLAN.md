@@ -132,51 +132,44 @@ baseline is blocked, and `doctor` flags every A2 row on today's flow code.
 
 Each phase also ratchets the baseline down once it lands.
 
-## B1. Delete what's dead (about an hour)
+## B1. Delete what's dead — done
 
-- [ ] Remove the 6 `GATE_STATS_UPDATED` publishes (`analysis/gate_coordinator.py`,
-      `analysis/services/gate_mutation_service.py`).
-- [ ] Remove the 6 unused topics in `analysis/events.py`: `AXIS_RANGE_AUTO_UPDATED`,
-      `GATE_PROPAGATED`, `PROPAGATION_REQUESTED`, `RENDER_MODE_CHANGED`,
-      `SAMPLE_DESELECTED`, `STATS_INVALIDATED`.
-- [ ] Delete `IWorkflowPersistence` (`analysis/protocols.py`), `ui/widgets/marker_panel.py`
-      (never imported), and the empty `ui/onboarding/`.
-- [ ] Drop the `_gate_controller` alias in `main_panel.py`; downgrade the 48 `[tag]` warnings
-      to `debug`.
-- [ ] Fix the structure section of `CLAUDE.md` (`analysis/compute/` holds only
-      `dag_evaluator.py`).
-- [ ] Fix or delete the 8 tests with no assertion.
-- [ ] Delete the two superseded plan files.
+- [x] ~~Remove the 6 `GATE_STATS_UPDATED` publishes~~ — **kept**: `MainPanelController`
+      subscribed to it by raw string, so it was live. Every topic is now a constant in
+      `analysis/events.py` (raw-string uses replaced), and the SDK's KS350/KS351 now resolve
+      string literals to their topic.
+- [x] Remove the 6 unused topics, plus `AXIS_UPDATED` (published, never handled) and
+      `set_scale`'s `notify` flag.
+- [x] Delete `IWorkflowPersistence`, `ui/widgets/marker_panel.py`, the empty `ui/onboarding/`.
+- [x] Drop the `_gate_controller` alias; the `[phaseN]`/diagnostic traces log at `debug`.
+- [x] Fix the structure section of `CLAUDE.md`.
+- [x] Give the 8 hollow tests real assertions (2 of the doctor's hits were false positives,
+      fixed in the SDK: a `test_*` fixture, and `qtbot.waitSignal` as an assertion).
+- [x] Delete the two superseded plan files.
 
-## B2. Collapse the gating service stack
+## B2. Collapse the gating service stack — done
 
-One "add gate" call currently passes through three layers: `GateCoordinator` (a facade) →
-`GateMutationService` → static-method-only classes (`GateModifier`, `PopulationSplitter`,
-`NamingService`, `GatingService`), plus `GateSelectionService` and `GateEventPublisher`. Each
-verb is therefore defined 3–5 times. Problems that follow from this:
-
-- A circular dependency: the sub-services take the coordinator and call back into it, and
-  `gate_mutation_service.py:343` reaches `coordinator.propagator._find_targets`.
-- Two `remove_population`s.
-- Attributes read with `getattr(self, …)` that `__init__` never sets (`_propagation_enabled`,
-  `sync_stats`).
-
-- [ ] Fold `GateMutationService` + `GateSelectionService` into one `GateCoordinator`. The static
-      classes become functions in `analysis/gating/` (`naming.py`, `split.py`, `clone.py`), and
-      the back-references go.
-- [ ] Make propagation-target lookup public on `GatePropagator`.
-- [ ] Add `GateNode.iter_subtree()` to replace the three hand-written walkers
-      (`main_panel._collect_descendants_into`, `population_service._collect_ids`,
-      `dag_evaluator._collect_nodes`).
-- [ ] *(old perf plan, P1 analysis #2 remainder)* Make `DagEvaluator` reuse `GateNode`'s mask
-      cache instead of its own `evaluated_masks`, so there is one AND/OR/NOT combination
-      implementation rather than two.
-- [ ] Move the multi-sample delete from `main_panel.delete_gate_with_dialog` into
-      `GateCoordinator.delete_gate(sample_id, node_id, scope, group_id)`.
-- [ ] Replace `type(gate).__name__ == "QuadrantGate"` with a polymorphic `Gate` property.
-- [ ] Split `PopulationService.find_node` (which returns `node | list`) into `find_node` /
-      `find_nodes`.
-- [ ] Keep `IGateCoordinator` / `IPopulationService` only if tests use them as seams.
+- [x] `GateCoordinator` absorbed `GateMutationService`, `GateSelectionService`,
+      `GateEventPublisher` and `StatsService`; no sub-service holds a reference back to it.
+- [x] The static classes (`GateModifier`, `PopulationSplitter`, `NamingService`,
+      `GatingService`) became module functions in `analysis/gating/tree_edits.py`, plus
+      `remove_subtree` (the single removal; `PopulationService` is now read-only).
+- [x] `GatePropagator.find_targets` is public; its unused `_parent` argument is gone.
+- [x] `GateNode.iter_dag()` already was the shared walker; the hand-written walkers in
+      `main_panel`, `population_service`, naming, `find_nodes_by_gate` and the quadrant
+      validators now use it.
+- [x] `dag_evaluator` is module functions; `evaluate`/`evaluate_scoped` share one walk and
+      `GateNode.combine_parent_masks` (one AND/OR/NOT implementation). It deliberately does
+      **not** write masks into `GateNode`'s cache: it runs on a worker thread, and a gate edit
+      during the run would get its fresh cache overwritten with a stale mask.
+- [x] Multi-sample delete moved to `GateCoordinator.delete_gate` (+ `populations_under_gate`
+      for the pre-delete graph switch); `remove_subtree` reports only nodes actually gone, so a
+      logic node that survives through another parent keeps its graph open.
+- [x] `type(gate).__name__ == "QuadrantGate"` → `Gate.takes_population_name`; the
+      validators' `QuadrantSubGate` name checks → `isinstance`.
+- [x] `add_population`'s `node | list` return is gone with `add_population` itself.
+- [x] `IGateCoordinator` / `IPopulationService` deleted (one implementation each, no test
+      seam); the UI type-hints the concrete classes.
 
 ## B3. Make `analysis/` the only route to event data
 

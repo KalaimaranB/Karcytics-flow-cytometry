@@ -46,7 +46,7 @@ class NodeItem(QGraphicsObject):
         self.is_logic_node = False
         self.is_umap_parent = False
         # Set by CanvasManager._apply_stats_to_item from node.statistics —
-        # see DagEvaluator._propagate_estimation for what these mean.
+        # see dag_evaluator._propagate_estimation for what these mean.
         self.is_estimated = False
         self.is_scale_valid = True
         self.logic_operator = "AND"

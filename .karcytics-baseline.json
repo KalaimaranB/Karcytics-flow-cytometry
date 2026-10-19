@@ -31,11 +31,6 @@
       "KS302:calculate_spillover_matrix": 128,
       "KS310": 1
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/compute/dag_evaluator.py": {
-      "KS302:DagEvaluator.evaluate_scoped": 101,
-      "KS341": 1,
-      "KS342": 1
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/daemon_worker.py": {
       "KS302:handle_load_fcs_batch": 97,
       "KS310": 1,
@@ -65,12 +60,6 @@
     },
     "src/karcytics_plugins/flow_cytometry/analysis/flowsom_analysis.py": {
       "KS360": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/gate_coordinator.py": {
-      "KS310": 1,
-      "KS340": 1,
-      "KS343": 2,
-      "KS360": 3
     },
     "src/karcytics_plugins/flow_cytometry/analysis/gate_propagator.py": {
       "KS205": 1
@@ -126,20 +115,6 @@
     },
     "src/karcytics_plugins/flow_cytometry/analysis/services/experiment_edits.py": {
       "KS360": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/services/gate_event_publisher.py": {
-      "KS341": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/services/gate_mutation_service.py": {
-      "KS302:GateMutationService.add_gate": 85,
-      "KS310": 3,
-      "KS342": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/services/gating_service.py": {
-      "KS341": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/services/modifier.py": {
-      "KS341": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/services/umap_service.py": {
       "KS205": 1,
@@ -207,12 +182,11 @@
       "KS360": 5
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/validators.py": {
-      "KS300": 2743,
+      "KS300": 2734,
       "KS302:GateShapeValidator.validate_shape": 119,
       "KS310": 9,
       "KS342": 120,
       "KS343": 2,
-      "KS344": 2,
       "KS360": 30
     },
     "src/karcytics_plugins/flow_cytometry/ui/academy_workflow.py": {
@@ -344,7 +318,7 @@
       "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/graph_window.py": {
-      "KS300": 903,
+      "KS300": 901,
       "KS301:GraphWindow": 35,
       "KS302:GraphWindow._populate_axis_combos": 121,
       "KS302:GraphWindow._render_initial": 118,
@@ -422,14 +396,12 @@
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
       "KS220": 3,
       "KS242": 6,
-      "KS300": 1647,
+      "KS300": 1623,
       "KS301:FlowCytometryPanel": 76,
-      "KS302:FlowCytometryPanel.delete_gate_with_dialog": 90,
       "KS302:FlowCytometryPanel.load_workflow": 106,
       "KS310": 5,
-      "KS342": 29,
+      "KS342": 28,
       "KS343": 35,
-      "KS344": 1,
       "KS360": 25
     },
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/pipeline_ribbon.py": {
