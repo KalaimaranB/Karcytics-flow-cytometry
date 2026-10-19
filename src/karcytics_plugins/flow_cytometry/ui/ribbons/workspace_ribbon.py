@@ -1,6 +1,6 @@
 """Workspace ribbon — sample and group management actions.
 
-Actions: Add Samples, Create Group, Load Template, Save Template.
+Actions: Add Samples, Create Group, Bulk Assign Roles.
 
 File import follows the same pattern as Western Blot: if an FCS file
 is outside the project folder, the user is asked whether to copy it
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import BioProgressDialog, PrimaryButton, SecondaryButton
-from karcytics_sdk.plugin.dialogs import ask_yes_no, show_error, show_info, show_warning
+from karcytics_sdk.plugin.dialogs import ask_yes_no, show_error, show_warning
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -26,7 +26,6 @@ from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import (
     Sample,
     SampleRole,
-    WorkflowTemplate,
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -37,17 +36,12 @@ class WorkspaceRibbon(ThemedToolbarContainer):
     """Toolbar ribbon for workspace-level actions.
 
     Signals:
-        samples_loaded:         Emitted after FCS files are loaded.
-        group_requested:        Emitted to create a new group.
-        template_load_requested: Emitted to load a workflow template.
-        template_save_requested: Emitted to save as template.
+        samples_loaded:  Emitted after FCS files are loaded.
+        group_requested: Emitted to create a new group.
     """
 
     samples_loaded = Signal()
     group_requested = Signal()
-    template_load_requested = Signal()
-    template_save_requested = Signal()
-    workflow_save_requested = Signal()
 
     def __init__(self, state: FlowState, data_loader_service=None, parent=None) -> None:
         super().__init__(parent)
@@ -225,100 +219,3 @@ class WorkspaceRibbon(ThemedToolbarContainer):
             # Refresh UI after bulk assigning roles (the dialog announced the
             # edit itself via experiment_edits.set_sample_roles).
             self.samples_loaded.emit()
-
-    def _on_load_template(self) -> None:
-        """Open a template file and apply it to the workspace."""
-        # Default to the built-in workflows directory
-        workflows_dir = Path(__file__).resolve().parent.parent.parent / "workflows"
-        default_dir = str(workflows_dir) if workflows_dir.exists() else ""
-
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Workflow Template",
-            default_dir,
-            "JSON Files (*.json);;All Files (*)",
-        )
-        if not path:
-            return
-
-        try:
-            template = WorkflowTemplate.load(Path(path))  # type: ignore
-            from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-
-            experiment_edits.apply_template(self._state, template)
-            self.template_load_requested.emit()
-            logger.info("Applied template: %s", template.name)
-        except Exception as exc:
-            logger.error("Failed to load template %s: %s", path, exc)
-            show_warning(
-                self,
-                "Template Error",
-                f"Failed to load template:\n{Path(path).name}\n\n{exc}",
-            )
-
-    def _on_save_template(self) -> None:
-        """Save the current workspace configuration as a reusable template."""
-        exp = self._state.data.experiment
-
-        # Build a WorkflowTemplate from the current experiment state
-        from ...analysis.experiment import (
-            GroupTemplate,
-            TubeDefinition,
-        )
-
-        group_templates = []
-        for group in exp.groups.values():
-            tubes = []
-            for sid in group.sample_ids:
-                sample = exp.samples.get(sid)
-                if sample:
-                    tubes.append(
-                        TubeDefinition(
-                            markers=list(sample.markers),
-                            fmo_minus=sample.fmo_minus,
-                        )
-                    )
-            if tubes:
-                group_templates.append(
-                    GroupTemplate(
-                        name=group.name,
-                        role=SampleRole.OTHER,
-                        tubes=tubes,
-                    )
-                )
-
-        template = WorkflowTemplate(
-            name=exp.name or "Untitled Template",
-            description="Saved from active workspace.",
-            markers=list({m for mm in exp.marker_mappings for m in [mm.marker_name]}),
-            marker_mappings=list(exp.marker_mappings),
-            groups=group_templates,
-            derived_parameters=[d.to_dict() for d in exp.derived_parameters],
-        )
-
-        # Save dialog
-        pm = self._get_project_manager()
-        default_dir = ""
-        if pm:
-            wf_dir = pm.project_dir / "workflows"
-            wf_dir.mkdir(parents=True, exist_ok=True)
-            default_dir = str(wf_dir)
-        else:
-            default_dir = str(Path(__file__).resolve().parent.parent.parent / "workflows")
-
-        path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Workflow Template",
-            default_dir,
-            "JSON Files (*.json)",
-        )
-        if not path:
-            return
-
-        try:
-            template.save(Path(path))  # type: ignore
-            show_info(self, "Template Saved", f"Workflow template saved:\n{Path(path).name}")
-            self.template_save_requested.emit()
-        except Exception as exc:
-            logger.error("Failed to save template: %s", exc)
-            show_warning(self, "Save Error", f"Failed to save template:\n{exc}")

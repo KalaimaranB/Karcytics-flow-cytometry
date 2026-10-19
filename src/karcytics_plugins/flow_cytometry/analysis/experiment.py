@@ -148,67 +148,6 @@ class Group:
         return len(self.sample_ids)
 
 
-# ── Workflow Template ────────────────────────────────────────────────────────
-
-
-@dataclass
-class TubeDefinition:
-    """Defines one tube in a workflow template.
-
-    Attributes:
-        markers:    List of marker names present in this tube.
-        fmo_minus:  If this is an FMO tube, the marker that was excluded.
-    """
-
-    markers: list[str] = field(default_factory=list)
-    fmo_minus: str | None = None
-
-
-@dataclass
-class GroupTemplate:
-    """Defines a group of tubes in a workflow template.
-
-    Attributes:
-        name:   Group name (e.g., ``"FMO Controls"``).
-        role:   Sample role for tubes in this group.
-        tubes:  List of tube specifications.
-    """
-
-    name: str
-    role: SampleRole
-    tubes: list[TubeDefinition] = field(default_factory=list)
-
-
-@dataclass
-class WorkflowTemplate:
-    """A reusable experiment protocol and analysis pipeline.
-
-    Captures the complete experimental design: which markers, which tube
-    groups (unstained, single stains, FMOs, full panel), and optionally
-    a saved gating strategy that can be adapted to new data.
-
-    Attributes:
-        name:            Template display name.
-        description:     What this template is for.
-        markers:         The full marker panel.
-        marker_mappings: Marker → fluorophore → channel mappings.
-        groups:          Group definitions with tube layouts.
-        gate_template:   Optional saved gating tree (serialized).
-        protocol_notes:  Free-text protocol instructions.
-        derived_parameters: Serialized derived-parameter definitions the
-                         gate template may reference.
-    """
-
-    name: str
-    description: str = ""
-    markers: list[str] = field(default_factory=list)
-    marker_mappings: list[MarkerMapping] = field(default_factory=list)
-    groups: list[GroupTemplate] = field(default_factory=list)
-    gate_template: dict | None = None
-    protocol_notes: str = ""
-    derived_parameters: list[dict] = field(default_factory=list)
-
-
 # ── Experiment ───────────────────────────────────────────────────────────────
 
 
@@ -216,15 +155,13 @@ class WorkflowTemplate:
 class Experiment:
     """Top-level container for the entire workspace state.
 
-    Holds all samples, groups, marker mappings, and the active workflow
-    template.
+    Holds all samples, groups, and marker mappings.
 
     Attributes:
         name:             Experiment/workspace name.
         samples:          All loaded samples, keyed by sample_id.
         groups:           All defined groups, keyed by group_id.
         marker_mappings:  The panel's marker-to-channel mappings.
-        active_template:  The workflow template currently in use.
         derived_parameters: Experiment-wide per-event formulas, appended to
                           every sample's channels (see analysis/derived/).
     """
@@ -233,7 +170,6 @@ class Experiment:
     samples: dict[str, Sample] = field(default_factory=dict)
     groups: dict[str, Group] = field(default_factory=dict)
     marker_mappings: list[MarkerMapping] = field(default_factory=list)
-    active_template: WorkflowTemplate | None = None
     derived_parameters: list[DerivedParameter] = field(default_factory=list)
 
     def add_sample(self, sample: Sample) -> None:
@@ -288,90 +224,3 @@ class Experiment:
             List of matching samples.
         """
         return [s for s in self.samples.values() if s.role == role]
-
-    def apply_template(self, template: WorkflowTemplate) -> None:
-        """Apply a workflow template — creates groups and sample slots.
-
-        This sets up the expected structure from the template but does
-        NOT load any FCS data.  The scientist then maps FCS files into
-        the pre-created slots.
-
-        Args:
-            template: The workflow template to apply.
-        """
-        import uuid
-
-        self.active_template = template
-        self.marker_mappings = list(template.marker_mappings)
-        self._merge_template_derived(template)
-
-        for gt in template.groups:
-            group = Group(
-                group_id=str(uuid.uuid4()),
-                name=gt.name,
-                role=_sample_role_to_group_role(gt.role),
-            )
-
-            for tube in gt.tubes:
-                sample = Sample(
-                    sample_id=str(uuid.uuid4()),
-                    display_name=_tube_display_name(gt, tube),
-                    role=gt.role,
-                    markers=list(tube.markers),
-                    fmo_minus=tube.fmo_minus,
-                )
-                sample.group_ids.append(group.group_id)
-                group.sample_ids.append(sample.sample_id)
-                self.add_sample(sample)
-
-            self.add_group(group)
-
-        logger.info(
-            "Applied workflow template '%s': %d groups, %d sample slots.",
-            template.name,
-            len(template.groups),
-            sum(len(gt.tubes) for gt in template.groups),
-        )
-
-    def _merge_template_derived(self, template: WorkflowTemplate) -> None:
-        """Adopt the template's derived parameters not already defined here."""
-        known_ids = {d.param_id for d in self.derived_parameters}
-        known_names = {d.name.casefold() for d in self.derived_parameters}
-        for data in template.derived_parameters:
-            try:
-                defn = DerivedParameter.from_dict(data)
-            except (KeyError, TypeError) as exc:
-                logger.warning("Skipping malformed derived parameter in template: %s", exc)
-                continue
-            if defn.param_id in known_ids or defn.name.casefold() in known_names:
-                continue
-            self.derived_parameters.append(defn)
-            known_ids.add(defn.param_id)
-            known_names.add(defn.name.casefold())
-
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
-
-def _sample_role_to_group_role(role: SampleRole) -> GroupRole:
-    """Map a sample role to a group role."""
-    mapping = {
-        SampleRole.UNSTAINED: GroupRole.CONTROL,
-        SampleRole.SINGLE_STAIN: GroupRole.COMPENSATION,
-        SampleRole.FMO_CONTROL: GroupRole.CONTROL,
-        SampleRole.ISOTYPE_CONTROL: GroupRole.CONTROL,
-        SampleRole.FULL_PANEL: GroupRole.TEST,
-        SampleRole.OTHER: GroupRole.CUSTOM,
-    }
-    return mapping.get(role, GroupRole.CUSTOM)
-
-
-def _tube_display_name(group: GroupTemplate, tube: TubeDefinition) -> str:
-    """Generate a human-readable name for a tube slot."""
-    if not tube.markers:
-        return f"{group.name} (no markers)"
-    if tube.fmo_minus:
-        return f"FMO minus {tube.fmo_minus}"
-    if len(tube.markers) == 1:
-        return f"{tube.markers[0]} only"
-    return ", ".join(tube.markers)

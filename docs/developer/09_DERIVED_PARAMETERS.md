@@ -23,7 +23,7 @@ A derived parameter is appended to each sample as an extra **column in `fcs_data
 ## Keys, persistence and gates
 
 - **Column key**: `derived:<8 hex>` (`constants.DERIVED_PREFIX`). Gates, axis memory and channel scales reference the key, so renaming a parameter never breaks them. Display labels (`ƒ <name>`) come from `get_channel_marker_label()` / `derived_labels_of()`.
-- **Definitions** live on `Experiment.derived_parameters` and are serialized by `ExperimentSerializer` under `"derived_parameters"` (absent → `[]`). `WorkflowTemplate.derived_parameters` carries them in templates; `apply_template()` merges without duplicates.
+- **Definitions** live on `Experiment.derived_parameters` and are serialized by `ExperimentSerializer` under `"derived_parameters"` (absent → `[]`).
 - **Gate record**: `Gate.derived_formulas` snapshots the formula of any derived axis when the gate is created (`GateCoordinator.add_gate`). It's display/audit only — evaluation always uses the current definition — and is serialized only when non-empty, so ordinary gates serialize exactly as before. `gate_from_dict()` restores it centrally.
 - Derived parameters can't reference other derived parameters (rejected by `DerivedParameterService.canonicalize`).
 

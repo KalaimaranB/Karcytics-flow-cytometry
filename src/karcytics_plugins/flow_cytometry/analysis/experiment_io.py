@@ -1,7 +1,5 @@
 """Serialization and deserialization for the experiment model."""
 
-import json
-from pathlib import Path
 from typing import Any
 
 from karcytics_sdk.plugin import get_logger
@@ -11,12 +9,9 @@ from .experiment import (
     Experiment,
     Group,
     GroupRole,
-    GroupTemplate,
     MarkerMapping,
     Sample,
     SampleRole,
-    TubeDefinition,
-    WorkflowTemplate,
 )
 from .gating import GateNode
 from .scaling import AxisScale
@@ -39,79 +34,6 @@ class ExperimentSerializer:
     @classmethod
     def deserialize_marker_mapping(cls, data: dict[str, Any]) -> MarkerMapping:
         return MarkerMapping(**data)
-
-    @classmethod
-    def serialize_tube_definition(cls, tube: TubeDefinition) -> dict[str, Any]:
-        d: dict[str, Any] = {"markers": tube.markers}
-        if tube.fmo_minus:
-            d["fmo_minus"] = tube.fmo_minus
-        return d
-
-    @classmethod
-    def deserialize_tube_definition(cls, data: dict[str, Any]) -> TubeDefinition:
-        return TubeDefinition(
-            markers=data.get("markers", []),
-            fmo_minus=data.get("fmo_minus"),
-        )
-
-    @classmethod
-    def serialize_group_template(cls, gt: GroupTemplate) -> dict[str, Any]:
-        return {
-            "name": gt.name,
-            "role": gt.role.value,
-            "tubes": [cls.serialize_tube_definition(t) for t in gt.tubes],
-        }
-
-    @classmethod
-    def deserialize_group_template(cls, data: dict[str, Any]) -> GroupTemplate:
-        return GroupTemplate(
-            name=data["name"],
-            role=SampleRole(data.get("role", "other")),
-            tubes=[cls.deserialize_tube_definition(t) for t in data.get("tubes", [])],
-        )
-
-    @classmethod
-    def serialize_workflow_template(cls, wt: WorkflowTemplate) -> dict[str, Any]:
-        return {
-            "name": wt.name,
-            "description": wt.description,
-            "markers": wt.markers,
-            "marker_mappings": [cls.serialize_marker_mapping(m) for m in wt.marker_mappings],
-            "groups": [cls.serialize_group_template(g) for g in wt.groups],
-            "gate_template": wt.gate_template,
-            "protocol_notes": wt.protocol_notes,
-            "derived_parameters": wt.derived_parameters,
-        }
-
-    @classmethod
-    def deserialize_workflow_template(cls, data: dict[str, Any]) -> WorkflowTemplate:
-        return WorkflowTemplate(
-            name=data["name"],
-            description=data.get("description", ""),
-            markers=data.get("markers", []),
-            marker_mappings=[
-                cls.deserialize_marker_mapping(m) for m in data.get("marker_mappings", [])
-            ],
-            groups=[cls.deserialize_group_template(g) for g in data.get("groups", [])],
-            gate_template=data.get("gate_template"),
-            protocol_notes=data.get("protocol_notes", ""),
-            derived_parameters=data.get("derived_parameters", []),
-        )
-
-    @classmethod
-    def save_template(cls, template: WorkflowTemplate, path: Path) -> None:
-        """Save a workflow template to a JSON file."""
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(cls.serialize_workflow_template(template), f, indent=2)
-        logger.info("Saved workflow template to %s", path)
-
-    @classmethod
-    def load_template(cls, path: Path) -> WorkflowTemplate:
-        """Load a workflow template from a JSON file."""
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        return cls.deserialize_workflow_template(data)
 
     @classmethod
     def serialize_sample(cls, sample: Sample) -> dict[str, Any]:
@@ -186,11 +108,6 @@ class ExperimentSerializer:
             "samples": {sid: cls.serialize_sample(s) for sid, s in exp.samples.items()},
             "groups": {gid: cls.serialize_group(g) for gid, g in exp.groups.items()},
             "marker_mappings": [cls.serialize_marker_mapping(m) for m in exp.marker_mappings],
-            "active_template": (
-                cls.serialize_workflow_template(exp.active_template)
-                if exp.active_template
-                else None
-            ),
             "derived_parameters": [d.to_dict() for d in exp.derived_parameters],
         }
 
@@ -220,11 +137,6 @@ class ExperimentSerializer:
         exp.marker_mappings = [
             cls.deserialize_marker_mapping(m) for m in data.get("marker_mappings", [])
         ]
-
-        # Restore template
-        tmpl_data = data.get("active_template")
-        if tmpl_data:
-            exp.active_template = cls.deserialize_workflow_template(tmpl_data)
 
         exp.derived_parameters = [
             DerivedParameter.from_dict(d) for d in data.get("derived_parameters", [])

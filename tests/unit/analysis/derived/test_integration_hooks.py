@@ -1,7 +1,7 @@
 """Derived parameters stay correct across the paths that replace event data.
 
 Covers the Phase-2 wiring: compensation, workspace reload, new samples,
-safety nets, transforms, gate formula records, templates and axis defaults.
+safety nets, transforms, gate formula records, and axis defaults.
 """
 
 from __future__ import annotations
@@ -27,7 +27,6 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import (
     Experiment,
     Group,
     Sample,
-    WorkflowTemplate,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment_io import ExperimentSerializer
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
@@ -224,17 +223,6 @@ def test_axis_manager_uses_preferred_transform(state, ratio):
     assert axis.get_scale(ratio.param_id).transform_type == TransformType.LOG
     assert axis.get_scale("FITC-A").transform_type == TransformType.BIEXPONENTIAL
     assert axis.get_scale("derived:unknown1").transform_type == TransformType.LINEAR
-
-
-def test_template_carries_and_merges_definitions(ratio):
-    template = WorkflowTemplate(name="T", derived_parameters=[ratio.to_dict()])
-    data = ExperimentSerializer.serialize_workflow_template(template)
-    loaded = ExperimentSerializer.deserialize_workflow_template(data)
-
-    exp = Experiment()
-    exp.apply_template(loaded)
-    exp.apply_template(loaded)  # applying twice must not duplicate
-    assert [d.param_id for d in exp.derived_parameters] == [ratio.param_id]
 
 
 def test_existing_workspace_serializes_without_extra_gate_keys():

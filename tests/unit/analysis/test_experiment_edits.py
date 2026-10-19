@@ -11,7 +11,7 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
-from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole, WorkflowTemplate
+from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits as edits
 from karcytics_plugins.flow_cytometry.analysis.store import FlowStore
@@ -97,12 +97,6 @@ def _assert_one_exact_step(env: Env, edit, label: str):
                     p,
                 )
                 or True
-            ),
-        ),
-        (
-            "Apply Template 'T'",
-            lambda s, p: (
-                edits.apply_template(s, WorkflowTemplate(name="T", markers=["X"]), p) or True
             ),
         ),
     ],

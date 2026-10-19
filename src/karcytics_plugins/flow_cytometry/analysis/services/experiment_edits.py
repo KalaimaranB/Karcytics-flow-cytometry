@@ -27,7 +27,7 @@ from karcytics_sdk.plugin import get_logger
 from .. import events
 from ..compensation import CompensationMatrix, SavedMatrix, apply_compensation
 from ..derived import sync_experiment
-from ..experiment import Group, GroupRole, SampleRole, WorkflowTemplate
+from ..experiment import Group, GroupRole, SampleRole
 
 if TYPE_CHECKING:
     from ..state import FlowState
@@ -255,17 +255,6 @@ def remove_samples_from_group(
             publish=publish,
         )
     return removed
-
-
-def apply_template(
-    state: FlowState, template: WorkflowTemplate, publish: Publish | None = None
-) -> None:
-    state.data.experiment.apply_template(template)
-    announce(
-        f"Apply Template '{template.name}'",
-        (events.SAMPLE_LOADED, {"template_name": template.name, "source": "WorkspaceRibbon"}),
-        publish=publish,
-    )
 
 
 # ── Compensation ──────────────────────────────────────────────────────

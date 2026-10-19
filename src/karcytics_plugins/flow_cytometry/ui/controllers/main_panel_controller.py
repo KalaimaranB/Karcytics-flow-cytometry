@@ -107,9 +107,6 @@ class MainPanelController:
             )
         )
 
-        # ── Workspace ribbon: template loaded → refresh everything ────
-        panel._workspace_ribbon.template_load_requested.connect(panel._refresh_all)
-
         # ── Compensation view: matrix changed → refresh ───────────────
         panel._compensation_view.compensation_changed.connect(panel._on_compensation_changed)
 

@@ -8,13 +8,8 @@ import pytest
 from karcytics_plugins.flow_cytometry.analysis.experiment import (
     Experiment,
     Group,
-    GroupRole,
-    GroupTemplate,
-    MarkerMapping,
     Sample,
     SampleRole,
-    TubeDefinition,
-    WorkflowTemplate,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment_io import ExperimentSerializer
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
@@ -50,49 +45,6 @@ def test_sample_serialization_round_trip():
     assert restored.keywords == sample.keywords
     assert restored.is_compensated is True
     assert restored.gate_tree is not None
-
-
-def test_workflow_template_save_and_load(tmp_path):
-    template = WorkflowTemplate(
-        name="Example Template",
-        description="A simple workflow",
-        markers=["CD4", "CD8"],
-        marker_mappings=[MarkerMapping("CD4", "FITC", "FL1-A", "#00FF00")],
-        groups=[GroupTemplate("Compensation", SampleRole.SINGLE_STAIN, [TubeDefinition(["CD4"])])],
-        protocol_notes="Collect single-stain controls.",
-    )
-
-    output = tmp_path / "workflow.json"
-    ExperimentSerializer.save_template(template, output)
-    loaded = ExperimentSerializer.load_template(output)
-
-    assert loaded.name == template.name
-    assert loaded.description == template.description
-    assert loaded.markers == template.markers
-    assert loaded.groups[0].name == template.groups[0].name
-    assert loaded.protocol_notes == template.protocol_notes
-
-
-def test_experiment_apply_template_creates_group_and_samples():
-    exp = Experiment()
-    template = WorkflowTemplate(
-        name="Template",
-        groups=[
-            GroupTemplate(
-                "Comp",
-                SampleRole.SINGLE_STAIN,
-                [TubeDefinition(["CD4"]), TubeDefinition(["CD8"])],
-            )
-        ],
-    )
-
-    exp.apply_template(template)
-
-    assert len(exp.groups) == 1
-    assert len(exp.samples) == 2
-    group = next(iter(exp.groups.values()))
-    assert group.role == GroupRole.COMPENSATION
-    assert group.size == 2
 
 
 def test_gate_from_dict_reconstructs_rectangle_gate():

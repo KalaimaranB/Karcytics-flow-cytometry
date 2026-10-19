@@ -25,7 +25,6 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import (
     MarkerMapping,
     Sample,
     SampleRole,
-    WorkflowTemplate,
 )
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating import (
@@ -114,9 +113,6 @@ def build_rich_state(n_samples: int = 3) -> FlowState:
         MarkerMapping("B220", fluorophore="FITC", channel="FITC-A", color="#00FF00"),
         MarkerMapping("CD45", fluorophore="APC", channel="APC-A", color="#FF0000"),
     ]
-    exp.active_template = WorkflowTemplate(
-        name="Panel A", description="B cells", markers=["B220", "CD45"], protocol_notes="notes"
-    )
     roles = [SampleRole.UNSTAINED, SampleRole.FULL_PANEL, SampleRole.FMO_CONTROL]
     for i in range(n_samples):
         sid = f"s{i}"
