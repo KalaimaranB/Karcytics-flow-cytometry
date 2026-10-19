@@ -1,6 +1,6 @@
 [project]
 name = "flow_cytometry"
-version = "0.11.4"
+version = "1.0.0"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
@@ -49,7 +49,19 @@ display_name = "Flow Cytometry"
 min_core_version = "2.1.0"
 entry_point = "karcytics_plugins.flow_cytometry:initialize"
 process_model = "isolated"
-is_beta = true
+is_beta = false
+release_notes = """
+Flow Cytometry 1.0: the first stable release.
+
+New since 0.11.3:
+- PhenoGraph joins FlowSOM in Population Analysis, with a Cluster Graph view.
+- Sample Lens: audit gates against FlowSOM and PhenoGraph runs, focus mode, plots per row, and editing sibling gates on the gate path.
+- Academy Course 6, Second Opinions, compares hand gates with FlowSOM and PhenoGraph. Course 5 now follows what your own run finds.
+- The Spectral tab now sits before Pipeline.
+- Deleting a gate no longer closes the plot of an AND/OR population that still has another parent.
+- Item checkboxes in lists (such as Comparisons channels) follow the theme.
+- Internal cleanup: one gating coordinator, and a single path to event data, so derived parameters are always up to date.
+"""
 requires = ["task_scheduler", "logger", "event_bus"]
 tags = ["flow cytometry", "gating", "FMO", "compensation", "FCS", "UMAP", "bioinformatics"]
 homepage = "https://github.com/KalaimaranB/Karcytics-flow-cytometry"
