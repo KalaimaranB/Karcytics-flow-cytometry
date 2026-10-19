@@ -1,0 +1,1765 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/plans/FLOWSOM_PLAN/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>FlowSOM — implementation plan - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#flowsom-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              FlowSOM — implementation plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/15_DERIVED_PARAMETERS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/16_SAMPLE_LENS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample Lens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/14_INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09_DERIVED_PARAMETERS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10_STATE_UNDO_AND_PERSISTENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    State, Undo/Redo & Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-flowsom-produces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What FlowSOM produces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameters-population-analysis-flowsom-selected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameters (Population Analysis, FlowSOM selected)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reuse-do-not-rebuild" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reuse (do not rebuild)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phases
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions-decide-when-the-phase-starts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions (decide when the phase starts)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#later-not-in-this-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Later (not in this plan)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="flowsom-implementation-plan">FlowSOM — implementation plan</h1>
+<p>Adds FlowSOM to the Population Analysis tab as a second clustering method next to
+UMAP + HDBSCAN, and teaches the Sample Lens to audit gates against either one.
+First, the main tabs are reordered so the last three follow the workflow:
+Sample Lens → Statistics → Comparisons.</p>
+<p><strong>Status record:</strong> the phase checklist below. Resume at the first unchecked
+phase. Commit on <code>main</code>, one commit per phase. Each phase leaves the plugin
+runnable.</p>
+<h2 id="what-flowsom-produces">What FlowSOM produces</h2>
+<p>UMAP + HDBSCAN gives every event a 2-D map position and a cluster label, with
+some events labelled noise (-1). FlowSOM gives something different:</p>
+<ol>
+<li><strong>A grid of nodes.</strong> A self-organizing map (SOM), by default 10 × 10 = 100
+   nodes. Each node is a small group of very similar cells, described by its
+   median marker values (its <em>code</em>). Every event is assigned to exactly one
+   node. No event is noise.</li>
+<li><strong>A tree of the nodes.</strong> A minimum spanning tree (MST) links each node to
+   the nodes most like it. FlowSOM's standard picture is this tree: one circle
+   per node, sized by event count and coloured by a marker or by metacluster.
+   Branches of the tree usually follow lineages.</li>
+<li><strong>Metaclusters.</strong> The 100 node codes are clustered hierarchically into <em>k</em>
+   metaclusters, which are the populations. Each event's label is its node's
+   metacluster. Because the hierarchy is kept, <em>k</em> can be changed after the
+   run without retraining (re-cutting 100 nodes is instant).</li>
+</ol>
+<p>What it does not produce: a 2-D position for each event. To show events on a
+map, use one of these:
+- the tree layout, with each event drawn near its node (jittered), as FlowSOM's
+  own plots do; or
+- an optional UMAP of the same events, computed only for display.</p>
+<p>How it compares with HDBSCAN, as a second opinion:
+- HDBSCAN finds clusters by density and can drop rare or diffuse cells as
+  noise. FlowSOM assigns every cell, so a small population tends to get its
+  own node.
+- FlowSOM splits the data into as many metaclusters as <em>k</em> asks for. A <em>k</em>
+  that is too high splits one real population in two; a <em>k</em> that is too low
+  merges two. HDBSCAN chooses the number of clusters itself.
+- FlowSOM is fast: a million events takes seconds, and it needs no UMAP
+  first. It can therefore run on the whole population instead of a
+  subsample.</p>
+<h2 id="parameters-population-analysis-flowsom-selected">Parameters (Population Analysis, FlowSOM selected)</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sample, Population, Channels, Run name</td>
+<td>as UMAP</td>
+<td>shared with UMAP</td>
+</tr>
+<tr>
+<td>Events</td>
+<td>100% (cap 1,000,000)</td>
+<td>FlowSOM is fast enough for the whole population</td>
+</tr>
+<tr>
+<td>Grid size</td>
+<td>10 × 10</td>
+<td>number of nodes; more nodes gives finer detail</td>
+</tr>
+<tr>
+<td>Metaclusters (<em>k</em>)</td>
+<td>10</td>
+<td>expected number of populations; can be changed after the run</td>
+</tr>
+<tr>
+<td>Training passes</td>
+<td>10</td>
+<td>passes over the data while the SOM learns</td>
+</tr>
+<tr>
+<td>Random seed</td>
+<td>42</td>
+<td>makes a run reproducible</td>
+</tr>
+</tbody>
+</table>
+<p>Every parameter but the seed gets a help button in plain language, like the
+UMAP ones.</p>
+<h2 id="reuse-do-not-rebuild">Reuse (do not rebuild)</h2>
+<table>
+<thead>
+<tr>
+<th>Need</th>
+<th>Reuse</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gate filter, subsample, logicle transform</td>
+<td>the preprocessing in <code>UmapAnalysis.run</code>, pulled out into one shared function</td>
+</tr>
+<tr>
+<td>Background run, cancel, progress</td>
+<td><code>AnalysisBase</code> + <code>task_scheduler</code>, the <code>UmapService</code> pattern</td>
+</tr>
+<tr>
+<td>Heavy compute off the GUI process</td>
+<td><code>daemon_worker</code> (new <code>run_flowsom</code> handler beside <code>run_umap</code>)</td>
+</tr>
+<tr>
+<td>Storing and saving runs</td>
+<td><code>experiment_edits.add_umap_run</code>, <code>store._umap_runs</code>, <code>attachment_manager</code></td>
+</tr>
+<tr>
+<td>Cluster stats and marker heatmap</td>
+<td>the stats block at the end of <code>UmapAnalysis.run</code></td>
+</tr>
+<tr>
+<td>Exporting clusters as populations</td>
+<td><code>ClusterResultsPanel._create_populations</code> (labels plus indices, method-agnostic already)</td>
+</tr>
+<tr>
+<td>MST, hierarchical metaclustering</td>
+<td><code>scipy.sparse.csgraph.minimum_spanning_tree</code>, <code>scipy.cluster.hierarchy</code> (scipy is already a dependency)</td>
+</tr>
+<tr>
+<td>Lens audit, gate synthesis, across samples</td>
+<td><code>analysis/sample_lens/</code> unchanged; it works on labels</td>
+</tr>
+</tbody>
+</table>
+<p>No new dependency. The SOM is written in NumPy (batch SOM, vectorized). The
+<code>flowsom</code> Python package is not used: it pulls in anndata and other heavy
+dependencies, and its licence has to be checked against PolyForm Noncommercial
+(the same problem PyQt6 had).</p>
+<h2 id="design-notes">Design notes</h2>
+<ul>
+<li><strong>One run format.</strong> A run stays a dict in <code>umap_runs</code>. The storage keys keep
+  their names so old workspaces open unchanged. New field <code>method</code>:
+  <code>"umap_hdbscan"</code> (default when missing) or <code>"flowsom"</code>. A FlowSOM run adds:</li>
+<li><code>nodes</code> (per event)</li>
+<li><code>codes</code> (nodes × channels)</li>
+<li><code>grid</code></li>
+<li><code>mst_edges</code></li>
+<li><code>layout</code> (2-D node positions)</li>
+<li><code>linkage</code></li>
+<li><code>k</code></li>
+</ul>
+<p><code>clusters</code> holds the per-event metacluster, so every existing consumer of
+  <code>clusters</code> keeps working. <code>embedding</code> is the jittered tree layout, or the
+  display UMAP when that option is on (<code>embedding_kind</code>: <code>"tree"</code> or <code>"umap"</code>).
+- <strong>A method descriptor, not if-chains.</strong> A small <code>ClusteringMethod</code> record per
+  method holds:
+  - display name
+  - cluster noun ("cluster" or "metacluster")
+  - map caption
+  - whether it has noise
+  - whether <em>k</em> can be re-cut</p>
+<p>The lens and the results panel read wording from it. This lets the next
+  method (PhenoGraph, hierarchical) slot in as a new descriptor.
+- <strong>Re-cutting <em>k</em>.</strong> It changes <code>clusters</code> from <code>linkage</code> in the GUI process.
+  The new labels and <code>k</code> are stored on the run. Clusters already exported are
+  not changed; they are populations now.
+- <strong>Merge findings must allow for over-splitting.</strong> With FlowSOM, "this gate
+  holds 2 metaclusters" may just mean <em>k</em> is too high. The lens flags a merge
+  only when the two metaclusters stay separate at a coarser cut (they join
+  high in the hierarchy). Otherwise it stays quiet. The finding text names <em>k</em>.
+- <strong>The UMAP animation is UMAP-only.</strong> A FlowSOM run shows the progress bar,
+  then the results.
+- <strong>Tab order is one source of truth.</strong> A <code>MainTab</code> enum (in tab order) plus a
+  table from tab to center-stack page and chrome (sidebars, ribbon). It
+  replaces:
+  - the literal indices in <code>main_panel._on_tab_changed_locked</code> and its other
+    <code>setCurrentIndex(6)</code>-style calls;
+  - the <code>TabActiveValidator(n)</code> literals in courses 1–6.</p>
+<p>The validator takes a <code>MainTab</code>. Academy pause/resume saves the tab <strong>name</strong>,
+  and an old saved integer is mapped through the old order.</p>
+<h2 id="phases">Phases</h2>
+<ul>
+<li>[x] <strong>0. Tab reorder.</strong></li>
+<li>New order: Workspace, Gating, Compensation, Pipeline, Spectral,
+    Population Analysis, <strong>Sample Lens, Statistics, Comparisons</strong>.</li>
+<li>Add the <code>MainTab</code> enum and route table, and replace every literal index
+    (<code>main_panel</code>, <code>TabActiveValidator</code> in all courses, <code>SAMPLE_LENS_TAB</code>).</li>
+<li>Academy saved state stores the tab name, with a legacy-int migration.</li>
+<li>Docs: <code>00_OVERVIEW.md</code> tab list; <code>16_SAMPLE_LENS.md</code> ("It is the last tab"
+    becomes "between Population Analysis and Statistics").</li>
+<li>Tests:<ul>
+<li>every <code>MainTab</code> routes to the right page;</li>
+<li>a saved int from the old order restores the right tab;</li>
+<li>the course tests still pass.</li>
+</ul>
+</li>
+<li>[x] <strong>1. FlowSOM core (Qt-free).</strong> Built as a batch SOM (deterministic, vectorized;
+  no learning rate to set), trained on up to 200k events, every event then mapped. New <code>analysis/clustering/</code>:</li>
+<li><code>flowsom.py</code> builds the SOM (batch, seeded), assigns nodes, builds the
+    MST, lays the tree out in 2-D, metaclusters with Ward linkage, and
+    provides <code>recut(linkage, k)</code>.</li>
+<li><code>methods.py</code> holds the <code>ClusteringMethod</code> descriptors.</li>
+<li>Unit tests on the lens fixture's planted populations: FlowSOM recovers
+    them (adjusted Rand index above a threshold); a seeded run is
+    reproducible; re-cutting gives exactly <em>k</em> labels; 1M events stays under
+    a time budget.</li>
+<li>[x] <strong>2. Run plumbing.</strong> FlowSOM runs in the task worker thread, not the daemon
+  (numpy/scipy only). A saved run keeps indices + each event's node; the map and
+  labels are rebuilt on load. Also fixed: reloading a run read event labels as
+  row positions.</li>
+<li>Pull UMAP's preprocessing out into a shared function (gate filter,
+    subsample, transform, channel labels, stats and heatmap).</li>
+<li>Add <code>FlowsomAnalysis</code>, the <code>run_flowsom</code> daemon handler, and a
+    <code>FlowsomService</code> (or one generalized service).</li>
+<li>Persist the new arrays in <code>attachment_manager</code>; runs without <code>method</code> load
+    as UMAP.</li>
+<li>Tests: run → save → load round trip; old UMAP workspaces still load.</li>
+<li>[x] <strong>3. Population Analysis UI.</strong> Tree tab has a reading guide, colour by
+  metacluster or marker (scaled to the nodes' range), a plain-language legend
+  (share + markers that set each metacluster apart) and hover details.</li>
+<li>Algorithm combo: "UMAP + HDBSCAN" / "FlowSOM", with a stacked parameter
+    panel per method.</li>
+<li>Results:<ul>
+<li>a new <strong>FlowSOM Tree</strong> tab (node circles sized by count, coloured by
+  metacluster or a chosen marker);</li>
+<li>the gallery and map use <code>embedding</code>, whatever produced it;</li>
+<li>a <em>k</em> control re-cuts, and Population Statistics and the export list
+  refresh.</li>
+</ul>
+</li>
+<li>The run history shows the method. Export as populations is unchanged.</li>
+<li>Tests: run FlowSOM from the tab with a fake service; re-cut updates the
+    stats.</li>
+<li>[x] <strong>4. Sample Lens.</strong> Done phenotype-aware rather than hierarchy-aware (easier to
+  explain): for FlowSOM, a merge is only flagged when the metaclusters' phenotypes
+  clearly differ (+ against −), a cut only when the kept and lost cells share a
+  phenotype, and findings with one phenotype are grouped. Findings name metaclusters
+  and their phenotypes; the map draws the tree and rings a finding's nodes; the run
+  picker and scope line show k; a k control re-cuts and re-audits. UMAP runs are
+  unchanged.</li>
+<li>[x] <strong>5. Docs.</strong></li>
+<li><code>08_POPULATION_ANALYSIS.md</code>: a FlowSOM section (what the results mean,
+    choosing <em>k</em>, when to prefer it).</li>
+<li><code>16_SAMPLE_LENS.md</code>: auditing with FlowSOM, <em>k</em> and merges.</li>
+<li>Plan checked off.</li>
+<li>[x] <strong>6. Academy.</strong> Done differently from the first draft: FlowSOM is taught
+  in Course 4 (the user's choice), with a short add-on in Course 5.</li>
+<li>Course 4: the UMAP settings walk is grouped (11 steps to 6). A FlowSOM
+    section after the B-cell cross-check runs FlowSOM on the same Leukocytes,
+    reads the tree (colour by CD3, then B220), re-cuts <em>k</em> high and to 5, and
+    reads the phenotypes. It opens with a prediction about noise, answered at
+    the end.</li>
+<li>Course 5: the learner picks the UMAP run explicitly (the lens now remembers
+    the run picked per sample). Four add-on steps switch the lens to the
+    FlowSOM run, read the tree map, set <em>k</em> = 8 and weigh the findings.</li>
+<li>Offscreen dry runs of both courses on the tutorial data; validator tests.</li>
+</ul>
+<h2 id="open-questions-decide-when-the-phase-starts">Open questions (decide when the phase starts)</h2>
+<ul>
+<li><strong>Spectral's position.</strong> This plan keeps it after Pipeline. Moving it next
+  to Compensation would also follow the workflow, but it shifts more indices.</li>
+<li><strong>Default event count.</strong> Is the whole population (capped) right, or should
+  FlowSOM match UMAP's subsample so the two runs compare on the same events?
+  Matching makes the lens comparison cleaner; the whole population is
+  FlowSOM's strength.</li>
+<li><strong>Large exports.</strong> Exporting metaclusters from a 1M-event run writes very
+  large <code>SubsetGate</code> index lists into the workspace. This may need a compact
+  encoding before it is the default.</li>
+</ul>
+<h2 id="later-not-in-this-plan">Later (not in this plan)</h2>
+<ul>
+<li>PhenoGraph or other methods as further descriptors.</li>
+<li>Showing where a UMAP run and a FlowSOM run of the same population agree, in
+  the lens.</li>
+<li>Automatic choice of <em>k</em> (elbow or consensus).</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

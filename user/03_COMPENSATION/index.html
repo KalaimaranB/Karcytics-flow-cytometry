@@ -1,0 +1,1822 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/user/03_COMPENSATION/">
+      
+      
+        <link rel="prev" href="../02_WORKSPACE/">
+      
+      
+        <link rel="next" href="../04_GATING/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Compensation - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#compensation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Compensation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-getting-a-matrix-choose-a-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Getting a Matrix: Choose a Method
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Getting a Matrix: Choose a Method">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fitting-on-a-gated-population" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fitting on a gated population
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#embedded-in-the-fcs-files-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embedded in the FCS files (default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-stain-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-stain controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fmo-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FMO controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-from-a-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import from a file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual entry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-reviewing-and-fine-tuning-the-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Reviewing and Fine-Tuning the Matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-matrices-compare-keep-export-apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Matrices: Compare, Keep, Export, Apply
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_DERIVED_PARAMETERS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_SAMPLE_LENS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample Lens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/09_DERIVED_PARAMETERS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer/10_STATE_UNDO_AND_PERSISTENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    State, Undo/Redo & Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-getting-a-matrix-choose-a-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Getting a Matrix: Choose a Method
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Getting a Matrix: Choose a Method">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fitting-on-a-gated-population" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fitting on a gated population
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#embedded-in-the-fcs-files-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Embedded in the FCS files (default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-stain-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single-stain controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fmo-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FMO controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import-from-a-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import from a file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-entry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual entry
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-reviewing-and-fine-tuning-the-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Reviewing and Fine-Tuning the Matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-matrices-compare-keep-export-apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Matrices: Compare, Keep, Export, Apply
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="compensation">Compensation</h1>
+<p>Spectral compensation computationally isolates target fluorophore emissions by mathematically eliminating signal bleed-through from overlapping spectral signatures. The <strong>Compensation</strong> tab provides a robust, algorithm-driven environment for generating, reviewing, and applying high-dimensional spillover matrices.</p>
+<p><img alt="alt text" src="../../images/03_compensation/compensation_tab.png" /></p>
+<h2 id="1-getting-a-matrix-choose-a-method">1. Getting a Matrix: Choose a Method</h2>
+<p>The tab has a slim header and three pages.</p>
+<p><strong>Header.</strong> Pick a <strong>Method</strong> and click the button beside it; the text next to it says what the method needs and what it found in your loaded samples. The line underneath names the matrix in use, the method behind it (for example <em>6×6 · Embedded in the FCS files, fine-tuned by hand</em>), how many samples it is applied to, and the outcome of your last action. <strong>↩ Revert Edits</strong> appears there while you have unapplied edits.</p>
+<p><strong>Pages.</strong></p>
+<ul>
+<li><strong>⚙ Method setup</strong> — for the selected method: how it works and its limits, its options, the samples it will use right now, and (for calculated methods) a report of what the last run rested on. The tab opens on this page.</li>
+<li><strong>Matrix</strong> — the matrix editor and its before/after preview (section 2).</li>
+<li><strong>🗂 Matrices</strong> — every matrix kept in this workspace: compare them, name them, export one, and apply one to your samples (section 3).</li>
+</ul>
+<p>Every matrix goes through the same steps: get it with a method, fine-tune it on the Matrix page, then apply it from the Matrices page. Running a method again replaces the matrix in the editor with that method's own numbers and clears the fine-tuned mark; the earlier result stays on the Matrices page.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Button</th>
+<th>Needs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Embedded in the FCS files</strong> (default)</td>
+<td><strong>📄 Extract from FCS</strong></td>
+<td>A <code>$SPILL</code> / <code>$SPILLOVER</code> keyword in a loaded file</td>
+</tr>
+<tr>
+<td><strong>Single-stain controls</strong></td>
+<td><strong>🔬 Calculate Matrix</strong></td>
+<td>At least two samples with role <strong>Single Stain</strong> (an <strong>Unstained Control</strong> is optional)</td>
+</tr>
+<tr>
+<td><strong>FMO controls</strong></td>
+<td><strong>🧮 Estimate from FMOs</strong></td>
+<td>Samples with role <strong>FMO Control</strong></td>
+</tr>
+<tr>
+<td><strong>Import from a file</strong></td>
+<td><strong>📥 Import CSV</strong></td>
+<td>A <code>.csv</code>, <code>.tsv</code> or <code>.txt</code> matrix, e.g. from FlowJo or R</td>
+</tr>
+<tr>
+<td><strong>Manual entry</strong></td>
+<td><strong>✍ Start a blank matrix</strong></td>
+<td>A loaded sample (its fluorescence channels define the matrix)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fitting-on-a-gated-population">Fitting on a gated population</h3>
+<p>Single-stain and FMO calculations use every recorded event by default. To calculate on the real cells only, draw a scatter gate (for example <strong>Cells</strong> on FSC/SSC) on the control samples in the Workspace tab, then pick it under <strong>Fit on</strong> in Method setup.</p>
+<ul>
+<li>Only gates drawn on FSC/SSC are offered, including gates nested under other scatter gates (<code>Cells › Singlets</code>). A gate on a fluorescence axis depends on the very compensation being calculated, and can cut away the bright events the calculation needs.</li>
+<li>The gate only chooses which events the calculation uses. The finished matrix is applied to every event of every sample.</li>
+<li>A control without the chosen gate is used whole; the <strong>Events used</strong> column says so for each control.</li>
+</ul>
+<h3 id="embedded-in-the-fcs-files-default">Embedded in the FCS files (default)</h3>
+<p>Many acquisition cytometers record the acquisition-time matrix in the FCS metadata. When your files carry one, Karcytics loads and applies it as soon as the samples are loaded, and this method is the one selected when you open the tab. <strong>📄 Extract from FCS</strong> re-reads it, which is also how you go back to the cytometer's numbers after editing.</p>
+<p>Method setup lists which samples carry a matrix and whether they agree with the one being read. <strong>Read from</strong> picks the sample; by default it is the first one that has a matrix.</p>
+<h3 id="single-stain-controls">Single-stain controls</h3>
+<p>Assign the roles <strong>Single Stain</strong> (and optionally <strong>Unstained Control</strong>) in the Properties Panel first. Each control's primary channel is the one with the highest median of its uncompensated events; spill into every other detector is the ratio of medians, after subtracting the unstained background. Method setup lists the controls and how many events of each are used.</p>
+<h3 id="fmo-controls">FMO controls</h3>
+<p>A fluorescence-minus-one control carries every dye except one, so whatever its missing dye's detector records is spill from the other dyes. Karcytics fits that detector against the others for each FMO and solves for the spillover matrix. Method setup spells out each step.</p>
+<ul>
+<li>Assign the role <strong>FMO Control</strong> to each sample in the Properties Panel.</li>
+<li><strong>Which dye each tube lacks</strong> is worked out from the tube's data: the one channel where it is dimmer than the other FMO controls, with none of its other channels coming close (so a tube that is simply dim all round is not placed). This is done once and kept with the workspace, so the <strong>Missing dye</strong> dropdown shows that dye rather than a generic "auto" entry. The Method setup table says how each tube was placed: <em>from its data</em>, <em>set by you</em>, or <em>guessed from its name</em>.</li>
+<li>A tube's name is only used when the data can't settle it (it needs at least three FMO controls to compare). A name guess is flagged for you to check and is not kept; pick the dye in the dropdown to confirm it.</li>
+<li>Change the dye in the <strong>Missing dye</strong> column of that table, or in the Properties Panel; your choice always wins. <strong>Detect again</strong> forgets it and works it out afresh.</li>
+<li>Only one tube is used per dye. A tube that can't be placed, or that duplicates another, is listed as <em>not used</em> with the reason.</li>
+<li>A detector without an FMO gets no estimate. Those cells are left at 0 and shown in <em>grey italic</em> in the matrix, so you can see what still needs filling in by hand.</li>
+<li>The fit is robust: events with signal in the missing dye's detector that the other dyes don't explain (dead cells, aggregates) are down-weighted rather than read as spill.</li>
+<li><strong>See it step by step</strong> in Method setup draws the fit on one of your own tubes (pick the tube above the plot; with no FMO controls loaded it uses made-up example data). <strong>Next</strong> and <strong>Play</strong> walk through four steps: what the tube recorded, an ordinary fit, the robust fit with the down-weighted events greyed, and the spill removed, with the cloud sliding flat. It follows the <strong>Fit on</strong> gate, so it shows the same events the calculation uses.</li>
+<li>After a run, the <strong>fit report</strong> in Method setup lists, per detector: the tube used, the events fitted, the share set aside as outliers, how much of the detector's signal the fit attributes to spill (R²; near 0 simply means little spills into it), and the largest spill found.</li>
+<li>Treat the result as a starting point: check each pair on the preview and fine-tune.</li>
+</ul>
+<h3 id="import-from-a-file">Import from a file</h3>
+<p>Load a matrix computed elsewhere. Channel names are read from the header row.</p>
+<h3 id="manual-entry">Manual entry</h3>
+<p>Starts from a matrix with 1 on the diagonal and 0 everywhere else, which compensates nothing, for you to fill in by hand on the Matrix page. Use it when you have no controls and no embedded matrix, or to type in values from a lab notebook or a publication.</p>
+<ul>
+<li>The matrix covers the fluorescence channels of the sample chosen under <strong>Read from</strong> in Method setup (by default the first loaded sample); the page lists them.</li>
+<li>On the Matrix page, cells you haven't set yet are shown in <em>grey italic</em> and the ones you have typed turn <strong>green bold</strong>, so you can see what is left to do.</li>
+</ul>
+<h2 id="2-reviewing-and-fine-tuning-the-matrix">2. Reviewing and Fine-Tuning the Matrix</h2>
+<p>Once a matrix is loaded or computed, it is vital to review it for excessive spectral overlap.</p>
+<ol>
+<li>Open the <strong>Compensation</strong> tab and its <strong>Matrix</strong> page. The <strong>Matrix</strong> dropdown above the table switches the editor between the matrix in use and any saved one (and back to your <strong>Unsaved edits</strong>, which are kept while you look at another); switching never applies anything to the samples.</li>
+<li>Inspect the off-diagonal coefficients. Each <strong>row is a dye</strong> and each <strong>column is a detector</strong>: a cell is the share of the row dye's signal picked up by the column detector. The two cells of a pair (for example FITC → PE and PE → FITC) are separate numbers and are edited independently.</li>
+<li>Click a cell to plot its pair — its dye on X, its detector on Y. The two cells behind the plotted pair are highlighted, and the note under the matrix says which way each one moves the events.</li>
+<li>
+<p>Check the result in the preview on the right, which redraws as you type:</p>
+<ul>
+<li><strong>Sample</strong> picks which sample is shown. <strong>All samples (one row each)</strong> shows every loaded sample at once, one row per sample; the rows are drawn in the background, so each shows a placeholder until its plots arrive. Plots are always square, and the rows are redrawn to fit when you resize the window.</li>
+<li><strong>Population</strong> previews only the events inside a gate, for example <strong>Cells</strong>. Any gate of the loaded samples can be chosen; a sample without it is shown whole, and its caption says so. This only changes what the preview draws, not the matrix.</li>
+<li><strong>View</strong> chooses the plots:<ul>
+<li><strong>Scatter</strong> shows the same events <strong>Before</strong> (raw signal) and <strong>After</strong> (with the matrix as edited), on identical axes.</li>
+<li><strong>Histogram</strong> overlays before (grey) and after (colour) for each of the two channels.</li>
+<li><strong>Scatter + histograms</strong> shows all four.</li>
+</ul>
+</li>
+<li>The <strong>?</strong> button under the matrix opens <em>What a good matrix looks like</em>.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">What to aim for</p>
+<p>A dye should only be seen by its own detector. After compensation, cells that carry dye A but not dye B must read the same in B's detector as cells that carry neither.</p>
+<ul>
+<li><strong>Scatter:</strong> the population that is bright on X only should lie level, its centre at the same height as the negative population's centre. Still tilted upwards means the cell is too low; bent below the negatives means it is too high. Bright events fan out wider than dim ones: that spread is measurement noise no value removes, so judge the centre of the cloud, not its edges.</li>
+<li><strong>Histogram:</strong> in a sample without dye B, the After curve of B's detector should be a single, roughly symmetric peak at the unstained level. A tail left on the right means under-compensated; a peak pushed left of zero means over-compensated.</li>
+<li><strong>Values:</strong> there is no target number; a value is right when the plots are. As a sanity check, most cells are between 0 and about 0.3, and a value near or above 1 usually means a wrong pairing or a bad control.</li>
+<li><strong>Which sample:</strong> judge a cell where its row dye is bright and its column dye is absent (the single-stain control for the row dye, or an FMO lacking the column dye). On fully stained samples alone, cells that really carry both markers look like spill.</li>
+<li><strong>Across samples:</strong> spill belongs to the dyes and the instrument settings, not to a tube, so one matrix has to work for the whole run. If a value fixes one sample but tilts another, it was fitted to that sample's quirk.</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Edits are a draft: the status line shows <strong>unapplied edits</strong> and nothing in the workspace changes until you apply the matrix from the <strong>Matrices</strong> page. <strong>↩ Revert Edits</strong> discards them. You can leave the tab and come back without losing a draft. Cells you edited are shown in <strong>green bold</strong>, cells the method could not estimate in <em>grey italic</em>; the marks are saved with the matrix.</p>
+</li>
+</ol>
+<p><img alt="alt text" src="../../images/03_compensation/compensation_editor.png" /></p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>High spillover values (typically $&gt;50\%$) indicate severe spectral overlap, which may compromise population resolution. If you observe excessive values, consider redesigning your panel or referencing the <strong>Spectral Ribbon</strong> to analyze the physical overlaps.</p>
+</div>
+<h2 id="3-matrices-compare-keep-export-apply">3. Matrices: Compare, Keep, Export, Apply</h2>
+<p>The <strong>🗂 Matrices</strong> page lists the matrix in the editor (<strong>Current matrix</strong>) and every saved matrix, each with its size and method. The one your samples are using is marked <strong>✓ in use</strong>.</p>
+<ul>
+<li><strong>Kept automatically:</strong> each method run is saved under the method's name (and the gate it was fitted on, if any), so trying another method never loses the previous result. Re-running a method that gives the same numbers adds nothing.</li>
+<li><strong>💾 Save current as…</strong> keeps the matrix in the editor, including your fine-tuning, under a name you choose. <strong>Rename</strong> and <strong>Delete</strong> manage saved matrices; Undo restores a deleted one.</li>
+<li><strong>Compare with:</strong> select a matrix, then pick another to compare against. Cells that differ show this matrix's value and the difference in brackets, tinted orange where it is higher and blue where it is lower; the line under the table counts the differing cells and names the largest. Matrices with different channels can't be compared cell by cell.</li>
+<li><strong>✏ Open in editor</strong> loads a saved matrix into the Matrix page as a draft to fine-tune. Your samples are unchanged until you apply.</li>
+<li><strong>📤 Export CSV</strong> writes the selected matrix to a file.</li>
+<li><strong>✅ Apply to all samples</strong> makes the selected matrix the workspace's matrix and compensates every loaded sample with it, replacing the values an earlier matrix produced. Applying <strong>Current matrix</strong> also saves your unapplied edits.</li>
+</ul>
+<p>Saved matrices are stored with the workspace.</p>
+<p>Applying a matrix never alters the raw <code>.fcs</code> event data: compensated values are computed from the raw events each time, so a different matrix can be applied later. All open plots refresh to show the compensated data.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
