@@ -29,6 +29,16 @@ uv run mypy --explicit-package-bases src/
 
 Pre-commit already runs ruff, mypy, pip-audit, license compliance, `tests/unit/` (not the full suite), a plugin re-signing step, and security-ledger verification. Don't pre-run the full suite before committing — the hook only runs `tests/unit/`; run `tests/functional`, `tests/integration`, or `tests/ui` yourself only for changes that touch those layers.
 
+The SDK contract test lives in `tests/contract/` and runs on its own (`uv run pytest tests/contract --noconftest`), because `tests/conftest.py` mocks the SDK.
+
+### Karcytics doctor
+
+`karcytics-sdk doctor . --baseline` runs in pre-commit and CI, and a Claude Code hook (`.claude/settings.json`) runs it on every file you edit. It fails only on findings over `.karcytics-baseline.json`. When it reports something:
+
+- Fix the cause. Don't add a `noqa`, `type: ignore` or `# karcytics: allow` to silence it; if a suppression is genuinely right, it must say why (`# karcytics: allow KS360 - <reason>`).
+- After a change that lowers a count, run `uv run karcytics-sdk doctor . --update-baseline` and commit the baseline with it. That command never raises a count; don't use `--reset-baseline` to absorb new debt.
+- Rules and fixes: `../Karcytics-SDK/docs/Doctor.md`.
+
 Test markers: `unit`, `functional`, `integration`, `ui` (needs Qt/display), `slow`, `edge_case`.
 
 ## Structure

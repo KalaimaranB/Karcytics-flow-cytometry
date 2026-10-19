@@ -2,6 +2,10 @@ import os
 import sys
 import types
 
+# The contract test needs the real SDK, which the mocks below replace; it
+# runs on its own with `pytest tests/contract --noconftest`.
+collect_ignore = ["contract"]
+
 _repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(_repo_root, "src"))
 

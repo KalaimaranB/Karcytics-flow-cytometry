@@ -154,6 +154,14 @@ jobs:
         run: uv run python scripts/check_license_compliance.py
         shell: bash
 
+      - name: Karcytics doctor (fails on anything over the baseline)
+        run: uv run karcytics-sdk doctor . --baseline --no-color
+        shell: bash
+
+      - name: SDK contract test (real SDK, so without tests/conftest.py)
+        run: uv run pytest tests/contract --noconftest -q -p no:cacheprovider
+        shell: bash
+
   test:
     name: Tests (${{ matrix.os }})
     needs: [check_version, lint-and-audit]

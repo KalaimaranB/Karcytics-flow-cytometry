@@ -48,6 +48,25 @@ repos:
         language: system
         pass_filenames: false
 
+      # ── 5b. SDK contract test (real SDK; tests/conftest.py mocks it) ───
+      - id: contract-test
+        name: SDK Contract Test
+        entry: uv run pytest tests/contract --noconftest -q -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # ── 5c. Karcytics doctor ─────────────────────────────────────────────
+      # Fails only on findings over .karcytics-baseline.json. When a commit
+      # pays debt down, run `karcytics-sdk doctor . --update-baseline` and
+      # commit the lowered baseline with it so the debt cannot come back.
+      - id: karcytics-doctor
+        name: Karcytics Doctor
+        entry: uv run karcytics-sdk doctor . --baseline --no-color
+        language: system
+        pass_filenames: false
+        always_run: true
+
       # ── 6. Karcytics SDK signing ─────────────────────────────────────────────
       # Always runs (even if 1-5 failed, since fail_fast is false) and always
       # regenerates security.json/signature.bin to match the current tree, so

@@ -1,14 +1,16 @@
 {
     "security_version": 1,
     "plugin_id": "flow_cytometry",
-    "manifest_hash": "2d1901e2c3751de0ae9e43e44a13e60cc045ae3526afe8f553fc913368006967",
+    "manifest_hash": "8ccbf7c21cb8d41d368a289c1f8ef51512c99066dbd44354ba8a98e13f503896",
     "exclusions": [
         "tests"
     ],
     "hashes": {
         ".ci_keys/runner_delegation.json": "4beec9b1fe2204a2fdbc225dbdcdeb790d509c7a4c12d171892e9f889a648919",
+        ".claude/settings.json": "c43a881a3fd23c1bac0245c3d142f9d65eddf7ef2360eeb56be3e4189a95dab1",
         ".coderabbit.yaml": "f52b0ac31b8114e005b1c48e399537c78336cea158e1e5b095a5e1231859d4ba",
-        ".pre-commit-config.yaml": "b3ac7f93d16ab44d7f0a41bf7f5184fb373fbd9a26c99ee2d13311b43a90622e",
+        ".karcytics-baseline.json": "a6f7857498809791ef665bcd438455286032e95e7ac641ea5f08b9faa9f9e429",
+        ".pre-commit-config.yaml": "f0c9323e42391f08439d4f65373f0abe45f4a5745a5bf3e6cae43a50cc7a3a0b",
         "delegation.json": "1bb6e3de954b246eca1fb386b2313852729d88705fe9190d8a9233b4c66baf20",
         "docs/images/00_overview/academy.png": "b888c921b9ca698f4c709a21943c971fbe38f79e19b0fbcdbc9b8bcac4ba7c5a",
         "docs/images/00_overview/home_view.png": "c8aefcd279c683d58e3e1a268a622dd2a6ad4e0d3fba2a5705f1e0e09aa4f06b",

@@ -41,4 +41,5 @@ dev_private_key.pem
 mypy_output.txt
 
 # IDEs and Editors
-.claude/
+.claude/*
+!.claude/settings.json

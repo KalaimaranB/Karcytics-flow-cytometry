@@ -69,28 +69,19 @@ Other baselines used below:
 Feedback should arrive at three points: edit time, so the agent fixes it right away; commit
 time, as the gate; and CI, as the backstop.
 
-- [ ] **SDK: `doctor --files <paths>`.** Run the per-file (KS2xx/KS3xx) rules on just the given
-      files. It should take well under a second, so it can run after every edit.
-- [ ] **SDK: `doctor --baseline .karcytics-baseline.json` and `doctor --update-baseline`.** The
-      baseline records counts per file and per rule. A file may go down but never up, and a
-      new file must be clean. This is what turns 324 ignored warnings into "don't make it
-      worse". Without it, every new rule is either noise or never switched on.
-- [ ] **SDK: an inline allow comment that requires a reason:**
-      `# karcytics: allow KS3xx — <reason>`. The evaluator rejects an allow with no reason, and
-      the same applies to new `noqa` / `type: ignore` (KS311). That makes "suppress instead of
-      fix" a visible decision rather than a reflex.
-- [ ] **Flow: a Claude Code `PostToolUse` hook** on `Edit|Write` for `src/**/*.py`. It runs
-      `karcytics-sdk doctor --files "$FILE" --baseline … --format text` and exits 2 when a
-      finding is new, so the findings go back to the agent in the same turn. This is the
-      earliest point possible, before the pattern gets copied into the next file. Put it in
-      `.claude/settings.json` (checked in) so every session gets it. The SDK and other
-      plugin repos get the same hook.
-- [ ] **Flow: pre-commit hook** `karcytics-sdk doctor . --baseline …`. It blocks a commit that
-      grows any baseline.
-- [ ] **Flow: CI** `karcytics-sdk doctor . --baseline … --format json`, kept next to the
-      existing `evaluate`.
-- [ ] **Flow `CLAUDE.md`:** add one line telling agents to fix doctor findings, not suppress
-      them, and to run `--update-baseline` only when a count went *down*.
+- [x] **SDK: `doctor --files <paths>`.** Runs the per-file rules on just the given files.
+- [x] **SDK: `--baseline` / `--update-baseline` / `--reset-baseline`.** `.karcytics-baseline.json`
+      records counts per file and rule (and measurements for the size rules). A count may go
+      down but never up; `--update-baseline` only ever tightens it.
+- [x] **SDK: suppressions need a reason** (`# noqa: X - why`, `# type: ignore[x]  # why`,
+      `# karcytics: allow KSxxx - why`); one without a reason is KS310.
+- [x] **Flow: Claude Code `PostToolUse` hook** running `uv run karcytics-sdk doctor --claude-hook`
+      in `.claude/settings.json`, now tracked in git (the rest of `.claude/` stays ignored).
+- [x] **Flow: pre-commit** `karcytics-doctor` (`karcytics-sdk doctor . --baseline`) plus a
+      `contract-test` hook.
+- [x] **Flow: CI** runs the same doctor command and the contract test in the lint job.
+- [x] **Flow `CLAUDE.md`:** fix findings rather than suppress them; `--update-baseline` only
+      after a count went down.
 
 ## A2. New rules, one per flaw found in this audit
 
@@ -101,16 +92,16 @@ start as warnings under the baseline ratchet.
 | # | Agentic failure mode | Evidence in flow | Rule | Implementation |
 | --- | --- | --- | --- | --- |
 | 1 | Files and classes grow without limit | god classes +20–40% after being flagged | **KS300** file > 600 lines; **KS301** class > 30 methods; **KS302** function > 80 lines | custom AST, ratcheted |
-| 2 | Suppress instead of fix | 249 `noqa`, 125 `type: ignore` | **KS310** suppression count ratchet; **KS311** new suppression without a reason | custom |
-| 3 | Reinvent a helper that already exists | `_style_axes` ×5, `_section_label` ×5, KDE ×2, stats via if/elif in `data_extractor` | **KS320** the same function name defined in ≥ 3 modules (cheap and high-signal, it found every case here); token-level duplicate code | custom AST + pylint `duplicate-code` (`--min-similarity-lines=8`) in pre-commit |
-| 4 | Ignore an SDK equivalent | 23 hand-written `_apply_theme_styles`, `FlowComboBox` | **KS241** promoted from info to warning; **KS321** a method that f-string-interpolates `Colors.`/`Fonts.` into QSS → `theme_manager.apply_style`; **KS322** a `clear()` + `addItem` loop → `repopulate_combo`; new catalog rows for `BioCaptionLabel` | catalog rows + custom |
-| 5 | Leaks across the UI/analysis layer | `Debouncer` (Qt `QTimer`) in `analysis/gate_propagator.py`; 12 direct `apply_hierarchy` calls and 33 raw `fcs_data.events` reads in `ui/`; widgets stored on `FlowState` | **KS202+** a Qt-backed SDK export in `analysis/` (`QT_BACKED_SDK_EXPORTS` in `catalog.py`); **KS330** a `ui/` module with no Qt use (info: "belongs in analysis/"); **KS331** calls forbidden in `ui/`, per plugin, from `[tool.karcytics.evaluator] ui_forbidden`; **KS332** a `QWidget`-typed or `Any` widget field on a `PluginState` subclass | custom |
-| 6 | Pass-through layers and "service" classes | `GateCoordinator` (mostly one-line forwards); 8 classes with only static methods | **KS340** class where ≥ 70% of methods are a single-statement delegation to one attribute; **KS341** class with only `@staticmethod`s → module functions | custom AST |
+| 2 | Suppress instead of fix | 249 `noqa`, 125 `type: ignore` | **KS310** a suppression without a reason (counts ratcheted by the baseline) | custom |
+| 3 | Reinvent a helper that already exists | `_style_axes` ×5, `_section_label` ×5, KDE ×2, stats via if/elif in `data_extractor` | **KS320** the same private helper with a similar body in ≥ 2 modules; **KS321** clone function bodies (local names normalised, ≥ 8 statements) | custom AST |
+| 4 | Ignore an SDK equivalent | 23 hand-written `_apply_theme_styles`, `FlowComboBox` | **KS242** an f-string stylesheet interpolating `Colors.`/`Fonts.` → `theme_manager.apply_style`; **KS243** a `clear()` + `addItem` loop on a combo → `repopulate_combo` (KS241 stayed info) | catalog rows + custom |
+| 5 | Leaks across the UI/analysis layer | `Debouncer` (Qt `QTimer`) in `analysis/gate_propagator.py`; 12 direct `apply_hierarchy` calls and 33 raw `fcs_data.events` reads in `ui/`; widgets stored on `FlowState` | **KS205** a Qt-backed SDK export in `analysis/` (`QT_BACKED_SDK_EXPORTS` in `catalog.py`); **KS330** a `ui/` module with no Qt use (info: "belongs in analysis/"); **KS331** calls reserved to `analysis/`, per plugin, from `[tool.karcytics.evaluator] analysis_only`; **KS332** a `QWidget`-typed or `Any` widget field on a `PluginState` subclass | custom |
+| 6 | Pass-through layers and "service" classes | `GateCoordinator` (mostly one-line forwards); 8 classes with only static methods | **KS340** class where ≥ 60% (and ≥ 5) of methods only forward to a `self` attribute; **KS341** class with only `@staticmethod`s → module functions | custom AST |
 | 7 | Reaching into private attributes | 52 `self._a._b`; 53 `getattr(obj, "_private")` in `tutorials/validators.py` | **KS342** a `x._a._b` chain or `getattr(non-self, "_name")` | custom AST |
 | 8 | Defensive attribute probing | 203 `getattr(self, "x", default)` / `hasattr(self, …)`, some on attributes never set in `__init__` | **KS343** `getattr`/`hasattr` on `self` → initialise in `__init__` | custom AST |
 | 9 | Branching on type names instead of polymorphism | `type(gate).__name__ == "QuadrantGate"` | **KS344** comparing `type(x).__name__` or `__class__.__name__` | custom AST |
-| 10 | Dead code left behind | `GATE_STATS_UPDATED` published 6×, 0 subscribers; 6 unused topics; unused Protocol; unused widget; empty package | **KS350** a topic published but never subscribed, or defined but never referenced; generic dead code | custom (bus topics) + `vulture` with a checked-in whitelist |
-| 11 | Import-cycle workarounds | 331 in-function imports | **KS360** in-function import count ratchet; deliberate lazy imports carry `# lazy: startup` | custom |
+| 10 | Dead code left behind | `GATE_STATS_UPDATED` published 6×, 0 subscribers; 6 unused topics; unused Protocol; unused widget; empty package | **KS350** a topic published but never mentioned elsewhere; **KS351** a topic constant never used | custom (bus topics) |
+| 11 | Import-cycle workarounds | 331 in-function imports | **KS360** an in-function import (ratcheted; a deliberate one carries `# karcytics: allow KS360 - why`) | custom |
 | 12 | Debug noise | 48 `logger.warning("[tag] …")` | **KS361** a WARNING/ERROR log whose message starts with a `[TAG]` | custom |
 | 13 | Changelog written into code | comments citing "Priority 1 analysis #3", paragraphs of history inside handlers | **KS362** (info) a comment referencing plan items (`Priority N`, `#N analysis`, `(Done)`) | custom regex, info only |
 | 14 | Tests that test nothing | 8 tests with no assertion; old plan's hasattr/isinstance-only tests; `patch.object(Cls, "signal")` intercepts nothing under PySide6 | **KS370** a test with no assert or `raises`; **KS371** a test whose only asserts are `isinstance` / `hasattr` / `is not None`; **KS372** `patch.object` on a Signal attribute | `test_rules.py` |
@@ -199,7 +190,7 @@ verb is therefore defined 3–5 times. Problems that follow from this:
 - [ ] Split `ui/widgets/matrix_sources.py` (983 lines). Its only Qt use is `QFileDialog`, so the
       sources go to `analysis/compensation_sources.py` with an injected file-picker callable.
 - [ ] Move `ui/services/attachment_manager.py` and `ui/scope_resolution.py` into `analysis/`.
-- [ ] Turn on KS331 `ui_forbidden` for flow.
+- [ ] Turn on KS331 for flow: list the reserved calls under `[tool.karcytics.evaluator] analysis_only`.
 
 Not moved: `GateEditor` / `GateFactory` / `CoordinateMapper`. They are interaction geometry,
 not science.
@@ -240,7 +231,7 @@ with `IPlotRenderer`, inline `with MPL_RASTER_LOCK:` in three widgets, and an ad
 ## B6. SDK consolidation and theming (merged from the old plan's DRY and SDK-gap items)
 
 - [ ] Migrate the remaining 23 `_apply_theme_styles` to `theme_manager.apply_style()`. These
-      need case-by-case work: the hard ones branch on state or drive matplotlib. KS321 stops new
+      need case-by-case work: the hard ones branch on state or drive matplotlib. KS242 stops new
       ones appearing.
 - [ ] Fold `FlowComboBox`'s one behaviour change (no text elision) into `BioComboBox` as an
       option, and migrate its 14 users.
@@ -284,13 +275,17 @@ This comes after B2–B6 on purpose, because those phases empty out much of each
 - [ ] Build `FlowStore`, `DerivedEditorController` and `AcademyWorkflowController` in the
       composition root (the repo's own documented rule).
 - [ ] Hoist the in-function imports that only existed to break cycles. Mark deliberate startup
-      ones `# lazy: startup`.
+      ones with `# karcytics: allow KS360 - <reason>`.
 - [ ] Initialise the attributes behind the 203 defensive `getattr(self, …)` reads in `__init__`.
 
 ## B9. Tests and CI (merged from both old plans)
 
-- [ ] Add `tests/test_plugin_contract.py` subclassing the SDK's `ContractTestBase` (KS142,
-      still missing).
+- [x] Add `tests/contract/test_contract.py` subclassing the SDK's `ContractTestBase` (KS142).
+      It runs with `--noconftest` because of the next item.
+- [ ] **Stop mocking the SDK in `tests/conftest.py`.** It replaces `karcytics_sdk`, its plugin,
+      components and theme modules with `MagicMock`s and dummy widgets, so the suite tests flow
+      against a fake SDK: a renamed SDK API still passes, and real SDK widget/theme behaviour
+      never runs. Use the real SDK on the offscreen Qt platform and fix what breaks.
 - [ ] Close the coverage gaps, all still open:
       - `biology_services.py` (zero tests)
       - nested AND-of-OR-of-NOT in `DagEvaluator`
@@ -305,7 +300,7 @@ This comes after B2–B6 on purpose, because those phases empty out much of each
 - [ ] Docstrings: remove `D100`–`D103` from `ruff.toml`'s ignore list for `analysis/` only (the
       public science API), using per-file ignores for `ui/`.
 - [ ] Magic numbers (77 `PLR2004`): lift the domain ones (thresholds, bin counts, defaults) into
-      `analysis/constants.py` as B3/B4 touch them; leave pixel sizes inline. The KS310 ratchet
+      `analysis/constants.py` as B3/B4 touch them; leave pixel sizes inline. The baseline
       covers the rest.
 - [ ] CI hardening: pin actions to commit SHAs, add `.github/dependabot.yml` and `CODEOWNERS`.
 
@@ -333,7 +328,7 @@ This comes after B2–B6 on purpose, because those phases empty out much of each
 | P1 UI #1 remainder: Interactive Map tab | **B7** (`cluster_results_panel`) |
 | P1 UI #4 remainder: `axis_control_panel` | **B6** |
 | P2 god classes: `StatisticsExplorer`, `flow_canvas`, `cluster_results_panel` targets | **B7**, extraction targets kept |
-| P2 remaining `_apply_theme_styles` (now 23) | **B6** + rule KS321 |
+| P2 remaining `_apply_theme_styles` (now 23) | **B6** + rule KS242 |
 | P2 `FlowComboBox` duplicate (now 14 users) | **B6** + rule KS211 enforced |
 | P2 duplicate zoom-controls overlays | **B6** |
 | P2 `marker_panel.py` dead code | **B1** |
@@ -348,7 +343,7 @@ This comes after B2–B6 on purpose, because those phases empty out much of each
 | Old item | Status |
 | --- | --- |
 | Ph 1 ruff/mypy zero, no `print()` | Done |
-| Ph 2 suppression targets (noqa ≤ 40, type: ignore ≤ 20) | Replaced by the KS310/KS311 ratchet plus root-cause fixes in B2–B8. The ratchet only goes down, so the old absolute targets remain the direction. |
+| Ph 2 suppression targets (noqa ≤ 40, type: ignore ≤ 20) | Replaced by the KS310 rule and the baseline ratchet plus root-cause fixes in B2–B8. The ratchet only goes down, so the old absolute targets remain the direction. |
 | Ph 5 god classes | **B7** |
 | Ph 6 magic numbers | **B9**, domain constants only |
 | Ph 8: `ruff format` in pre-commit | Already done (`ruff-formatter` hook) |

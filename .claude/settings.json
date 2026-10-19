@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -m ruff --version)",
+      "Bash(.venv/bin/ruff --version)",
+      "Bash(.venv/bin/ruff check *)",
+      "Bash(python -m pytest tests/ -q)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run karcytics-sdk doctor --claude-hook"
+          }
+        ]
+      }
+    ]
+  }
+}
