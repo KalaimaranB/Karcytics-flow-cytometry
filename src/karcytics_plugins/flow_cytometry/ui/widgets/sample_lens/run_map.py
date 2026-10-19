@@ -192,7 +192,15 @@ class RunMap(QWidget):
             for p in scope.final_populations
         ]
         handles.append(ax.scatter([], [], c=Colors.BG_LIGHT, s=14, label="in no final population"))
-        legend = ax.legend(handles=handles, fontsize=7, loc="upper right", frameon=False)
+        legend = ax.legend(
+            handles=handles,
+            fontsize=7,
+            loc="upper right",  # fixed: "best" costs ~0.2 s a draw on this many points
+            frameon=True,
+            facecolor=Colors.BG_DARK,
+            edgecolor=Colors.BORDER,
+            framealpha=0.9,
+        )
         for text in legend.get_texts():
             text.set_color(Colors.FG_SECONDARY)
 
@@ -237,32 +245,44 @@ class RunMap(QWidget):
     ) -> None:
         assert scope.clusters is not None
         spread = float(np.ptp(scope.embedding, axis=0).max()) or 1.0
-        for finding in findings:
-            for cid in finding.clusters:
-                rings = _rings(scope, cid, spread)
-                strong = cid in emphasis
-                for ax in axes:
-                    for center, radius in rings:
-                        ax.add_patch(
-                            Circle(
-                                tuple(center),
-                                radius,
-                                fill=False,
-                                edgecolor=Colors.ACCENT_WARNING,
-                                linewidth=2.4 if strong else 1.1,
-                                linestyle="--",
-                            )
+        # One ring and one label per cluster: findings sharing a cluster used
+        # to stack their labels on the same spot. The numbers match the cards.
+        labels: dict[int, list[str]] = {}
+        for number, finding in enumerate(findings, start=1):
+            word = f"{number} {_LABEL[finding.kind.value]}"
+            for cid in dict.fromkeys(finding.clusters):
+                labels.setdefault(cid, []).append(word)
+        for cid, words in labels.items():
+            rings = _rings(scope, cid, spread)
+            strong = cid in emphasis
+            for ax in axes:
+                for center, radius in rings:
+                    ax.add_patch(
+                        Circle(
+                            tuple(center),
+                            radius,
+                            fill=False,
+                            edgecolor=Colors.ACCENT_WARNING,
+                            linewidth=2.4 if strong else 1.1,
+                            linestyle="--",
                         )
-                center, radius = rings[0]
-                axes[0].annotate(
-                    _LABEL[finding.kind.value],
-                    (center[0], center[1] + radius),
-                    color=Colors.ACCENT_WARNING,
-                    fontsize=8,
-                    ha="center",
-                    va="bottom",
-                    fontweight="bold" if strong else "normal",
-                )
+                    )
+            center, radius = rings[0]
+            axes[0].annotate(
+                " · ".join(words),
+                (center[0], center[1] + radius),
+                color=Colors.ACCENT_WARNING,
+                fontsize=8,
+                ha="center",
+                va="bottom",
+                fontweight="bold" if strong else "normal",
+                bbox={
+                    "boxstyle": "round,pad=0.2",
+                    "fc": Colors.BG_DARK,
+                    "ec": "none",
+                    "alpha": 0.8,
+                },
+            )
 
     def _on_click(self, event: Any) -> None:
         scope = self._scope

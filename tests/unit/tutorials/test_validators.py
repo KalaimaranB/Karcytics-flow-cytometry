@@ -208,3 +208,36 @@ class TestHandDrawnGateTolerance:
         validator = GateShapeValidator(target_poly=self.CELLS)
         drawn = [(8000, 38000), (128000, 36000), (128000, 700), (8000, 1000)]
         assert not self._ok(validator, PolygonGate("x", "y", drawn))
+
+
+class TestTCellsBoxMustHoldTheTCells:
+    """The ±10%-of-axis edge tolerance is ~26,000 raw units: near zero on a
+    biexponential axis it let a T-cells box end at B220 ~1,000-2,000 and cut
+    the T cells' B220 tail, which the Sample Lens then reported as a cut."""
+
+    def _ok(self, gate) -> bool:
+        from karcytics_plugins.flow_cytometry.tutorials.course3 import c3_tcells_validator
+
+        return bool(
+            c3_tcells_validator.validate_shape(
+                _app_state_with_gate(gate), node_id="n", sample_id="s1"
+            )
+        )
+
+    def _box(self, x_max: float, y_max: float = 8000.0) -> RectangleGate:
+        return RectangleGate("x", "y", x_min=-400.0, x_max=x_max, y_min=300.0, y_max=y_max)
+
+    def test_a_box_along_the_guide_passes(self):
+        assert self._ok(self._box(3000.0))
+
+    def test_a_hand_drawn_edge_a_little_short_passes(self):
+        assert self._ok(self._box(2500.0))
+
+    def test_a_right_edge_into_the_t_cells_fails(self):
+        assert not self._ok(self._box(2000.0))
+
+    def test_a_right_edge_into_the_b_cells_fails(self):
+        assert not self._ok(self._box(6000.0))
+
+    def test_a_top_edge_through_the_cd4_t_cells_fails(self):
+        assert not self._ok(self._box(3000.0, y_max=2000.0))

@@ -81,7 +81,7 @@ Each plot has its own view menu, remembered per gate while you move between popu
 ## 4. The map, twice, and Across samples
 
 - **Coloured by your final populations**: each cell in the colour of the final population it ended up in; grey if none. A grey slice through a coloured island is a gate edge cutting a population.
-- **Coloured by cluster** (HDBSCAN or PhenoGraph) or **by metacluster** (FlowSOM): the same cells, coloured by cluster. Where the two pictures disagree, the findings circle the spot. Click a cluster to circle it.
+- **Coloured by cluster** (HDBSCAN or PhenoGraph) or **by metacluster** (FlowSOM): the same cells, coloured by cluster. Where the two pictures disagree, the findings circle the spot. Each finding is numbered in the findings list, and its ring on the map carries the same number and kind (*1 cut*); a cluster that several findings involve gets one label, e.g. *1 cut · 2 merged*. Click a cluster to circle it.
 
 For a FlowSOM run, the map is the FlowSOM tree: each cell is drawn around its node, with the tree's lines behind, and a finding rings each node of its metaclusters.
 

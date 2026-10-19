@@ -33,6 +33,12 @@ settings change):
   Course 3's guide used to end) cuts the CD4 T cells in two; the lens blames
   T-cells. Much lower (≤ 1,500) also empties a cluster, so the text says ~2,000.
 
+UMAP + HDBSCAN runs differ, and so can the findings. After the missed cells
+are gated, the course checks what the learner's own run still reports
+(`_fill_leftovers`): a cut gets fixed on the spot (one tester's T-cells box,
+drawn short of the old guide's B220 edge, cut a T-cell cluster: keeps 90%),
+a merge such as "DN holds 2 clusters" is explained and left for Course 6.
+
 Cluster numbers differ run to run, so steps that name one get their text
 from the validator (the `_missed_click_step` / `_cut_read_step` idiom, as in
 Course 4's `_best_bcell_step`).
@@ -56,6 +62,7 @@ from .validators import (
     LensFindingFocusedValidator,
     LensFindingValidator,
     LensFocusValidator,
+    LensNoFindingsValidator,
     LensPlotViewValidator,
     LensPopulationSelectedValidator,
     LensProposalAddedValidator,
@@ -114,6 +121,57 @@ def _proposal_text(axes: list[str]) -> str:
     return text
 
 
+def _leftover_line(finding: Finding) -> str:
+    gate = (finding.population or "").rsplit(" / ", 1)[-1]
+    if finding.kind is FindingKind.CUTS:
+        return (
+            f"• **{finding.title}**: the gate keeps {finding.shares[0]:.0%} of that "
+            "cluster's cells that reach it; the rest fall just outside. Its edge runs "
+            "through a population."
+        )
+    if finding.kind is FindingKind.MERGES and gate == "DN":
+        return (
+            f"• **{finding.title}**: DN, the CD4− CD8− corner of T-cells, holds cells of "
+            "two clusters. Often that's the CD3− population next door reaching into "
+            "T-cells at its lower edge. Worth a look, not a fix: Course 6 asks two more "
+            "methods about it."
+        )
+    if finding.kind is FindingKind.MERGES:
+        return (
+            f"• **{finding.title}**: one gate holds two different clusters: two "
+            "populations that may need separate gates, or one the run split. Course 6 "
+            "asks two more methods."
+        )
+    return f"• **{finding.title}**"
+
+
+def _fill_leftovers(findings: list[Finding]) -> None:
+    """Fill the leftover and prediction texts from what this run still reports."""
+    _leftover_step.text = (
+        "Not quite clean 🔍<br><br>"
+        f"The missed cells are gated, but your run reports **{len(findings)} more**:<br>"
+        + "<br>".join(_leftover_line(f) for f in findings)
+        + "<br><br>Runs differ: UMAP + HDBSCAN draws its clusters a little differently "
+        "each time, so your run can see an edge another run didn't. Click a finding "
+        "to see its cells ringed on the map."
+    )
+    cuts = any(f.kind is FindingKind.CUTS for f in findings)
+    extra = (
+        f" Your run also reported **{len(findings)} more**"
+        + (", and you widened a gate that cut a population" if cuts else "")
+        + "."
+        if findings
+        else ""
+    )
+    _prediction_back_step.text = (
+        "Your prediction 🔮<br><br>"
+        "At the start you predicted: **{answer:c5_what_turns_up}**.<br><br>"
+        "The lens found a group of leukocytes no gate held, and you turned it "
+        f"into real gates.{extra} Then you made a cut on purpose and watched the "
+        "lens catch it within seconds."
+    )
+
+
 # Module-level so their validators can rewrite the text with the real
 # cluster number on every poll (cluster numbers aren't stable run to run).
 _missed_click_step: VerificationStep = VerificationStep(
@@ -147,6 +205,29 @@ _proposal_read_step: InfoStep = InfoStep(
     allow_interaction=True,
     target_widget_names=["SampleLensPath"],
     next_step_id="c5_s32_scores",
+)
+
+
+_leftover_step: InfoStep = InfoStep(
+    id="c5_s37b_leftovers",
+    text="Not quite clean 🔍",
+    cyto_emotion="thinking",
+    allow_interaction=True,
+    target_widget_names=["SampleLensFindings", "SampleLensMap"],
+    next_step_id="c5_s37c_any_cut",
+)
+
+_prediction_back_step: InfoStep = InfoStep(
+    id="c5_s50_prediction_back",
+    text=(
+        "Your prediction 🔮<br><br>"
+        "At the start you predicted: **{answer:c5_what_turns_up}**.<br><br>"
+        "The lens found a group of leukocytes no gate held, and you turned it "
+        "into real gates. Then you made a cut on purpose and watched the lens "
+        "catch it within seconds."
+    ),
+    cyto_emotion="happy",
+    next_step_id="c5_s51_when",
 )
 
 course_5_sample_lens = Course(
@@ -378,7 +459,9 @@ course_5_sample_lens = Course(
                 "**Backgating** goes the other way: take a final population and "
                 "show where its cells sat at **every** earlier step.<br><br>"
                 "If a population sits at the edge of a gate somewhere upstream, "
-                "that gate is probably cutting it."
+                "that gate is probably cutting it.<br><br>"
+                "Backgating needs no clustering run: it works on any sample, so you "
+                "can open the lens just to check a population's path."
             ),
             cyto_emotion="talking",
             next_step_id="c5_s12_select_bcells",
@@ -842,7 +925,20 @@ course_5_sample_lens = Course(
             hide_next_button=True,
             target_widget_names=["SampleLensFindings"],
             validator=LensFindingValidator(FindingKind.MISSED, present=False),
+            on_success_step_id="c5_s36b_whats_left",
+        ),
+        VerificationStep(
+            # Branches on the learner's own run: runs differ, and so can what
+            # the lens still reports once the missed cells are gated.
+            id="c5_s36b_whats_left",
+            text="Checking what else your run reports...",
+            cyto_emotion="scanning",
+            hide_next_button=True,
+            target_widget_names=["SampleLensFindings"],
+            validator=LensNoFindingsValidator(on_findings=_fill_leftovers),
+            max_retries=1,  # one more poll, in case the lens is still re-auditing
             on_success_step_id="c5_s37_clean",
+            on_fail_step_id="c5_s37b_leftovers",
         ),
         InfoStep(
             id="c5_s37_clean",
@@ -852,6 +948,53 @@ course_5_sample_lens = Course(
                 "gone, and the left map has one grey island fewer.<br><br>"
                 "The lens recomputes after every gate change, wherever you make "
                 "it. You'll rely on that in a moment."
+            ),
+            cyto_emotion="cheering",
+            allow_interaction=True,
+            target_widget_names=["SampleLensFindings", "SampleLensMap"],
+            next_step_id="c5_s38_across_intro",
+        ),
+        _leftover_step,
+        VerificationStep(
+            id="c5_s37c_any_cut",
+            text="Looking for cuts...",
+            cyto_emotion="scanning",
+            hide_next_button=True,
+            target_widget_names=["SampleLensFindings"],
+            validator=LensFindingValidator(FindingKind.CUTS, present=False),
+            on_success_step_id="c5_s38_across_intro",
+            on_fail_step_id="c5_s37d_fix_cut",
+        ),
+        VerificationStep(
+            id="c5_s37d_fix_cut",
+            text=(
+                "Fix the cut ✂️<br><br>"
+                "Click the cut finding: the gating path shows its gate, and the map "
+                "rings the cluster.<br><br>"
+                "Drag that gate's edge **outward**, on the side where the ringed "
+                "cells spill over, until the finding goes. **Ctrl+Z** undoes a drag.<br><br>"
+                "Your gate passed Course 3's check; it just runs closer to this "
+                "population than it should."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["SampleLensFindings", "SampleLensPath"],
+            validator=LensFindingValidator(FindingKind.CUTS, present=False),
+            on_success_step_id="c5_s37e_cut_fixed",
+            failure_hint=(
+                "Click the cut finding, then drag its gate's edge outward on the gating "
+                "path until the finding disappears."
+            ),
+        ),
+        InfoStep(
+            id="c5_s37e_cut_fixed",
+            text=(
+                "Fixed ✅<br><br>"
+                "A gate that passed every check still clipped a population, and only "
+                "the comparison with the clusters showed it. That's the lens's job.<br><br>"
+                "Later you'll make a cut on purpose, to see how the lens decides "
+                "which gate to blame."
             ),
             cyto_emotion="cheering",
             allow_interaction=True,
@@ -953,76 +1096,16 @@ course_5_sample_lens = Course(
                 "through a crowd swings with every change in staining or gate."
             ),
             cyto_emotion="thinking",
-            next_step_id="c5_s42b_no_run_switch",
-        ),
-        # ── Backgating without a clustering run ─────────────────────────────────
-        VerificationStep(
-            id="c5_s42b_no_run_switch",
-            text=(
-                "No clustering? Still useful 🧭<br><br>"
-                "Backgating and Across samples don't need a clustering run. "
-                "Course 4 only clustered Sample C, so let's try a sample "
-                "without one.<br><br>"
-                "Choose **Sample A** in the **Sample** dropdown."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["SampleLensSampleCombo"],
-            validator=LensSampleValidator("sample a"),
-            on_success_step_id="c5_s42c_no_run_backgate",
-            failure_hint="Open the **Sample** dropdown at the top left and pick **Sample A**.",
-        ),
-        VerificationStep(
-            id="c5_s42c_no_run_backgate",
-            text=(
-                "The caption says Sample A has no clustering run, and the map "
-                "and findings wait for one.<br><br>"
-                "Now click **CD4+** in Populations."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["SampleLensHierarchy", "SampleLensScope"],
-            validator=AllOf(
-                LensSampleValidator("sample a"), LensPopulationSelectedValidator("CD4+")
-            ),
-            on_success_step_id="c5_s42d_no_run_read",
-            failure_hint="Click the **CD4+** row in the Populations list.",
-        ),
-        InfoStep(
-            id="c5_s42d_no_run_read",
-            text=(
-                "Backgating, no clustering needed ✅<br><br>"
-                "The gating path and **Across samples** work exactly as on "
-                "Sample C: the thymus' CD4 T cells, gate by gate.<br><br>"
-                "So you can open the lens just to check a population's path, "
-                "on any sample, before or without clustering."
-            ),
-            cyto_emotion="happy",
-            allow_interaction=True,
-            target_widget_names=["SampleLensPath", "SampleLensAcross"],
-            next_step_id="c5_s42e_back_to_c",
-        ),
-        VerificationStep(
-            id="c5_s42e_back_to_c",
-            text="Switch the **Sample** dropdown back to **Sample C** for the last exercise.",
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["SampleLensSampleCombo"],
-            validator=AllOf(LensSampleValidator("sample c"), LensRunReadyValidator()),
-            on_success_step_id="c5_s43_break_intro",
-            failure_hint="Open the **Sample** dropdown and pick **Sample C** again.",
+            next_step_id="c5_s43_break_intro",
         ),
         # ── Break it, then catch it ─────────────────────────────────────────────
         InfoStep(
             id="c5_s43_break_intro",
             text=(
                 "Make the mistake on purpose 🧪<br><br>"
-                "One finding is left to see: a **cut**. Earlier versions of Course "
-                "3 had a T-cells guide box whose top stopped at **2,000** on CD3, "
-                "right through the CD4 T cells.<br><br>"
+                "Now a **cut**, made on purpose so you can watch the lens name the "
+                "gate. Earlier versions of Course 3 had a T-cells guide box whose top "
+                "stopped at **2,000** on CD3, right through the CD4 T cells.<br><br>"
                 "Let's draw it that way again and watch the lens react."
             ),
             cyto_emotion="talking",
@@ -1046,15 +1129,13 @@ course_5_sample_lens = Course(
                 "(B220 vs CD3). Scroll the strip sideways if it's cut off.<br><br>"
                 "Click the T-cells rectangle, then drag its **top** edge down to "
                 "the dashed purple guide: about **2,000** on CD3, into the upper "
-                "cluster. Not lower.<br><br>"
-                "(Already see a cut on T-cells? Your gate came from the old guide, "
-                "and the lens caught it for you.)"
+                "cluster. Not lower."
             ),
             cyto_emotion="pointing",
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["SampleLensPath"],
-            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 2000.0), "guide_axes": TCELL_AXES},
+            metadata={"guide_rect": (-400.0, 3000.0, 300.0, 2000.0), "guide_axes": TCELL_AXES},
             validator=LensFindingValidator(
                 FindingKind.CUTS,
                 gate="T-cells",
@@ -1108,7 +1189,7 @@ course_5_sample_lens = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["SampleLensPath", "SampleLensFindings"],
-            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 8000.0), "guide_axes": TCELL_AXES},
+            metadata={"guide_rect": (-400.0, 3000.0, 300.0, 8000.0), "guide_axes": TCELL_AXES},
             validator=AllOf(
                 LensFindingValidator(FindingKind.CUTS, present=False),
                 LensFindingValidator(FindingKind.MISSED, present=False),
@@ -1147,19 +1228,7 @@ course_5_sample_lens = Course(
             next_step_id="c5_s50_prediction_back",
         ),
         # ── Wrap-up ─────────────────────────────────────────────────────────────
-        InfoStep(
-            id="c5_s50_prediction_back",
-            text=(
-                "Your prediction 🔮<br><br>"
-                "At the start you predicted: **{answer:c5_what_turns_up}**.<br><br>"
-                "With the current Course 3 guides the lens found **one** thing: a "
-                "group of leukocytes no gate held. You turned it into real gates, "
-                "then made a cut on purpose and watched the lens catch it within "
-                "seconds."
-            ),
-            cyto_emotion="happy",
-            next_step_id="c5_s51_when",
-        ),
+        _prediction_back_step,
         InfoStep(
             id="c5_s51_when",
             text=(

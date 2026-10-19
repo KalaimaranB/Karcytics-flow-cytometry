@@ -24,7 +24,12 @@ class _FindingCard(ModuleCard):
     fix_requested = Signal(object)
 
     def __init__(
-        self, finding: Finding | None, title: str = "", detail: str = "", agreement: str = ""
+        self,
+        finding: Finding | None,
+        title: str = "",
+        detail: str = "",
+        agreement: str = "",
+        number: int = 0,
     ) -> None:
         super().__init__()
         self._finding = finding
@@ -36,6 +41,17 @@ class _FindingCard(ModuleCard):
 
         icon = QLabel("✓" if finding is None else _ICON[finding.kind])
         icon.setFixedWidth(18)
+        if number:  # the same number labels this finding's rings on the map
+            badge = QLabel(str(number))
+            badge.setObjectName("SampleLensFindingNumber")
+            badge.setFixedSize(20, 20)
+            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            theme_manager.apply_style(
+                badge,
+                "QLabel#SampleLensFindingNumber { color: {BG_DARKEST}; background: "
+                "{ACCENT_WARNING}; border-radius: 10px; font-size: 11px; font-weight: bold; }",
+            )
+            layout.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
         icon.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
         tone = "ACCENT_SUCCESS" if finding is None else "ACCENT_WARNING"
         theme_manager.apply_style(icon, f"color: {{{tone}}}; font-size: 15px; background: none;")
@@ -92,9 +108,10 @@ class FindingsPanel(QWidget):
                 widget.hide()  # deleteLater lands next event-loop turn; don't paint until then
                 widget.deleteLater()
         notes = agreements or [""] * len(findings)
-        cards = [_FindingCard(f, agreement=a) for f, a in zip(findings, notes, strict=True)] or [
-            _FindingCard(None, empty_title, empty_detail)
-        ]
+        cards = [
+            _FindingCard(f, agreement=a, number=i)
+            for i, (f, a) in enumerate(zip(findings, notes, strict=True), start=1)
+        ] or [_FindingCard(None, empty_title, empty_detail)]
         for card in cards:
             card.clicked.connect(self.finding_clicked)
             card.fix_requested.connect(self.fix_requested)

@@ -57,7 +57,7 @@ from .validators import (
 # ==============================================================================
 
 c3_tcells_validator = GateShapeValidator(
-    # Matches the on-canvas guide_rect=(-400.0, 2000.0, 300.0, 8000.0) drawn
+    # Matches the on-canvas guide_rect=(-400.0, 3000.0, 300.0, 8000.0) drawn
     # for c3_s07_draw_tcell below. The old (-1000, 5000, 100, 10000) target
     # didn't match that guide box, though the ±10%-of-axis-range tolerance
     # happened to be wide enough that it never actually rejected a correctly
@@ -67,7 +67,19 @@ c3_tcells_validator = GateShapeValidator(
     # The CD3 top sits above the 99.9th percentile of every sample's T cells:
     # at the old 2000 it ran through the CD4 T cells' median and dropped
     # about half of them (the Sample Lens flagged it as a cut).
-    target_bounds=(-400.0, 2000.0, 300.0, 8000.0),
+    # The B220 right edge sits in the valley between T and B cells (CD3+
+    # cells per 500 B220 units bottom out at 3000-4000; the B-cells gate
+    # starts at 3000). At the old 2000 it cut the T cells' B220 tail, ~1,600
+    # CD3+ cells on Sample C, which the lens reports as a cut on T-cells.
+    target_bounds=(-400.0, 3000.0, 300.0, 8000.0),
+    # The edge tolerance is ±10% of the whole axis, far too loose here: the
+    # box must also hold the T cells' core and stop short of the B cells.
+    # Right edge at least 2,400: beyond it lie only a few % of any T-cell
+    # cluster (the lens calls a cut from ~15% lost), and it leaves a hand-
+    # drawn edge room on a biexponential axis. CD3 to 6,000 is above the
+    # T cells' 99.5th percentile on every sample.
+    must_contain=(-200.0, 2400.0, 400.0, 6000.0),
+    must_stay_within=(-5000.0, 4000.0, -5000.0, 262144.0),
     target_name="T-cells",
     misnamed_retry_step_id="c3_s07_tcell_gate_misnamed",
     shape_retry_step_id="c3_s07_tcell_gate_retry",
@@ -279,7 +291,7 @@ course_3_gating = Course(
             target_widget_names=["Tool_rectangle", "FlowCanvas", RIGHT_PANEL_TARGET],
             target_widget_name="MainPanel",
             event_trigger="gate_added_to_tree",
-            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 8000.0)},
+            metadata={"guide_rect": (-400.0, 3000.0, 300.0, 8000.0)},
             next_step_id="c3_s07_draw_tcell_verify",
             stuck_hint_text=(
                 "Still there? Click the **Rect** tool, then drag around the upper-left "
@@ -307,12 +319,14 @@ course_3_gating = Course(
             id="c3_s07_tcell_gate_retry",
             text=(
                 "That gate didn't quite capture the right area!<br><br>"
-                "I deleted it for you. Make sure your rectangle covers the upper-left cluster (CD3+, B220-).<br><br>"
+                "I deleted it for you. Make sure your rectangle covers the whole upper-left "
+                "cluster (CD3+, B220−): follow the dashed guide, with the right edge in the gap "
+                "before the B cells (about 3,000), so no T cells are cut off.<br><br>"
                 "Try drawing it again."
             ),
             cyto_emotion="surprised",
             target_widget_names=["FlowCanvas"],
-            metadata={"guide_rect": (-400.0, 2000.0, 300.0, 8000.0)},
+            metadata={"guide_rect": (-400.0, 3000.0, 300.0, 8000.0)},
             next_step_id="c3_s07_draw_tcell",
         ),
         InfoStep(

@@ -565,9 +565,17 @@ class GateShapeValidator(FlowValidator):
         target_name: str | None = None,
         misnamed_retry_step_id: str | None = None,
         shape_retry_step_id: str | None = None,
+        must_contain: tuple[float, float, float, float] | None = None,
+        must_stay_within: tuple[float, float, float, float] | None = None,
     ) -> None:
         """Args:
         target_bounds: (min_x, max_x, min_y, max_y). For 1D gates, use 0 for min_y, max_y.
+        must_contain: (min_x, max_x, min_y, max_y) a rectangle must hold whole: the
+            population's core. The edge tolerance is a share of the whole axis, far
+            too loose near zero on a biexponential axis, where a box can pass and
+            still cut the population (the Sample Lens then reports the cut).
+        must_stay_within: (min_x, max_x, min_y, max_y) a rectangle must not reach past:
+            the neighbouring population.
         target_poly: List of (x, y) vertices for the target polygon shape.
         target_name: The expected name of the gate.
         misnamed_retry_step_id: step to route to (via `ValidationFailure.retry_step_id`)
@@ -583,6 +591,8 @@ class GateShapeValidator(FlowValidator):
         self.target_name = target_name
         self.misnamed_retry_step_id = misnamed_retry_step_id
         self.shape_retry_step_id = shape_retry_step_id
+        self.must_contain = must_contain
+        self.must_stay_within = must_stay_within
         self.last_misnamed_node_id: str | None = None
         self.last_failed_node_id: str | None = None
         self.last_misnamed_sample_id: str | None = None
@@ -708,6 +718,12 @@ class GateShapeValidator(FlowValidator):
 
         return None
 
+    def _holds_core(self, min_x: float, max_x: float, min_y: float, max_y: float) -> bool:
+        box = (min_x, max_x, min_y, max_y)
+        if self.must_contain is not None and not _holds(box, self.must_contain):
+            return False
+        return self.must_stay_within is None or _holds(self.must_stay_within, box)
+
     def validate_shape(self, app_state: Any, node_id: str, sample_id: str) -> bool:  # noqa: PLR0911, PLR0912, PLR0915
         """Validates the shape of a specific gate node. Returns True if accurate."""
         if not self.target_bounds and not self.target_poly:
@@ -820,11 +836,20 @@ class GateShapeValidator(FlowValidator):
 
             if not (edge_ok(min_x, t_min_x) and edge_ok(max_x, t_max_x)):
                 return False
+            if gate_type == "RectangleGate" and not self._holds_core(min_x, max_x, min_y, max_y):
+                return False
             return gate_type != "RectangleGate" or (
                 edge_ok(min_y, t_min_y) and edge_ok(max_y, t_max_y)
             )
 
         return False
+
+
+def _holds(
+    box: tuple[float, float, float, float], inner: tuple[float, float, float, float]
+) -> bool:
+    """``box`` (min_x, max_x, min_y, max_y) holds ``inner`` whole."""
+    return box[0] <= inner[0] and box[1] >= inner[1] and box[2] <= inner[2] and box[3] >= inner[3]
 
 
 class WorkflowSavedValidator(FlowValidator):
@@ -2597,6 +2622,24 @@ class LensFindingValidator(_LensValidator):
             return self.log_failure(
                 f"{self._kind.value} finding {'missing' if self._present else 'still shown'}."
             )
+        return True
+
+
+class LensNoFindingsValidator(_LensValidator):
+    """The lens reports no findings at all; ``on_findings`` gets them on every poll.
+
+    Runs differ, so a course branches on what the learner's own run reports.
+    """
+
+    def __init__(self, on_findings: Callable[[list[Any]], None] | None = None) -> None:
+        self._on_findings = on_findings
+
+    def validate_lens(self, lens: Any) -> bool:
+        findings = list(lens._model.findings)
+        if self._on_findings is not None:
+            self._on_findings(findings)
+        if findings:
+            return self.log_failure(f"{len(findings)} finding(s) left.")
         return True
 
 

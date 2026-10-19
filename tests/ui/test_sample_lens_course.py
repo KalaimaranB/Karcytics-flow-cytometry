@@ -96,3 +96,40 @@ def test_without_the_lens_every_check_fails():
     state = build_lens_state()
     assert not LensSampleValidator("s0").validate(state)
     assert not LensFindingValidator(FindingKind.MISSED).validate(state)
+
+
+def test_what_the_run_still_reports_picks_the_branch_and_the_text(lens):
+    """Runs differ: Course 5 branches on what the learner's own run reports."""
+    from karcytics_plugins.flow_cytometry.tutorials import course5
+    from karcytics_plugins.flow_cytometry.tutorials.validators import LensNoFindingsValidator
+
+    tab, state = lens
+    steps = {s.id: s for s in course5.course_5_sample_lens.steps}
+    check = steps["c5_s36b_whats_left"]
+    assert check.on_success_step_id == "c5_s37_clean"
+    assert check.on_fail_step_id == "c5_s37b_leftovers"
+
+    findings = list(tab._model.findings)  # a missed cluster and a cut on CD4+
+    assert not check.validator.validate(state)
+    text = course5._leftover_step.text
+    assert f"**{len(findings)} more**" in text
+    cut = next(f for f in findings if f.kind is FindingKind.CUTS)
+    assert cut.title in text and f"keeps {cut.shares[0]:.0%}" in text
+    assert "a gate that cut a population" in course5._prediction_back_step.text
+
+    # A cut sends the learner to fix it; no cut skips straight on.
+    assert steps["c5_s37c_any_cut"].on_fail_step_id == "c5_s37d_fix_cut"
+    assert not steps["c5_s37c_any_cut"].validator.validate(state)
+
+    tab._model.findings = []
+    assert LensNoFindingsValidator().validate(state)
+    assert steps["c5_s37c_any_cut"].validator.validate(state)
+
+
+def test_a_dn_merge_is_explained_not_fixed():
+    from karcytics_plugins.flow_cytometry.analysis.sample_lens import Finding
+    from karcytics_plugins.flow_cytometry.tutorials import course5
+
+    dn = Finding(FindingKind.MERGES, (0, 3), "Leukocytes / T-cells / DN", shares=(0.1, 0.29))
+    line = course5._leftover_line(dn)
+    assert "CD3− population" in line and "Course 6" in line

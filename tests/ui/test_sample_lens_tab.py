@@ -576,3 +576,27 @@ def test_plots_per_row_offers_all_as_a_choice(lens):
     assert LensColumnsValidator(2).validate(state)
     combo.setCurrentIndex(combo.findText("All"))
     assert LensColumnsValidator(0).validate(state)
+
+
+def test_findings_are_numbered_and_the_map_labels_each_cluster_once(lens):
+    from karcytics_plugins.flow_cytometry.analysis.sample_lens import Finding
+
+    tab, _, _ = lens
+    cid = int(next(c for c in tab._model.scope.clusters if c >= 0))
+    findings = [
+        Finding(FindingKind.CUTS, (cid,), CD4_PATH, shares=(0.9,)),
+        Finding(FindingKind.MERGES, (cid, cid), CD4_PATH, shares=(0.5, 0.5)),
+    ]
+    tab._model.findings = findings
+    tab._model.agreements = []
+    tab._render()
+
+    badges = [
+        w.text()
+        for w in tab._findings.findChildren(QLabel, "SampleLensFindingNumber")
+        if w.parent() in _visible_cards(tab)  # old cards wait for deleteLater
+    ]
+    assert badges == ["1", "2"]
+    ax = tab._map._canvas.figure.axes[0]
+    texts = [t.get_text() for t in ax.texts]
+    assert texts.count("1 cut · 2 merged") == 1  # one label for the cluster, each finding once
