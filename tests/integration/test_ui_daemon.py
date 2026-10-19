@@ -81,6 +81,9 @@ class _DaemonIO:
         for chunk in iter(lambda: stderr.read1(4096), b""):
             self._stderr_chunks.append(chunk)
 
+    def stderr_text(self) -> str:
+        return b"".join(self._stderr_chunks).decode(errors="replace")
+
     def read_frame(self, timeout_error: str, timeout: float = 20.0) -> dict:
         try:
             return self._frames.get(timeout=timeout)
@@ -167,6 +170,9 @@ def daemon_process(core_services):
     # right up to the cutoff, rather than whatever was still sitting in an
     # unflushed buffer.
     env["PYTHONUNBUFFERED"] = "1"
+    # A native crash (e.g. a Windows access violation) then prints every
+    # thread's Python stack to stderr instead of leaving only an exit code.
+    env["PYTHONFAULTHANDLER"] = "1"
     proc = subprocess.Popen(
         [sys.executable, str(DAEMON_SCRIPT)],
         stdin=subprocess.PIPE,
@@ -231,7 +237,9 @@ class TestUIDaemonIsolatedProcess:
         assert response["request_id"] == 1
         assert response["payload"] == {"status": "ok"}
 
-        assert daemon_process.wait(timeout=10) == 0
+        returncode = daemon_process.wait(timeout=10)
+        daemon_io._stderr_thread.join(timeout=5)
+        assert returncode == 0, f"--- daemon stderr ---\n{daemon_io.stderr_text()}"
 
     def test_focus_request_is_answered_after_ready(self, daemon_process, daemon_io):
         daemon_io.wait_for_event("ready", "Daemon never sent a 'ready' event before exiting.")
