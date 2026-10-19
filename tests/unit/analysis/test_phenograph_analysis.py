@@ -8,6 +8,7 @@ import pytest
 from sklearn.metrics import adjusted_rand_score
 
 from karcytics_plugins.flow_cytometry.analysis import phenograph_analysis
+from karcytics_plugins.flow_cytometry.analysis.attachment_manager import AttachmentManager
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.clustering import PHENOGRAPH, method_of
 from karcytics_plugins.flow_cytometry.analysis.phenograph_analysis import (
@@ -16,7 +17,6 @@ from karcytics_plugins.flow_cytometry.analysis.phenograph_analysis import (
     apply_clusters,
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.services.attachment_manager import AttachmentManager
 from tests.fixtures.lens import make_sample
 from tests.fixtures.phenograph import in_process_compute
 from tests.unit.analysis.test_flowsom_analysis import FakeContext

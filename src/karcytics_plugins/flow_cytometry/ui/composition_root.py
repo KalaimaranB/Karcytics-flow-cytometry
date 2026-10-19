@@ -41,6 +41,7 @@ class ServiceFactory:
 
         logger.debug("[phase1] ServiceFactory.build_all: importing service modules")
         from ..analysis.api_cache import CacheManager
+        from ..analysis.attachment_manager import AttachmentManager
         from ..analysis.axis_manager import AxisManager
         from ..analysis.biology_services import FluorophoreService, MarkerService
         from ..analysis.gate_coordinator import GateCoordinator
@@ -48,7 +49,6 @@ class ServiceFactory:
         from ..analysis.services.data_loader_service import DataLoaderService
         from ..analysis.services.derived_parameter_service import DerivedParameterService
         from ..analysis.services.umap_service import UmapService
-        from .services.attachment_manager import AttachmentManager
         from .services.workflow_service import WorkflowService
         from .services.workspace_io_handler import WorkspaceIOHandler
 

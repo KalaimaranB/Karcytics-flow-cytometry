@@ -22,12 +22,13 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.statistics import StatType
 
 if TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-    from .data_extractor import ComparisonsDataExtractor
+    from ....analysis.comparison_data import ComparisonsDataExtractor
 
 
 def build_violin_kwargs(
@@ -128,11 +129,8 @@ def build_radar_kwargs(
         if not sample or sample.fcs_data is None:
             continue
         key = f"{sample.display_name} / {plabel}"
-        df = sample.fcs_data.events
-        if nid and sample.gate_tree:
-            node = sample.gate_tree.find_node_by_id(nid)
-            if node:
-                df = node.apply_hierarchy(df)
+        node = sample.gate_tree.find_node_by_id(nid) if nid else None
+        df = population_events(state.data.experiment, sample, node)
         vals_per_ch = []
         for ch in channel_keys:
             assert df is not None

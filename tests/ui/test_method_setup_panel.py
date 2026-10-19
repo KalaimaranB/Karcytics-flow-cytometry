@@ -8,17 +8,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
+    FcsMetadataSource,
+    FmoSource,
+    MethodOptions,
+)
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
-    FcsMetadataSource,
-    FmoSource,
-    MethodOptions,
-)
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 

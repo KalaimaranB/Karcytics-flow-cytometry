@@ -18,15 +18,15 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
-from PySide6.QtWidgets import QFileDialog, QWidget
 
-from karcytics_plugins.flow_cytometry.analysis.compensation import (
+from .compensation import (
     CELL_DEFAULT,
     CELL_ESTIMATED,
     CompensationMatrix,
@@ -38,19 +38,19 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
     fmo_fit_detail,
     import_matrix_from_csv,
 )
-from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
-from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
+from .experiment import Sample, SampleRole
+from .fcs_io import (
     FCSData,
     get_channel_marker_label,
     get_fluorescence_channels,
 )
-from karcytics_plugins.flow_cytometry.analysis.fit_population import (
+from .fit_population import (
     FitEvents,
     fit_events,
     scatter_gates,
 )
-from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from .services import experiment_edits
+from .state import FlowState
 
 _MIN_SINGLE_STAINS = 2
 _MIN_MATRIX_CHANNELS = 2
@@ -143,6 +143,10 @@ class SourceResult:
     report: Table | None = None  # what the run rested on, for the Method setup page
 
 
+# Asks the user for a file to open: (dialog title, file filter) -> path, or None if cancelled.
+AskPath = Callable[[str, str], str | None]
+
+
 class MatrixSourceError(Exception):
     """A source couldn't produce a matrix; ``title``/``str()`` explain why."""
 
@@ -169,39 +173,33 @@ class MatrixSource(ABC):
 
     @abstractmethod
     def obtain(
-        self, state: FlowState, parent: QWidget, options: MethodOptions
+        self, state: FlowState, ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
         """Produce a matrix, or None if the user cancelled.
 
-        May prompt the user (``parent`` owns any dialog). Must not change
+        May ask the user for a file through ``ask_path``. Must not change
         ``state``. Raises ``MatrixSourceError`` when it can't produce one.
         """
 
     def inputs(self, state: FlowState, options: MethodOptions) -> Inputs | None:
         """The samples the method would use now; None if it uses none."""
-        return None
 
     def set_choice(self, state: FlowState, sample_id: str, value: str | None) -> None:
         """Store the user's pick from an ``InputRow.choices`` column."""
-        return  # most methods offer no per-sample choice
 
     def sample_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
         """(label, sample id) to offer as ``MethodOptions.sample_id``; None if unused."""
-        return None
 
     def gate_choices(self, state: FlowState) -> list[str] | None:
         """Scatter gates to offer as ``MethodOptions.gate``; None if the method doesn't fit."""
-        return None
 
     def illustration_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
         """(label, key) of the fits ``illustration()`` can draw; None if it draws none."""
-        return None
 
     def illustration(
         self, state: FlowState, options: MethodOptions, key: str
     ) -> FitIllustration | None:
         """The fit behind ``key``, as the method would run it now."""
-        return None
 
 
 # ── Shared helpers ────────────────────────────────────────────────────
@@ -287,7 +285,7 @@ class FcsMetadataSource(MatrixSource):
         return Readiness(True, text)
 
     def obtain(
-        self, state: FlowState, parent: QWidget, options: MethodOptions
+        self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
         picked = self._pick(state, options)
         if picked is None:
@@ -363,7 +361,7 @@ class SingleStainSource(MatrixSource):
         "control underestimates spill." + _FIT_ON_NOTE
     )
 
-    def readiness(self, state: FlowState, options: MethodOptions) -> Readiness:
+    def readiness(self, state: FlowState, _options: MethodOptions) -> Readiness:
         found = len(_loaded(state, SampleRole.SINGLE_STAIN))
         return Readiness(
             found >= _MIN_SINGLE_STAINS,
@@ -372,7 +370,7 @@ class SingleStainSource(MatrixSource):
         )
 
     def obtain(
-        self, state: FlowState, parent: QWidget, options: MethodOptions
+        self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
         stains = _loaded(state, SampleRole.SINGLE_STAIN)
         if len(stains) < _MIN_SINGLE_STAINS:
@@ -450,6 +448,26 @@ _UNKNOWN = "not used — couldn't tell which dye it lacks"
 _DETECT_AGAIN = "Detect again"
 
 
+class _Seating:
+    """FMO tubes placed on channels so far; only the first tube on a channel is used."""
+
+    def __init__(self, fmos: list[tuple[Sample, FCSData]]) -> None:
+        self._fmos = fmos
+        self.placements: dict[int, _Placement] = {}
+        self._taken: dict[str, str] = {}  # channel → the tube that covers it
+
+    def place(self, index: int, channel: str, reason: str) -> bool:
+        """Place tube ``index`` on ``channel``; False when another tube already covers it."""
+        sample, fcs = self._fmos[index]
+        used = channel not in self._taken
+        if used:
+            self._taken[channel] = sample.display_name
+        else:
+            reason = f"not used — {self._taken[channel]} already covers it"
+        self.placements[index] = _Placement(sample, fcs, channel, reason, used)
+        return used
+
+
 class FmoSource(MatrixSource):
     key = "fmo"
     label = "FMO controls"
@@ -500,18 +518,8 @@ class FmoSource(MatrixSource):
         if not fmos:
             return [], []
         channels = get_fluorescence_channels(fmos[0][1])
-        placements: dict[int, _Placement] = {}
-        taken: dict[str, str] = {}  # channel → the tube that covers it
-
-        def place(index: int, channel: str, reason: str) -> bool:
-            sample, fcs = fmos[index]
-            used = channel not in taken
-            if used:
-                taken[channel] = sample.display_name
-            else:
-                reason = f"not used — {taken[channel]} already covers it"
-            placements[index] = _Placement(sample, fcs, channel, reason, used)
-            return used
+        seating = _Seating(fmos)
+        place, placements = seating.place, seating.placements
 
         recorded = [index for index, (sample, _) in enumerate(fmos) if sample.fmo_minus]
         open_ = [index for index in range(len(fmos)) if index not in recorded]
@@ -523,12 +531,7 @@ class FmoSource(MatrixSource):
             else:
                 place(index, channel, _FROM_DATA if sample.fmo_minus_detected else _SET_BY_YOU)
 
-        levels = _signal_levels([fcs for _, fcs in fmos], channels) if open_ else None
-        dimmest = {
-            index: found
-            for index in open_
-            if levels is not None and (found := _dimmest_channel(levels, index)) is not None
-        }
+        dimmest = _dimmest_by_tube([fcs for _, fcs in fmos], open_, channels)
         # The clearest cases claim their channel first.
         for index in sorted(dimmest, key=lambda i: dimmest[i][1]):
             channel = channels[dimmest[index][0]]
@@ -546,7 +549,7 @@ class FmoSource(MatrixSource):
                 place(index, named, _FROM_NAME)
         return channels, [placements[index] for index in sorted(placements)]
 
-    def readiness(self, state: FlowState, options: MethodOptions) -> Readiness:
+    def readiness(self, state: FlowState, _options: MethodOptions) -> Readiness:
         channels, placements = self._placements(state)
         if not placements:
             return Readiness(
@@ -561,7 +564,7 @@ class FmoSource(MatrixSource):
         return Readiness(bool(used), text + _SETUP_HINT)
 
     def obtain(
-        self, state: FlowState, parent: QWidget, options: MethodOptions
+        self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
         channels, placements = self._placements(state)
         used = {p.channel: p for p in placements if p.used and p.channel is not None}
@@ -821,6 +824,16 @@ def _signal_levels(controls: list[FCSData], channels: list[str]) -> np.ndarray |
     return np.maximum(np.array(levels, dtype=np.float64), 1.0)
 
 
+def _dimmest_by_tube(
+    controls: list[FCSData], tubes: list[int], channels: list[str]
+) -> dict[int, tuple[int, float]]:
+    """For each of ``tubes`` whose data singles out one channel: (channel index, how clearly)."""
+    levels = _signal_levels(controls, channels) if tubes else None
+    if levels is None:
+        return {}
+    return {i: found for i in tubes if (found := _dimmest_channel(levels, i)) is not None}
+
+
 def _dimmest_channel(levels: np.ndarray, control: int) -> tuple[int, float] | None:
     """The one channel where ``control`` is dimmer than the other FMOs — the
     dye it lacks — and how far it stands out (its relative level there over
@@ -853,19 +866,18 @@ class CsvImportSource(MatrixSource):
         "channels that don't match are not compensated."
     )
 
-    def readiness(self, state: FlowState, options: MethodOptions) -> Readiness:
+    def readiness(self, _state: FlowState, _options: MethodOptions) -> Readiness:
         return Readiness(
             True, "A matrix saved as CSV/TSV, e.g. exported from other analysis software."
         )
 
     def obtain(
-        self, state: FlowState, parent: QWidget, options: MethodOptions
+        self, _state: FlowState, ask_path: AskPath | None, _options: MethodOptions
     ) -> SourceResult | None:
-        path, _ = QFileDialog.getOpenFileName(
-            parent,
-            "Import Spillover Matrix",
-            "",
-            "CSV Files (*.csv *.tsv *.txt);;All Files (*)",
+        path = (
+            ask_path("Import Spillover Matrix", "CSV Files (*.csv *.tsv *.txt);;All Files (*)")
+            if ask_path
+            else None
         )
         if not path:
             return None
@@ -931,7 +943,7 @@ class ManualSource(MatrixSource):
         )
 
     def obtain(
-        self, state: FlowState, parent: QWidget, options: MethodOptions
+        self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
         picked = self._sample(state, options)
         channels = get_fluorescence_channels(picked[1]) if picked else []

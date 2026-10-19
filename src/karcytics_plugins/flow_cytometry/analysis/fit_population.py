@@ -15,6 +15,7 @@ import pandas as pd
 
 from .experiment import Sample
 from .gating.gate_node import GateNode
+from .population_service import uncompensated_events
 
 _SCATTER_PREFIXES = ("FSC", "SSC")
 _PATH_SEPARATOR = " › "
@@ -84,9 +85,9 @@ def fit_events(sample: Sample, gate: str | None = None) -> FitEvents | None:
     (``gated`` False) rather than dropped: a noisier fit beats a missing one.
     """
     fcs = sample.fcs_data
-    if fcs is None or fcs.events is None:
+    raw = uncompensated_events(sample)
+    if fcs is None or fcs.events is None or raw is None:
         return None
-    raw = fcs.raw_events if fcs.raw_events is not None else fcs.events
     node = scatter_gates(sample).get(gate) if gate is not None else None
     if node is None:
         return FitEvents(raw, len(raw), gated=False)

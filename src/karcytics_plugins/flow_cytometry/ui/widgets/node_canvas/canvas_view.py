@@ -434,7 +434,7 @@ class NodeCanvas(QWidget):
 
         from PySide6.QtWidgets import QDialog
 
-        from ...scope_resolution import resolve_target_samples
+        from ....analysis.scope_resolution import resolve_target_samples
         from ..scope_selection_dialog import ScopeSelectionDialog
 
         experiment = self.state.data.experiment
@@ -492,7 +492,7 @@ class NodeCanvas(QWidget):
 
         from PySide6.QtWidgets import QDialog
 
-        from ...scope_resolution import resolve_target_samples
+        from ....analysis.scope_resolution import resolve_target_samples
         from ..scope_selection_dialog import ScopeSelectionDialog
 
         experiment = self.state.data.experiment

@@ -12,18 +12,18 @@ from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
-from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
-from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view, matrix_library_panel
-from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
     FmoSource,
     MatrixSource,
     MethodOptions,
     Readiness,
     SourceResult,
 )
+from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
+from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view, matrix_library_panel
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
 
 pytestmark = pytest.mark.ui

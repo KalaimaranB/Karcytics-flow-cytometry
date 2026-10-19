@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import pandas as pd
 import scipy.spatial
 from karcytics_sdk.plugin.components import (
     BioComboBox,
@@ -44,6 +45,7 @@ from karcytics_plugins.flow_cytometry.analysis.clustering import (
     ClusteringMethod,
     method_of,
 )
+from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.services.umap_service import (
     FlowsomParams,
     PhenographParams,
@@ -854,7 +856,7 @@ class PopulationAnalysisViewer(QWidget):
                     return obj
                 for i in range(len(obj)):
                     obj[i] = _purify(obj[i])
-            elif type(obj).__name__ == "DataFrame":
+            elif isinstance(obj, pd.DataFrame):
                 return obj.to_dict(orient="split")
             return obj
 
@@ -936,17 +938,13 @@ class PopulationAnalysisViewer(QWidget):
 
     def _on_gate_changed_internal(self, sample_id: str, gate_id: object) -> None:
         sample = self._state.data.experiment.samples.get(sample_id)
-        if not sample or sample.fcs_data is None:
-            self._total_events = 0
-        elif gate_id and sample.gate_tree:
-            gate_node = sample.gate_tree.find_node_by_id(gate_id)  # type: ignore
-            if gate_node:
-                df = gate_node.apply_hierarchy(sample.fcs_data.events)
-                self._total_events = len(df)
-            else:
-                self._total_events = len(sample.fcs_data.events)  # type: ignore
-        else:
-            self._total_events = len(sample.fcs_data.events)  # type: ignore
+        node = (
+            sample.gate_tree.find_node_by_id(gate_id)
+            if sample and isinstance(gate_id, str)
+            else None
+        )
+        events = population_events(self._state.data.experiment, sample, node)
+        self._total_events = len(events) if events is not None else 0
 
         self._on_subsample_changed(self._n_events_slider.value())
 
@@ -1160,11 +1158,8 @@ class PopulationAnalysisViewer(QWidget):
 
             fluo_channels = get_fluorescence_channels(sample.fcs_data)
 
-            events_df = sample.fcs_data.events
-            if node_id and sample.gate_tree is not None:
-                gate_node = sample.gate_tree.find_node_by_id(node_id)
-                if gate_node is not None:
-                    events_df = gate_node.apply_hierarchy(events_df)
+            gate_node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
+            events_df = population_events(self._state.data.experiment, sample, gate_node)
 
             self._animator.show_loading()
             self._display_stack.setCurrentIndex(2)

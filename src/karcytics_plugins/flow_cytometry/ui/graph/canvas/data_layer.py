@@ -16,6 +16,7 @@ import numpy as np
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.rendering.pipeline import RasterizeStage, RenderComputeStage, RenderData
 
+from karcytics_plugins.flow_cytometry.analysis.population_service import channel_values
 from karcytics_plugins.flow_cytometry.analysis.scaling import (
     compute_axis_limits as _compute_limits,
 )
@@ -139,16 +140,11 @@ class FlowDataComputeStage(RenderComputeStage):
 
             fmo_data_x = None
             if state.fmo_sample_id and state.flow_state is not None:
-                samples = state.flow_state.data.experiment.samples  # type: ignore[union-attr]
-                fmo_sample = samples.get(state.fmo_sample_id) if samples else None
-                if (
-                    fmo_sample
-                    and fmo_sample.fcs_data is not None
-                    and state.x_param in fmo_sample.fcs_data.events  # type: ignore[operator]
-                ):
-                    fmo_raw_x = fmo_sample.fcs_data.events[  # type: ignore[index]
-                        state.x_param
-                    ].values.astype(np.float64)
+                experiment = state.flow_state.data.experiment  # type: ignore[union-attr]
+                fmo_raw_x = channel_values(
+                    experiment, experiment.samples.get(state.fmo_sample_id), state.x_param
+                )
+                if fmo_raw_x is not None:
                     fmo_data_x = apply_transform(
                         fmo_raw_x, state.x_scale.transform_type, **x_kwargs
                     )

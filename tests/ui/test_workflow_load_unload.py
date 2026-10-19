@@ -19,6 +19,7 @@ import pytest
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from karcytics_plugins.flow_cytometry.analysis.attachment_manager import AttachmentManager
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -26,7 +27,6 @@ from karcytics_plugins.flow_cytometry.analysis.workspace_document import (
     capture_model,
     serialize_workspace,
 )
-from karcytics_plugins.flow_cytometry.ui.services.attachment_manager import AttachmentManager
 from karcytics_plugins.flow_cytometry.ui.services.workflow_service import WorkflowService
 from tests.fixtures.workspace import (
     FakeBus,

@@ -10,10 +10,12 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import pandas as pd
 from karcytics_sdk.plugin import get_logger
 
-from ...analysis.clustering import FLOWSOM, PHENOGRAPH, method_of, tree_embedding
-from ...analysis.clustering.phenograph import graph_embedding
+from .clustering import FLOWSOM, PHENOGRAPH, method_of, tree_embedding
+from .clustering.phenograph import graph_embedding
+from .transforms import biexponential_transform
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -31,6 +33,20 @@ _FLOWSOM_REBUILT = (
     "cluster_stats",
     "marker_heatmap",
     "cluster_heatmap",
+)
+
+
+# Kept out of a UMAP run's JSON metadata: arrays stored as attachments or rebuilt on load.
+_UMAP_ARRAYS = frozenset(
+    {
+        "embedding",
+        "indices",
+        "clusters",
+        "intensities",
+        "cluster_stats",
+        "marker_heatmap",
+        "cluster_heatmap",
+    }
 )
 
 
@@ -59,78 +75,38 @@ class AttachmentManager:
 
     def serialize_umap_results(self, umap_results: dict, context: Any) -> dict:
         """Serialize UMAP embeddings and indices to binary attachments."""
-        meta_dict: dict = {}
-
         if not context:
-            return meta_dict
+            return {}
+        serializers = {FLOWSOM: self._serialize_flowsom, PHENOGRAPH: self._serialize_phenograph}
+        return {
+            key: [
+                serializers.get(method_of(res), self._serialize_umap)(res, context) for res in runs
+            ]
+            for key, runs in umap_results.items()
+        }
 
-        for key, runs in umap_results.items():
-            meta_dict[key] = []
-            for res in runs:
-                if method_of(res) is FLOWSOM:
-                    meta_dict[key].append(self._serialize_flowsom(res, context))
-                    continue
-                if method_of(res) is PHENOGRAPH:
-                    meta_dict[key].append(self._serialize_phenograph(res, context))
-                    continue
-                emb_key = res.get("emb_key")
-                idx_key = res.get("idx_key")
-                cls_key = res.get("cls_key")
+    def _serialize_umap(self, res: dict, context: Any) -> dict:
+        """Embedding, indices and clusters go to attachments; `res` keeps their keys."""
+        emb_key = res.get("emb_key")
+        idx_key = res.get("idx_key")
+        cls_key = res.get("cls_key")
+        if not emb_key or not idx_key:
+            run_uuid = uuid.uuid4().hex[:8]
+            emb_key = f"umap_emb_{run_uuid}"
+            idx_key = f"umap_idx_{run_uuid}"
+            if "clusters" in res:
+                cls_key = f"umap_cls_{run_uuid}"
 
-                if not emb_key or not idx_key:
-                    run_uuid = uuid.uuid4().hex[:8]
-                    emb_key = f"umap_emb_{run_uuid}"
-                    idx_key = f"umap_idx_{run_uuid}"
-                    if "clusters" in res:
-                        cls_key = f"umap_cls_{run_uuid}"
-
-                emb_path = self.temp_dir / f"{emb_key}.npy"
-                if not emb_path.exists():
-                    np.save(emb_path, res["embedding"])
-                context.add_attachment(emb_key, emb_path, "UMAP Coordinates")
-
-                idx_path = self.temp_dir / f"{idx_key}.npy"
-                if not idx_path.exists():
-                    np.save(idx_path, res["indices"])
-                context.add_attachment(idx_key, idx_path, "UMAP Indices")
-
-                meta = {
-                    k: v
-                    for k, v in res.items()
-                    if k
-                    not in [
-                        "embedding",
-                        "indices",
-                        "clusters",
-                        "intensities",
-                        "cluster_stats",
-                        "marker_heatmap",
-                        "cluster_heatmap",
-                    ]
-                }
-                meta.update(
-                    {
-                        "has_clusters": "clusters" in res,
-                        "emb_key": emb_key,
-                        "idx_key": idx_key,
-                    }
-                )
-
-                if "clusters" in res and cls_key:
-                    cls_path = self.temp_dir / f"{cls_key}.npy"
-                    if not cls_path.exists():
-                        np.save(cls_path, res["clusters"])
-                    context.add_attachment(cls_key, cls_path, "UMAP Clusters")
-                    meta["cls_key"] = cls_key
-
-                res["emb_key"] = emb_key
-                res["idx_key"] = idx_key
-                if "clusters" in res and cls_key:
-                    res["cls_key"] = cls_key
-
-                meta_dict[key].append(meta)
-
-        return meta_dict
+        self._attach(context, emb_key, res["embedding"], "UMAP Coordinates")
+        self._attach(context, idx_key, res["indices"], "UMAP Indices")
+        meta = {k: v for k, v in res.items() if k not in _UMAP_ARRAYS}
+        meta.update({"has_clusters": "clusters" in res, "emb_key": emb_key, "idx_key": idx_key})
+        res["emb_key"] = emb_key
+        res["idx_key"] = idx_key
+        if "clusters" in res and cls_key:
+            self._attach(context, cls_key, res["clusters"], "UMAP Clusters")
+            meta["cls_key"] = res["cls_key"] = cls_key
+        return meta
 
     def hydrate_umap_results(self, meta_dict: dict, state: Any, context: Any) -> dict:
         """Hydrate UMAP embeddings from binary attachments."""
@@ -248,8 +224,6 @@ class AttachmentManager:
         sample_id = meta["sample_id"]
         sample = state.data.experiment.samples.get(sample_id)
         if sample and sample.fcs_data is not None:
-            from ...analysis.transforms import biexponential_transform
-
             events_df = sample.fcs_data.events
             channels = list(events_df.columns)
             # Runs store event row labels, not positions.
@@ -288,8 +262,6 @@ class AttachmentManager:
 
     def _reconstruct_cluster_stats(self, res: dict):
         """Reconstruct the cluster statistical properties."""
-        import pandas as pd
-
         df_cluster = pd.DataFrame(res["intensities"], columns=res["channels"])
         df_cluster["Cluster_ID"] = res["clusters"]
 

@@ -8,12 +8,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from karcytics_plugins.flow_cytometry.analysis import compensation_sources as matrix_sources
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
-from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
-from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view, matrix_sources
-from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
     MATRIX_SOURCES,
     FcsMetadataSource,
     FmoSource,
@@ -24,6 +21,10 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
     SingleStainSource,
     SourceResult,
 )
+from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
 
 pytestmark = pytest.mark.ui
 
@@ -565,7 +566,7 @@ def _three_colour_sample() -> Sample:
 
 def test_manual_entry_starts_from_a_matrix_with_no_spill(make_view):
     from karcytics_plugins.flow_cytometry.analysis.compensation import CELL_DEFAULT
-    from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import ManualSource
+    from karcytics_plugins.flow_cytometry.analysis.compensation_sources import ManualSource
 
     state = FlowState()
     source = ManualSource()

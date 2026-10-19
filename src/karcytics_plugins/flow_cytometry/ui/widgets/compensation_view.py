@@ -22,6 +22,7 @@ from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -35,19 +36,19 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
     CompensationMatrix,
     SavedMatrix,
 )
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
+    MATRIX_SOURCES,
+    MatrixSource,
+    MatrixSourceError,
+    MethodOptions,
+    Table,
+)
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import CompensationEditor
 from karcytics_plugins.flow_cytometry.ui.widgets.matrix_library_panel import (
     MatrixLibraryPanel,
     same_values,
-)
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
-    MATRIX_SOURCES,
-    MatrixSource,
-    MatrixSourceError,
-    MethodOptions,
-    Table,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
@@ -446,7 +447,13 @@ class CompensationView(QWidget):
     def _on_source(self, source: MatrixSource) -> None:
         options = self._options_for(source)
         try:
-            result = source.obtain(self._state, self, options)
+            result = source.obtain(
+                self._state,
+                lambda title, filter_: (
+                    QFileDialog.getOpenFileName(self, title, "", filter_)[0] or None
+                ),
+                options,
+            )
         except MatrixSourceError as exc:
             show_warning(self, exc.title, str(exc))
             return

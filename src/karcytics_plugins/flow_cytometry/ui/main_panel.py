@@ -910,7 +910,7 @@ class FlowCytometryPanel(PluginBase):
 
         physical_gate_id = selected_node.gate.gate_id
 
-        from .scope_resolution import resolve_target_samples
+        from ..analysis.scope_resolution import resolve_target_samples
 
         target_samples = resolve_target_samples(
             scope, group_id, sample_id, self.state.data.experiment

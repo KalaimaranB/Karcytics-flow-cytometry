@@ -45,7 +45,7 @@ from karcytics_plugins.flow_cytometry.ui.graph.render_panels.pseudocolor_panel i
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.checkbox_style import checkbox_qss
 
-from ..data_extractor import ComparisonsDataExtractor
+from .....analysis.comparison_data import ComparisonsDataExtractor
 from .base import IOptionsPanel
 
 if TYPE_CHECKING:

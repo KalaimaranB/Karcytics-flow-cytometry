@@ -162,7 +162,8 @@ _VALUE_STAT_REGISTRY: dict[StatType, Callable[[np.ndarray], float]] = {
 }
 
 
-def _compute_value_statistic(values: np.ndarray, stat_type: StatType) -> float:
+def value_statistic(values: np.ndarray, stat_type: StatType) -> float:
+    """A value statistic (mean, median, geometric mean, ...) of non-empty `values`."""
     fn = _VALUE_STAT_REGISTRY.get(stat_type)
     if fn is None:
         raise ValueError(f"Unsupported stat type: {stat_type}")
@@ -217,7 +218,7 @@ def compute_statistic(
     if len(values) == 0:
         return 0.0
 
-    return _compute_value_statistic(values, stat_type)
+    return value_statistic(values, stat_type)
 
 
 def compute_population_stats(

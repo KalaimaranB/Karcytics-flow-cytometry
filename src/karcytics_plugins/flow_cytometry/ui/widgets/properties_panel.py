@@ -707,8 +707,8 @@ class PropertiesPanel(QWidget):
         )
         from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
+        from ...analysis.compensation_sources import placed_fmo_channel
         from ...analysis.experiment import SampleRole
-        from .matrix_sources import placed_fmo_channel
 
         channels = get_fluorescence_channels(fcs)
         combo = FlowComboBox()

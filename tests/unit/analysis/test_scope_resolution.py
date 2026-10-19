@@ -4,7 +4,7 @@ rename, and logic-link deletion to figure out which samples a scoped action touc
 
 from unittest.mock import MagicMock
 
-from karcytics_plugins.flow_cytometry.ui.scope_resolution import resolve_target_samples
+from karcytics_plugins.flow_cytometry.analysis.scope_resolution import resolve_target_samples
 
 
 def _experiment_with_groups():

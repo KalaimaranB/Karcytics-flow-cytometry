@@ -171,19 +171,24 @@ Each phase also ratchets the baseline down once it lands.
 - [x] `IGateCoordinator` / `IPopulationService` deleted (one implementation each, no test
       seam); the UI type-hints the concrete classes.
 
-## B3. Make `analysis/` the only route to event data
+## B3. Make `analysis/` the only route to event data — done
 
-- [ ] Add `PopulationService.gated_events(sample_id, node_id)` and `channel_values(…)`. Route
-      the 12 direct `apply_hierarchy` call sites through them (`statistics_explorer.py`,
-      `comparisons/data_extractor.py`, `population_analysis_viewer.py`,
-      `derived_formula_editor.py`, `comparisons/kwargs_builders.py`,
-      `graph/render_window.py`, `graph/graph_window.py`).
-- [ ] Point `data_extractor.get_statistic_matrix` at `analysis/statistics.compute_statistic`
-      instead of its if/elif chain, and move the module to `analysis/`.
-- [ ] Split `ui/widgets/matrix_sources.py` (983 lines). Its only Qt use is `QFileDialog`, so the
-      sources go to `analysis/compensation_sources.py` with an injected file-picker callable.
-- [ ] Move `ui/services/attachment_manager.py` and `ui/scope_resolution.py` into `analysis/`.
-- [ ] Turn on KS331 for flow: list the reserved calls under `[tool.karcytics.evaluator] analysis_only`.
+- [x] One gateway in `analysis/population_service.py`: `population_events(experiment, sample,
+      node)`, `channel_values(...)` and `uncompensated_events(sample)`, all with the
+      derived-column sync. All 12 `apply_hierarchy` calls and 33 raw `fcs_data.events` /
+      `raw_events` reads outside `analysis/` (13 files) go through it.
+- [x] `data_extractor` moved to `analysis/comparison_data.py`; its statistics use
+      `statistics.value_statistic` (the shared registry) instead of an if/elif chain. Its class
+      API stays until B4 reworks the comparisons render contract.
+- [x] `ui/widgets/matrix_sources.py` → `analysis/compensation_sources.py`, Qt-free: `obtain()`
+      takes an `ask_path(title, filter)` callable the view supplies.
+- [x] `attachment_manager.py` and `scope_resolution.py` moved into `analysis/`.
+- [x] KS331 on for flow: `analysis_only = ["apply_hierarchy", "fcs_data.events",
+      "fcs_data.raw_events"]`.
+- [ ] **Moved out of B3:** the 7 KS205 hits (Qt-backed SDK objects in `analysis/`: the
+      propagator's `Debouncer`, the FCS/UMAP/PhenoGraph `PluginDaemon` use, `UmapService`'s
+      `AnalysisWorker`). Fixing them means moving scheduling out of `analysis/`; do it with B8's
+      composition-root work.
 
 Not moved: `GateEditor` / `GateFactory` / `CoordinateMapper`. They are interaction geometry,
 not science.

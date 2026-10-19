@@ -30,7 +30,10 @@ from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import get_channel_marker_label
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
-from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
+from karcytics_plugins.flow_cytometry.analysis.population_service import (
+    PopulationService,
+    population_events,
+)
 from karcytics_plugins.flow_cytometry.analysis.scaling import (
     AxisScale,
     calculate_auto_range,
@@ -524,7 +527,7 @@ class GraphWindow(QWidget):
             )
             return
 
-        sample_events = sample.fcs_data.events
+        sample_events = population_events(self._state.data.experiment, sample)
         if sample_events is None:
             logger.warning(f"GraphWindow._render_initial: Sample {self._sample_id} has no events")
             return
@@ -578,16 +581,14 @@ class GraphWindow(QWidget):
         # (the parent population), not from B+T cells (the child subset).
         #
         # For a node with a parent, the parent population is the events that passed
-        # all gates *above* this one, i.e. apply_hierarchy on the parent node.
+        # all gates *above* this one, i.e. the parent node's population.
         # For a root-level or ungated node, fall back to the full sample.
         _node = sample.gate_tree.find_node_by_id(self._node_id) if self._node_id else None
         _parent_node = _node.parents[0] if (_node and _node.parents) else None
         if _parent_node is not None:
-            parent_events = _parent_node.apply_hierarchy(sample_events)
-            if len(parent_events) == 0:
-                logger.warning(
-                    "parent_events empty after apply_hierarchy — falling back to full sample"
-                )
+            parent_events = population_events(self._state.data.experiment, sample, _parent_node)
+            if parent_events is None or len(parent_events) == 0:
+                logger.warning("The parent population is empty — falling back to the full sample")
                 parent_events = sample_events  # safety fallback
         else:
             parent_events = sample_events  # root or ungated: full sample is the parent
@@ -857,10 +858,9 @@ class GraphWindow(QWidget):
                        value stored in the current axis scale.
         """
         sample = self._state.data.experiment.samples.get(self._sample_id)
-        if not sample or not sample.fcs_data or sample.fcs_data.events is None:
+        events = population_events(self._state.data.experiment, sample)
+        if events is None:
             return (0.0, 1.0)
-
-        events = sample.fcs_data.events
 
         col = self._axis_panel.get_current_x() if axis == "x" else self._axis_panel.get_current_y()
         if not col or col not in events:

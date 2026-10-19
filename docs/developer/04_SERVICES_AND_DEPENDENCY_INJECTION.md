@@ -97,12 +97,12 @@ graph TB
         GC["GateCoordinator"]
         GP["GatePropagator<br/>(built inside GateCoordinator)"]
         TE["gating.tree_edits<br/>(module functions)"]
+        ATT["AttachmentManager"]
         DLS["DataLoaderService"]
         US["UmapService"]
     end
 
     subgraph UI["UI (ui/services/)"]
-        ATT["AttachmentManager"]
         WF["WorkflowService"]
         WIO["WorkspaceIOHandler"]
         WSS["WorkspaceSaveService"]
@@ -137,9 +137,9 @@ graph TB
 
 ---
 
-## 3. `ui/services/` — persistence and IO
+## 3. Persistence and IO (`ui/services/`, plus `AttachmentManager` in `analysis/`)
 
-### `AttachmentManager` — `ui/services/attachment_manager.py`
+### `AttachmentManager` — `analysis/attachment_manager.py`
 
 **Responsibility:** persists binary attachments (currently: UMAP embeddings, indices, and cluster arrays) alongside a saved workflow, separate from the JSON-serializable workflow payload.
 

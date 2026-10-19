@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-    from .data_extractor import ComparisonsDataExtractor
+    from ....analysis.comparison_data import ComparisonsDataExtractor
     from .options.base import IOptionsPanel
     from .renderers.base import IPlotRenderer
 

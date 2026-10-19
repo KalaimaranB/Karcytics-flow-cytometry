@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import numpy as np
 from karcytics_sdk.plugin import get_logger
 
 from .derived.sync import sync_sample
@@ -14,11 +15,46 @@ from .derived.sync import sync_sample
 if TYPE_CHECKING:
     import pandas as pd
 
-    from .experiment import Sample
+    from .experiment import Experiment, Sample
     from .gating import GateNode
     from .state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
+
+
+def population_events(
+    experiment: Experiment, sample: Sample | None, node: GateNode | None = None
+) -> pd.DataFrame | None:
+    """The events in `node`'s population: the sample's events with every gate down to it applied.
+
+    The whole sample when `node` is None; None when the sample has no events.
+    This is the one way outside analysis/ to read a sample's events.
+    """
+    if sample is None or sample.fcs_data is None or sample.fcs_data.events is None:
+        return None
+    # Safety net: no-op unless a load/compensation path forgot to re-sync
+    # derived columns, in which case gates on them would KeyError.
+    sync_sample(experiment, sample)
+    events = sample.fcs_data.events
+    return events if node is None else node.apply_hierarchy(events)
+
+
+def uncompensated_events(sample: Sample | None) -> pd.DataFrame | None:
+    """The sample's events as acquired, before any compensation (None without data)."""
+    fcs = sample.fcs_data if sample is not None else None
+    if fcs is None or fcs.events is None:
+        return None
+    return fcs.raw_events if fcs.raw_events is not None else fcs.events
+
+
+def channel_values(
+    experiment: Experiment, sample: Sample | None, channel: str, node: GateNode | None = None
+) -> np.ndarray | None:
+    """One channel of a population's events as float64, or None when it has no such channel."""
+    events = population_events(experiment, sample, node)
+    if events is None or channel not in events:
+        return None
+    return events[channel].to_numpy(dtype=np.float64)
 
 
 class PopulationService:
@@ -51,21 +87,6 @@ class PopulationService:
         return root.find_nodes_by_gate(gate_id)
 
     def get_gated_events(self, sample_id: str, node_id: str | None = None) -> pd.DataFrame | None:
-        """Get the events for a population, applying all parent gates."""
-        sample = self.get_sample(sample_id)
-        if not sample or not sample.has_data:
-            return None
-
-        assert sample.fcs_data is not None
-        # Safety net: no-op unless a load/compensation path forgot to re-sync
-        # derived columns, in which case gates on them would KeyError.
-        sync_sample(self._state.data.experiment, sample)
-        events = sample.fcs_data.events
-        if not node_id:
-            return events
-
-        node = self.find_node(sample_id, node_id)
-        if not node:
-            return events
-
-        return node.apply_hierarchy(events)
+        """A population's events (the whole sample when the node is unknown or None)."""
+        node = self.find_node(sample_id, node_id) if node_id else None
+        return population_events(self._state.data.experiment, self.get_sample(sample_id), node)

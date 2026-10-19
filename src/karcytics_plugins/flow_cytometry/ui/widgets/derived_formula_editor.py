@@ -39,6 +39,7 @@ from karcytics_plugins.flow_cytometry.analysis.derived.templates import (
     short_label,
 )
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import get_fluorescence_channels
+from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_service import (
     DerivedParameterError,
     DerivedParameterService,
@@ -554,17 +555,17 @@ class DerivedParameterEditor(QWidget):
             self._histogram.set_message("Fix the formula to see a preview")
             _set_status(self._preview_summary, "", "")
             return
-        sample = self._state.data.experiment.samples.get(self._preview_sample.currentData() or "")
-        if sample is None or sample.fcs_data is None or sample.fcs_data.events is None:
+        experiment = self._state.data.experiment
+        sample = experiment.samples.get(self._preview_sample.currentData() or "")
+        node_id = self._preview_population.currentData()
+        node = sample.gate_tree.find_node_by_id(node_id) if sample and node_id else None
+        all_events = population_events(experiment, sample)
+        events = population_events(experiment, sample, node)
+        if sample is None or all_events is None or events is None:
             self._histogram.set_message("Load a sample to see a preview")
             _set_status(self._preview_summary, "", "")
             return
 
-        all_events = events = sample.fcs_data.events
-        node_id = self._preview_population.currentData()
-        node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
-        if node is not None:
-            events = node.apply_hierarchy(events)
         missing = expr.missing_channels(events.columns)
         if missing:
             self._histogram.set_message(f"{sample.display_name} has no {', '.join(missing)}")

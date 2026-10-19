@@ -51,8 +51,9 @@ because those render the wrong ribbon (or nothing).
 tab does. Three pieces, kept separate so a new way of getting a matrix
 doesn't touch the other two:
 
-- **`MatrixSource`** (`ui/widgets/matrix_sources.py`) — one way to obtain a
-  spillover matrix: `obtain(state, parent)` returns a `SourceResult`
+- **`MatrixSource`** (`analysis/compensation_sources.py`, Qt-free) — one way to obtain a
+  spillover matrix: `obtain(state, ask_path, options)` returns a `SourceResult`
+  (`ask_path(title, file_filter)` is the view's file picker, for the CSV import)
   (matrix, undo label, one-line summary), `None` if the user cancelled, or
   raises `MatrixSourceError`. A source never changes state. The view builds
   its **Method** selector from `MATRIX_SOURCES` (one run button, retargeted

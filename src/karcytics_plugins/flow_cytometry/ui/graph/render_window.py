@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
+from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -66,13 +67,11 @@ class RenderWindow(QMainWindow):
 
         # Apply parameters
         sample = self._state.data.experiment.samples.get(sample_id)
-        if sample and sample.fcs_data is not None:
-            events = sample.fcs_data.events
-            if node_id:
-                node = sample.gate_tree.find_node_by_id(node_id)
-                if node:
-                    events = node.apply_hierarchy(events)
-
+        events = None
+        if sample is not None:
+            node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
+            events = population_events(self._state.data.experiment, sample, node)
+        if events is not None:
             self._canvas.begin_update()
             self._canvas.set_axes(x_param, y_param)
             if x_scale and y_scale:

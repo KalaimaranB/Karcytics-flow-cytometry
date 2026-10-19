@@ -27,6 +27,7 @@ from karcytics_plugins.flow_cytometry.analysis.constants import (
     GATE_DRAWING_COLOR,
     PREVIEW_THUMBNAIL_SIZE,
 )
+from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.graph.flow_services import CoordinateMapper
 
@@ -252,6 +253,22 @@ class PreviewThumbnail(QFrame):
         except Exception as e:
             logger.error(f"Overlay drawing failed: {e}")
 
+    def _shared_range(self, param, scale, sample_id) -> tuple[float, float] | None:
+        """The axis bounds every thumbnail shares: the scale's own, else the active sample's auto-range.
+
+        Without explicit bounds RenderTask would auto-range each thumbnail on
+        its own data, so the thumbnails would no longer be comparable.
+        """
+        if scale.min_val is not None and scale.max_val is not None:
+            return (scale.min_val, scale.max_val)
+        if not sample_id or self._axis_manager is None:
+            return None
+        sample = self._state.data.experiment.samples.get(sample_id)
+        sample_events = population_events(self._state.data.experiment, sample)
+        if sample_events is None or param not in sample_events:
+            return None
+        return self._axis_manager.calculate_range(sample_events[param], param, sample_id)
+
     def request_render(  # noqa: PLR0912, PLR0915
         self,
         active_sample_id: str | None = None,
@@ -273,35 +290,8 @@ class PreviewThumbnail(QFrame):
         # If the user hasn't manually overridden the bounds (min_val is None), we must explicitly
         # calculate the active sample's auto-range so that we don't pass None to RenderTask
         # (which would cause RenderTask to auto-range on each thumbnail's individual data).
-        x_range = None
-        if x_scale.min_val is not None and x_scale.max_val is not None:
-            x_range = (x_scale.min_val, x_scale.max_val)
-        elif active_sample_id:
-            try:
-                sample = self._state.data.experiment.samples.get(active_sample_id)
-                if (
-                    sample and sample.fcs_data is not None and x_param in sample.fcs_data.events  # type: ignore
-                ):
-                    data = sample.fcs_data.events[x_param]  # type: ignore
-                    assert self._axis_manager is not None
-                    x_range = self._axis_manager.calculate_range(data, x_param, active_sample_id)
-            except Exception as e:
-                logger.error(f"Group preview x_range calc failed: {e}")
-
-        y_range = None
-        if y_scale.min_val is not None and y_scale.max_val is not None:
-            y_range = (y_scale.min_val, y_scale.max_val)
-        elif y_param and active_sample_id:
-            try:
-                sample = self._state.data.experiment.samples.get(active_sample_id)
-                if (
-                    sample and sample.fcs_data is not None and y_param in sample.fcs_data.events  # type: ignore
-                ):
-                    data = sample.fcs_data.events[y_param]  # type: ignore
-                    assert self._axis_manager is not None
-                    y_range = self._axis_manager.calculate_range(data, y_param, active_sample_id)
-            except Exception as e:
-                logger.error(f"Group preview y_range calc failed: {e}")
+        x_range = self._shared_range(x_param, x_scale, active_sample_id)
+        y_range = self._shared_range(y_param, y_scale, active_sample_id) if y_param else None
 
         gate_id = None
 

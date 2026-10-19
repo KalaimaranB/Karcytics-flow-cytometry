@@ -37,6 +37,8 @@ from karcytics_plugins.flow_cytometry.analysis.fit_population import (
     population_gates,
     population_rows,
 )
+from karcytics_plugins.flow_cytometry.analysis.population_service import uncompensated_events
+from karcytics_plugins.flow_cytometry.analysis.rendering import stable_subsample_mask
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
     VIEW_BOTH,
     VIEW_HISTOGRAM,
@@ -618,7 +620,7 @@ class CompensationEditor(QWidget):
         x_ch = self._x_combo.currentText()
         y_ch = self._y_combo.currentText()
 
-        raw_events = getattr(sample.fcs_data, "raw_events", sample.fcs_data.events)
+        raw_events = uncompensated_events(sample)
         if raw_events is None or x_ch not in raw_events.columns or y_ch not in raw_events.columns:
             return f"{sample.display_name} has no {x_ch} / {y_ch} data."
 
@@ -639,8 +641,6 @@ class CompensationEditor(QWidget):
         if n_events > _PREVIEW_MAX_EVENTS:
             # stable_subsample_mask, not Generator.choice — stable under
             # small population-size differences (see its docstring).
-            from karcytics_plugins.flow_cytometry.analysis.rendering import stable_subsample_mask
-
             before = raw_events[stable_subsample_mask(n_events, _PREVIEW_MAX_EVENTS)].copy()
         else:
             before = raw_events.copy()

@@ -7,10 +7,10 @@ import numpy as np
 import pytest
 from sklearn.metrics import adjusted_rand_score
 
+from karcytics_plugins.flow_cytometry.analysis.attachment_manager import AttachmentManager
 from karcytics_plugins.flow_cytometry.analysis.clustering import FLOWSOM, method_of
 from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.services.attachment_manager import AttachmentManager
 from tests.fixtures.lens import make_sample
 
 

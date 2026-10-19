@@ -51,6 +51,8 @@ Test markers: `unit`, `functional`, `integration`, `ui` (needs Qt/display), `slo
 
 This mirrors the SDK's `PluginBase`/`AnalysisBase` split ([Karcytics-SDK](../Karcytics-SDK)'s `CLAUDE.md`): UI code in `ui/` should call into `analysis/` for computation rather than embedding it, since `analysis/` needs to stay independently testable and Qt-free.
 
+Outside `analysis/`, read event data only through `analysis/population_service.py` (`population_events`, `channel_values`, `uncompensated_events`), which applies the gates and the derived-column sync. `apply_hierarchy` and `fcs_data.events`/`raw_events` are reserved to `analysis/` by `[tool.karcytics.evaluator] analysis_only` (doctor rule KS331).
+
 `tests/` mirrors `src/` plus `tests/data/fcs` (sample FCS fixtures) and `tests/fixtures/`.
 
 ## Docs

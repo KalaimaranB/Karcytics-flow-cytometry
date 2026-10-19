@@ -57,6 +57,7 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import get_channel_marker_label
+from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.statistics import (
     StatType,
@@ -667,48 +668,29 @@ class StatisticsExplorer(QWidget):
         self._worker = None
 
     def _get_population_events(self, sample, node_id: str | None):
-        """Return the gated DataFrame for a population in a sample."""
-        if sample.fcs_data is None:
-            return None
-        events = sample.fcs_data.events
-        if node_id is None:
-            return events  # All Events
-        if sample.gate_tree is None:
-            return events
-        node = sample.gate_tree.find_node_by_id(node_id)
-        if node is None:
-            return events
-        return node.apply_hierarchy(events)
+        """The gated events of a population in a sample (All Events for None)."""
+        node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
+        return population_events(self._state.data.experiment, sample, node)
 
     def _get_parent_counts(self, sample, node_id: str | None) -> tuple[int | None, int | None, int]:
         """Return (parent_count, grandparent_count, total_count) for a node."""
-        if sample.fcs_data is None:
+        experiment = self._state.data.experiment
+        events = population_events(experiment, sample)
+        if events is None:
             return None, None, 0
-        total = len(sample.fcs_data.events)
-        if node_id is None:
-            return total, total, total
-        if sample.gate_tree is None:
-            return total, total, total
-
-        node = sample.gate_tree.find_node_by_id(node_id)
+        total = len(events)
+        node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
         if node is None or not node.parents:
             return total, total, total
 
-        parent_node = node.parents[0]
-        if parent_node.is_root:
-            parent_events = sample.fcs_data.events
-        else:
-            parent_events = parent_node.apply_hierarchy(sample.fcs_data.events)
-        parent_count = len(parent_events)
+        def count(population) -> int:
+            if population is None or population.is_root:
+                return total
+            gated = population_events(experiment, sample, population)
+            return len(gated) if gated is not None else 0
 
-        if not parent_node.parents or parent_node.parents[0].is_root:
-            gp_count = total
-        else:
-            gp_node = parent_node.parents[0]
-            gp_events = gp_node.apply_hierarchy(sample.fcs_data.events)
-            gp_count = len(gp_events)
-
-        return parent_count, gp_count, total
+        parent = node.parents[0]
+        return count(parent), count(parent.parents[0] if parent.parents else None), total
 
     def _compute_results(  # noqa: PLR0912
         self,

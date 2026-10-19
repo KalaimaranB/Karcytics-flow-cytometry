@@ -54,7 +54,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.selection.selector_panel import
     SampleAndPopulationSelector,
 )
 
-from .comparisons.data_extractor import ComparisonsDataExtractor
+from ...analysis.comparison_data import ComparisonsDataExtractor
 from .comparisons.plot_spec import ChannelMode, PlotTypeSpec, PopulationMode, SampleMode
 from .comparisons.registry import PLOT_REGISTRY
 from .comparisons.worker import ComparisonsWorker

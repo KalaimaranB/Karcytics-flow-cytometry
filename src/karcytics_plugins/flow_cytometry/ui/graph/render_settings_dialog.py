@@ -171,25 +171,12 @@ class RenderSettingsDialog(QDialog):
 
     def _get_sample_event_count(self) -> int:
         """Return the event count of the active sample, or max of any sample."""
-        try:
-            # Try current sample first
-            sid = self._state.view.current_sample_id
-            if sid:
-                sample = self._state.data.experiment.samples.get(sid)
-                if sample and sample.fcs_data and sample.fcs_data.events is not None:
-                    return len(sample.fcs_data.events)
-
-            # Fallback: check all loaded samples and take the max
-            counts = [
-                len(s.fcs_data.events)
-                for s in self._state.data.experiment.samples.values()
-                if s.fcs_data and s.fcs_data.events is not None
-            ]
-            if counts:
-                return max(counts)
-        except Exception:
-            pass
-        return 100_000
+        samples = self._state.data.experiment.samples
+        current = samples.get(self._state.view.current_sample_id or "")
+        if current is not None and current.event_count:
+            return current.event_count
+        # Fallback: the largest loaded sample.
+        return max((s.event_count for s in samples.values()), default=0) or 100_000
 
     def _flat_btn_style(self) -> str:
         # Return a theme_manager template string, not a pre-baked f-string.

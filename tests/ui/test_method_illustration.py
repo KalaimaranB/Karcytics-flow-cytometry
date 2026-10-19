@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import FitIllustration
 from karcytics_plugins.flow_cytometry.ui.widgets import method_illustration
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import FitIllustration
 from karcytics_plugins.flow_cytometry.ui.widgets.method_illustration import (
     STEP_PLAIN_FIT,
     STEP_RECORDED,

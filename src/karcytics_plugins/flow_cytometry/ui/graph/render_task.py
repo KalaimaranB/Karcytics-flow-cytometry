@@ -14,6 +14,7 @@ import pandas as pd
 from karcytics_sdk.plugin import AnalysisBase, get_logger
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK as _MPL_LOCK
 
+from karcytics_plugins.flow_cytometry.analysis.population_service import channel_values
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
 from karcytics_plugins.flow_cytometry.analysis.transforms import (
     TransformType,
@@ -172,14 +173,11 @@ class RenderTask(AnalysisBase):
         if fmo_sample_id and c["plot_type"] == "Histogram" and c["x_param"]:
             try:
                 flow_state = typing.cast(typing.Any, state)
-                fmo_sample = flow_state.data.experiment.samples.get(fmo_sample_id)
-                if (
-                    fmo_sample
-                    and fmo_sample.fcs_data is not None
-                    and c["x_param"] in fmo_sample.fcs_data.events
-                ):
-                    fmo_raw_x = fmo_sample.fcs_data.events[c["x_param"]].values.astype(np.float64)
-
+                experiment = flow_state.data.experiment
+                fmo_raw_x = channel_values(
+                    experiment, experiment.samples.get(fmo_sample_id), c["x_param"]
+                )
+                if fmo_raw_x is not None:
                     if len(fmo_raw_x) > thumb_max:
                         rng = np.random.default_rng(42)
                         fmo_raw_x = rng.choice(fmo_raw_x, size=thumb_max, replace=False)

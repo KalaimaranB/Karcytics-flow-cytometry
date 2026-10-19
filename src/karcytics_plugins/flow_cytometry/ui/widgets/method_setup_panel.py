@@ -22,13 +22,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_sources import (
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
     Inputs,
     MatrixSource,
     MethodOptions,
     Table,
 )
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.method_illustration import (
     FitIllustrationView,
     pass_wheel_to_page,

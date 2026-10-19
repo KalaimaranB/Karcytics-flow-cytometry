@@ -72,6 +72,11 @@ contributors = [
   { name = "Cynthia Chung", role = "Scientific Advisor", details = "PhD Candidate, Microbiology & Immunology, UBC. Research focus: age-dependent effects of gammaherpesvirus-68 on autoimmune development in multiple sclerosis mouse models."},
 ]
 
+[tool.karcytics.evaluator]
+# Event data is read through analysis/population_service.py (population_events,
+# channel_values, uncompensated_events) so every read gets the derived-column sync.
+analysis_only = ["apply_hierarchy", "fcs_data.events", "fcs_data.raw_events"]
+
 [tool.karcytics.plugin.signing]
 # Author's Ed25519 public key — trust root: Karcytics Core Authority → Kalaimaran Balasothy
 # Verified by trust_chain.json (signature issued by Karcytics Core Authority)
