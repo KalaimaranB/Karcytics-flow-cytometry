@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.ndimage import gaussian_filter
 
+from ....analysis.rendering import contour_levels, density_grid, stable_subsample_mask
 from .base import DisplayStrategy
 
 
@@ -45,29 +45,15 @@ class ContourStrategy(DisplayStrategy):
         if len(x_vis) < 100:  # noqa: PLR2004
             return ContourRenderData(sparse=True, x_vis=x_vis, y_vis=y_vis)
 
-        x_lo, x_hi = xlim
-        y_lo, y_hi = ylim
-
-        bins = kwargs.get("bins", 100)
-        hist, xedges, yedges = np.histogram2d(
-            x_vis, y_vis, bins=bins, range=[[x_lo, x_hi], [y_lo, y_hi]]
+        X, Y, smoothed = density_grid(
+            x_vis,
+            y_vis,
+            xlim,
+            ylim,
+            bins=kwargs.get("bins", 100),
+            sigma=kwargs.get("sigma", kwargs.get("smoothing", 1.5)),
         )
-
-        sigma = kwargs.get("sigma", kwargs.get("smoothing", 1.5))
-        smoothed = gaussian_filter(hist, sigma=sigma)
-
-        X, Y = np.meshgrid((xedges[:-1] + xedges[1:]) / 2, (yedges[:-1] + yedges[1:]) / 2)
-
-        levels = kwargs.get("levels", kwargs.get("num_levels", 10))
-
-        # Manually calculate levels to avoid starting at 0 (which fills the whole canvas)
-        max_val = np.max(smoothed)
-        if max_val > 0:
-            # We start at 2% of the max density to clear the background noise
-            # and prevent the colormap from filling the entire plot area.
-            levels_arr = np.linspace(max_val * 0.02, max_val, levels)
-        else:
-            levels_arr = [0, 1]
+        levels_arr = contour_levels(smoothed, kwargs.get("levels", kwargs.get("num_levels", 10)))
 
         show_dot_underlay = kwargs.get("show_dot_underlay", False)
         dot_x = dot_y = None
@@ -76,8 +62,6 @@ class ContourStrategy(DisplayStrategy):
             if len(x_vis) > max_dots:
                 # stable_subsample_mask, not Generator.choice — stable
                 # under small population-size differences (see its docstring).
-                from ....analysis.rendering import stable_subsample_mask
-
                 mask = stable_subsample_mask(len(x_vis), max_dots)
                 dot_x, dot_y = x_vis[mask], y_vis[mask]
             else:

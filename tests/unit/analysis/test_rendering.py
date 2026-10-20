@@ -35,14 +35,15 @@ def test_render_task_execution(sample_data):
 
 def test_rendering_math():
     from karcytics_plugins.flow_cytometry.analysis.rendering import (
-        compute_1d_histogram,
         compute_pseudocolor_points,
+        histogram_curve,
     )
 
     x = np.linspace(0, 100, 50)
-    counts, edges = compute_1d_histogram(x, (0, 100), bins=10)
+    centers, counts = histogram_curve(x, 10, 0, 100)
     assert len(counts) == 10
     assert counts.sum() == 50
+    assert centers[0] == 5.0
 
     y = np.linspace(0, 100, 50)
     # compute_pseudocolor_points returns (x, y, colors)
@@ -118,3 +119,69 @@ def test_compute_pseudocolor_base_density_subsamples_large_input():
     # Subsampling should have kept the result well under the full input size.
     assert len(x_plot) < n
     assert len(x_plot) == len(y_plot) == len(c_plot)
+
+
+def _fitted_sizes(monkeypatch) -> list[int]:
+    """Record how many events each gaussian_kde fit receives."""
+    from karcytics_plugins.flow_cytometry.analysis import rendering
+
+    sizes: list[int] = []
+    real = rendering.gaussian_kde
+
+    def spy(values, **kwargs):
+        sizes.append(len(values))
+        return real(values, **kwargs)
+
+    monkeypatch.setattr(rendering, "gaussian_kde", spy)
+    return sizes
+
+
+def test_kde_curve_fits_a_capped_subsample(monkeypatch):
+    from karcytics_plugins.flow_cytometry.analysis.constants import KDE_MAX_EVENTS
+    from karcytics_plugins.flow_cytometry.analysis.rendering import kde_curve
+
+    sizes = _fitted_sizes(monkeypatch)
+    values = np.random.default_rng(0).normal(100, 10, 200_000)
+    x_grid, density = kde_curve(values, 50, 150)
+
+    assert sizes[0] < KDE_MAX_EVENTS * 1.05
+    assert len(x_grid) == len(density) == 512
+    # Still the right curve: the peak sits at the mean.
+    assert abs(x_grid[np.argmax(density)] - 100) < 2
+
+
+def test_kde_curve_gives_none_for_constant_values():
+    from karcytics_plugins.flow_cytometry.analysis.rendering import kde_curve
+
+    assert kde_curve(np.full(500, 3.0), 0, 10) is None
+
+
+def test_main_histogram_kde_uses_the_cap(monkeypatch):
+    from karcytics_plugins.flow_cytometry.analysis.constants import KDE_MAX_EVENTS
+    from karcytics_plugins.flow_cytometry.ui.graph.renderers.histogram import HistogramStrategy
+
+    sizes = _fitted_sizes(monkeypatch)
+    values = np.random.default_rng(1).normal(0, 1, 100_000)
+    data = HistogramStrategy().compute(values, smooth_kde=True, bins=100)
+
+    assert sizes[0] < KDE_MAX_EVENTS * 1.05
+    assert data.kde_vals is not None
+    # Count mode: the curve's area matches the bars' total count.
+    bin_width = (data.bin_edges[-1] - data.bin_edges[0]) / data.bins
+    area = np.trapz(data.kde_vals, data.x_grid) / bin_width
+    assert abs(area - len(values)) / len(values) < 0.02
+
+
+def test_density_grid_and_contour_levels():
+    from karcytics_plugins.flow_cytometry.analysis.rendering import contour_levels, density_grid
+
+    rng = np.random.default_rng(2)
+    x, y = rng.normal(5, 1, 5000), rng.normal(2, 1, 5000)
+    X, Y, density = density_grid(x, y, (0, 10), (-3, 7), bins=50)
+
+    assert X.shape == Y.shape == density.shape == (50, 50)
+    levels = contour_levels(density, 10)
+    assert len(levels) == 10
+    assert levels[0] > 0
+    assert levels[-1] == density.max()
+    assert list(contour_levels(np.zeros((5, 5)), 10)) == [0.0, 1.0]

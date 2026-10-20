@@ -46,9 +46,6 @@
     "src/karcytics_plugins/flow_cytometry/analysis/derived/preview.py": {
       "KS310": 1
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/experiment.py": {
-      "KS360": 1
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/fcs_io.py": {
       "KS205": 3,
       "KS300": 851,
@@ -214,10 +211,10 @@
       "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/controllers/main_panel_controller.py": {
-      "KS302:MainPanelController.wire": 300,
+      "KS302:MainPanelController.wire": 297,
       "KS310": 5,
       "KS341": 1,
-      "KS342": 100,
+      "KS342": 98,
       "KS360": 7
     },
     "src/karcytics_plugins/flow_cytometry/ui/dialogs/bulk_role_dialog.py": {
@@ -370,8 +367,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/contour.py": {
       "KS240": 2,
-      "KS310": 1,
-      "KS360": 1
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/dotplot.py": {
       "KS310": 2,
@@ -383,10 +379,9 @@
     "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/histogram.py": {
       "KS240": 3,
       "KS250": 1,
-      "KS302:HistogramStrategy.compute": 96,
+      "KS302:HistogramStrategy.compute": 87,
       "KS302:HistogramStrategy.draw": 83,
-      "KS310": 3,
-      "KS360": 1
+      "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/pseudocolor.py": {
       "KS310": 1,
@@ -412,12 +407,11 @@
       "KS302:PipelineRibbon._setup_ui": 97
     },
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/workspace_ribbon.py": {
-      "KS220": 1,
       "KS302:WorkspaceRibbon._on_add_samples": 124,
-      "KS310": 3,
+      "KS310": 1,
       "KS320": 1,
       "KS342": 2,
-      "KS360": 4
+      "KS360": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/services/workflow_service.py": {
       "KS310": 1,
@@ -498,8 +492,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons/renderers/histogram_overlay_renderer.py": {
       "KS240": 15,
       "KS302:_render_ridge": 141,
-      "KS310": 5,
-      "KS360": 1
+      "KS310": 5
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons/renderers/pseudocolor_overlay_renderer.py": {
       "KS240": 9,

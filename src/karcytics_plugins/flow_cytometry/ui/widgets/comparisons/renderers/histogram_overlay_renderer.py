@@ -14,6 +14,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.ticker import FixedFormatter, FixedLocator
 
+from karcytics_plugins.flow_cytometry.analysis.rendering import histogram_curve, kde_curve
 from karcytics_plugins.flow_cytometry.analysis.scaling import (
     detect_logicle_top,
     estimate_logicle_params,
@@ -27,9 +28,6 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
 )
 
 from .base import IPlotRenderer
-
-# How many events to sample for KDE computation (speed guard)
-_KDE_MAX_EVENTS = 20_000
 
 _X_TRANSFORM_TYPES = {
     "linear": TransformType.LINEAR,
@@ -200,36 +198,6 @@ _DEFAULT_PALETTE = [
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
 
-def _compute_kde_curve(
-    arr: np.ndarray, x_min: float, x_max: float, n_pts: int = 512
-) -> tuple[np.ndarray, np.ndarray] | None:
-    """Return (x_grid, y_kde) or None on failure."""
-    try:
-        from scipy.stats import gaussian_kde
-
-        if len(arr) > _KDE_MAX_EVENTS:
-            rng = np.random.default_rng(42)
-            arr = rng.choice(arr, _KDE_MAX_EVENTS, replace=False)
-
-        kde = gaussian_kde(arr, bw_method="scott")
-        x_grid = np.linspace(x_min, x_max, n_pts)
-        return x_grid, kde(x_grid)
-    except Exception:
-        return None
-
-
-def _compute_histogram(
-    arr: np.ndarray, bins: int, x_min: float, x_max: float
-) -> tuple[np.ndarray, np.ndarray]:
-    """Return (bin_centers, counts) for a clipped histogram."""
-    arr_clipped = arr[(arr >= x_min) & (arr <= x_max)]
-    if len(arr_clipped) == 0:
-        arr_clipped = arr
-    counts, edges = np.histogram(arr_clipped, bins=bins, range=(x_min, x_max))
-    centers = 0.5 * (edges[:-1] + edges[1:])
-    return centers, counts.astype(float)
-
-
 def _compute_curves(  # noqa: PLR0913
     labels: list[str],
     arrays: list[np.ndarray],
@@ -245,11 +213,11 @@ def _compute_curves(  # noqa: PLR0913
     for arr, color, label in zip(arrays, colors, labels, strict=False):
         arr_f = arr[np.isfinite(arr)]
 
-        result = _compute_kde_curve(arr_f, x_min, x_max) if smooth_kde else None
+        result = kde_curve(arr_f, x_min, x_max) if smooth_kde else None
         if result is not None:
             x_vals, y_vals = result
         else:
-            x_vals, y_vals = _compute_histogram(arr_f, bins, x_min, x_max)
+            x_vals, y_vals = histogram_curve(arr_f, bins, x_min, x_max)
 
         if normalize_to_peak and y_vals.max() > 0:
             y_vals = y_vals / y_vals.max()

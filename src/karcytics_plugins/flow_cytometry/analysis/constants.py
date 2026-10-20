@@ -34,6 +34,14 @@ VIBRANCY_RANGE = 0.85
 DEFAULT_DENSITY_FACTOR = 0.1
 PSEUDOCOLOR_MAX_EVENTS = 150_000
 
+# A KDE curve is smooth well before this many events; gaussian_kde costs
+# O(events x grid), so every caller subsamples to this.
+KDE_MAX_EVENTS = 20_000
+KDE_GRID_POINTS = 512
+# Contour levels start at this fraction of the peak density, so the lowest
+# level does not fill the whole plot.
+CONTOUR_FLOOR_FRACTION = 0.02
+
 # ── Gate Overlay Colors ──────────────────────────────────────────────
 # Single source of truth for gate colors, so a given gate renders identically
 # on the main plot, subplot thumbnails, and node-graph previews.

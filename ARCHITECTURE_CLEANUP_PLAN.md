@@ -193,7 +193,7 @@ Each phase also ratchets the baseline down once it lands.
 Not moved: `GateEditor` / `GateFactory` / `CoordinateMapper`. They are interaction geometry,
 not science.
 
-## B4. One plot-data module, one render contract
+## B4. One plot-data module, one render contract — first item done
 
 The same math exists three times, and the copies have drifted:
 
@@ -207,8 +207,12 @@ There are also four render paths: the SDK pipeline with `DisplayStrategy`, `Comp
 with `IPlotRenderer`, inline `with MPL_RASTER_LOCK:` in three widgets, and an ad-hoc task in
 `population_analysis_viewer`.
 
-- [ ] Create `analysis/plot_data.py` with `density_2d`, `histogram_1d`, `kde_curve` (one shared
-      subsample cap) and `contour_levels`, and delete the copies.
+- [x] The plot math lives in `analysis/rendering.py` (kept its name: seven importers and the
+      baseline already point at it): `kde_curve` (one `KDE_MAX_EVENTS` cap, fitted on a
+      `stable_subsample_mask` subsample), `histogram_curve`, `density_grid`, `contour_levels`.
+      The main-graph KDE is capped now (1M events: 0.98 s → 0.03 s per redraw); the comparisons
+      copies and the dead `compute_1d_histogram` are gone. The 2-D pseudocolor density was
+      already shared — the comparisons overlay uses `compute_pseudocolor_base_density`.
 - [ ] Pick one contract: `DisplayStrategy.compute/draw` on the SDK pipeline, which the main
       canvas already uses. Port `IPlotRenderer` to it.
 - [ ] Key `PLOT_REGISTRY` by a stable id, not the emoji label (`"🎻  Violin Plot"`).

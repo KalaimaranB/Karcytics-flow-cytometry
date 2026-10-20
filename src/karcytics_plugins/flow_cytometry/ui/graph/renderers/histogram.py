@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
 
+from ....analysis.rendering import kde_curve
 from .base import DisplayStrategy
 
 logger = logging.getLogger(__name__)
@@ -104,26 +105,17 @@ class HistogramStrategy(DisplayStrategy):
             )
             p_val = np.percentile(fmo_valid_x, perc)
 
-        # Optional KDE smoothing overlay — the expensive part (O(n * grid))
+        # Optional KDE overlay, fitted on a capped subsample (see kde_curve).
         x_grid = None
         kde_vals = None
-        smooth_kde = kwargs.get("smooth_kde", False)
-        if smooth_kde and len(valid_x) > 10:  # noqa: PLR2004
-            try:
-                from scipy.stats import gaussian_kde
-
-                logger.debug("[HIST-COMPUTE] gaussian_kde: n=%d", len(valid_x))
-                kde = gaussian_kde(valid_x, bw_method="scott")
-                x_grid = np.linspace(valid_x.min(), valid_x.max(), 512)
-                kde_vals = kde(x_grid)
-                logger.debug("[HIST-COMPUTE] gaussian_kde done")
+        if kwargs.get("smooth_kde", False) and len(valid_x) > 10:  # noqa: PLR2004
+            curve = kde_curve(valid_x, float(valid_x.min()), float(valid_x.max()))
+            if curve is not None:
+                x_grid, kde_vals = curve
                 if not density_mode:
-                    # Scale KDE to match raw count histogram
+                    # Scale the density to the count histogram's bars.
                     bin_width = (bin_edges[-1] - bin_edges[0]) / bins
                     kde_vals = kde_vals * len(valid_x) * bin_width
-            except Exception:
-                x_grid = None
-                kde_vals = None  # KDE silently skipped on failure
 
         highlight_x = kwargs.get("highlight_x")
         if highlight_x is not None:

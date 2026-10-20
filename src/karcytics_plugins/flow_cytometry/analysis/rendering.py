@@ -11,12 +11,15 @@ import numpy as np
 from fast_histogram import histogram2d as fast_hist2d
 from karcytics_sdk.plugin import get_logger
 from scipy.ndimage import gaussian_filter, map_coordinates
-from scipy.stats import rankdata
+from scipy.stats import gaussian_kde, rankdata
 
 from .constants import (
+    CONTOUR_FLOOR_FRACTION,
     DEFAULT_NBINS_MAX,
     DEFAULT_NBINS_MIN,
     DENSITY_THRESHOLD_MIN,
+    KDE_GRID_POINTS,
+    KDE_MAX_EVENTS,
     NBINS_SCALING_FACTOR,
     SIGMA_MIN,
     SIGMA_SCALING_FACTOR,
@@ -220,12 +223,70 @@ def compute_pseudocolor_points(  # noqa: PLR0913, PLR0917
     return x_vis[sort_idx], y_vis[sort_idx], c_plot[sort_idx]
 
 
-def compute_1d_histogram(
-    x_vis: np.ndarray, x_range: tuple[float, float], bins: int = 256
-) -> tuple[np.ndarray, np.ndarray]:
-    """Compute 1D histogram counts and bin edges."""
-    if len(x_vis) == 0:
-        return np.zeros(bins), np.linspace(x_range[0], x_range[1], bins + 1)
+def kde_curve(
+    values: np.ndarray,
+    x_min: float,
+    x_max: float,
+    n_points: int = KDE_GRID_POINTS,
+    max_events: int = KDE_MAX_EVENTS,
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """A Gaussian KDE (Scott bandwidth) of `values` on [x_min, x_max].
 
-    counts, edges = np.histogram(x_vis, bins=bins, range=x_range)
-    return counts, edges
+    Fitted on at most `max_events` events (via `stable_subsample_mask`), so a
+    million-event population costs the same as a 20k one. Returns
+    (x_grid, density), or None when there is too little spread to fit.
+    """
+    values = values[np.isfinite(values)]
+    if values.size == 0 or np.ptp(values) == 0:  # no spread (a single event included)
+        return None
+    if len(values) > max_events:
+        values = values[stable_subsample_mask(len(values), max_events)]
+    try:
+        kde = gaussian_kde(values, bw_method="scott")
+    except (np.linalg.LinAlgError, ValueError):  # e.g. all events on a line
+        return None
+    x_grid = np.linspace(x_min, x_max, n_points)
+    return x_grid, kde(x_grid)
+
+
+def histogram_curve(
+    values: np.ndarray, bins: int, x_min: float, x_max: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """(bin_centers, counts) of `values` on [x_min, x_max].
+
+    When nothing falls inside the range, bins every value instead, so the
+    curve is not flat zero.
+    """
+    inside = values[(values >= x_min) & (values <= x_max)]
+    counts, edges = np.histogram(inside if len(inside) else values, bins=bins, range=(x_min, x_max))
+    return 0.5 * (edges[:-1] + edges[1:]), counts.astype(float)
+
+
+def density_grid(  # noqa: PLR0913 - two arrays, their ranges, and two tuning knobs
+    x: np.ndarray,
+    y: np.ndarray,
+    x_range: tuple[float, float],
+    y_range: tuple[float, float],
+    bins: int = 100,
+    sigma: float = 1.5,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """A smoothed 2-D event density for contouring.
+
+    Returns (X, Y, density): bin-centre meshgrids and the Gaussian-smoothed
+    counts, indexed density[x_bin, y_bin] (so contour with `density.T`).
+    """
+    counts, x_edges, y_edges = np.histogram2d(x, y, bins=bins, range=[x_range, y_range])
+    grid_x, grid_y = np.meshgrid((x_edges[:-1] + x_edges[1:]) / 2, (y_edges[:-1] + y_edges[1:]) / 2)
+    return grid_x, grid_y, gaussian_filter(counts, sigma=sigma)
+
+
+def contour_levels(density: np.ndarray, n_levels: int) -> np.ndarray:
+    """`n_levels` evenly spaced levels from CONTOUR_FLOOR_FRACTION of the peak to the peak.
+
+    Starting above zero keeps the lowest level from filling the whole plot.
+    An empty grid gets [0, 1].
+    """
+    peak = float(np.max(density))
+    if peak <= 0:
+        return np.array([0.0, 1.0])
+    return np.linspace(peak * CONTOUR_FLOOR_FRACTION, peak, n_levels)
