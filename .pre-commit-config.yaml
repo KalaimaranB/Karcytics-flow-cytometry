@@ -41,20 +41,12 @@ repos:
         language: system
         pass_filenames: false
 
-      # ── 5. Unit tests (fast, headless — functional/UI tests run in CI) ────
+      # ── 5. Unit + SDK contract tests (functional/UI tests run in CI) ─────
       - id: pytest
         name: Unit Test Suite
-        entry: uv run pytest tests/unit/ --tb=short -q
+        entry: uv run pytest tests/unit/ tests/contract/ --tb=short -q
         language: system
         pass_filenames: false
-
-      # ── 5b. SDK contract test (real SDK; tests/conftest.py mocks it) ───
-      - id: contract-test
-        name: SDK Contract Test
-        entry: uv run pytest tests/contract --noconftest -q -p no:cacheprovider
-        language: system
-        pass_filenames: false
-        always_run: true
 
       # ── 5c. Karcytics doctor ─────────────────────────────────────────────
       # Fails only on findings over .karcytics-baseline.json. When a commit

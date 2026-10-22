@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from PySide6.QtCore import QTimer
@@ -194,12 +194,11 @@ def test_hidden_panel_defers_rendering_until_shown(panel):
 
 def test_cleanup_unsubscribes_everything_and_silences_late_events(panel):
     bus = gate_histogram_panel.CentralEventBus
-    bus.unsubscribe.reset_mock()
+    with patch.object(bus, "unsubscribe", wraps=bus.unsubscribe) as unsubscribe:
+        panel.cleanup()
+        panel.cleanup()  # idempotent
 
-    panel.cleanup()
-    panel.cleanup()  # idempotent
-
-    unsubscribed = [call.args for call in bus.unsubscribe.call_args_list]
+    unsubscribed = [call.args for call in unsubscribe.call_args_list]
     assert unsubscribed == panel._subscriptions
     assert (events.GATE_PREVIEW, panel._subscriptions[0][1]) in unsubscribed
 

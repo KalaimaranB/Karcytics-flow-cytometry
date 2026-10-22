@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
@@ -426,12 +426,11 @@ def test_applying_an_unchanged_matrix_again_skips_compensated_samples(view, stat
 
 def test_cleanup_unsubscribes(view):
     bus = compensation_view.CentralEventBus
-    bus.unsubscribe.reset_mock()
+    with patch.object(bus, "unsubscribe", wraps=bus.unsubscribe) as unsubscribe:
+        view.cleanup()
+        view.cleanup()
 
-    view.cleanup()
-    view.cleanup()
-
-    bus.unsubscribe.assert_called_once()
+    unsubscribe.assert_called_once()
     view._on_state_restored({})  # late delivery is a no-op
 
 

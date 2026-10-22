@@ -9,7 +9,8 @@ Those tests break on every UI tweak and pass even when the feature is broken.
 
 ```
 tests/
-├── conftest.py          # sys.path setup + wholesale karcytics_sdk / karcytics mocks
+├── conftest.py          # offscreen Qt, test plugin id, shared fixtures (real SDK)
+├── contract/            # the SDK's ContractTestBase — run by pre-commit
 ├── fixtures/            # shared fixtures (synthetic events, pre-built gates, FlowState)
 ├── data/fcs/            # real Specimen_001 FCS files
 ├── unit/                # fast, headless — run by pre-commit
@@ -29,32 +30,32 @@ tests/
 | `ui/` | CI (`-m ui`) | User-visible widget behavior: selection rules, gate editing, Generate Plot, warnings |
 
 ```bash
-uv run pytest tests/unit/ -q                               # what pre-commit runs
+uv run pytest tests/unit/ tests/contract/ -q              # what pre-commit runs
 QT_QPA_PLATFORM=offscreen uv run pytest tests/ -q          # everything
 uv run pytest tests/functional/test_gating_pipeline.py -q  # real-data golden tests
 ```
 
-Pre-commit only runs `tests/unit/`. Run `functional/`, `integration/` or `ui/`
+Pre-commit only runs `tests/unit/` and `tests/contract/`. Run `functional/`, `integration/` or `ui/`
 yourself when you touch those layers.
 
-## The conftest mocks — and the rule that follows
+## The real SDK, with two test-only settings
 
-`tests/conftest.py` replaces `karcytics_sdk.plugin` (including
-`CentralEventBus`), `karcytics_sdk.plugin.theme_fallback` (`theme_manager`,
-`Colors`, `Fonts`) and the Hub's `karcytics.*` modules with `MagicMock`s or
-small dummies before any plugin code is imported. `repopulate_combo` and
-`PluginDaemon` are the only real SDK pieces.
+The suite runs flow against the real `karcytics_sdk`: real widgets, theme,
+`CentralEventBus`, task scheduler and signals. A renamed SDK API fails here,
+not in the Hub. `tests/conftest.py` only:
 
-**So never assert against those mocks.** Publishing to `CentralEventBus` in a
-test delivers nothing, and asserting `theme_manager.apply_style` was called
-only checks the mock. Test the handler or the resulting state directly instead:
-call the subscribed callback yourself (see `test_main_panel_smoke.py::
-test_gate_modified_records_one_undo_step_and_dirties`), or check what the widget
-shows.
+- sets `QT_QPA_PLATFORM=offscreen` and a test-only `KARCYTICS_PLUGIN_ID`
+  (so Academy progress is never written under the real plugin's folder);
+- replaces `ui_daemon_runtime.write_frame` with a list (`sent_frames`):
+  outside the UI daemon there is no Hub reading stdout, so anything the SDK
+  would send it (`event_bus.emit`, diagnostics) is kept instead.
 
-`Colors` resolves every token to `"#000000"`. If code needs a real palette
-(for example `Colors.CHART_COLORS`), pin it on the `Colors` object the module
-under test imported (see `test_comparisons_plot_types.py`).
+Assert on behaviour. A connected slot really fires, so connect one and check
+what it received (`test_statistics_analysis.py`). To check a call into the
+SDK still happens, wrap the real function rather than replacing it:
+`patch.object(CentralEventBus, "unsubscribe", wraps=CentralEventBus.unsubscribe)`.
+Pin theme colours on the `Colors` object the module imported when a test
+needs a specific palette (`test_compensation_editor_preview.py`).
 
 ## Patterns worth copying
 
@@ -63,8 +64,10 @@ under test imported (see `test_comparisons_plot_types.py`).
   _synchronous_scheduler` and `test_cluster_results_panel_gallery.py::
   _FakeGlobalScheduler` run the task inline but emit its result via
   `QTimer.singleShot(0, ...)`, so `.connect()` calls made right after
-  `submit()` are registered in time. Wait with `qtbot.waitUntil`. Don't rely
-  on the real `QThreadPool`.
+  `submit()` are registered in time. Wait with `qtbot.waitUntil`. Code that
+  isn't injected runs on the real `QThreadPool`, so a widget may receive a
+  result after a test closes it — the reason the SDK canvas checks
+  `shiboken6.isValid(self)` in its slots.
 - **Exact masks, not lengths.** A gate's `contains()` mask always has the
   input's length, so `assert len(result) == 3` proves nothing. Assert
   `result.tolist() == [False, True, False]`.

@@ -77,11 +77,6 @@ def test_run_computes_stats_for_every_node(state_with_sample):
 
 
 def test_run_emits_analysis_error_when_a_gate_fails(state_with_sample):
-    """`AnalysisBase.signals` is a `MagicMock` under this repo's global
-    `karcytics_sdk` test mock (see `tests/conftest.py::DummyAnalysisBase`),
-    not a real Qt signal — a connected slot never actually fires here, so
-    the emission itself is asserted via the mock's own call record instead.
-    """
     state, sample = state_with_sample
     node = GateNode(
         gate=FixedGate(raises=ValueError("boom")), name="Bad", parents=[sample.gate_tree]
@@ -90,12 +85,13 @@ def test_run_emits_analysis_error_when_a_gate_fails(state_with_sample):
 
     analyzer = StatisticsAnalysis()
     analyzer.target_sample_id = "s1"
+    errors: list[str] = []
+    analyzer.signals.analysis_error.connect(errors.append)
 
     results = analyzer.run(state)
 
-    analyzer.signals.analysis_error.emit.assert_called_once()
-    (message,), _ = analyzer.signals.analysis_error.emit.call_args
-    assert "Bad" in message
+    assert len(errors) == 1
+    assert "Bad" in errors[0]
     # The failed node itself is still reported as zero, matching the old
     # walker — but this is checked as a subset since `stats_out` also
     # includes the root.

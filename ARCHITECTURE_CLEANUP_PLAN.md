@@ -224,19 +224,27 @@ with `IPlotRenderer`, inline `with MPL_RASTER_LOCK:` in three widgets, and an ad
 > 2026-10-18 additions. Numbers below are re-measured; the SDK half of B5 and B6 already exists.
 > Recommended order: **B9a → B5 → B6 → B8 → B7 → B9b**, pausing for review after each chunk.
 
-## B9a. Run the tests against the real SDK (moved first)
+## B9a. Run the tests against the real SDK — done
 
-Every later step is a refactor, and today the suite cannot catch an SDK-facing break:
-`tests/conftest.py` (362 lines) replaces `karcytics_sdk`, `.plugin`, `.components`, `.tasks`,
-`.events` and `.workflow` with `MagicMock`s and dummy widgets.
+`tests/conftest.py` used to replace `karcytics_sdk`, `.plugin`, `.components`, `.tasks`,
+`.events` and `.workflow` with `MagicMock`s and dummy widgets (362 lines). Now it sets the
+offscreen platform and a test-only plugin id, and keeps the frames the SDK would send the Hub.
 
-- [ ] Use the real SDK on the offscreen Qt platform; keep only fixtures that stand in for
-      the Hub's runtime services (event bus, task scheduler) where a test needs control.
-- [ ] Delete the fake `karcytics` (Hub) module: flow never imports the Hub, so it is dead.
-- [ ] Fold the contract test back into the normal run (drop `--noconftest`, the separate
-      pre-commit hook and CI step).
-- [ ] `tests/integration/test_ui_daemon.py` reimplements the daemon harness the SDK now ships
-      (`karcytics_sdk.testing.ui_daemon`: `spawn_ui_daemon`, `DaemonIO`); use it.
+- [x] The real SDK runs under every test. Only 7 tests and 3 setup errors broke out of 1,489:
+      five asserted on calls to the fake bus/signals (now: real slots, or a `wraps=` spy),
+      two leaned on the fake theme or the deleted dummy `PluginBase`.
+- [x] The setup errors were a real SDK bug the mocks hid: `LayeredMatplotlibCanvas` connected
+      its render worker to lambdas, so a render finishing after the canvas was deleted emitted
+      on a dead object. Fixed in the SDK with a regression test.
+- [x] A second hidden bug surfaced when the whole suite ran in one process: the SDK's task
+      scheduler kept Qt's default 512 KB thread stack (macOS), and `numpy.linalg.inv` inside the
+      compensation-preview render task overflowed it (SIGBUS). The SDK scheduler now gives pool
+      threads 16 MB. The Hub's own `TaskScheduler` (in-process plugins) has the same default
+      and needs the same change.
+- [x] The fake `karcytics` (Hub) module is gone.
+- [x] The contract test runs with the unit tests (pre-commit) and the main CI test step.
+- [x] `test_ui_daemon.py` uses the SDK's `spawn_ui_daemon`; the SDK harness gained
+      `PYTHONFAULTHANDLER` and `DaemonIO.finished_stderr()` for it.
 
 ## B5. Get widgets out of the state object
 

@@ -27,9 +27,9 @@ uv run ruff format src/ tests/
 uv run mypy --explicit-package-bases src/
 ```
 
-Pre-commit already runs ruff, mypy, pip-audit, license compliance, `tests/unit/` (not the full suite), a plugin re-signing step, and security-ledger verification. Don't pre-run the full suite before committing — the hook only runs `tests/unit/`; run `tests/functional`, `tests/integration`, or `tests/ui` yourself only for changes that touch those layers.
+Pre-commit already runs ruff, mypy, pip-audit, license compliance, `tests/unit/` and `tests/contract/` (not the full suite), a plugin re-signing step, and security-ledger verification. Don't pre-run the full suite before committing; run `tests/functional`, `tests/integration`, or `tests/ui` yourself only for changes that touch those layers.
 
-The SDK contract test lives in `tests/contract/` and runs on its own (`uv run pytest tests/contract --noconftest`), because `tests/conftest.py` mocks the SDK.
+Tests run against the real SDK on Qt's offscreen platform (`tests/conftest.py` only sets that, a test-only plugin id, and keeps frames the SDK would send the Hub). Never mock the SDK wholesale; see `docs/developer/03_TESTING_AND_QA.md`.
 
 ### Karcytics doctor
 

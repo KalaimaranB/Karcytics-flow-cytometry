@@ -242,14 +242,6 @@ jobs:
           MPLCONFIGDIR: ${{ runner.temp }}/mplconfig
         shell: bash
 
-      # Here rather than in lint-and-audit: the real SDK imports Qt, and the
-      # Ubuntu lint runner has no libEGL.
-      - name: SDK contract test (real SDK, so without tests/conftest.py)
-        run: uv run pytest tests/contract --noconftest -q -p no:cacheprovider
-        env:
-          QT_QPA_PLATFORM: offscreen
-        shell: bash
-
       # UI-mechanics tests (widget existence/appearance) still run for
       # visibility, but the UI is under active redesign and these churn on
       # every layout change — they must not block a release on their own.

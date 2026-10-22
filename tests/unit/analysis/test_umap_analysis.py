@@ -132,5 +132,5 @@ def test_umap_run_success(test_state):
     # Intensities must be (50, 2)
     assert results["intensities"].shape == (50, 2)
 
-    # Verify progress was emitted
-    assert analysis.signals.analysis_progress.emit.call_count > 0
+    # Progress reached the connected slot.
+    assert progress_calls

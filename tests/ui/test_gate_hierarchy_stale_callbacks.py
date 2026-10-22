@@ -9,6 +9,8 @@ _on_gate_change / _on_gate_selected. Both handlers must swallow that and
 unsubscribe instead of letting it propagate.
 """
 
+from unittest.mock import patch
+
 import pytest
 import shiboken6
 
@@ -67,6 +69,6 @@ def test_on_gate_change_unsubscribes_after_swallowing_stale_callback(qtbot, flow
     qtbot.addWidget(widget)
     shiboken6.delete(widget._scroll)
 
-    calls_before = CentralEventBus.unsubscribe.call_count
-    widget._on_gate_change({})
-    assert CentralEventBus.unsubscribe.call_count > calls_before
+    with patch.object(CentralEventBus, "unsubscribe", wraps=CentralEventBus.unsubscribe) as spy:
+        widget._on_gate_change({})
+    assert spy.call_count > 0

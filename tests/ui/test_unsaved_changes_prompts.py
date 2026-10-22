@@ -174,7 +174,7 @@ def test_loading_over_a_clean_workspace_does_not_ask(panel, monkeypatch):
 
 
 def test_autosave_is_told_whether_there_is_anything_to_save(qapp, qtbot, monkeypatch):
-    from tests.conftest import DummyPluginBase
+    from karcytics_sdk.plugin import PluginBase
 
     captured = {}
 
@@ -182,7 +182,7 @@ def test_autosave_is_told_whether_there_is_anything_to_save(qapp, qtbot, monkeyp
         captured.update(kwargs)
         return MagicMock()
 
-    monkeypatch.setattr(DummyPluginBase, "setup_workflow_autosave", _setup)
+    monkeypatch.setattr(PluginBase, "setup_workflow_autosave", _setup)
     from karcytics_plugins.flow_cytometry.ui.main_panel import FlowCytometryPanel
 
     panel = FlowCytometryPanel(plugin_id="flow_autosave_test")

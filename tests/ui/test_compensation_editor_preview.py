@@ -83,15 +83,15 @@ LIGHT = {
 }
 
 
+DARK = {"BG_DARKEST": "#0d1117", "BG_DARK": "#161b22"}
+
+
 def test_a_theme_change_recolours_the_table_and_the_preview(dialog, monkeypatch):
     from matplotlib.colors import to_hex
 
-    # The suite's stand-in theme is all black, i.e. a dark one.
-    monkeypatch.setattr(
-        compensation_editor,
-        "get_contrast_text_color",
-        lambda background: "#ffffff" if background == "#000000" else "#0d1117",
-    )
+    for token, value in DARK.items():
+        monkeypatch.setattr(compensation_editor.Colors, token, value, raising=False)
+    dialog._apply_theme_styles()
     item = dialog._table.item(0, 1)
     item.setText("0.25")  # an edited cell: green, in a shade for the background
     edited_on_dark = item.foreground().color().name()
