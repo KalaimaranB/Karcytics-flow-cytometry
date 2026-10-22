@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from karcytics_sdk.plugin.components import BioComboBox
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -14,7 +15,6 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.config import COLORMAPS, PseudocolorConfig
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 from ._utils import make_float_row, make_int_row, section_header
 
@@ -72,7 +72,7 @@ class PseudocolorSettingsPanel(QWidget):
         layout.addWidget(section_header("Color Scheme"))
         form1 = QFormLayout()
         form1.setSpacing(8)
-        self._cmap_combo = FlowComboBox()
+        self._cmap_combo = BioComboBox(fit_contents=True)
         self._cmap_combo.setMinimumWidth(220)  # Prevent truncation of long names
         for label, name in COLORMAPS:
             self._cmap_combo.addItem(label, name)

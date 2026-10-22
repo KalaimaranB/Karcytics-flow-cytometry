@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from itertools import permutations
 
-from karcytics_sdk.plugin.components import BioLineEdit, SecondaryButton
+from karcytics_sdk.plugin.components import BioComboBox, BioLineEdit, SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import (
@@ -47,7 +47,6 @@ from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_servic
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
 from karcytics_plugins.flow_cytometry.ui.widgets.mini_histogram import MiniHistogram
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 CUSTOM_TEMPLATE = "custom"
 VALIDATION_DELAY_MS = 200
@@ -241,7 +240,7 @@ class DerivedParameterEditor(QWidget):
 
     def _build_template(self, layout: QVBoxLayout) -> None:
         self._section(layout, "Start from")
-        self._template_combo = FlowComboBox()
+        self._template_combo = BioComboBox(fit_contents=True)
         self._template_combo.setObjectName("DerivedTemplateCombo")
         for tpl in TEMPLATES:
             self._template_combo.addItem(tpl.label, tpl.key)
@@ -250,9 +249,9 @@ class DerivedParameterEditor(QWidget):
         layout.addWidget(self._template_combo)
 
         row = QHBoxLayout()
-        self._chan_a = FlowComboBox()
+        self._chan_a = BioComboBox(fit_contents=True)
         self._chan_a.setObjectName("DerivedChannelA")
-        self._chan_b = FlowComboBox()
+        self._chan_b = BioComboBox(fit_contents=True)
         self._chan_b.setObjectName("DerivedChannelB")
         for tag, combo in (("A:", self._chan_a), ("B:", self._chan_b)):
             row.addWidget(QLabel(tag))
@@ -332,10 +331,10 @@ class DerivedParameterEditor(QWidget):
     def _build_preview(self, layout: QVBoxLayout) -> None:
         self._section(layout, "Preview")
         row = QHBoxLayout()
-        self._preview_sample = FlowComboBox()
+        self._preview_sample = BioComboBox(fit_contents=True)
         self._preview_sample.setObjectName("DerivedPreviewSample")
         self._preview_sample.currentIndexChanged.connect(self._on_preview_sample_changed)
-        self._preview_population = FlowComboBox()
+        self._preview_population = BioComboBox(fit_contents=True)
         self._preview_population.setObjectName("DerivedPreviewPopulation")
         self._preview_population.currentIndexChanged.connect(self._schedule)
         row.addWidget(self._preview_sample, stretch=1)

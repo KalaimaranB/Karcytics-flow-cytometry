@@ -16,7 +16,7 @@ from the Matrices page, so every keystroke doesn't recompensate every sample.
 from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.components import BioComboBox, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_warning
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
@@ -51,7 +51,6 @@ from karcytics_plugins.flow_cytometry.ui.widgets.matrix_library_panel import (
     same_values,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -149,7 +148,7 @@ class CompensationView(QWidget):
         row.setSpacing(8)
         row.addWidget(QLabel("Method:"))
 
-        self._method_combo = FlowComboBox()
+        self._method_combo = BioComboBox(fit_contents=True)
         self._method_combo.setObjectName("CompensationMethodCombo")
         for source in self._sources:
             self._method_combo.addItem(source.label, source.key)

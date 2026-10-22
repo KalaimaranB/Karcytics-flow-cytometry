@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 if typing.TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-from karcytics_sdk.plugin.components import BioHelpButton, repopulate_combo
+from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton, repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, get_contrast_text_color
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
@@ -49,7 +49,6 @@ from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import (
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview_grid import (
     CompensationPreviewGrid,
 )
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 # Events drawn in the preview.
 _PREVIEW_MAX_EVENTS = 10_000
@@ -219,7 +218,7 @@ class CompensationEditor(QWidget):
         matrix_row = QHBoxLayout()
         matrix_label = QLabel("Matrix:")
         matrix_row.addWidget(matrix_label)
-        self._matrix_combo = FlowComboBox()
+        self._matrix_combo = BioComboBox(fit_contents=True)
         self._matrix_combo.setObjectName("EditorMatrixCombo")
         self._matrix_combo.setToolTip(
             "Switch the editor to another matrix kept in this workspace. Nothing is "
@@ -325,19 +324,19 @@ class CompensationEditor(QWidget):
         """
         controls_layout = QVBoxLayout()
         what_row, how_row = QHBoxLayout(), QHBoxLayout()
-        self._sample_combo = FlowComboBox()
+        self._sample_combo = BioComboBox(fit_contents=True)
         self._sample_combo.setObjectName("PreviewSampleCombo")
-        self._population_combo = FlowComboBox()
+        self._population_combo = BioComboBox(fit_contents=True)
         self._population_combo.setObjectName("PreviewPopulationCombo")
         self._population_combo.setToolTip(
             "Preview only the events inside a gate (for example Cells). A sample "
             "without that gate is shown whole."
         )
-        self._x_combo = FlowComboBox()
+        self._x_combo = BioComboBox(fit_contents=True)
         self._x_combo.setObjectName("PreviewXCombo")
-        self._y_combo = FlowComboBox()
+        self._y_combo = BioComboBox(fit_contents=True)
         self._y_combo.setObjectName("PreviewYCombo")
-        self._view_combo = FlowComboBox()
+        self._view_combo = BioComboBox(fit_contents=True)
         self._view_combo.setObjectName("PreviewViewCombo")
         self._view_combo.addItem("Scatter (X vs Y)", VIEW_SCATTER)
         self._view_combo.addItem("Histogram (before vs after)", VIEW_HISTOGRAM)

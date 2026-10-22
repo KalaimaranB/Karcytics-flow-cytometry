@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from karcytics_sdk.plugin.components import BioComboBox
 
 from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
     FcsMetadataSource,
@@ -20,7 +21,6 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 pytestmark = pytest.mark.ui
 
@@ -115,7 +115,7 @@ def test_setting_a_tubes_missing_dye_here_is_stored_and_shown(panel, state):
 
     # The dropdown starts on the dye that was found for the tube.
     combo = panel._inputs_table.cellWidget(2, 1)
-    assert isinstance(combo, FlowComboBox) and combo.currentData() == "APC-A"
+    assert isinstance(combo, BioComboBox) and combo.currentData() == "APC-A"
     assert combo.itemText(0) == "Detect again"
     combo.setCurrentIndex(combo.findData("PE-A"))
     combo.activated.emit(combo.currentIndex())

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 from karcytics_sdk.plugin import get_logger
-from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.components import BioComboBox, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_error
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
@@ -40,7 +40,6 @@ from karcytics_plugins.flow_cytometry.analysis.compensation import (
 )
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -114,7 +113,7 @@ class MatrixLibraryPanel(QWidget):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter)
         splitter.addWidget(self._build_list_side())
-        splitter.addWidget(self._build_matrix_side())
+        splitter.addWidget(self._build_comparison_side())
         splitter.setSizes([340, 760])
 
         theme_manager.apply_style(
@@ -152,7 +151,7 @@ class MatrixLibraryPanel(QWidget):
         left_layout.addLayout(manage)
         return left
 
-    def _build_matrix_side(self) -> QWidget:
+    def _build_comparison_side(self) -> QWidget:
         """The selected matrix, what it is compared with, and what to do with it."""
         right = QWidget()
         right_layout = QVBoxLayout(right)
@@ -163,7 +162,7 @@ class MatrixLibraryPanel(QWidget):
         self._title.setTextFormat(Qt.TextFormat.RichText)
         compare.addWidget(self._title, stretch=1)
         compare.addWidget(QLabel("Compare with:"))
-        self._compare_combo = FlowComboBox()
+        self._compare_combo = BioComboBox(fit_contents=True)
         self._compare_combo.setObjectName("MatrixCompareCombo")
         self._compare_combo.currentIndexChanged.connect(lambda _i: self._show_selected())
         compare.addWidget(self._compare_combo)

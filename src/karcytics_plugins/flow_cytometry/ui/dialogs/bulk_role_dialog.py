@@ -1,5 +1,5 @@
 from karcytics_sdk.plugin import get_logger
-from karcytics_sdk.plugin.components import PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.components import BioComboBox, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_warning
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -14,7 +14,6 @@ from PySide6.QtWidgets import (
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -50,7 +49,7 @@ class BulkRoleDialog(QDialog):
         # Role selection
         role_layout = QHBoxLayout()
         role_layout.addWidget(QLabel("Target Role:"))
-        self.role_combo = FlowComboBox()
+        self.role_combo = BioComboBox(fit_contents=True)
 
         # Populate roles
         self.role_combo.addItem("Unstained", userData=SampleRole.UNSTAINED)

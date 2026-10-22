@@ -17,6 +17,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
+from karcytics_sdk.plugin.components import BioComboBox
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -47,7 +48,6 @@ from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from .group_preview import GroupPreviewPanel
-from .styled_combo import FlowComboBox
 
 if TYPE_CHECKING:
     from .gate_histogram_panel import GateHistogramPanel
@@ -441,11 +441,11 @@ class PropertiesPanel(QWidget):
         # with the default (non-dark) palette unless given its own explicit
         # QSS. That left the popup's current-selection row unreadable (dark
         # text on a dark background) even though the closed box looked
-        # fine. FlowComboBox already styles QAbstractItemView (base, hover,
+        # fine. BioComboBox already styles QAbstractItemView (base, hover,
         # and selected item colors) for every other dropdown in this
         # module, so reuse it here instead of a one-off, popup-less
         # stylesheet.
-        role_combo = FlowComboBox()
+        role_combo = BioComboBox(fit_contents=True)
         role_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         role_combo.setMinimumWidth(180)
 
@@ -696,7 +696,7 @@ class PropertiesPanel(QWidget):
                 self._current_sample_id, self._current_node_id, new_name
             )
 
-    def _build_fmo_minus_combo(self, sample: Sample) -> FlowComboBox | None:
+    def _build_fmo_minus_combo(self, sample: Sample) -> BioComboBox | None:
         """Which dye an FMO control lacks: auto-detect, or one of its channels."""
         fcs = sample.fcs_data
         if fcs is None:
@@ -711,7 +711,7 @@ class PropertiesPanel(QWidget):
         from ...analysis.experiment import SampleRole
 
         channels = get_fluorescence_channels(fcs)
-        combo = FlowComboBox()
+        combo = BioComboBox(fit_contents=True)
         combo.setObjectName("FmoMinusCombo")
         combo.addItem("Detect again", None)
         for channel in channels:

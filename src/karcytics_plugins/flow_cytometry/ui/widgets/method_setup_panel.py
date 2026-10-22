@@ -8,6 +8,7 @@ shown comes from the source, so a new method needs no changes here.
 
 from __future__ import annotations
 
+from karcytics_sdk.plugin.components import BioComboBox
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -33,7 +34,6 @@ from karcytics_plugins.flow_cytometry.ui.widgets.method_illustration import (
     FitIllustrationView,
     pass_wheel_to_page,
 )
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 _ALL_EVENTS = "All events"
 _FIRST_SAMPLE = "The first sample that has one"
@@ -89,10 +89,10 @@ class MethodSetupPanel(QWidget):
 
         self._options_form = QFormLayout()
         self._options_form.setContentsMargins(0, 0, 0, 0)
-        self._sample_combo = FlowComboBox()
+        self._sample_combo = BioComboBox(fit_contents=True)
         self._sample_combo.setObjectName("MethodSampleCombo")
         self._sample_combo.currentIndexChanged.connect(self._on_sample_picked)
-        self._gate_combo = FlowComboBox()
+        self._gate_combo = BioComboBox(fit_contents=True)
         self._gate_combo.setObjectName("MethodGateCombo")
         self._gate_combo.currentIndexChanged.connect(self._on_gate_picked)
         for combo in (self._sample_combo, self._gate_combo):
@@ -135,7 +135,7 @@ class MethodSetupPanel(QWidget):
         """
         self._illustration_title = _heading("See it step by step")
         layout.addWidget(self._illustration_title)
-        self._illustration_combo = FlowComboBox()
+        self._illustration_combo = BioComboBox(fit_contents=True)
         self._illustration_combo.setObjectName("MethodIllustrationCombo")
         self._illustration_combo.currentIndexChanged.connect(lambda _i: self._load_illustration())
         pass_wheel_to_page(self._illustration_combo)
@@ -258,7 +258,7 @@ class MethodSetupPanel(QWidget):
         for index, row in enumerate(inputs.rows):
             if not row.choices:
                 continue
-            combo = FlowComboBox()
+            combo = BioComboBox(fit_contents=True)
             _repopulate(combo, list(row.choices), row.choice)
             pass_wheel_to_page(combo)
             # ``activated``, so picking the dye already shown confirms it.
@@ -273,7 +273,7 @@ class MethodSetupPanel(QWidget):
         """The step the step-by-step picture is on; None before it is opened."""
         return self._illustration.step if self._illustration is not None else None
 
-    def _on_choice(self, sample_id: str, combo: FlowComboBox) -> None:
+    def _on_choice(self, sample_id: str, combo: BioComboBox) -> None:
         if self._source is not None:
             self._source.set_choice(self._state, sample_id, combo.currentData())
         self.changed.emit()
@@ -328,7 +328,7 @@ def _fill(table: QTableWidget, headers: list[str], rows: list[tuple[str, ...]]) 
     table.setFixedHeight(header_height + _ROW_HEIGHT * len(rows) + 4)
 
 
-def _repopulate(combo: FlowComboBox, items: list, current: str | None) -> None:
+def _repopulate(combo: BioComboBox, items: list, current: str | None) -> None:
     """Set a combo's (label, value) items and selection without announcing it."""
     combo.blockSignals(True)
     combo.clear()

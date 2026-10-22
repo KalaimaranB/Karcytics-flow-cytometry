@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
+from karcytics_sdk.plugin.components import BioComboBox
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
-
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 from ..flow_canvas import DisplayMode
 
@@ -40,7 +39,7 @@ class AxisControlPanel(QWidget):
         self._x_label = self._make_label("X:")
         self._x_label.setObjectName("AxisLabelX")
         layout.addWidget(self._x_label)
-        self._x_combo = FlowComboBox()
+        self._x_combo = BioComboBox(fit_contents=True)
         self._x_combo.setObjectName("AxisSelectorX")
         self._x_combo.setProperty("tutorial_spotlight_with", "AxisLabelX")
         self._x_combo.setMinimumWidth(80)
@@ -57,7 +56,7 @@ class AxisControlPanel(QWidget):
         self._y_stack = QStackedWidget()
         layout.addWidget(self._y_stack)
 
-        self._y_combo = FlowComboBox()
+        self._y_combo = BioComboBox(fit_contents=True)
         self._y_combo.setObjectName("AxisSelectorY")
         self._y_combo.setProperty("tutorial_spotlight_with", "AxisLabelY")
         self._y_combo.setMinimumWidth(80)
@@ -76,7 +75,7 @@ class AxisControlPanel(QWidget):
 
         # Display mode
         layout.addSpacing(8)
-        self._display_combo = FlowComboBox()
+        self._display_combo = BioComboBox(fit_contents=True)
         self._display_combo.setObjectName("DisplayModeCombo")
         for mode in DisplayMode:
             self._display_combo.addItem(mode.value, mode)
@@ -90,7 +89,7 @@ class AxisControlPanel(QWidget):
         self._fmo_label.setObjectName("AxisLabelFMO")
         layout.addWidget(self._fmo_label)
 
-        self._fmo_combo = FlowComboBox()
+        self._fmo_combo = BioComboBox(fit_contents=True)
         self._fmo_combo.setObjectName("AxisSelectorFMO")
         self._fmo_combo.setProperty("tutorial_spotlight_with", "AxisLabelFMO")
         self._fmo_combo.setMinimumWidth(80)

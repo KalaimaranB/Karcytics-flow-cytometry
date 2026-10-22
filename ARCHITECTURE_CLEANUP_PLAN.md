@@ -284,7 +284,7 @@ The SDK side is done (332a609, 45a925f): `rendering.style_axes` / `AxesColors`,
       violin, heatmap and pseudocolor-overlay renderers).
 - [x] Five `_section_label`s → the SDK's new `BioSectionLabel` (SDK 556c172), not
       `BioCaptionLabel`, which is a word-wrapped hint, not a heading.
-- [ ] `FlowComboBox` (13 users) → `BioComboBox(fit_contents=True)`; delete `styled_combo.py`.
+- [x] `FlowComboBox` (13 users) → `BioComboBox(fit_contents=True)`; delete `styled_combo.py`.
 - [ ] Zoom overlays in `node_canvas/canvas_view.py` and `gate_hierarchy/` → `ZoomControls`.
 - [ ] Deletes that affect other items (gate subtree, node-canvas delete preview) →
       `confirm_destructive`.

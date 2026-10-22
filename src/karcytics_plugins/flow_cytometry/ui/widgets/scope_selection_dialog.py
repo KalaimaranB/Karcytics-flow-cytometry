@@ -1,3 +1,4 @@
+from karcytics_sdk.plugin.components import BioComboBox
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
@@ -8,8 +9,6 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 
 class ScopeSelectionDialog(QDialog):
@@ -47,7 +46,7 @@ class ScopeSelectionDialog(QDialog):
         self.radio_group = QRadioButton("Apply across group:")
         h_layout.addWidget(self.radio_group)
 
-        self.combo_group = FlowComboBox()
+        self.combo_group = BioComboBox(fit_contents=True)
         for group_id, group_name in groups:
             self.combo_group.addItem(group_name, group_id)
 

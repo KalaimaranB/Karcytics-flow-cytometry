@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from karcytics_sdk.plugin.components import BioComboBox
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -13,7 +14,6 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.config import COLORMAPS, ContourConfig
-from karcytics_plugins.flow_cytometry.ui.widgets.styled_combo import FlowComboBox
 
 from ._utils import make_float_row, make_int_row, section_header
 
@@ -64,7 +64,7 @@ class ContourSettingsPanel(QWidget):
         # Line color mode
         color_lbl = QLabel("Line Color:")
         theme_manager.apply_style(color_lbl, "color: {FG_SECONDARY}; font-size: 11px;")
-        self._color_mode_combo = FlowComboBox()
+        self._color_mode_combo = BioComboBox(fit_contents=True)
         self._color_mode_combo.addItem("Black", "black")
         self._color_mode_combo.addItem("Blue", "blue")
         self._color_mode_combo.addItem("By density (colormap)", "colormap")
@@ -78,7 +78,7 @@ class ContourSettingsPanel(QWidget):
         # Colormap (only shown when color_mode == "colormap")
         cmap_lbl = QLabel("Colormap:")
         theme_manager.apply_style(cmap_lbl, "color: {FG_SECONDARY}; font-size: 11px;")
-        self._cmap_combo = FlowComboBox()
+        self._cmap_combo = BioComboBox(fit_contents=True)
         for label, name in COLORMAPS:
             self._cmap_combo.addItem(label, name)
         for i in range(self._cmap_combo.count()):

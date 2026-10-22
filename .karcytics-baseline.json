@@ -544,7 +544,7 @@
       "KS240": 5,
       "KS242": 1,
       "KS243": 1,
-      "KS300": 663,
+      "KS300": 662,
       "KS310": 2,
       "KS360": 1
     },
@@ -565,7 +565,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/derived_formula_editor.py": {
       "KS243": 3,
-      "KS300": 617,
+      "KS300": 616,
       "KS301:DerivedParameterEditor": 44
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/flowsom_params.py": {
@@ -786,12 +786,6 @@
       "KS310": 9,
       "KS342": 2,
       "KS343": 6,
-      "KS360": 2
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/styled_combo.py": {
-      "KS211": 1,
-      "KS242": 1,
-      "KS320": 1,
       "KS360": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/umap_animator_widget.py": {
