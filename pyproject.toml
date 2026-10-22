@@ -27,7 +27,7 @@ dependencies = [
     "numba==0.65.1",
     "seaborn==0.13.2",
     "fast-histogram==0.14",
-    "pillow>=12.3.0, <13.0.0",
+    "pillow>=13.0.0, <14.0.0",
 ]
 
 [project.optional-dependencies]
