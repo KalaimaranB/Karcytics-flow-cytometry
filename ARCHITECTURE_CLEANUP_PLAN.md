@@ -280,10 +280,10 @@ The SDK side is done (332a609, 45a925f): `rendering.style_axes` / `AxesColors`,
 `ZoomControls`, `dialogs.confirm_destructive`, `BioComboBox(fit_contents=True)`, and
 `image_utils` deprecated. What is left is flow's migration:
 
-- [ ] Five local axes stylers → `style_axes` (`spectral_learning_tab`, `spectral_viewer`, and the
+- [x] Five local axes stylers → `style_axes` (`spectral_learning_tab`, `spectral_viewer`, and the
       violin, heatmap and pseudocolor-overlay renderers).
-- [ ] Five `_section_label`s → `BioCaptionLabel` (`population_analysis_viewer`,
-      `statistics_explorer`, `comparisons_viewer`, `spectral_viewer`, `selection/selector_panel`).
+- [x] Five `_section_label`s → the SDK's new `BioSectionLabel` (SDK 556c172), not
+      `BioCaptionLabel`, which is a word-wrapped hint, not a heading.
 - [ ] `FlowComboBox` (13 users) → `BioComboBox(fit_contents=True)`; delete `styled_combo.py`.
 - [ ] Zoom overlays in `node_canvas/canvas_view.py` and `gate_hierarchy/` → `ZoomControls`.
 - [ ] Deletes that affect other items (gate subtree, node-canvas delete preview) →

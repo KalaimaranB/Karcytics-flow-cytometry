@@ -23,6 +23,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+from karcytics_sdk.plugin import BioSectionLabel
 from karcytics_sdk.plugin.components import (
     BioComboBox,
     BioHelpButton,
@@ -166,7 +167,6 @@ class StatisticsExplorer(QWidget):
         # Exports that actually succeeded ("csv", "copy", "plot"); the
         # Academy's export checklist (ExportDoneValidator) reads it.
         self.completed_exports: set[str] = set()
-        self._section_labels: list[QLabel] = []
         self._worker: ComputeWorker | None = None
 
         self._setup_ui()
@@ -193,15 +193,6 @@ class StatisticsExplorer(QWidget):
             pass
 
     # ── Section label helper ──────────────────────────────────────────────────
-
-    def _section_label(self, text: str) -> QLabel:
-        lbl = QLabel(text)
-        lbl.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-weight: bold; font-size: 11px;"
-            " text-transform: uppercase; letter-spacing: 0.5px;"
-        )
-        self._section_labels.append(lbl)
-        return lbl
 
     # ── UI Construction ───────────────────────────────────────────────────────
 
@@ -235,7 +226,7 @@ class StatisticsExplorer(QWidget):
 
         # ── 3. Statistics ─────────────────────────────────────────────────────
         stats_hdr = QHBoxLayout()
-        stats_hdr.addWidget(self._section_label("Statistics"))
+        stats_hdr.addWidget(BioSectionLabel("Statistics"))
         stats_help = BioHelpButton()
         stats_help.setHelpText(
             "Select which statistics to compute. Statistics marked with ★ "
@@ -287,7 +278,7 @@ class StatisticsExplorer(QWidget):
 
         # ── 4. Channel ────────────────────────────────────────────────────────
         ch_hdr = QHBoxLayout()
-        ch_hdr.addWidget(self._section_label("Channel (★ stats)"))
+        ch_hdr.addWidget(BioSectionLabel("Channel (★ stats)"))
         ch_help = BioHelpButton()
         ch_help.setHelpText(
             "Select the fluorescence channel for parameter-dependent statistics "
@@ -1363,12 +1354,6 @@ class StatisticsExplorer(QWidget):
         if hasattr(self, "_lbl_star"):
             self._lbl_star.setStyleSheet(
                 f"color: {Colors.FG_DISABLED}; font-size: 10px; font-style: italic;"
-            )
-
-        for lbl in getattr(self, "_section_labels", []):
-            lbl.setStyleSheet(
-                f"color: {Colors.FG_SECONDARY}; font-weight: bold; font-size: 11px;"
-                " text-transform: uppercase; letter-spacing: 0.5px;"
             )
 
         self._status_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 12px;")

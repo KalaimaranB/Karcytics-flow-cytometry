@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from karcytics_sdk.plugin import safe_disconnect
+from karcytics_sdk.plugin import BioSectionLabel, safe_disconnect
 from karcytics_sdk.plugin.components import (
     BioComboBox,
     BioHelpButton,
@@ -199,7 +199,7 @@ class ComparisonsViewer(QWidget):
 
         # 1. Plot type selector
         pt_hdr = QHBoxLayout()
-        pt_hdr.addWidget(self._section_label("Plot Type"))
+        pt_hdr.addWidget(BioSectionLabel("Plot Type"))
         self._plot_help_btn = BioHelpButton()
         pt_hdr.addWidget(self._plot_help_btn)
         pt_hdr.addStretch()
@@ -239,7 +239,7 @@ class ComparisonsViewer(QWidget):
         csl.setSpacing(6)
 
         ch_hdr = QHBoxLayout()
-        self._channel_section_label = self._section_label("Channels")
+        self._channel_section_label = BioSectionLabel("Channels")
         ch_hdr.addWidget(self._channel_section_label)
         self._ch_help_btn = BioHelpButton()
         ch_hdr.addWidget(self._ch_help_btn)
@@ -267,7 +267,7 @@ class ComparisonsViewer(QWidget):
 
         # 5. Per-plot options (DynamicStackedWidget — height dynamically follows current panel)
         opts_hdr = QHBoxLayout()
-        opts_hdr.addWidget(self._section_label("Plot Options"))
+        opts_hdr.addWidget(BioSectionLabel("Plot Options"))
         opts_hdr.addStretch()
         cl.addLayout(opts_hdr)
 
@@ -364,14 +364,6 @@ class ComparisonsViewer(QWidget):
         # Apply initial styles and trigger first plot-type switch
         self._apply_theme_styles()
         self._on_plot_type_changed(0)
-
-    def _section_label(self, text: str) -> QLabel:
-        lbl = QLabel(text)
-        lbl.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-weight: bold; font-size: 11px;"
-            " text-transform: uppercase; letter-spacing: 0.5px;"
-        )
-        return lbl
 
     # ── Public API ───────────────────────────────────────────────────────────
 

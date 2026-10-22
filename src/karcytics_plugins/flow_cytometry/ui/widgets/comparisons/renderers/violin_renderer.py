@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 
 from .base import IPlotRenderer
@@ -64,7 +65,7 @@ class ViolinRenderer(IPlotRenderer):
                 transform=ax.transAxes,
                 fontsize=13,
             )
-            _style_axes(ax, fg_color, border_color)
+            style_axes(ax, AxesColors(fg_color, border_color), grid="y")
             return fig
 
         valid_labels, valid_arrays = zip(*valid, strict=False)
@@ -104,7 +105,7 @@ class ViolinRenderer(IPlotRenderer):
             title += f" (zoomed to {axis_range_pct:g}th percentile)"
 
         ax.set_title(title, color=fg_color, fontsize=12, pad=10)
-        _style_axes(ax, fg_color, border_color)
+        style_axes(ax, AxesColors(fg_color, border_color), grid="y")
         fig.tight_layout(pad=1.5)
         return fig
 
@@ -222,11 +223,3 @@ def _percentile_value_range(
         return None
     pad = (hi - lo) * 0.05
     return lo - pad, hi + pad
-
-
-def _style_axes(ax, fg_color: str, border_color: str) -> None:
-    ax.tick_params(colors=fg_color, labelsize=9)
-    for spine in ax.spines.values():
-        spine.set_color(border_color)
-    ax.set_axisbelow(True)
-    ax.yaxis.grid(True, color=border_color, linewidth=0.5, alpha=0.6)

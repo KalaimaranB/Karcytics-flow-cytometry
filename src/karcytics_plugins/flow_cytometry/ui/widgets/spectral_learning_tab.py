@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from karcytics_sdk.plugin.components import BioCaptionLabel, PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib import patches
 from matplotlib.figure import Figure
@@ -232,7 +233,7 @@ class SpectralLearningTab(QWidget):
         self._figure = Figure(facecolor=Colors.BG_DARK)
         self._canvas = FigureCanvasQTAgg(self._figure)
         self._ax = self._figure.add_subplot(111)
-        self._style_axes()
+        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
 
         self._canvas_wrapper = QWidget()
         canvas_layout = QVBoxLayout(self._canvas_wrapper)
@@ -248,15 +249,6 @@ class SpectralLearningTab(QWidget):
 
         content.addWidget(self._canvas_wrapper, stretch=1)
         root.addLayout(content, stretch=1)
-
-    def _style_axes(self):
-        self._figure.patch.set_facecolor(Colors.BG_DARK)
-        self._ax.set_facecolor(Colors.BG_DARK)
-        self._ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=9)
-        for spine in ("bottom", "left"):
-            self._ax.spines[spine].set_color(Colors.BORDER)
-        for spine in ("top", "right"):
-            self._ax.spines[spine].set_visible(False)
 
     def _apply_theme_styles(self):
         """Rebuild the current tutorial step's interactive matplotlib content
@@ -347,7 +339,7 @@ class SpectralLearningTab(QWidget):
         self._btn_next.setEnabled(can_advance)
         self._clear_interactive_widgets()
         self._ax.clear()
-        self._style_axes()
+        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
         if not from_animation:
             self._animation_timer.stop()
             self._is_animating = False

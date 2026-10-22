@@ -22,6 +22,7 @@ from it.
 from __future__ import annotations
 
 import numpy as np
+from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import FixedFormatter, FixedLocator
 
@@ -165,7 +166,7 @@ class PseudocolorOverlayRenderer(IPlotRenderer):
                 labelcolor=fg_color,
                 loc="best",
             )
-        _style_axes(ax, fg_color, border_color)
+        style_axes(ax, AxesColors(fg_color, border_color), grid="both")
         fig.tight_layout(pad=1.5)
 
     @staticmethod
@@ -237,12 +238,3 @@ class PseudocolorOverlayRenderer(IPlotRenderer):
                 zorder=0,
                 label=f"{base_label} ({len(base_x):,} events)",
             )
-
-
-def _style_axes(ax, fg_color: str, border_color: str) -> None:
-    ax.tick_params(colors=fg_color, labelsize=9)
-    for spine in ax.spines.values():
-        spine.set_color(border_color)
-    ax.set_axisbelow(True)
-    ax.xaxis.grid(True, color=border_color, linewidth=0.4, alpha=0.5)
-    ax.yaxis.grid(True, color=border_color, linewidth=0.4, alpha=0.5)

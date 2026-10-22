@@ -13,6 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+from karcytics_sdk.plugin import BioSectionLabel
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioHelpButton,
@@ -21,6 +22,7 @@ from karcytics_sdk.plugin.components import (
     BioToggleButton,
     SecondaryButton,
 )
+from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from karcytics_sdk.plugin.runtime_services import (
     KarcyticsEvent,
     academy_event_bus,
@@ -140,11 +142,6 @@ class SpectralViewer(QWidget):
 
         return btn
 
-    def _section_label(self, text: str) -> BioCaptionLabel:
-        lbl = BioCaptionLabel(text)
-        lbl.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-weight: bold; font-size: 11px;")
-        return lbl
-
     def _setup_ui(self):  # noqa: PLR0915
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -162,7 +159,7 @@ class SpectralViewer(QWidget):
         left.setSpacing(10)
 
         # FPbase search
-        left.addWidget(self._section_label("Search FPbase:"))
+        left.addWidget(BioSectionLabel("Search FPbase:"))
 
         self._search_input = BioLineEdit()
         self._search_input.setPlaceholderText("e.g. APC/Cy7, Alexa Fluor 488…")
@@ -177,7 +174,7 @@ class SpectralViewer(QWidget):
         self._search_results.itemClicked.connect(self._on_search_result_clicked)
 
         # Channel list
-        left.addWidget(self._section_label("Available Channels:"))
+        left.addWidget(BioSectionLabel("Available Channels:"))
         self._source_list = BioListWidget()
         self._source_list.setObjectName("SpectralSourceList")
         self._source_list.setDragEnabled(True)
@@ -189,7 +186,7 @@ class SpectralViewer(QWidget):
         left.addWidget(hint)
 
         # Active spectra list
-        left.addWidget(self._section_label("Active Spectra:"))
+        left.addWidget(BioSectionLabel("Active Spectra:"))
         self._list_widget = BioListWidget()
         self._list_widget.setMaximumHeight(130)
         left.addWidget(self._list_widget)
@@ -272,7 +269,7 @@ class SpectralViewer(QWidget):
         self._canvas.mpl_connect("button_press_event", self._on_canvas_click)
 
         self._ax = self._figure.add_subplot(111)
-        self._style_axes()
+        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
         self._update_plot()
 
         self._tabs.addTab(analysis_tab, "Spectral Analysis")
@@ -312,18 +309,9 @@ class SpectralViewer(QWidget):
         if self._tabs.widget(index) is self._learning_tab:
             self._learning_tab.update_view()
 
-    def _style_axes(self):
-        self._figure.patch.set_facecolor(Colors.BG_DARK)
-        self._ax.set_facecolor(Colors.BG_DARK)
-        self._ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=9)
-        for spine in ("bottom", "left"):
-            self._ax.spines[spine].set_color(Colors.BORDER)
-        for spine in ("top", "right"):
-            self._ax.spines[spine].set_visible(False)
-
     def _apply_theme_styles(self):  # noqa: PLR0912
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        self._style_axes()
+        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
 
         if hasattr(self, "_search_input"):
             self._search_input.setStyleSheet(
@@ -589,7 +577,7 @@ class SpectralViewer(QWidget):
 
     def _update_plot(self) -> None:
         self._ax.clear()
-        self._style_axes()
+        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
         self._ax.set_xlabel("Wavelength (nm)", color=Colors.FG_SECONDARY, fontsize=10)
         self._ax.set_ylabel("Normalised Intensity", color=Colors.FG_SECONDARY, fontsize=10)
 

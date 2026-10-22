@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 
 from .base import IPlotRenderer
@@ -40,7 +41,7 @@ class HeatmapRenderer(IPlotRenderer):
                 transform=ax.transAxes,
                 fontsize=13,
             )
-            _style_axes(ax, fg_color, border_color)
+            style_axes(ax, AxesColors(fg_color, border_color))
             return fig
 
         display = matrix.copy()
@@ -117,7 +118,7 @@ class HeatmapRenderer(IPlotRenderer):
 
         title = "Channel Expression Heatmap" + (" (normalised per channel)" if normalise else "")
         ax.set_title(title, color=fg_color, fontsize=12, pad=10)
-        _style_axes(ax, fg_color, border_color)
+        style_axes(ax, AxesColors(fg_color, border_color))
         fig.tight_layout(pad=1.5)
 
         # tight_layout often underestimates the bounding box of rotated text before rendering.
@@ -131,9 +132,3 @@ class HeatmapRenderer(IPlotRenderer):
             pass
 
         return fig
-
-
-def _style_axes(ax, fg_color: str, border_color: str) -> None:
-    ax.tick_params(colors=fg_color, labelsize=9)
-    for spine in ax.spines.values():
-        spine.set_color(border_color)

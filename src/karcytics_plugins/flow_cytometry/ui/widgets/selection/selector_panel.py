@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from karcytics_sdk.plugin import BioSectionLabel
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
@@ -30,16 +31,6 @@ def _get_theme_tokens():
     from karcytics_sdk.plugin.theme_fallback import Colors
 
     return Colors
-
-
-def _section_label(text: str) -> QLabel:
-    Colors = _get_theme_tokens()
-    lbl = QLabel(text)
-    lbl.setStyleSheet(
-        f"color: {Colors.FG_SECONDARY}; font-weight: bold; font-size: 11px;"
-        " text-transform: uppercase; letter-spacing: 0.5px;"
-    )
-    return lbl
 
 
 class SampleAndPopulationSelector(QWidget):
@@ -78,7 +69,7 @@ class SampleAndPopulationSelector(QWidget):
         layout.setSpacing(12)
 
         pop_hdr = QHBoxLayout()
-        pop_hdr.addWidget(_section_label("Populations"))
+        pop_hdr.addWidget(BioSectionLabel("Populations"))
         pop_help = BioHelpButton()
         pop_help.setHelpText(population_help_text, "Populations")
         pop_hdr.addWidget(pop_help)

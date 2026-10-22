@@ -7,6 +7,7 @@ from typing import Any
 
 import pandas as pd
 import scipy.spatial
+from karcytics_sdk.plugin import BioSectionLabel
 from karcytics_sdk.plugin.components import (
     BioComboBox,
     BioHelpButton,
@@ -92,13 +93,6 @@ class PopulationAnalysisViewer(QWidget):
         self._apply_theme_styles()
         self.refresh_samples()
 
-    def _section_label(self, text: str) -> QLabel:
-        lbl = QLabel(text)
-        lbl.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-weight: bold; font-size: 11px; text-transform: uppercase;"
-        )
-        return lbl
-
     def _setup_ui(self) -> None:  # noqa: PLR0915
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -123,7 +117,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.setSpacing(16)
 
         # 1. Target Data
-        scroll_layout.addWidget(self._section_label("Target Data"))
+        scroll_layout.addWidget(BioSectionLabel("Target Data"))
 
         self._algo_combo = BioComboBox()
         self._algo_combo.setObjectName("ClusteringMethodCombo")
@@ -202,7 +196,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addSpacing(10)
 
         # 2. Configuration
-        scroll_layout.addWidget(self._section_label("Configuration"))
+        scroll_layout.addWidget(BioSectionLabel("Configuration"))
 
         # Run Name
         name_lbl = QLabel("Run Name:")
@@ -403,7 +397,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addSpacing(10)
 
         # 3. Auto-Clustering
-        umap_layout.addWidget(self._section_label("Clustering"))
+        umap_layout.addWidget(BioSectionLabel("Clustering"))
 
         clustering_lbl_layout = QHBoxLayout()
         self._run_hdbscan_cb = QCheckBox("Run HDBSCAN Auto-Clustering")
@@ -460,9 +454,9 @@ class PopulationAnalysisViewer(QWidget):
 
         self._run_hdbscan_cb.toggled.connect(self._on_hdbscan_toggled)
 
-        self._flowsom_params = FlowsomParamsPanel(self._section_label("FlowSOM"))
+        self._flowsom_params = FlowsomParamsPanel(BioSectionLabel("FlowSOM"))
         self._flowsom_params.hide()
-        self._phenograph_params = PhenographParamsPanel(self._section_label("PhenoGraph"))
+        self._phenograph_params = PhenographParamsPanel(BioSectionLabel("PhenoGraph"))
         self._phenograph_params.hide()
         scroll_layout.addWidget(self._umap_params)
         scroll_layout.addWidget(self._flowsom_params)
@@ -484,7 +478,7 @@ class PopulationAnalysisViewer(QWidget):
         scroll_layout.addSpacing(20)
 
         # 4. History
-        scroll_layout.addWidget(self._section_label("History"))
+        scroll_layout.addWidget(BioSectionLabel("History"))
 
         self._history_combo = BioComboBox()
         self._history_combo.setObjectName("UmapHistoryCombo")
