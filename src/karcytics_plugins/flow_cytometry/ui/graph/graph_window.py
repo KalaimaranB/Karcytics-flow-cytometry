@@ -15,7 +15,7 @@ and tiling.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.theme_fallback import theme_manager
@@ -45,6 +45,9 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
 from .flow_canvas import FlowCanvas, GateDrawingMode
 from .render_window import RenderWindow
 from .transform_dialog import TransformDialog
+
+if TYPE_CHECKING:
+    from .components.axis_control_panel import AxisControlPanel
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -250,6 +253,10 @@ class GraphWindow(QWidget):
         return self._node_id
 
     @property
+    def axis_panel(self) -> AxisControlPanel:
+        return self._axis_panel
+
+    @property
     def canvas(self) -> FlowCanvas:
         """Expose the canvas for external signal wiring."""
         return self._canvas
@@ -420,14 +427,9 @@ class GraphWindow(QWidget):
             node_id_to_check = self._node_id
             found_memory = False
 
-            # 1. Prefer the "creation view" anchored to this exact node. A freshly
-            # gated-out node never has its own creation_view — it's recorded on the
-            # *parent* (the node that was actually being viewed when the gate was
-            # drawn — see GateCoordinator.add_gate) — so fall back to the
-            # parent's record. This is what lets a child population inherit the
-            # exact view (axes + plot type) it was carved out of, e.g. staying in
-            # Pseudocolor after drawing a range gate on a 2D scatter, instead of
-            # falling back to whatever the last-touched tab's global mode was.
+            # 1. Prefer the "creation view" of this node, else of its parent (where
+            # GateCoordinator.add_gate records it), so a child population opens in
+            # the view it was carved out of rather than the last global mode.
             if self._node_id:
                 node = sample.gate_tree.find_node_by_id(self._node_id)
                 cv_source = node
@@ -575,14 +577,8 @@ class GraphWindow(QWidget):
         y_scale_active = self._y_scale.copy()
 
         # ── PARENT POPULATION for W/A estimation ────────────────────────────
-        # W and A must be estimated from the *parent* population — the events the
-        # gate was drawn against — not the current node's subset.  FlowJo does the
-        # same: when you view the B220/CD3 gate, FlowJo computes W from leukocytes
-        # (the parent population), not from B+T cells (the child subset).
-        #
-        # For a node with a parent, the parent population is the events that passed
-        # all gates *above* this one, i.e. the parent node's population.
-        # For a root-level or ungated node, fall back to the full sample.
+        # W and A come from the *parent* population (the events the gate was
+        # drawn on), as FlowJo does; a root-level node falls back to the sample.
         _node = sample.gate_tree.find_node_by_id(self._node_id) if self._node_id else None
         _parent_node = _node.parents[0] if (_node and _node.parents) else None
         if _parent_node is not None:

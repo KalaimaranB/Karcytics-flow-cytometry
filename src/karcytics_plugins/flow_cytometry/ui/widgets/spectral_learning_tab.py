@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.spectral_math import spectral_overlap_pct
+from karcytics_plugins.flow_cytometry.ui.academy_context import LearningDeckSnapshot
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
@@ -329,6 +330,11 @@ class SpectralLearningTab(QWidget):
         unwinding that widget's own event first.
         """
         QTimer.singleShot(0, callback)
+
+    def academy_snapshot(self) -> LearningDeckSnapshot:
+        return LearningDeckSnapshot(
+            self._current_step, self._max_steps - 1, frozenset(self._completed_steps)
+        )
 
     # ── render dispatch ────────────────────────────────────────────────────
 
@@ -645,13 +651,8 @@ class SpectralLearningTab(QWidget):
         self._ax.set_ylim(0, 1000)
         self._slide3_true_pct = pct
 
-        # Zone markers — show where to place each ruler endpoint. Derived
-        # from the actual population's own x-range (10th/90th percentile)
-        # rather than fixed pixel positions, so they always sit ON the real
-        # cloud — a fixed "← dim" at x=200 could land well to the left of
-        # every real point (the cloud is centred at x=800), which forced
-        # every dim-side snap into the same narrow leftmost sliver of data
-        # no matter where within that empty region you actually clicked.
+        # Zone markers for the ruler ends, at the cloud's own 10th/90th
+        # percentile so they always sit on real points.
         dim_x = float(np.percentile(self._slide3_x, 10))
         bright_x = float(np.percentile(self._slide3_x, 90))
         self._slide3_dim_x = dim_x
@@ -754,18 +755,9 @@ class SpectralLearningTab(QWidget):
         return False
 
     def _check_slide3_pct(self):
-        # Grade against what the user's OWN ruler measurement implies, not
-        # the population's fixed ground-truth pct — the prompt literally
-        # asks them to "type the spillover percentage your ruler implies
-        # (Rise ÷ Run × 100)", i.e. read the readout label and do that
-        # arithmetic. The two ruler points are individual noisy cells
-        # (leaked_single_stain adds real per-point noise), so their implied
-        # slope routinely lands several points away from the true
-        # population pct even for a textbook-correct dim→bright drag —
-        # grading against ground truth made a correctly-transcribed
-        # readout (like the screenshot's "≈76.8%") fail no matter what was
-        # typed, since the true pct could genuinely be outside tolerance of
-        # the ruler's own honest reading.
+        # Grade against what the learner's own ruler implies (the prompt asks
+        # for that), not the true pct: the ruler ends are noisy cells, so an
+        # honest reading can sit outside the tolerance of the truth.
         if self._check_pct_answer(self._slide3_ruler_implied_pct()):
             self._defer(self._finish_slide3_pct)
 

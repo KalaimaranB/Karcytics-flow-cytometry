@@ -23,12 +23,13 @@ from karcytics_plugins.flow_cytometry.tutorials.validators import GateShapeValid
 
 
 def make_panel() -> SimpleNamespace:
+    context = SimpleNamespace(gate_coordinator=MagicMock())
     return SimpleNamespace(
         state=SimpleNamespace(
             view=SimpleNamespace(current_sample_id="sample_a", current_gate_id=None)
         ),
-        _gate_coordinator=MagicMock(),
-        _on_delete_selected_gate=MagicMock(),
+        academy_context=lambda: context,
+        delete_gate_with_dialog=MagicMock(),
     )
 
 
@@ -65,10 +66,12 @@ class TestMisnamedGate:
         failure.corrective(panel)
 
         assert panel.state.view.current_gate_id == "node_42"
-        panel._gate_coordinator.rename_population.assert_called_once_with(
+        panel.academy_context().gate_coordinator.rename_population.assert_called_once_with(
             "sample_b", "node_42", "Live Cells"
         )
-        panel._gate_coordinator.request_propagation.assert_called_once_with("node_42", "sample_b")
+        panel.academy_context().gate_coordinator.request_propagation.assert_called_once_with(
+            "node_42", "sample_b"
+        )
 
     def test_corrective_falls_back_to_current_sample_when_no_sample_recorded(self):
         validator = GateShapeValidator(target_name="Live Cells")
@@ -78,7 +81,7 @@ class TestMisnamedGate:
 
         validator.describe_failure(app_state=None).corrective(panel)
 
-        panel._gate_coordinator.rename_population.assert_called_once_with(
+        panel.academy_context().gate_coordinator.rename_population.assert_called_once_with(
             "sample_a", "node_42", "Live Cells"
         )
 
@@ -117,7 +120,9 @@ class TestBadlyShapedGate:
         validator.describe_failure(app_state=None).corrective(panel)
 
         assert panel.state.view.current_gate_id == "node_99"
-        panel._on_delete_selected_gate.assert_called_once_with(force_silent=True)
+        panel.delete_gate_with_dialog.assert_called_once_with(
+            "sample_a", "node_99", force_silent=True
+        )
 
 
 def _app_state_with_gate(gate) -> SimpleNamespace:

@@ -15,15 +15,19 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..analysis.clustering import ClusteringMethod
     from ..analysis.clustering.describe import ClusterSummary
+    from ..analysis.gate_coordinator import GateCoordinator
+    from ..analysis.statistics import StatType
     from .controllers.derived_editor_controller import DerivedEditorController
     from .graph.graph_manager import GraphManager
     from .ribbons.pipeline_ribbon import PipelineRibbon
+    from .widgets.comparisons.plot_spec import PlotType
     from .widgets.comparisons_viewer import ComparisonsViewer
     from .widgets.compensation_view import CompensationView
     from .widgets.flowsom_tree import FlowsomTreeView
     from .widgets.phenograph_graph import PhenographGraphView
     from .widgets.population_analysis_viewer import PopulationAnalysisViewer
     from .widgets.sample_lens.sample_lens_tab import SampleLensTab
+    from .widgets.selection.selector_panel import SampleAndPopulationSelector
     from .widgets.spectral_viewer import SpectralViewer
     from .widgets.statistics_explorer import StatisticsExplorer
 
@@ -41,6 +45,7 @@ class AcademyContext:
     population_analysis: PopulationAnalysisViewer | None = None
     sample_lens: SampleLensTab | None = None
     derived_editor: DerivedEditorController | None = None
+    gate_coordinator: GateCoordinator | None = None  # what Academy corrections act through
 
 
 # Snapshots: what a widget shows, as plain values, so validators never read its internals.
@@ -84,3 +89,57 @@ class PopulationAnalysisSnapshot:
     is_animating: bool
     has_results: bool
     results: ClusterResultsSnapshot | None
+
+
+@dataclass(frozen=True)
+class GraphClusterSnapshot:
+    """One PhenoGraph cluster on the cluster graph."""
+
+    cluster: int
+    name: str
+    phenotype: str
+    count: int
+    links: tuple[tuple[int, float], ...]  # (other cluster, strength)
+
+    @property
+    def stands_apart(self) -> bool:
+        return not self.links
+
+
+@dataclass(frozen=True)
+class PopulationPicks:
+    """A tab's population selector: what is checked, and whether its picker is open."""
+
+    checked: tuple[tuple[str, str | None, str], ...]  # (sample id, node id, label)
+    picker_open: bool
+
+    @classmethod
+    def of(cls, selector: SampleAndPopulationSelector) -> PopulationPicks:
+        checked = tuple(selector.get_checked_populations())
+        return cls(checked, selector.population_selector.isVisible())
+
+
+@dataclass(frozen=True)
+class StatisticsSnapshot:
+    populations: PopulationPicks
+    checked_stats: frozenset[StatType]
+    chart_type_label: str
+    channel: str | None  # the ★ channel picker
+    has_results: bool
+
+
+@dataclass(frozen=True)
+class ComparisonsSnapshot:
+    populations: PopulationPicks
+    last_generated: PlotType | None  # set by Generate, not by the plot-type menu
+    histogram_layout: str  # ridge, overlay
+    checked_channels: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class LearningDeckSnapshot:
+    """The Learning Compensation slide deck."""
+
+    step: int
+    last_step: int
+    completed: frozenset[int]  # slides whose task is done

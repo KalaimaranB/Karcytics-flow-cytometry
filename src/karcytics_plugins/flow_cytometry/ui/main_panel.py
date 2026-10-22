@@ -197,7 +197,9 @@ class FlowCytometryPanel(PluginBase):
             remove_population=self._gate_coordinator.remove_population,
             parent=self,
         )
-        self._academy_widgets = AcademyContext(derived_editor=self._derived_editor)
+        self._academy_widgets = AcademyContext(
+            derived_editor=self._derived_editor, gate_coordinator=self._gate_coordinator
+        )
 
         # ── Undo/redo & unsaved changes ───────────────────────────────
         # The store snapshots self.state (never a copy of it) into an SDK
@@ -740,17 +742,9 @@ class FlowCytometryPanel(PluginBase):
             )
 
             if not ok or not typed_name.strip():
-                # User canceled (Escape/Cancel) or entered a blank name; abort
-                # creation but leave the drawing tool exactly as it was — do
-                # NOT reset to "select" here. Escape is QInputDialog's own
-                # cancel shortcut, so a user who backs out of just the naming
-                # step (e.g. to redraw the shape) would otherwise have their
-                # tool silently deselected with no visual cue. Any further
-                # canvas clicks would then be interpreted as gate *selection*
-                # instead of drawing, so nothing ever gets created again —
-                # which, for an Academy step waiting on a gate being drawn,
-                # looks exactly like the tutorial "not recognizing" a
-                # perfectly good redraw when the user tries again.
+                # Cancelled or blank: no gate, but keep the drawing tool, so a
+                # redraw still draws (resetting it silently made later clicks
+                # select instead, and Academy steps looked stuck).
                 return
             name = typed_name.strip()
 

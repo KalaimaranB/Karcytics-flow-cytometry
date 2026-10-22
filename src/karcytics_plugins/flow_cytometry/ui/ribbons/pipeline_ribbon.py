@@ -130,6 +130,10 @@ class PipelineRibbon(ThemedToolbarContainer):
             sample_id = self._sample_combo.itemData(idx)
             self.logic_node_requested.emit(sample_id, operator)
 
+    @property
+    def orientation_label(self) -> str:
+        return self._orientation_combo.currentText()
+
     def refresh_samples(self) -> None:
         items = [
             (sample.display_name, sample_id)

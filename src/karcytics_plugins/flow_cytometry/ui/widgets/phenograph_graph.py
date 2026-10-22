@@ -16,6 +16,7 @@ from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.collections import LineCollection
 from PySide6.QtCore import Signal
 
+from ..academy_context import GraphClusterSnapshot
 from .cluster_map_view import ClusterMapView
 
 GUIDE = (
@@ -68,6 +69,14 @@ class PhenographGraphView(ClusterMapView):
             self._links[int(a)].append((int(b), float(strength)))
             self._links[int(b)].append((int(a), float(strength)))
         super().refresh()
+
+    def academy_clusters(self) -> list[GraphClusterSnapshot]:
+        return [
+            GraphClusterSnapshot(
+                c, self._name(c), self._phenotype(c), int(n), tuple(self._links.get(c, []))
+            )
+            for c, n in enumerate(self._counts)
+        ]
 
     def stands_apart(self, cluster: int) -> bool:
         """No link to any other cluster: a distinct group."""

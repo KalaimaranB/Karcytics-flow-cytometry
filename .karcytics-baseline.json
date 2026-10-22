@@ -169,8 +169,7 @@
       "KS300": 1137
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/course_second_opinions.py": {
-      "KS300": 1147,
-      "KS342": 15
+      "KS300": 1144
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/courses.py": {
       "KS310": 3
@@ -181,10 +180,9 @@
       "KS360": 5
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/validators.py": {
-      "KS300": 2630,
+      "KS300": 2619,
       "KS302:GateShapeValidator.validate_shape": 105,
       "KS310": 9,
-      "KS342": 31,
       "KS343": 2,
       "KS360": 30
     },
@@ -317,10 +315,10 @@
       "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/graph_window.py": {
-      "KS300": 901,
-      "KS301:GraphWindow": 35,
-      "KS302:GraphWindow._populate_axis_combos": 121,
-      "KS302:GraphWindow._render_initial": 116,
+      "KS300": 897,
+      "KS301:GraphWindow": 36,
+      "KS302:GraphWindow._populate_axis_combos": 116,
+      "KS302:GraphWindow._render_initial": 110,
       "KS310": 7,
       "KS320": 2,
       "KS342": 5,
@@ -393,7 +391,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
       "KS220": 3,
       "KS242": 6,
-      "KS300": 1620,
+      "KS300": 1614,
       "KS301:FlowCytometryPanel": 75,
       "KS302:FlowCytometryPanel.load_workflow": 106,
       "KS310": 5,
@@ -515,9 +513,9 @@
       "KS220": 1,
       "KS242": 8,
       "KS250": 1,
-      "KS300": 825,
+      "KS300": 811,
       "KS302:ComparisonsViewer._setup_ui": 191,
-      "KS310": 6,
+      "KS310": 4,
       "KS320": 1,
       "KS342": 3,
       "KS343": 1,
@@ -739,8 +737,8 @@
       "KS210": 3,
       "KS240": 54,
       "KS242": 2,
-      "KS300": 1382,
-      "KS301:SpectralLearningTab": 54,
+      "KS300": 1374,
+      "KS301:SpectralLearningTab": 55,
       "KS302:SpectralLearningTab._render_slide_4_predict_correct": 111,
       "KS310": 23,
       "KS320": 1,
@@ -751,7 +749,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_viewer.py": {
       "KS240": 4,
       "KS242": 11,
-      "KS300": 736,
+      "KS300": 733,
       "KS302:SpectralViewer._setup_ui": 149,
       "KS310": 5,
       "KS320": 3,
@@ -764,7 +762,7 @@
       "KS220": 2,
       "KS242": 15,
       "KS250": 1,
-      "KS300": 1378,
+      "KS300": 1377,
       "KS302:StatisticsExplorer._compute_results": 85,
       "KS302:StatisticsExplorer._populate_table": 133,
       "KS302:StatisticsExplorer._redraw_chart_locked": 151,

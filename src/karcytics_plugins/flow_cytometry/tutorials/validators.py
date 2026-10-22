@@ -705,10 +705,11 @@ class GateShapeValidator(FlowValidator):
             def _rename(panel: Any) -> None:
                 target_sample_id = sample_id or panel.state.view.current_sample_id
                 panel.state.view.current_gate_id = node_id
-                panel._gate_coordinator.rename_population(target_sample_id, node_id, correct_name)
+                coordinator = panel.academy_context().gate_coordinator
+                coordinator.rename_population(target_sample_id, node_id, correct_name)
                 # Supersede any active propagation (from the original add_gate
                 # call) that snapshotted the tree with the old, incorrect name.
-                panel._gate_coordinator.request_propagation(node_id, target_sample_id)
+                coordinator.request_propagation(node_id, target_sample_id)
 
             return ValidationFailure(
                 reason=f"Great shape! But you named it incorrectly. I renamed it to **{correct_name}** for you!",
@@ -721,7 +722,8 @@ class GateShapeValidator(FlowValidator):
 
             def _delete(panel: Any) -> None:
                 panel.state.view.current_gate_id = node_id
-                panel._on_delete_selected_gate(force_silent=True)
+                sample_id = panel.state.view.current_sample_id
+                panel.delete_gate_with_dialog(sample_id, node_id, force_silent=True)
 
             return ValidationFailure(
                 reason="That gate didn't quite capture the right range! I deleted it for you — try drawing it again.",
@@ -984,11 +986,7 @@ class PlotTypeValidator(FlowUIValidator):
         if not active_graph:
             return self.log_failure("No active graph found in graph manager.")
 
-        axis_panel = getattr(active_graph, "_axis_panel", None)
-        if not axis_panel or not hasattr(axis_panel, "_display_combo"):
-            return self.log_failure("Active graph missing axis panel or display combo.")
-
-        current_text = axis_panel._display_combo.currentText().lower()
+        current_text = active_graph.axis_panel.get_current_display_mode().value.lower()
         if current_text != self.expected:
             return self.log_failure(
                 f"Active plot type is '{current_text}', expected '{self.expected}'."
@@ -1005,10 +1003,10 @@ class PipelineOrientationValidator(FlowUIValidator):
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
 
         pipeline_ribbon = ui.pipeline_ribbon
-        if not pipeline_ribbon or not hasattr(pipeline_ribbon, "_orientation_combo"):
-            return self.log_failure("Pipeline ribbon or orientation combo missing.")
+        if pipeline_ribbon is None:
+            return self.log_failure("Pipeline ribbon missing.")
 
-        current_text = pipeline_ribbon._orientation_combo.currentText().lower()
+        current_text = pipeline_ribbon.orientation_label.lower()
         if current_text != self.expected:
             return self.log_failure(
                 f"Pipeline orientation is '{current_text}', expected '{self.expected}'."
@@ -1023,16 +1021,14 @@ class LearningCompensationCompleteValidator(FlowUIValidator):
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
 
         spectral_viewer = ui.spectral_viewer
-        if not spectral_viewer or not hasattr(spectral_viewer, "_learning_tab"):
-            return self.log_failure("Spectral viewer or learning tab missing.")
+        if spectral_viewer is None:
+            return self.log_failure("Spectral viewer missing.")
 
-        learning_tab = spectral_viewer._learning_tab
-        last_step = learning_tab._max_steps - 1
-        if learning_tab._current_step < last_step:
-            return self.log_failure(
-                f"Currently on step {learning_tab._current_step}, expected >= {last_step}."
-            )
-        if last_step not in learning_tab._completed_steps:
+        deck = spectral_viewer.learning_tab.academy_snapshot()
+        last_step = deck.last_step
+        if deck.step < last_step:
+            return self.log_failure(f"Currently on step {deck.step}, expected >= {last_step}.")
+        if last_step not in deck.completed:
             return self.log_failure(
                 "Reached the last slide but hasn't answered both reasoning questions yet."
             )
@@ -1079,9 +1075,9 @@ class StatsChartTypeValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         explorer = ui.statistics_explorer
-        if not explorer or not hasattr(explorer, "_chart_type_combo"):
-            return self.log_failure("Statistics explorer or chart type combo missing.")
-        current = explorer._chart_type_combo.currentText().lower()
+        if explorer is None:
+            return self.log_failure("Statistics explorer missing.")
+        current = explorer.academy_snapshot().chart_type_label.lower()
         if self._expected not in current:
             return self.log_failure(f"Chart type is '{current}', expected '{self._expected}'.")
         return True
@@ -1156,11 +1152,9 @@ class HistogramOverlayLayoutValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         viewer = ui.comparisons_viewer
-        panel = getattr(viewer, "_options_panels", {}).get(PlotType.HISTOGRAM_OVERLAY)
-        combo = getattr(panel, "_layout_combo", None)
-        if combo is None:
-            return self.log_failure("Histogram Overlay options panel or layout combo missing.")
-        current = (combo.currentData() or "").lower()
+        if viewer is None:
+            return self.log_failure("Comparisons viewer missing.")
+        current = viewer.academy_snapshot().histogram_layout.lower()
         if current != self._expected:
             return self.log_failure(f"Layout is '{current}', expected '{self._expected}'.")
         return True
@@ -1826,10 +1820,10 @@ class PopulationsCheckedValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         explorer = getattr(ui, self._explorer_attr)
-        selector = getattr(explorer, "_selector", None)
-        if not selector:
-            return self.log_failure(f"{self._explorer_attr} or its selector missing.")
-        checked = selector.get_checked_populations()
+        if explorer is None:
+            return self.log_failure(f"{self._explorer_attr} missing.")
+        picks = explorer.academy_snapshot().populations
+        checked = picks.checked
         checked_labels = [label.lower() for (_sample_id, _node_id, label) in checked]
         missing = [
             req for req in self._required if not any(req in label for label in checked_labels)
@@ -1841,7 +1835,7 @@ class PopulationsCheckedValidator(FlowUIValidator):
                 f"{len(checked)} populations checked, expected at most {self._max_checked} "
                 "— uncheck the extras."
             )
-        if self._require_popup_closed and selector.population_selector.isVisible():
+        if self._require_popup_closed and picks.picker_open:
             return self.log_failure("Population picker popup is still open.")
         return True
 
@@ -1859,18 +1853,14 @@ class StatsCheckedValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         explorer = ui.statistics_explorer
-        checkboxes = getattr(explorer, "_stat_checkboxes", None)
-        if not checkboxes:
-            return self.log_failure("Statistics explorer or stat checkboxes missing.")
-        missing = [
-            stat
-            for stat in self._required
-            if not checkboxes.get(stat, None) or not checkboxes[stat].isChecked()
-        ]
+        if explorer is None:
+            return self.log_failure("Statistics explorer missing.")
+        checked = explorer.academy_snapshot().checked_stats
+        missing = [stat for stat in self._required if stat not in checked]
         if missing:
             return self.log_failure(f"Missing required checked stats: {missing}")
         if self._max_checked is not None:
-            total_checked = sum(1 for cb in checkboxes.values() if cb.isChecked())
+            total_checked = len(checked)
             if total_checked > self._max_checked:
                 return self.log_failure(
                     f"{total_checked} stats checked, expected at most {self._max_checked} "
@@ -1888,7 +1878,7 @@ class StatsResultsReadyValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         explorer = ui.statistics_explorer
-        if not getattr(explorer, "_last_results", None):
+        if explorer is None or not explorer.academy_snapshot().has_results:
             return self.log_failure("Statistics haven't been computed yet.")
         return True
 
@@ -1896,8 +1886,8 @@ class StatsResultsReadyValidator(FlowUIValidator):
 class ComparisonsPlotGeneratedValidator(FlowUIValidator):
     """Verifies the Comparisons tab has rendered a plot of the given type.
 
-    Reads `_last_generated_plot_type` (set by `ComparisonsViewer._on_generate`),
-    not the dropdown, so changing the dropdown without regenerating keeps failing.
+    Reads the last generated plot type, not the dropdown, so changing the
+    dropdown without regenerating keeps failing.
     """
 
     def __init__(self, expected_type: PlotType) -> None:
@@ -1905,7 +1895,7 @@ class ComparisonsPlotGeneratedValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         viewer = ui.comparisons_viewer
-        generated = getattr(viewer, "_last_generated_plot_type", None)
+        generated = viewer.academy_snapshot().last_generated if viewer is not None else None
         if generated != self._expected:
             return self.log_failure(
                 f"Last generated plot was '{generated}', expected '{self._expected}'."
@@ -1981,7 +1971,7 @@ class ActiveGraphDerivedAxisValidator(FlowUIValidator):
         graph = graph_manager.get_active_graph() if graph_manager else None
         if graph is None:
             return self.log_failure("No active graph.")
-        x_param = graph._axis_panel.get_current_x()
+        x_param = graph.axis_panel.get_current_x()
         if x_param not in _ratio_param_ids(app_state, self._num, self._den):
             return self.log_failure(f"Active X axis is '{x_param}', not the derived ratio.")
         return True
@@ -1996,10 +1986,9 @@ class StatsDerivedChannelValidator(FlowUIValidator):
 
     def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
         explorer = ui.statistics_explorer
-        combo = getattr(explorer, "_channel_combo", None)
-        if combo is None:
+        if explorer is None:
             return self.log_failure("Statistics channel picker missing.")
-        channel = combo.currentData()
+        channel = explorer.academy_snapshot().channel
         if channel not in _ratio_param_ids(app_state, self._num, self._den):
             return self.log_failure(f"Statistics channel is '{channel}', not the ratio.")
         return True
@@ -2016,7 +2005,7 @@ class ComparisonsDerivedChannelValidator(FlowUIValidator):
         viewer = ui.comparisons_viewer
         if viewer is None:
             return self.log_failure("Comparisons viewer missing.")
-        checked = viewer._get_checked_channels()
+        checked = list(viewer.academy_snapshot().checked_channels)
         if len(checked) != 1 or checked[0] not in _ratio_param_ids(app_state, self._num, self._den):
             return self.log_failure(f"Comparisons channels are {checked}, not just the ratio.")
         return True
@@ -2266,7 +2255,7 @@ class GateEditTracker:
 
     def __init__(self, gate_name: str) -> None:
         self._name = gate_name.casefold()
-        self._baseline: dict | None = None
+        self.baseline: dict | None = None  # the gate before the edit; shared by its two checks
 
     def edited(self) -> FlowValidator:
         return _GateEdited(self)
@@ -2294,9 +2283,9 @@ class _GateEdited(FlowValidator):
         now = tracker.geometry(app_state)
         if now is None:
             return self.log_failure("The gate to edit wasn't found.")
-        if tracker._baseline is None:
-            tracker._baseline = now
-        if now == tracker._baseline:
+        if tracker.baseline is None:
+            tracker.baseline = now
+        if now == tracker.baseline:
             return self.log_failure("The gate hasn't been moved or resized yet.")
         return True
 
@@ -2307,11 +2296,11 @@ class _GateEditUndone(FlowValidator):
 
     def validate_flow(self, app_state: FlowState) -> bool:
         tracker = self._tracker
-        if tracker._baseline is None:
+        if tracker.baseline is None:
             return self.log_failure("No edit has been made to undo.")
-        if tracker.geometry(app_state) != tracker._baseline:
+        if tracker.geometry(app_state) != tracker.baseline:
             return self.log_failure("The gate is still in its edited shape.")
-        tracker._baseline = None  # a replay of the course starts afresh
+        tracker.baseline = None  # a replay of the course starts afresh
         return True
 
 

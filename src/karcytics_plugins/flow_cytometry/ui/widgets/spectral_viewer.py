@@ -424,17 +424,17 @@ class SpectralViewer(QWidget):
                 self._update_plot()
                 break
 
+    @property
+    def learning_tab(self) -> SpectralLearningTab:
+        return self._learning_tab
+
     def showEvent(self, event):
         super().showEvent(event)
         self._refresh_sources()
         self._autofill_from_samples()
 
     def _autofill_from_samples(self):
-        """First time the tab is shown with real channel data available, plot
-        every detected channel automatically instead of leaving the viewer
-        empty. Only runs once per widget lifetime so a user who deliberately
-        clears the plot doesn't have it silently repopulated on a later visit.
-        """
+        """Plot every channel the first time there are any; once, so a cleared plot stays clear."""
         if self._autofilled or self._source_list.count() == 0:
             return
         self._autofilled = True
@@ -486,11 +486,8 @@ class SpectralViewer(QWidget):
     def _refresh_sources(self) -> None:
         """Repopulate the channel list from every loaded sample's real panel.
 
-        Spectral analysis concerns the whole experiment's panel design, not
-        whichever single sample happens to be "open" elsewhere in the UI (which
-        may well be nothing — `view.current_sample_id` is only set once a user
-        explicitly opens a specific sample's plot). Channels are deduplicated
-        across samples, since one experiment's tubes share the same panel.
+        The panel is the experiment's, not one open sample's (often none is
+        open), so channels come from every sample, deduplicated.
         """
         self._source_list.clear()
         seen_channels: set[str] = set()

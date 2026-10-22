@@ -55,6 +55,8 @@ from karcytics_plugins.flow_cytometry.ui.widgets.selection.selector_panel import
 )
 
 from ...analysis.comparison_data import ComparisonsDataExtractor
+from ..academy_context import ComparisonsSnapshot, PopulationPicks
+from .comparisons.options.base import IOptionsPanel
 from .comparisons.plot_spec import ChannelMode, PlotType, PlotTypeSpec, PopulationMode, SampleMode
 from .comparisons.registry import PLOT_REGISTRY
 from .comparisons.worker import ComparisonsWorker
@@ -140,7 +142,7 @@ class ComparisonsViewer(QWidget):
         self._canvas_widget: FigureCanvasQTAgg | None = None
 
         # Build one options panel per plot type (instantiated once, reused)
-        self._options_panels: dict[PlotType, object] = {}
+        self._options_panels: dict[PlotType, IOptionsPanel] = {}
 
         # Tracks the previous plot type's ChannelMode so _refresh_channels()
         # can tell "still multi-channel, keep my checks" apart from "just
@@ -440,7 +442,7 @@ class ComparisonsViewer(QWidget):
         plot_type = self.current_plot_type()
         spec = PLOT_REGISTRY[plot_type]
         panel = self._options_panels[plot_type]
-        config = panel.get_config()  # type: ignore
+        config = panel.get_config()
 
         sample_ids = self._selector.get_checked_sample_ids()
         pop_pairs = self._selector.get_checked_populations()
@@ -499,17 +501,8 @@ class ComparisonsViewer(QWidget):
         self._generate_btn.setEnabled(True)
         self._progress_bar.hide()
 
-        # Remove old canvas. NOTE: `if container_layout:` is a trap here — a
-        # QLayout's truthiness in PySide6 follows __len__()/count(), not
-        # identity, so an *empty* layout (the container's own layout on the
-        # very first render, and on every render after since nothing was
-        # ever actually added) is falsy even though it's a perfectly valid
-        # object. That silently skipped addWidget() below on every single
-        # Generate Plot click — the figure always rendered correctly
-        # (Export/Download worked, since those read self._current_figure
-        # directly, bypassing the widget tree entirely) but the canvas was
-        # never parented into anything, so it stayed invisible. Must check
-        # `is not None` explicitly.
+        # Remove old canvas. `is not None`, not truthiness: an empty QLayout is
+        # falsy in PySide6, which once left every plot unparented and invisible.
         container_layout = self._canvas_container.layout()
         if container_layout is not None:
             while container_layout.count():
@@ -540,26 +533,10 @@ class ComparisonsViewer(QWidget):
         self._last_generated_plot_type = self._pending_plot_type
         self._worker = None
 
-        # matplotlib's Qt backend only performs a canvas's first real draw
-        # from a resizeEvent-triggered draw_idle() (FigureCanvasQT.__init__
-        # starts with _draw_pending=False — there's no draw scheduled at
-        # construction time). A canvas built fresh here and dropped into an
-        # *already-visible* container (unlike e.g. StatisticsExplorer's
-        # canvas, which is built once before the window is first shown and
-        # so rides the normal show/resize sequence) can end up with
-        # _draw_idle() firing before layout has assigned it a real size —
-        # that guards on width()<=0/height()<=0 and gives up permanently,
-        # since nothing else ever calls draw_idle() again. The figure was
-        # fully rendered (Export/Download worked), it just never made it to
-        # screen. Force one explicit, synchronous draw() here — unlike
-        # draw_idle() it has no size guard — so the canvas is guaranteed to
-        # actually paint regardless of that timing race.
-        #
-        # Deliberately not silent: if this raises, the status label must say
-        # so rather than claim "Plot ready" over a canvas that never
-        # actually painted — that mismatch (status says ready, screen stays
-        # blank) is exactly the symptom reported, so a swallowed exception
-        # here would hide the real cause instead of surfacing it.
+        # A canvas added to an already-visible container can get its only
+        # draw_idle() before layout sizes it; that draw gives up for good and
+        # the plot never shows. One synchronous draw() has no size guard.
+        # Not silent: a failure must not leave "Plot ready" over a blank canvas.
         try:
             canvas.draw()
         except Exception as e:
@@ -616,6 +593,15 @@ class ComparisonsViewer(QWidget):
 
     def _is_multi_channel_mode(self) -> bool:
         return self._current_spec().channel_mode == ChannelMode.MULTI
+
+    def academy_snapshot(self) -> ComparisonsSnapshot:
+        overlay = self._options_panels.get(PlotType.HISTOGRAM_OVERLAY)
+        return ComparisonsSnapshot(
+            PopulationPicks.of(self._selector),
+            self._last_generated_plot_type,
+            overlay.get_config()["layout"] if overlay is not None else "",
+            tuple(self._get_checked_channels()),
+        )
 
     def _get_checked_channels(self) -> list[str]:
         result = []
@@ -816,7 +802,7 @@ class ComparisonsViewer(QWidget):
                 panel.apply_theme(color_dict)
             if hasattr(panel, "_apply_theme_styles"):
                 panel._apply_theme_styles()
-            for combo in panel.findChildren(QWidget):  # type: ignore
+            for combo in panel.findChildren(QWidget):
                 if hasattr(combo, "_apply_theme_styles"):
                     combo._apply_theme_styles()
 

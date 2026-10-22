@@ -260,9 +260,13 @@ is 2,733 lines with 102 validator classes, and reaches widgets' private attribut
       `academy_context()`; the workspace builder fills it as Phase 2 builds each tab. Widget
       validators derive from `FlowUIValidator` and implement `validate_ui(state, ui)`; `AllOf`
       forwards the context. The 9 widget fields are gone from `ViewState`.
-- [ ] B5.2: each inspected widget exposes small public read-only queries (as
-      `ComparisonsViewer.current_plot_type()` does), replacing validators' reads of private
-      attributes (`lens._model`, `viewer._results_panel`, ...). Course by course.
+- [x] B5.2: validators and course text callbacks read only public widget state. Widgets with
+      several things to check return an `academy_snapshot()` (frozen dataclasses in
+      `ui/academy_context.py`); the rest gained a property (`SampleLensTab.model`,
+      `GraphWindow.axis_panel`, `PipelineRibbon.orientation_label`, ...). Academy corrections
+      act through `AcademyContext.gate_coordinator` and the panel's public delete. KS342 under
+      `tutorials/` went from 133 to 0; three widgets each gained one method (accepted in the
+      baseline). The rewritten checks gained tests against real widgets.
 - [ ] Split `tutorials/validators.py` by course. Leave the course content files as they are.
 
 ## B6. Adopt the SDK's shared pieces

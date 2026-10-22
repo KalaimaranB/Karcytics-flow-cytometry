@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -67,7 +66,7 @@ class TestDerivedEditorClosed:
 
 
 def _active_graph(x_param: str) -> AcademyContext:
-    graph = SimpleNamespace(_axis_panel=SimpleNamespace(get_current_x=lambda: x_param))
+    graph = SimpleNamespace(axis_panel=SimpleNamespace(get_current_x=lambda: x_param))
     return AcademyContext(graph_manager=SimpleNamespace(get_active_graph=lambda: graph))
 
 
@@ -90,9 +89,9 @@ class TestActiveGraphDerivedAxis:
 
 class TestStatsDerivedChannel:
     def _explorer(self, channel: str) -> AcademyContext:
-        combo = MagicMock()
-        combo.currentData.return_value = channel
-        return AcademyContext(statistics_explorer=SimpleNamespace(_channel_combo=combo))
+        snapshot = SimpleNamespace(channel=channel)
+        explorer = SimpleNamespace(academy_snapshot=lambda: snapshot)
+        return AcademyContext(statistics_explorer=explorer)
 
     def test_passes_when_ratio_selected(self):
         ui = self._explorer(RATIO.param_id)
@@ -118,7 +117,9 @@ class TestComparisonsDerivedChannel:
     )
     def test_only_the_ratio_checked(self, checked, expected):
         ui = AcademyContext(
-            comparisons_viewer=SimpleNamespace(_get_checked_channels=lambda: checked)
+            comparisons_viewer=SimpleNamespace(
+                academy_snapshot=lambda: SimpleNamespace(checked_channels=tuple(checked))
+            )
         )
         assert (
             ComparisonsDerivedChannelValidator("FITC-A", "APC-A").check(_state(RATIO), ui)

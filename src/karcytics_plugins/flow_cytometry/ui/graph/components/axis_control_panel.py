@@ -190,7 +190,7 @@ class AxisControlPanel(QWidget):
     def get_current_y_text(self) -> str:
         return self._y_combo.currentText()
 
-    def get_current_display_mode(self) -> object:
+    def get_current_display_mode(self) -> DisplayMode:
         return self._display_combo.currentData()
 
     def get_current_fmo(self) -> str:

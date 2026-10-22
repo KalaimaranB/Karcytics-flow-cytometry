@@ -109,18 +109,17 @@ def _apart(graph: Any) -> dict[str, str]:
 
     Keyed by phenotype, since cluster numbers change with the resolution.
     """
-    total = max(int(graph._counts.sum()), 1)
+    clusters = graph.academy_clusters()
+    total = max(sum(c.count for c in clusters), 1)
     return {
-        graph._phenotype(c): (
-            f"**{graph._name(c)}** ({graph._phenotype(c)}, {graph._counts[c] / total:.1%})"
-        )
-        for c in range(len(graph._counts))
-        if graph.stands_apart(c) and graph._counts[c]
+        c.phenotype: f"**{c.name}** ({c.phenotype}, {c.count / total:.1%})"
+        for c in clusters
+        if c.stands_apart and c.count
     }
 
 
 def _fill_first_run(graph: Any) -> None:
-    n = len(graph._counts)
+    n = len(graph.academy_clusters())
     apart = _apart(graph)
     _SEEN["pg_n"] = n
     _SEEN["pg_apart"] = set(apart)
@@ -154,18 +153,16 @@ def _fill_first_run(graph: Any) -> None:
 
 def _pg_b220_text(graph: Any) -> str:
     tags = clusters_positive_for(graph, "B220")
-    ids = {graph._name(c): c for c in range(len(graph._counts))}
-    mine = {ids[t] for t in tags if t in ids}
-    links = sum(
-        1 for c in mine for other, _s in graph._links.get(c, []) if other in mine and other > c
-    )
+    clusters = graph.academy_clusters()
+    mine = {c.cluster: c for c in clusters if c.name in tags}
+    links = sum(1 for c in mine.values() for o, _s in c.links if o in mine and o > c.cluster)
     joined = (
         "Most are joined by lines: one big population, cut along a gradient of marker levels."
         if links >= len(mine) - 1
         else "Few lines join them, so some may be separate B-cell groups."
     )
     return (
-        f"B220 lights up **{len(tags)} of {len(graph._counts)} clusters**: "
+        f"B220 lights up **{len(tags)} of {len(clusters)} clusters**: "
         f"your B cells, the biggest population here 🅱️<br><br>{joined}<br><br>"
         "Like FlowSOM at k = 10, PhenoGraph at resolution 1.0 splits a big "
         "population finely. Unlike FlowSOM, you didn't ask for that number."
@@ -190,7 +187,7 @@ def _pg_res05_text(graph: Any) -> str:
             "links to the rest are too weak to draw."
         )
     return (
-        f"From **{before}** clusters to **{len(graph._counts)}** 🔁<br><br>"
+        f"From **{before}** clusters to **{len(graph.academy_clusters())}** 🔁<br><br>"
         "Clusters that were split along a gradient merged; the links between "
         "cells didn't change, only how finely they're divided."
         + "".join(f"<br><br>{line}" for line in lines)
@@ -235,7 +232,7 @@ def _pg_findings_text(pairs: list[tuple[Any, Any]]) -> str:
 
 def _pg_res10_text(lens: Any) -> str:
     before = _SEEN.get("pg_findings", set())
-    pairs = list(zip(lens._model.findings, lens._model.agreements, strict=False))
+    pairs = list(zip(lens.model.findings, lens.model.agreements, strict=False))
     now = {_what(f) for f, _a in pairs}
     new = [(f, a) for f, a in pairs if _what(f) not in before]
     gone = len(before - now)

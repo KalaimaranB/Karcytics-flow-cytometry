@@ -143,3 +143,38 @@ def test_a_cluster_with_no_links_stands_apart_in_the_legend(viewer):
     texts = [graph._legend.item(i).text() for i in range(graph._legend.count())]
     assert any("stands apart" in t for t in texts)
     assert "standing apart" in graph._title()
+
+
+@pytest.mark.ui
+def test_course_6_checks_and_texts_read_the_cluster_graph(viewer):
+    from karcytics_plugins.flow_cytometry.tutorials.course_second_opinions import (
+        _apart,
+        _pg_b220_text,
+    )
+    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+        PhenographColorValidator,
+        PhenographResolutionValidator,
+        PhenographResultsReadyValidator,
+    )
+    from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
+
+    state, ui = viewer._state, AcademyContext(population_analysis=viewer)
+    assert not PhenographResultsReadyValidator().check(state, ui)
+
+    run_phenograph(viewer)
+    seen = []
+    assert PhenographResultsReadyValidator(on_found=seen.append).check(state, ui)
+    graph = seen[0]
+    assert PhenographResolutionValidator(0.1).check(state, ui)
+    assert not PhenographResolutionValidator(1.0).check(state, ui)
+
+    combo = graph._color_combo
+    combo.setCurrentIndex(next(i for i in range(combo.count()) if "CD3" in combo.itemText(i)))
+    assert PhenographColorValidator("CD3").check(state, ui)
+    assert not PhenographColorValidator("CD8").check(state, ui)
+
+    clusters = graph.academy_clusters()
+    assert sum(c.count for c in clusters) > 0
+    assert [c.stands_apart for c in clusters] == [graph.stands_apart(c.cluster) for c in clusters]
+    assert set(_apart(graph)) == {c.phenotype for c in clusters if c.stands_apart and c.count}
+    assert f"of {len(clusters)} clusters" in _pg_b220_text(graph)

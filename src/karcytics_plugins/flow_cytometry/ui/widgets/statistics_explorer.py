@@ -63,6 +63,7 @@ from karcytics_plugins.flow_cytometry.analysis.statistics import (
     StatType,
     compute_statistic,
 )
+from karcytics_plugins.flow_cytometry.ui.academy_context import PopulationPicks, StatisticsSnapshot
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
@@ -508,6 +509,15 @@ class StatisticsExplorer(QWidget):
 
     # ── Public API ────────────────────────────────────────────────────────────
 
+    def academy_snapshot(self) -> StatisticsSnapshot:
+        return StatisticsSnapshot(
+            PopulationPicks.of(self._selector),
+            frozenset(stat for stat, cb in self._stat_checkboxes.items() if cb.isChecked()),
+            self._chart_type_combo.currentText(),
+            self._channel_combo.currentData(),
+            bool(self._last_results),
+        )
+
     def refresh_samples(self) -> None:
         """Populate the sample list from the current experiment state.
 
@@ -932,20 +942,16 @@ class StatisticsExplorer(QWidget):
         if chart_stat is None:
             return
 
-        # Use the snapshot taken at Compute time, not the live checkbox state —
-        # otherwise checking a sample/population after computing (without
-        # re-running Compute) would look up keys absent from _last_results and
-        # silently render as fabricated zeros instead of the actual data.
+        # The samples as of Compute, not the live checkboxes: ones checked since
+        # have no results and would render as made-up zeros.
         sample_ids = self._current_sample_ids
         sample_names = []
         for sid in sample_ids:
             s = self._state.data.experiment.samples.get(sid)
             sample_names.append(s.display_name if s else sid)
 
-        # Figure/axes construction and layout below invoke matplotlib's Agg/
-        # FreeType C backend, which is not thread-safe with RenderTask's
-        # background-thread rendering of the main canvas / group previews.
-        # MPL_RASTER_LOCK must be held for the same reason ComparisonsWorker holds it.
+        # Building the figure uses matplotlib's thread-unsafe Agg backend, which
+        # background render tasks share: hold MPL_RASTER_LOCK.
         with MPL_RASTER_LOCK:
             self._redraw_chart_locked(chart_type, chart_stat, sample_ids, sample_names)
 
@@ -1182,17 +1188,10 @@ class StatisticsExplorer(QWidget):
             return
 
         try:
-            # Row dicts can carry extra f"{key}::scale" bookkeeping entries
-            # for estimated cells (see _populate_table) that aren't present
-            # on every row and were never meant to be their own CSV column
-            # — DictWriter raises if a later row has a key the first row's
-            # fieldnames (derived from row 0 alone) never saw. Fold each
-            # scaled value's own "*" marker (same convention the table
-            # itself shows) into the displayed value instead, and drop the
-            # bookkeeping key before ever building fieldnames. The whole
-            # thing stays inside this try, not just the file write, so an
-            # unanticipated shape here reports as a diagnostic instead of
-            # an unhandled crash (see comment below on why).
+            # Fold each estimated cell's f"{key}::scale" bookkeeping into a "*"
+            # on its value (as the table shows) and drop the key: rows differ in
+            # which they carry, and DictWriter fails on a key row 0 lacks. All
+            # inside the try, so a surprise shape reports instead of crashing.
             rows = []
             for row in self._last_results:
                 clean: dict = {}
