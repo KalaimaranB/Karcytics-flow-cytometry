@@ -110,21 +110,17 @@ start as warnings under the baseline ratchet.
 Explicitly **not** rules: comment density, line-length-style taste, naming. These are too noisy,
 and an agent will game them.
 
-## A3. Rolling out the rules without crying wolf
+## A3. Rolling out the rules — done
 
-- [ ] Write each rule with an SDK unit test of minimal positive and negative fixtures, following
-      the existing `tests/unit/evaluator` pattern.
-- [ ] **Calibrate on real code before choosing severity.** Run every new rule over flow,
-      western-blot, cytometrics and SyntheticBiology. Flow is the golden set: the rule must
-      flag the instances listed in A2 (the recall check). Hand-check 20 random hits across the
-      other plugins for false positives (the precision check). Ship as a warning only if
-      precision is at least about 80%; otherwise ship as info.
-- [ ] Commit each repo's initial baseline in the same PR that turns the hook on.
-- [ ] Document each rule in the SDK's `docs/Doctor.md`, which `catalog.py` is already checked
-      against.
+- [x] Each rule has SDK unit tests with positive and negative fixtures (`tests/unit/evaluator`).
+- [x] Calibration was replaced by the baseline ratchet: every rule ships as a warning, existing
+      hits are recorded in each repo's `.karcytics-baseline.json`, and only growth blocks a
+      commit. False positives found on flow were fixed in the SDK (5de18e1, 559ee55).
+- [x] Flow's baseline was committed with the hook (f5bf3ca).
+- [x] All 71 rules are documented in the SDK's `docs/Doctor.md`.
 
-Exit for Part A: an agent editing flow sees new findings in-turn, a commit that grows any
-baseline is blocked, and `doctor` flags every A2 row on today's flow code.
+Exit for Part A is met: findings show in-turn through the Claude hook, pre-commit and CI block
+growth, and the doctor flags the A2 rows on flow.
 
 ---
 
@@ -224,94 +220,114 @@ with `IPlotRenderer`, inline `with MPL_RASTER_LOCK:` in three widgets, and an ad
       The combo carries the id as item data, `ComparisonsViewer.current_plot_type()` returns it,
       and the Course 6 validators compare ids instead of substrings of the label.
 
+> **Re-baselined 2026-10-21** (flow `5f31335`, SDK `9f47022`) after B1–B4 and the SDK's
+> 2026-10-18 additions. Numbers below are re-measured; the SDK half of B5 and B6 already exists.
+> Recommended order: **B9a → B5 → B6 → B8 → B7 → B9b**, pausing for review after each chunk.
+
+## B9a. Run the tests against the real SDK (moved first)
+
+Every later step is a refactor, and today the suite cannot catch an SDK-facing break:
+`tests/conftest.py` (362 lines) replaces `karcytics_sdk`, `.plugin`, `.components`, `.tasks`,
+`.events` and `.workflow` with `MagicMock`s and dummy widgets.
+
+- [ ] Use the real SDK on the offscreen Qt platform; keep only fixtures that stand in for
+      the Hub's runtime services (event bus, task scheduler) where a test needs control.
+- [ ] Delete the fake `karcytics` (Hub) module: flow never imports the Hub, so it is dead.
+- [ ] Fold the contract test back into the normal run (drop `--noconftest`, the separate
+      pre-commit hook and CI step).
+- [ ] `tests/integration/test_ui_daemon.py` reimplements the daemon harness the SDK now ships
+      (`karcytics_sdk.testing.ui_daemon`: `spawn_ui_daemon`, `DaemonIO`); use it.
+
 ## B5. Get widgets out of the state object
 
-`ViewState` holds live widget references (`_population_analysis_viewer`, `_graph_manager`,
-`_sample_lens`, …, 9 in total), and the 102 Academy validators read them through 53
-`getattr(obj, "_private")` calls. Renaming a private attribute silently stalls a course.
+The SDK half is done (9e0fe91): `PluginBase.academy_context()`, and `IValidator.check()` /
+`describe()` receive it. Flow does not use it yet.
 
-- [ ] **SDK:** let tutorial validators receive a plugin-supplied context next to the state.
-- [ ] **Flow:** add a typed `AcademyContext`. Each inspected panel exposes a public read-only
-      snapshot query that returns a dataclass.
-- [ ] Remove the widget fields from `ViewState` (KS332 keeps them out).
-- [ ] Split `tutorials/validators.py` (2712 lines) by course. Leave the course content files
-      as they are.
+`ViewState` holds 9 widget references (KS332: `_graph_manager`, `_pipeline_ribbon`,
+`_spectral_viewer`, `_statistics_explorer`, `_comparisons_viewer`, `_compensation_view`,
+`_population_analysis_viewer`, `_sample_lens`, `_derived_editor`). `tutorials/validators.py`
+is 2,733 lines with 102 validator classes, and reaches widgets' private attributes throughout.
 
-## B6. SDK consolidation and theming (merged from the old plan's DRY and SDK-gap items)
+- [ ] Add a typed `AcademyContext` returned by the panel's `academy_context()`. Each inspected
+      widget exposes small public read-only queries (as `ComparisonsViewer.current_plot_type()`
+      now does); validators override `check(state, context)`.
+- [ ] Move validators over course by course, then remove the 9 widget fields from `ViewState`.
+- [ ] Split `tutorials/validators.py` by course. Leave the course content files as they are.
 
-- [ ] Migrate the remaining 23 `_apply_theme_styles` to `theme_manager.apply_style()`. These
-      need case-by-case work: the hard ones branch on state or drive matplotlib. KS242 stops new
-      ones appearing.
-- [ ] Fold `FlowComboBox`'s one behaviour change (no text elision) into `BioComboBox` as an
-      option, and migrate its 14 users.
-- [ ] **SDK:** add a theme-aware matplotlib `style_axes(ax)` to replace the five copies.
-      Replace the five `_section_label`s with `BioCaptionLabel`.
-- [ ] **SDK:** add a generic canvas zoom-controls overlay. It replaces the two in flow
-      (`node_canvas/canvas_view.py`, `gate_hierarchy/widget.py`).
-- [ ] **SDK:** add a "confirm destructive action, with a details list" dialog (pattern from
-      `node_canvas/canvas_view.py`'s delete preview). It is also usable by B2's delete flow.
-- [ ] **SDK:** move `contrib/image_utils.py` (western-blot-specific) out of the generic SDK
-      surface.
-- [ ] Migrate `axis_control_panel.py` to `repopulate_combo`. This needs its external
-      incremental API (`add_channel` / `set_current_x` …) redesigned first.
+## B6. Adopt the SDK's shared pieces
+
+The SDK side is done (332a609, 45a925f): `rendering.style_axes` / `AxesColors`,
+`ZoomControls`, `dialogs.confirm_destructive`, `BioComboBox(fit_contents=True)`, and
+`image_utils` deprecated. What is left is flow's migration:
+
+- [ ] Five local axes stylers → `style_axes` (`spectral_learning_tab`, `spectral_viewer`, and the
+      violin, heatmap and pseudocolor-overlay renderers).
+- [ ] Five `_section_label`s → `BioCaptionLabel` (`population_analysis_viewer`,
+      `statistics_explorer`, `comparisons_viewer`, `spectral_viewer`, `selection/selector_panel`).
+- [ ] `FlowComboBox` (13 users) → `BioComboBox(fit_contents=True)`; delete `styled_combo.py`.
+- [ ] Zoom overlays in `node_canvas/canvas_view.py` and `gate_hierarchy/` → `ZoomControls`.
+- [ ] Deletes that affect other items (gate subtree, node-canvas delete preview) →
+      `confirm_destructive`.
+- [ ] The 7 hand-rebuilt combos (KS243) → `repopulate_combo`, including `axis_control_panel`
+      after its incremental API (`add_channel` / `set_current_x` …) is reworked.
+- [ ] The 22 `_apply_theme_styles` → `theme_manager.apply_style()` where the stylesheet is
+      static; the ones that branch on state or drive matplotlib go with their widget in B7.
+
+Not in scope here: the bulk theming debt (216 hard-coded colours KS240, 173 hand-built
+stylesheets KS242, 76 raw Qt widgets KS210, 18 raw dialogs KS220). The ratchet stops growth;
+each file pays its share when B7 splits it.
 
 ## B7. Split the god classes
 
-This comes after B2–B6 on purpose, because those phases empty out much of each file.
+Comes after B5/B6, which empty out much of each file. Sizes today:
 
-- [ ] `ui/main_panel.py` (1649 lines, 80 methods). Target ≤ 600 lines.
-      - Gate events and delete go to a `GatingController`.
-      - Workflow load/save/close goes to the existing `WorkspaceIOHandler`.
-      - Async startup goes to a startup sequencer.
-      - Academy hooks go to the existing `AcademyWorkflowController`.
-- [ ] `population_analysis_viewer.py` (1534).
-- [ ] `cluster_results_panel.py` (1406).
-      - Start with the ~340-line `_build_unified_statistics_tab`, which becomes its own widget.
-      - Move `CopyableCanvas` / `CopyablePixmapLabel` to a shared module.
-      - *(old perf plan, deferred item)* Move the Interactive Map tab onto the SDK canvas
-        rather than a bespoke `CopyableCanvas`.
-- [ ] `statistics_explorer.py` (1396). Use the old plan's targets: a table presenter, a chart
-      renderer on the B4 contract, and an export/clipboard service.
-- [ ] `spectral_learning_tab.py` (1382).
-- [ ] `flow_canvas.py` (1278). Extract `GateHitTester` and move tutorial-guide drawing into an
-      overlay, following the existing `gate_drawing_fsm.py` pattern.
-- [ ] `graph_window.py` (909), `comparisons_viewer.py` (826).
+- [ ] `ui/main_panel.py` (1,623). Target ≤ 600: gate events and delete → a `GatingController`;
+      workflow load/save/close → `WorkspaceIOHandler`; async startup → a startup sequencer;
+      Academy hooks → `AcademyWorkflowController`.
+- [ ] `population_analysis_viewer.py` (1,527).
+- [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
+      its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the
+      Interactive Map tab onto the SDK canvas.
+- [ ] `spectral_learning_tab.py` (1,382).
+- [ ] `statistics_explorer.py` (1,378): table presenter, chart on `IPlotRenderer` (see B4),
+      export/clipboard service.
+- [ ] `flow_canvas.py` (1,278): extract `GateHitTester`; tutorial-guide drawing into an overlay
+      (the `gate_drawing_fsm.py` pattern).
+- [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
+- [ ] `graph_window.py` (901), `comparisons_viewer.py` (825).
+- [ ] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:
+      `statistics_explorer`, `cluster_results_panel`, `cluster_map_view`,
+      `compensation_preview`.
 
 ## B8. Composition root and typing
 
-- [ ] Replace the string-keyed `ServiceFactory.get("…") -> Any` with a frozen dataclass of
-      typed services.
+- [ ] Replace the string-keyed `ServiceFactory.get("…") -> Any` (20 call sites) with a frozen
+      dataclass of typed services.
 - [ ] Build `FlowStore`, `DerivedEditorController` and `AcademyWorkflowController` in the
-      composition root (the repo's own documented rule).
-- [ ] Hoist the in-function imports that only existed to break cycles. Mark deliberate startup
-      ones with `# karcytics: allow KS360 - <reason>`.
-- [ ] Initialise the attributes behind the 203 defensive `getattr(self, …)` reads in `__init__`.
+      composition root.
+- [ ] Move scheduling out of `analysis/` (KS205, 7: the propagator's `Debouncer`, the
+      FCS/UMAP/PhenoGraph `PluginDaemon` use, `UmapService`'s `AnalysisWorker`) and replace the
+      hand-rolled FCS warm-up thread (KS231).
+- [ ] Hoist the in-function imports that only broke cycles (KS360: 406). Mark deliberate
+      startup ones `# karcytics: allow KS360 - <reason>`.
+- [ ] Initialise in `__init__` the attributes behind the 142 `getattr`/`hasattr(self, …)` reads
+      (KS343: 136).
 
-## B9. Tests and CI (merged from both old plans)
+## B9b. Tests and CI, the rest
 
-- [x] Add `tests/contract/test_contract.py` subclassing the SDK's `ContractTestBase` (KS142).
-      It runs with `--noconftest` because of the next item.
-- [ ] **Stop mocking the SDK in `tests/conftest.py`.** It replaces `karcytics_sdk`, its plugin,
-      components and theme modules with `MagicMock`s and dummy widgets, so the suite tests flow
-      against a fake SDK: a renamed SDK API still passes, and real SDK widget/theme behaviour
-      never runs. Use the real SDK on the offscreen Qt platform and fix what breaks.
-- [ ] Close the coverage gaps, all still open:
-      - `biology_services.py` (zero tests)
-      - nested AND-of-OR-of-NOT in `DagEvaluator`
-      - a dedicated `gating/subset.py` test
-      - near-singular and underdetermined spillover matrices at the `analysis/compensation.py`
-        level (only a UI-level test exists today)
-- [ ] Do the deferred rewrites now that the code has settled: drive
-      `test_comparisons_plot_types.py` through `ComparisonsWorker.run()` / `_on_render_done()`
-      rather than the widget, and make `test_selection_widgets.py` headless.
-- [ ] Add a coverage gate `--cov-fail-under` to the `-m "not ui"` CI lane, starting at current
-      coverage minus 2 and only ever raised.
-- [ ] Docstrings: remove `D100`–`D103` from `ruff.toml`'s ignore list for `analysis/` only (the
-      public science API), using per-file ignores for `ui/`.
-- [ ] Magic numbers (77 `PLR2004`): lift the domain ones (thresholds, bin counts, defaults) into
-      `analysis/constants.py` as B3/B4 touch them; leave pixel sizes inline. The baseline
-      covers the rest.
-- [ ] CI hardening: pin actions to commit SHAs, add `.github/dependabot.yml` and `CODEOWNERS`.
+- [x] `tests/contract/test_contract.py` subclasses the SDK's `ContractTestBase` (KS142).
+- [ ] Coverage gaps, all still open: `biology_services.py` (zero tests); nested AND-of-OR-of-NOT
+      in the DAG evaluator; a dedicated `gating/subset.py` test; near-singular and
+      underdetermined spillover matrices at the `analysis/compensation.py` level.
+- [ ] Deferred rewrites: drive `test_comparisons_plot_types.py` through
+      `ComparisonsWorker.run()` / `_on_render_done()`, and make `test_selection_widgets.py`
+      headless.
+- [ ] Coverage gate `--cov-fail-under` on the `-m "not ui"` CI lane (current minus 2, raise only).
+- [ ] Docstrings required in `analysis/` only (drop D100–D103 there; per-file ignores for `ui/`).
+- [ ] Domain magic numbers (77 `PLR2004`) into `analysis/constants.py`; pixel sizes stay inline.
+- [ ] Reasons on suppressions (KS310: 335), file by file as each is touched.
+- [ ] CI hardening: pin `deploy-docs.yml`'s actions to SHAs (`release.yml` is partly pinned),
+      add `.github/dependabot.yml` and `CODEOWNERS`.
 
 ---
 
