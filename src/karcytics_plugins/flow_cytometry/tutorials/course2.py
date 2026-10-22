@@ -20,26 +20,21 @@ from karcytics_sdk.plugin.tutorial_models import (
 
 from ..main_tabs import MainTab
 from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
-from .validators import (
-    AllOf,
-    AxisChannelValidator,
-    AxisOutlierValidator,
+from .validators.base import AllOf, TabActiveValidator, WorkflowSavedValidator
+from .validators.checkpoints import SetupAndCellsStateValidator
+from .validators.compensation import (
     CompensationFitGateValidator,
     CompensationMethodValidator,
     CompensationPageValidator,
     EditorMatrixValidator,
     EmbeddedMatrixInUseValidator,
-    ExactSampleOpenValidator,
-    GateShapeValidator,
     IllustrationPlayedValidator,
     MatricesComparedValidator,
     PreviewShowsValidator,
     SavedMatrixValidator,
-    SetupAndCellsStateValidator,
-    SpecificSampleOpenValidator,
-    TabActiveValidator,
-    WorkflowSavedValidator,
 )
+from .validators.gating import AxisChannelValidator, AxisOutlierValidator, GateShapeValidator
+from .validators.setup import ExactSampleOpenValidator, SpecificSampleOpenValidator
 
 # ==============================================================================
 # Course 2 Gate Quality Validators

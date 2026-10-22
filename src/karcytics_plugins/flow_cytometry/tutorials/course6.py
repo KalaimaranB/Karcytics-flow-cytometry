@@ -51,26 +51,25 @@ from karcytics_sdk.plugin.tutorial_models import (
 from ..analysis.statistics import StatType
 from ..main_tabs import MainTab
 from ..ui.widgets.comparisons.plot_spec import PlotType
-from .validators import (
+from .validators.base import AllOf, TabActiveValidator, WorkflowSavedValidator
+from .validators.checkpoints import PopulationAnalysisCompleteValidator
+from .validators.derived import (
     ActiveGraphDerivedAxisValidator,
-    AllOf,
-    ComparisonPlotTypeValidator,
     ComparisonsDerivedChannelValidator,
-    ComparisonsPlotGeneratedValidator,
     DerivedEditorClosedValidator,
     DerivedRatioExistsValidator,
+    StatsDerivedChannelValidator,
+)
+from .validators.gating import PlotTypeValidator, SampleAndGateOpenValidator
+from .validators.reports import (
+    ComparisonPlotTypeValidator,
+    ComparisonsPlotGeneratedValidator,
     ExportDoneValidator,
     HistogramOverlayLayoutValidator,
-    PlotTypeValidator,
-    PopulationAnalysisCompleteValidator,
     PopulationsCheckedValidator,
-    SampleAndGateOpenValidator,
     StatsChartTypeValidator,
     StatsCheckedValidator,
-    StatsDerivedChannelValidator,
     StatsResultsReadyValidator,
-    TabActiveValidator,
-    WorkflowSavedValidator,
 )
 
 course_6_reporting = Course(

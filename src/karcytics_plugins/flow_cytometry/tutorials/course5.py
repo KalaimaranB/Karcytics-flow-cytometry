@@ -55,9 +55,10 @@ from karcytics_sdk.plugin.tutorial_models import (
 
 from ..analysis.sample_lens import Finding, FindingKind
 from ..main_tabs import MainTab
-from .validators import (
-    AllOf,
-    ClusteredRunValidator,
+from .validators.base import AllOf, TabActiveValidator, WorkflowSavedValidator
+from .validators.checkpoints import LineageGatingCompleteValidator
+from .validators.clustering import ClusteredRunValidator
+from .validators.lens import (
     LensColumnsValidator,
     LensFindingFocusedValidator,
     LensFindingValidator,
@@ -70,9 +71,6 @@ from .validators import (
     LensRunMethodValidator,
     LensRunReadyValidator,
     LensSampleValidator,
-    LineageGatingCompleteValidator,
-    TabActiveValidator,
-    WorkflowSavedValidator,
 )
 
 TCELL_AXES = ("FITC-A", "Pacific Blue-A")  # B220 x CD3, where the T-cells gate lives

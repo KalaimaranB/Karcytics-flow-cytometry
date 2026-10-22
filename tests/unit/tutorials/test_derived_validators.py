@@ -8,15 +8,15 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.derived import DerivedParameter
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.tutorials.validators import (
+from karcytics_plugins.flow_cytometry.tutorials.validators.base import AllOf
+from karcytics_plugins.flow_cytometry.tutorials.validators.derived import (
     ActiveGraphDerivedAxisValidator,
-    AllOf,
     ComparisonsDerivedChannelValidator,
     DerivedEditorClosedValidator,
     DerivedRatioExistsValidator,
-    ExportDoneValidator,
     StatsDerivedChannelValidator,
 )
+from karcytics_plugins.flow_cytometry.tutorials.validators.reports import ExportDoneValidator
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 
 RATIO = DerivedParameter("derived:ratio001", "B220/CD45", "[FITC-A] / [APC-A]")

@@ -46,30 +46,30 @@ from karcytics_sdk.plugin.tutorial_models import (
 
 from ..analysis.population_matching import PATH_SEP
 from ..main_tabs import MainTab
-from .validators import (
-    AllOf,
+from .validators.base import AllOf, TabActiveValidator, WorkflowSavedValidator
+from .validators.checkpoints import LineageGatingCompleteValidator
+from .validators.clustering import (
     ClusteredRunValidator,
     ClusteringMethodValidator,
     FlowsomColorValidator,
     FlowsomKValidator,
     FlowsomResultsReadyValidator,
+    NewRunSelectedValidator,
+    PhenographColorValidator,
+    PhenographResolutionValidator,
+    PhenographResultsReadyValidator,
+    UmapChannelExcludedValidator,
+    UmapGateSelectedValidator,
+    UmapSampleSelectedValidator,
+    clusters_positive_for,
+)
+from .validators.lens import (
     LensAgreementValidator,
     LensKValidator,
     LensResolutionValidator,
     LensRunMethodValidator,
     LensRunReadyValidator,
     LensSampleValidator,
-    LineageGatingCompleteValidator,
-    NewRunSelectedValidator,
-    PhenographColorValidator,
-    PhenographResolutionValidator,
-    PhenographResultsReadyValidator,
-    TabActiveValidator,
-    UmapChannelExcludedValidator,
-    UmapGateSelectedValidator,
-    UmapSampleSelectedValidator,
-    WorkflowSavedValidator,
-    clusters_positive_for,
 )
 
 EXCLUDED = ("PerCP-Cy5-5-A", "APC-A")  # PI and CD45, as in Course 4

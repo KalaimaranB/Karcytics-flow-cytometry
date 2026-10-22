@@ -42,15 +42,10 @@ from karcytics_sdk.plugin.tutorial_models import (
 )
 
 from ..main_tabs import MainTab
-from .validators import (
+from .validators.base import TabActiveValidator, WorkflowSavedValidator
+from .validators.checkpoints import LineageGatingCompleteValidator
+from .validators.clustering import (
     ClusterResultsTabActiveValidator,
-    ExactSampleOpenValidator,
-    GateExistsValidator,
-    LineageGatingCompleteValidator,
-    LogicGateExistsValidator,
-    LogicNodeStatsReadyValidator,
-    PipelineOrientationValidator,
-    TabActiveValidator,
     UmapBestBCellClusterValidator,
     UmapChannelExcludedValidator,
     UmapGateSelectedValidator,
@@ -60,8 +55,14 @@ from .validators import (
     UmapRunNameProvidedValidator,
     UmapSampleSelectedValidator,
     UmapSubsampleValueValidator,
-    WorkflowSavedValidator,
 )
+from .validators.gating import (
+    GateExistsValidator,
+    LogicGateExistsValidator,
+    LogicNodeStatsReadyValidator,
+    PipelineOrientationValidator,
+)
+from .validators.setup import ExactSampleOpenValidator
 
 # ==============================================================================
 # Course 4 — Run & Validate
@@ -1001,16 +1002,9 @@ course_4_analysis = Course(
             failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
         ),
         InfoStep(
-            # The true end of Course 4 — no next_step_id, so
-            # AcademyManager.next_step() treats this as course completion
-            # and awards badge_reward ("Population Analyst") the moment the
-            # user clicks Next. Unlike the old Part 1/Part 2 soft-stops,
-            # this one is real: everything Courses 5–7 depend on (the
-            # run, the exported population, the AND node, the saved workspace)
-            # is genuinely in place by this point. What's next (Course 5) is
-            # already shown on the Academy catalog card, so this doesn't
-            # need its own teaser steps — matches Course 1's compact
-            # one-step ending.
+            # The end of Course 4: no next_step_id, so Next completes the course
+            # and awards the badge. Everything Courses 5–7 need (the run, the
+            # exported population, the AND node, the saved workspace) is in place.
             id="c4_s58_graduation",
             text=(
                 "Your workspace is updated!<br><br>Course 4 is complete — "

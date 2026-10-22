@@ -5,8 +5,8 @@ import pytest
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.sample_lens import FindingKind
-from karcytics_plugins.flow_cytometry.tutorials.validators import (
-    ClusteredRunValidator,
+from karcytics_plugins.flow_cytometry.tutorials.validators.clustering import ClusteredRunValidator
+from karcytics_plugins.flow_cytometry.tutorials.validators.lens import (
     LensFindingFocusedValidator,
     LensFindingValidator,
     LensPopulationSelectedValidator,
@@ -101,7 +101,7 @@ def test_without_the_lens_every_check_fails():
 def test_what_the_run_still_reports_picks_the_branch_and_the_text(lens):
     """Runs differ: Course 5 branches on what the learner's own run reports."""
     from karcytics_plugins.flow_cytometry.tutorials import course5
-    from karcytics_plugins.flow_cytometry.tutorials.validators import LensNoFindingsValidator
+    from karcytics_plugins.flow_cytometry.tutorials.validators.lens import LensNoFindingsValidator
 
     tab, state, ui = lens
     steps = {s.id: s for s in course5.course_5_sample_lens.steps}

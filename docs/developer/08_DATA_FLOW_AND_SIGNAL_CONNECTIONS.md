@@ -121,7 +121,7 @@ topic has exactly one handler.
 `_handle_gate_created` / `_handle_gates_created` (subscribed to
 `GATE_CREATED`/`GATES_CREATED`) additionally check whether an Academy
 course's current step is a `GateShapeValidator`
-(`tutorials/validators.py`). If the drawn gate's shape doesn't validate
+(`tutorials/validators/gating.py`). If the drawn gate's shape doesn't validate
 against the tutorial's expected shape, the gate is **silently deleted**
 (`panel._gate_coordinator.remove_population(...)`) and a transient red
 flash banner ("Gate inaccurate. Please try again.") is shown via the
@@ -287,7 +287,8 @@ otherwise it shows an error dialog (`show_error`) and returns without
 calling `start_course_confirmed()`. It deliberately does **not** check a
 strict workflow content hash (documented as "brittle" against normal
 auto-save/restart), delegating that stricter check to
-`tutorials/validators.py`'s `Course1StateValidator` instead. For a
+the prerequisite checks in `tutorials/validators/checkpoints.py` (e.g.
+`SetupAndCellsStateValidator`) instead. For a
 course with no prerequisites (e.g. Course 1) and a non-academy project, it
 flips `pm.data["is_academy"] = True` and saves — this is the only place a
 project's academy flag gets set.

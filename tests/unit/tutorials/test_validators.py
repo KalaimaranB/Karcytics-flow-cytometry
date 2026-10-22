@@ -19,7 +19,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating.polygon import PolygonGate
 from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGate
 from karcytics_plugins.flow_cytometry.analysis.gating.range import RangeGate
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
-from karcytics_plugins.flow_cytometry.tutorials.validators import GateShapeValidator
+from karcytics_plugins.flow_cytometry.tutorials.validators.gating import GateShapeValidator
 
 
 def make_panel() -> SimpleNamespace:

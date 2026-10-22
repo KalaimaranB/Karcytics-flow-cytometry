@@ -13,7 +13,7 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleR
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.tutorials.validators import (
+from karcytics_plugins.flow_cytometry.tutorials.validators.compensation import (
     CompensationFitGateValidator,
     CompensationMethodValidator,
     CompensationPageValidator,

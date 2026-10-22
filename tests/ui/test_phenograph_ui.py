@@ -151,7 +151,7 @@ def test_course_6_checks_and_texts_read_the_cluster_graph(viewer):
         _apart,
         _pg_b220_text,
     )
-    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+    from karcytics_plugins.flow_cytometry.tutorials.validators.clustering import (
         PhenographColorValidator,
         PhenographResolutionValidator,
         PhenographResultsReadyValidator,

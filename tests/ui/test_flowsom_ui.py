@@ -127,7 +127,7 @@ def test_reopening_a_run_from_history_shows_flowsom_and_its_settings(viewer):
 
 @pytest.mark.ui
 def test_course_4_flowsom_checks_follow_the_learner(viewer):
-    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+    from karcytics_plugins.flow_cytometry.tutorials.validators.clustering import (
         ClusteringMethodValidator,
         FlowsomColorValidator,
         FlowsomKValidator,
@@ -165,7 +165,7 @@ def test_course_4_flowsom_checks_follow_the_learner(viewer):
 
 @pytest.mark.ui
 def test_course_3_checks_read_the_sidebar_and_the_results(viewer):
-    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+    from karcytics_plugins.flow_cytometry.tutorials.validators.clustering import (
         ClusterResultsTabActiveValidator,
         UmapChannelExcludedValidator,
         UmapGateSelectedValidator,

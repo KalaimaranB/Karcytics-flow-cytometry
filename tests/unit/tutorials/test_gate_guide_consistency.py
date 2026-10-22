@@ -24,7 +24,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating.quadrant import QuadrantGa
 from karcytics_plugins.flow_cytometry.analysis.gating.range import RangeGate
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate
 from karcytics_plugins.flow_cytometry.tutorials import course1, course2, course3
-from karcytics_plugins.flow_cytometry.tutorials.validators import GateShapeValidator
+from karcytics_plugins.flow_cytometry.tutorials.validators.gating import GateShapeValidator
 
 COURSES = (
     course1.course_1_fundamentals,

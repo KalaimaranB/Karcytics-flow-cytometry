@@ -34,23 +34,20 @@ from karcytics_sdk.plugin.tutorial_models import (
 
 from ..main_tabs import MainTab
 from .constants import RIGHT_PANEL_HINT, RIGHT_PANEL_TARGET
-from .validators import (
+from .validators.base import PopupClosedValidator, TabActiveValidator, WorkflowSavedValidator
+from .validators.checkpoints import BaseGatesStateValidator
+from .validators.gating import (
     AxisChannelValidator,
     AxisYChannelValidator,
-    BaseGatesStateValidator,
-    ExactSampleOpenValidator,
-    FmoOverlayValidator,
     GateActiveValidator,
     GateEditTracker,
     GateShapeValidator,
     PipelineOrientationValidator,
     PlotTypeValidator,
-    PopupClosedValidator,
     QuadrantPositionNamedValidator,
     SampleAndGateOpenValidator,
-    TabActiveValidator,
-    WorkflowSavedValidator,
 )
+from .validators.setup import ExactSampleOpenValidator, FmoOverlayValidator
 
 # ==============================================================================
 # Course 3 Gate Quality Validators & Routers

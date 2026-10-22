@@ -46,7 +46,9 @@ def test_plot_type_switch_toggles_multi_population_mode(qtbot, flow_state_with_s
 
 @pytest.mark.ui
 def test_plot_types_are_ids_with_display_labels(qtbot, flow_state_with_samples):
-    from karcytics_plugins.flow_cytometry.tutorials.validators import ComparisonPlotTypeValidator
+    from karcytics_plugins.flow_cytometry.tutorials.validators.reports import (
+        ComparisonPlotTypeValidator,
+    )
     from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.registry import PLOT_REGISTRY
 
     widget = ComparisonsViewer(flow_state_with_samples)

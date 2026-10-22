@@ -269,7 +269,7 @@ def test_a_flowsom_run_gets_a_k_control_that_recuts_the_audit(qtbot):
 def test_the_lens_remembers_the_run_picked_for_each_sample(lens):
     from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
     from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+    from karcytics_plugins.flow_cytometry.tutorials.validators.lens import (
         LensKValidator,
         LensRunMethodValidator,
     )
@@ -370,7 +370,7 @@ def test_clicking_a_sibling_gate_edits_it_on_that_plot_only(lens):
 
 
 def test_focus_mode_gives_the_plots_the_tab(lens, qtbot):
-    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+    from karcytics_plugins.flow_cytometry.tutorials.validators.lens import (
         LensColumnsValidator,
         LensFocusValidator,
     )
@@ -404,7 +404,7 @@ def test_focus_mode_gives_the_plots_the_tab(lens, qtbot):
 
 def test_each_plot_switches_view_where_its_gate_allows(lens):
     from karcytics_plugins.flow_cytometry.analysis.gating import RangeGate
-    from karcytics_plugins.flow_cytometry.tutorials.validators import LensPlotViewValidator
+    from karcytics_plugins.flow_cytometry.tutorials.validators.lens import LensPlotViewValidator
     from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
 
     tab, state, _ = lens
@@ -567,7 +567,7 @@ def test_plots_waiting_to_resize_say_so(lens, qtbot):
 
 def test_plots_per_row_offers_all_as_a_choice(lens):
     """'All' is picked from the list, not typed as a number."""
-    from karcytics_plugins.flow_cytometry.tutorials.validators import LensColumnsValidator
+    from karcytics_plugins.flow_cytometry.tutorials.validators.lens import LensColumnsValidator
 
     tab, state, _ = lens
     ui = AcademyContext(sample_lens=tab)

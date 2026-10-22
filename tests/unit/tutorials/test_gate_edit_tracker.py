@@ -6,7 +6,7 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.store import FlowStore
-from karcytics_plugins.flow_cytometry.tutorials.validators import GateEditTracker
+from karcytics_plugins.flow_cytometry.tutorials.validators.gating import GateEditTracker
 
 
 def _state() -> tuple[FlowState, RectangleGate]:

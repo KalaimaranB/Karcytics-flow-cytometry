@@ -12,16 +12,20 @@ import pytest
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.statistics import StatType
-from karcytics_plugins.flow_cytometry.tutorials.validators import (
-    ComparisonsPlotGeneratedValidator,
-    HistogramOverlayLayoutValidator,
-    LearningCompensationCompleteValidator,
+from karcytics_plugins.flow_cytometry.tutorials.validators.gating import (
     PipelineOrientationValidator,
     PlotTypeValidator,
+)
+from karcytics_plugins.flow_cytometry.tutorials.validators.reports import (
+    ComparisonsPlotGeneratedValidator,
+    HistogramOverlayLayoutValidator,
     PopulationsCheckedValidator,
     StatsChartTypeValidator,
     StatsCheckedValidator,
     StatsResultsReadyValidator,
+)
+from karcytics_plugins.flow_cytometry.tutorials.validators.setup import (
+    LearningCompensationCompleteValidator,
 )
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import PlotType

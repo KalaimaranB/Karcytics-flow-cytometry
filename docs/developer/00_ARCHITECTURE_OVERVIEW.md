@@ -47,7 +47,7 @@ only ever sees the plugin's own `FCSData`/`Sample`/`Experiment` dataclasses.
 | `ui/widgets/node_canvas/` | The Pipeline tab's `QGraphicsScene`-based DAG editor. |
 | `ui/builders/` | `WorkspaceBuilder` — the two-phase skeleton/heavy-widget construction described below. |
 | `ui/ribbons/` | Per-tab toolbar widgets stacked in `_ribbon_stack`. |
-| `tutorials/` | Academy course definitions (`course1.py`, `course2.py`, `course3.py`) and step validators. |
+| `tutorials/` | Academy course definitions (`course1.py` … `course6.py`, `course_second_opinions.py`) and step validators (`validators/`, one module per topic: base, setup, gating, checkpoints, compensation, clustering, reports, derived, lens). |
 
 `analysis/` depending on nothing Qt-related is what lets `RenderTask`
 (background thumbnail rendering, see below) and `DisplayStrategy.compute()`

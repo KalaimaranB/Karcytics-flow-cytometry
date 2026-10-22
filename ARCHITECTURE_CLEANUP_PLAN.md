@@ -267,7 +267,12 @@ is 2,733 lines with 102 validator classes, and reaches widgets' private attribut
       act through `AcademyContext.gate_coordinator` and the panel's public delete. KS342 under
       `tutorials/` went from 133 to 0; three widgets each gained one method (accepted in the
       baseline). The rewritten checks gained tests against real widgets.
-- [ ] Split `tutorials/validators.py` by course. Leave the course content files as they are.
+- [x] Split `tutorials/validators.py` into a `tutorials/validators/` package by topic, not by
+      course file: most checks are shared (`TabActiveValidator` by 7 courses, `GateShapeValidator`
+      by 4). Modules: base, setup, gating, checkpoints (composite prerequisite checks; they sit
+      above setup and gating, which broke the only import cycle), compensation, clustering,
+      reports, derived, lens. Largest is gating (~710 lines). Importers name the module directly;
+      no re-exporting `__init__`. Dropped the write-only `_TUTORIAL_STATE` global.
 
 ## B6. Adopt the SDK's shared pieces
 

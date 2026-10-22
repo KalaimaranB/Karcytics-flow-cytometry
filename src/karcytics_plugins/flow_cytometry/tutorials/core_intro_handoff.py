@@ -38,7 +38,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
-from .validators import PopupClosedValidator, PreferencesPageValidator, WorkflowSavedValidator
+from .validators.base import PopupClosedValidator, PreferencesPageValidator, WorkflowSavedValidator
 
 CORE_INTRO_HANDOFF_COURSE_ID = "core_intro_module_v1"
 

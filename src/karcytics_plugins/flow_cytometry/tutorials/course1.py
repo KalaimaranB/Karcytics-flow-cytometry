@@ -31,20 +31,18 @@ from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROP
 from ..main_tabs import MainTab
 from .constants import PREVIEW_ALL_SAMPLES, PREVIEW_VIEW_BOTH
 from .tutorial_assets import start_provisioning
-from .validators import (
+from .validators.base import PropertiesViewValidator, TabActiveValidator, WorkflowSavedValidator
+from .validators.compensation import PreviewShowsValidator
+from .validators.gating import GateShapeValidator
+from .validators.setup import (
     FlowImportValidator,
     FmoRoleValidator,
-    GateShapeValidator,
     LearningCompensationCompleteValidator,
-    PreviewShowsValidator,
-    PropertiesViewValidator,
     RoleAssignmentValidator,
     SampleOpenValidator,
     SingleStainRoleValidator,
-    TabActiveValidator,
     TutorialFilesProvisionedValidator,
     UnstainedRoleValidator,
-    WorkflowSavedValidator,
 )
 
 # ==============================================================================

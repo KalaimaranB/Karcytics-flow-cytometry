@@ -20,7 +20,7 @@ from karcytics_plugins.flow_cytometry.tutorials.course1 import (
     course_1_fundamentals,
     route_by_properties_view,
 )
-from karcytics_plugins.flow_cytometry.tutorials.validators import PropertiesViewValidator
+from karcytics_plugins.flow_cytometry.tutorials.validators.base import PropertiesViewValidator
 
 pytestmark = pytest.mark.unit
 

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QDialog, QListWidget, QVBoxLayout
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.tutorials.core_intro_handoff import core_intro_module
-from karcytics_plugins.flow_cytometry.tutorials.validators import (
+from karcytics_plugins.flow_cytometry.tutorials.validators.base import (
     PopupClosedValidator,
     PreferencesPageValidator,
 )
