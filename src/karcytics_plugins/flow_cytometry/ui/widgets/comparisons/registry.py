@@ -1,4 +1,4 @@
-"""PLOT_REGISTRY — maps plot type names to a PlotTypeSpec (see plot_spec.py).
+"""PLOT_REGISTRY — maps each PlotType id to its PlotTypeSpec (see plot_spec.py).
 
 OCP: adding a new plot type means adding one PlotTypeSpec entry here (plus
 the renderer, options panel, and kwargs-builder it references) — zero
@@ -15,7 +15,7 @@ from .options.histogram_overlay_options import HistogramOverlayOptionsPanel
 from .options.pseudocolor_overlay_options import PseudocolorOverlayOptionsPanel
 from .options.radar_options import RadarOptionsPanel
 from .options.violin_options import ViolinOptionsPanel
-from .plot_spec import ChannelMode, PlotTypeSpec, PopulationMode, SampleMode
+from .plot_spec import ChannelMode, PlotType, PlotTypeSpec, PopulationMode, SampleMode
 from .renderers.heatmap_renderer import HeatmapRenderer
 from .renderers.histogram_overlay_renderer import HistogramOverlayRenderer
 from .renderers.pseudocolor_overlay_renderer import PseudocolorOverlayRenderer
@@ -23,8 +23,9 @@ from .renderers.radar_renderer import RadarRenderer
 from .renderers.violin_renderer import ViolinRenderer
 
 # OCP extension point: add a new plot type by adding one entry here.
-PLOT_REGISTRY: dict[str, PlotTypeSpec] = {
-    "🎻  Violin Plot": PlotTypeSpec(
+PLOT_REGISTRY: dict[PlotType, PlotTypeSpec] = {
+    PlotType.VIOLIN: PlotTypeSpec(
+        label="🎻  Violin Plot",
         renderer_cls=ViolinRenderer,
         options_panel_cls=ViolinOptionsPanel,
         help_title="Violin Plot",
@@ -39,7 +40,8 @@ PLOT_REGISTRY: dict[str, PlotTypeSpec] = {
         channel_mode=ChannelMode.SINGLE,
         build_kwargs=kb.build_violin_kwargs,
     ),
-    "🗺️  Channel Heatmap": PlotTypeSpec(
+    PlotType.CHANNEL_HEATMAP: PlotTypeSpec(
+        label="🗺️  Channel Heatmap",
         renderer_cls=HeatmapRenderer,
         options_panel_cls=HeatmapOptionsPanel,
         help_title="Channel Heatmap",
@@ -54,7 +56,8 @@ PLOT_REGISTRY: dict[str, PlotTypeSpec] = {
         channel_mode=ChannelMode.MULTI,
         build_kwargs=kb.build_heatmap_kwargs,
     ),
-    "🕷️  Radar Chart": PlotTypeSpec(
+    PlotType.RADAR: PlotTypeSpec(
+        label="🕷️  Radar Chart",
         renderer_cls=RadarRenderer,
         options_panel_cls=RadarOptionsPanel,
         help_title="Radar / Spider Chart",
@@ -69,7 +72,8 @@ PLOT_REGISTRY: dict[str, PlotTypeSpec] = {
         channel_mode=ChannelMode.MULTI,
         build_kwargs=kb.build_radar_kwargs,
     ),
-    "📊  Histogram Overlay": PlotTypeSpec(
+    PlotType.HISTOGRAM_OVERLAY: PlotTypeSpec(
+        label="📊  Histogram Overlay",
         renderer_cls=HistogramOverlayRenderer,
         options_panel_cls=HistogramOverlayOptionsPanel,
         help_title="Histogram Overlay",
@@ -85,7 +89,8 @@ PLOT_REGISTRY: dict[str, PlotTypeSpec] = {
         channel_mode=ChannelMode.SINGLE,
         build_kwargs=kb.build_histogram_overlay_kwargs,
     ),
-    "🌈  Pseudocolor Overlay": PlotTypeSpec(
+    PlotType.PSEUDOCOLOR_OVERLAY: PlotTypeSpec(
+        label="🌈  Pseudocolor Overlay",
         renderer_cls=PseudocolorOverlayRenderer,
         options_panel_cls=PseudocolorOverlayOptionsPanel,
         help_title="Pseudocolor Overlay",

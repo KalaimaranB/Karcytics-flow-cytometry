@@ -12,6 +12,7 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import PlotType
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.registry import PLOT_REGISTRY
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.renderers.pseudocolor_overlay_renderer import (
     PseudocolorOverlayRenderer,
@@ -37,7 +38,7 @@ def _make_sample_with_gate() -> Sample:
 
 @pytest.mark.unit
 def test_pseudocolor_overlay_registered_in_plot_registry():
-    assert "🌈  Pseudocolor Overlay" in PLOT_REGISTRY
+    assert PlotType.PSEUDOCOLOR_OVERLAY in PLOT_REGISTRY
 
 
 @pytest.mark.unit
@@ -78,11 +79,11 @@ def test_comparisons_viewer_builds_pseudocolor_overlay_kwargs(qtbot):
     widget = ComparisonsViewer(state)
     qtbot.addWidget(widget)
 
-    idx = widget._plot_type_combo.findText("🌈  Pseudocolor Overlay")
+    idx = widget._plot_type_combo.findData(PlotType.PSEUDOCOLOR_OVERLAY.value)
     assert idx >= 0
     widget._plot_type_combo.setCurrentIndex(idx)
 
-    panel = widget._options_panels["🌈  Pseudocolor Overlay"]
+    panel = widget._options_panels[PlotType.PSEUDOCOLOR_OVERLAY]
     assert (
         panel._x_combo.count() == 2
     )  # FSC-A, SSC-A populated by _refresh_pseudocolor_overlay_options
@@ -93,7 +94,7 @@ def test_comparisons_viewer_builds_pseudocolor_overlay_kwargs(qtbot):
     assert any(label == "Lymphocytes" for _sid, _nid, label in pop_pairs)
 
     config = panel.get_config()
-    spec = PLOT_REGISTRY["🌈  Pseudocolor Overlay"]
+    spec = PLOT_REGISTRY[PlotType.PSEUDOCOLOR_OVERLAY]
     kwargs = spec.build_kwargs(widget._state, widget._extractor, config, sample_ids, pop_pairs, [])
     assert kwargs["sample_label"] == "s1"
     assert len(kwargs["layers"]) == 1

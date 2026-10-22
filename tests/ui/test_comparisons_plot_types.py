@@ -22,6 +22,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import (
     ChannelMode,
+    PlotType,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.registry import PLOT_REGISTRY
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer import Colors, ComparisonsViewer
@@ -81,7 +82,7 @@ def test_single_sample_plot_type_cannot_have_two_samples_checked(qtbot, two_samp
     widget = ComparisonsViewer(two_sample_state)
     qtbot.addWidget(widget)
 
-    idx = widget._plot_type_combo.findText("🌈  Pseudocolor Overlay")
+    idx = widget._plot_type_combo.findData(PlotType.PSEUDOCOLOR_OVERLAY.value)
     widget._plot_type_combo.setCurrentIndex(idx)
     assert len(widget._selector.get_checked_sample_ids()) == 1
 
@@ -100,7 +101,7 @@ def test_multi_sample_plot_type_allows_multiple_samples(qtbot, two_sample_state)
     widget = ComparisonsViewer(two_sample_state)
     qtbot.addWidget(widget)
 
-    idx = widget._plot_type_combo.findText("🗺️  Channel Heatmap")
+    idx = widget._plot_type_combo.findData(PlotType.CHANNEL_HEATMAP.value)
     widget._plot_type_combo.setCurrentIndex(idx)
 
     # Both samples share "Lymphocytes" and default to checked on first
@@ -113,11 +114,11 @@ def test_switching_from_single_to_multi_sample_mode_restores_multi_select(qtbot,
     widget = ComparisonsViewer(two_sample_state)
     qtbot.addWidget(widget)
 
-    pseudo_idx = widget._plot_type_combo.findText("🌈  Pseudocolor Overlay")
+    pseudo_idx = widget._plot_type_combo.findData(PlotType.PSEUDOCOLOR_OVERLAY.value)
     widget._plot_type_combo.setCurrentIndex(pseudo_idx)
     assert len(widget._selector.get_checked_sample_ids()) == 1
 
-    violin_idx = widget._plot_type_combo.findText("🎻  Violin Plot")
+    violin_idx = widget._plot_type_combo.findData(PlotType.VIOLIN.value)
     widget._plot_type_combo.setCurrentIndex(violin_idx)
     assert set(widget._selector.get_checked_sample_ids()) == {"s1", "s2"}
 
@@ -125,7 +126,7 @@ def test_switching_from_single_to_multi_sample_mode_restores_multi_select(qtbot,
 def _cycle_and_render(widget, plot_names) -> None:
     for plot_name in plot_names:
         spec = PLOT_REGISTRY[plot_name]
-        idx = widget._plot_type_combo.findText(plot_name)
+        idx = widget._plot_type_combo.findData(plot_name.value)
         widget._plot_type_combo.setCurrentIndex(idx)
 
         sample_ids = widget._selector.get_checked_sample_ids()
@@ -185,7 +186,7 @@ def test_generate_button_produces_a_visible_canvas(qtbot, two_sample_state, plot
     widget.show()
     qtbot.waitExposed(widget)
 
-    idx = widget._plot_type_combo.findText(plot_name)
+    idx = widget._plot_type_combo.findData(plot_name.value)
     assert idx >= 0
     widget._plot_type_combo.setCurrentIndex(idx)
 

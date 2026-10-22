@@ -167,7 +167,7 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/course6.py": {
-      "KS300": 1138
+      "KS300": 1137
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/course_second_opinions.py": {
       "KS300": 1147,
@@ -182,10 +182,10 @@
       "KS360": 5
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/validators.py": {
-      "KS300": 2734,
+      "KS300": 2733,
       "KS302:GateShapeValidator.validate_shape": 119,
       "KS310": 9,
-      "KS342": 120,
+      "KS342": 118,
       "KS343": 2,
       "KS360": 30
     },
@@ -516,7 +516,7 @@
       "KS220": 1,
       "KS242": 8,
       "KS250": 1,
-      "KS300": 826,
+      "KS300": 825,
       "KS302:ComparisonsViewer._setup_ui": 191,
       "KS310": 6,
       "KS320": 1,

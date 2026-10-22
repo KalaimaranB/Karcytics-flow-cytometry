@@ -15,15 +15,13 @@ Spotlight convention:
 Main tab bar order (0-indexed): Workspace, Gating, Compensation, Pipeline,
 Statistics, Spectral, Population Analysis, Comparisons, Sample Lens.
 
-Course 7 reports from the gates Course 5 checked, and builds on Course 4: Course 4 ends with a real,
-gate-tree population ("UMAP B Cells") exported from unsupervised
-clustering and cross-checked against the hand-gated "B-cells" population
-via a Pipeline AND node. That showed they are (nearly) the same cells;
-Course 7 asks the follow-up — *are they measured the same?* — as a
-prediction at the start (`c6_same_measure`), and answers it with a
-**derived parameter** (B220 ÷ CD45, a per-cell ratio used like any
-channel), the **Statistics** tab and the **Comparisons** tab. The
-histogram overlay and graduation steps show the prediction back.
+Course 7 reports from the gates Course 5 checked, and builds on Course 4: Course 4 ends with a
+real, gate-tree population ("UMAP B Cells") exported from unsupervised clustering and cross-
+checked against the hand-gated "B-cells" population via a Pipeline AND node. That showed they
+are (nearly) the same cells; Course 7 asks the follow-up — *are they measured the same?* — as a
+prediction at the start (`c6_same_measure`), and answers it with a **derived parameter** (B220 ÷
+CD45, a per-cell ratio used like any channel), the **Statistics** tab and the **Comparisons**
+tab. The histogram overlay and graduation steps show the prediction back.
 
 The numbers quoted below were measured on the tutorial's compensated
 samples with the Course 1–4 gates (Sample A = thymus, B = bone marrow,
@@ -52,6 +50,7 @@ from karcytics_sdk.plugin.tutorial_models import (
 
 from ..analysis.statistics import StatType
 from ..main_tabs import MainTab
+from ..ui.widgets.comparisons.plot_spec import PlotType
 from .validators import (
     ActiveGraphDerivedAxisValidator,
     AllOf,
@@ -809,7 +808,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("violin"),
+            validator=ComparisonPlotTypeValidator(PlotType.VIOLIN),
             on_success_step_id="c6_s18a_violin_options",
         ),
         InfoStep(
@@ -841,7 +840,7 @@ course_6_reporting = Course(
             allow_scroll=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
-            validator=ComparisonsPlotGeneratedValidator("violin"),
+            validator=ComparisonsPlotGeneratedValidator(PlotType.VIOLIN),
             on_success_step_id="c6_s19_violin_info",
         ),
         InfoStep(
@@ -864,7 +863,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("channel heatmap"),
+            validator=ComparisonPlotTypeValidator(PlotType.CHANNEL_HEATMAP),
             on_success_step_id="c6_s20a_add_umap_pop",
         ),
         VerificationStep(
@@ -920,7 +919,7 @@ course_6_reporting = Course(
             allow_scroll=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
-            validator=ComparisonsPlotGeneratedValidator("channel heatmap"),
+            validator=ComparisonsPlotGeneratedValidator(PlotType.CHANNEL_HEATMAP),
             on_success_step_id="c6_s21_channel_heatmap_info",
         ),
         InfoStep(
@@ -946,7 +945,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("histogram overlay"),
+            validator=ComparisonPlotTypeValidator(PlotType.HISTOGRAM_OVERLAY),
             on_success_step_id="c6_s24a_histogram_settings",
         ),
         InfoStep(
@@ -1000,7 +999,7 @@ course_6_reporting = Course(
             allow_scroll=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
-            validator=ComparisonsPlotGeneratedValidator("histogram overlay"),
+            validator=ComparisonsPlotGeneratedValidator(PlotType.HISTOGRAM_OVERLAY),
             on_success_step_id="c6_s25_histogram_info",
         ),
         InfoStep(
@@ -1028,7 +1027,7 @@ course_6_reporting = Course(
             allow_interaction=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsPlotTypeCombo"],
-            validator=ComparisonPlotTypeValidator("pseudocolor overlay"),
+            validator=ComparisonPlotTypeValidator(PlotType.PSEUDOCOLOR_OVERLAY),
             on_success_step_id="c6_s26b_pseudocolor_generate",
         ),
         VerificationStep(
@@ -1042,7 +1041,7 @@ course_6_reporting = Course(
             allow_scroll=True,
             hide_next_button=True,
             target_widget_names=["ComparisonsGenerateButton"],
-            validator=ComparisonsPlotGeneratedValidator("pseudocolor overlay"),
+            validator=ComparisonsPlotGeneratedValidator(PlotType.PSEUDOCOLOR_OVERLAY),
             on_success_step_id="c6_s27_pseudocolor_info",
         ),
         InfoStep(

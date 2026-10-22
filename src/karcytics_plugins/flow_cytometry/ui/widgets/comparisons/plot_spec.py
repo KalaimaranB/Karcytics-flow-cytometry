@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -30,6 +30,18 @@ if TYPE_CHECKING:
     from ....analysis.comparison_data import ComparisonsDataExtractor
     from .options.base import IOptionsPanel
     from .renderers.base import IPlotRenderer
+
+
+class PlotType(StrEnum):
+    """Stable id of a Comparisons plot type: the registry key, combo item data,
+    and what Academy validators check. The emoji label is display-only.
+    """
+
+    VIOLIN = "violin"
+    CHANNEL_HEATMAP = "channel_heatmap"
+    RADAR = "radar"
+    HISTOGRAM_OVERLAY = "histogram_overlay"
+    PSEUDOCOLOR_OVERLAY = "pseudocolor_overlay"
 
 
 class SampleMode(Enum):
@@ -84,6 +96,8 @@ bar instead of starting the render worker.
 class PlotTypeSpec:
     """Everything ComparisonsViewer needs to know about one plot type."""
 
+    label: str
+    """What the plot-type combo shows, e.g. "🎻  Violin Plot"."""
     renderer_cls: type[IPlotRenderer]
     options_panel_cls: type[IOptionsPanel]
     help_title: str

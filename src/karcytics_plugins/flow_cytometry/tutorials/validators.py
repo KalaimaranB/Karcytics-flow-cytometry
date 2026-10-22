@@ -19,6 +19,7 @@ from ..analysis import events
 from ..analysis.gating import QuadrantSubGate
 from ..analysis.state import FlowState
 from ..main_tabs import MainTab
+from ..ui.widgets.comparisons.plot_spec import PlotType
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -1200,17 +1201,17 @@ class SampleAndGateOpenValidator(FlowValidator):
 
 
 class ComparisonPlotTypeValidator(FlowValidator):
-    """Verifies the Comparisons tab's plot-type combo is set to a specific chart (e.g. 'Violin')."""
+    """Verifies the Comparisons tab's plot-type combo is set to a specific chart."""
 
-    def __init__(self, expected_type: str) -> None:
-        self._expected = expected_type.lower()
+    def __init__(self, expected_type: PlotType) -> None:
+        self._expected = expected_type
 
     def validate_flow(self, app_state: FlowState) -> bool:
         viewer = getattr(app_state.view, "_comparisons_viewer", None)
-        if not viewer or not hasattr(viewer, "_plot_type_combo"):
-            return self.log_failure("Comparisons viewer or plot type combo missing.")
-        current = viewer._plot_type_combo.currentText().lower()
-        if self._expected not in current:
+        if not viewer:
+            return self.log_failure("Comparisons viewer missing.")
+        current = viewer.current_plot_type()
+        if current != self._expected:
             return self.log_failure(f"Plot type is '{current}', expected '{self._expected}'.")
         return True
 
@@ -1227,7 +1228,7 @@ class HistogramOverlayLayoutValidator(FlowValidator):
 
     def validate_flow(self, app_state: FlowState) -> bool:
         viewer = getattr(app_state.view, "_comparisons_viewer", None)
-        panel = getattr(viewer, "_options_panels", {}).get("📊  Histogram Overlay")
+        panel = getattr(viewer, "_options_panels", {}).get(PlotType.HISTOGRAM_OVERLAY)
         combo = getattr(panel, "_layout_combo", None)
         if combo is None:
             return self.log_failure("Histogram Overlay options panel or layout combo missing.")
@@ -1988,21 +1989,19 @@ class StatsResultsReadyValidator(FlowValidator):
 
 
 class ComparisonsPlotGeneratedValidator(FlowValidator):
-    """Verifies the Comparisons tab has actually rendered a plot of the
-    given type — selecting a plot type in the dropdown alone does nothing
-    visible until Generate Plot is clicked, and `_last_generated_plot_type`
-    (set at generate-time, see `ComparisonsViewer._on_generate`) only
-    reflects what was actually rendered, not the dropdown's current value,
-    so changing the dropdown without regenerating correctly keeps failing.
+    """Verifies the Comparisons tab has rendered a plot of the given type.
+
+    Reads `_last_generated_plot_type` (set by `ComparisonsViewer._on_generate`),
+    not the dropdown, so changing the dropdown without regenerating keeps failing.
     """
 
-    def __init__(self, expected_type: str) -> None:
-        self._expected = expected_type.lower()
+    def __init__(self, expected_type: PlotType) -> None:
+        self._expected = expected_type
 
     def validate_flow(self, app_state: FlowState) -> bool:
         viewer = getattr(app_state.view, "_comparisons_viewer", None)
-        generated = (getattr(viewer, "_last_generated_plot_type", None) or "").lower()
-        if self._expected not in generated:
+        generated = getattr(viewer, "_last_generated_plot_type", None)
+        if generated != self._expected:
             return self.log_failure(
                 f"Last generated plot was '{generated}', expected '{self._expected}'."
             )

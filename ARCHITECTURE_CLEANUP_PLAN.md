@@ -193,7 +193,7 @@ Each phase also ratchets the baseline down once it lands.
 Not moved: `GateEditor` / `GateFactory` / `CoordinateMapper`. They are interaction geometry,
 not science.
 
-## B4. One plot-data module, one render contract — first item done
+## B4. One plot-data module, one render contract — done
 
 The same math exists three times, and the copies have drifted:
 
@@ -213,9 +213,16 @@ with `IPlotRenderer`, inline `with MPL_RASTER_LOCK:` in three widgets, and an ad
       The main-graph KDE is capped now (1M events: 0.98 s → 0.03 s per redraw); the comparisons
       copies and the dead `compute_1d_histogram` are gone. The 2-D pseudocolor density was
       already shared — the comparisons overlay uses `compute_pseudocolor_base_density`.
-- [ ] Pick one contract: `DisplayStrategy.compute/draw` on the SDK pipeline, which the main
-      canvas already uses. Port `IPlotRenderer` to it.
-- [ ] Key `PLOT_REGISTRY` by a stable id, not the emoji label (`"🎻  Violin Plot"`).
+- [x] ~~Port `IPlotRenderer` to `DisplayStrategy`~~ — **not done, on purpose.** Both already
+      split heavy compute (off `MPL_RASTER_LOCK`) from drawing (under it), which was the point.
+      They differ in scope: `DisplayStrategy` draws one dataset onto an axes the canvas pipeline
+      owns; an `IPlotRenderer` builds a whole figure (ridge subplots, polar radar, heatmap with
+      colorbar), which "draw onto this axes" cannot express. The real stragglers are the widgets
+      that build charts inline on the GUI thread (`statistics_explorer`, the cluster panels,
+      `compensation_preview`); each moves onto `IPlotRenderer` when B7 splits it.
+- [x] `PLOT_REGISTRY` is keyed by `PlotType` (a `StrEnum`); the emoji text is `PlotTypeSpec.label`.
+      The combo carries the id as item data, `ComparisonsViewer.current_plot_type()` returns it,
+      and the Course 6 validators compare ids instead of substrings of the label.
 
 ## B5. Get widgets out of the state object
 

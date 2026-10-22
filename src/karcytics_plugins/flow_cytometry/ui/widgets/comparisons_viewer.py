@@ -55,7 +55,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.selection.selector_panel import
 )
 
 from ...analysis.comparison_data import ComparisonsDataExtractor
-from .comparisons.plot_spec import ChannelMode, PlotTypeSpec, PopulationMode, SampleMode
+from .comparisons.plot_spec import ChannelMode, PlotType, PlotTypeSpec, PopulationMode, SampleMode
 from .comparisons.registry import PLOT_REGISTRY
 from .comparisons.worker import ComparisonsWorker
 
@@ -140,21 +140,19 @@ class ComparisonsViewer(QWidget):
         self._canvas_widget: FigureCanvasQTAgg | None = None
 
         # Build one options panel per plot type (instantiated once, reused)
-        self._options_panels: dict[str, object] = {}
+        self._options_panels: dict[PlotType, object] = {}
 
         # Tracks the previous plot type's ChannelMode so _refresh_channels()
         # can tell "still multi-channel, keep my checks" apart from "just
         # switched from single- to multi-channel mode, my one checked channel
         # isn't enough for this plot type anymore — reset to a full default."
         self._last_channel_mode: ChannelMode | None = None
-        # The plot type actually rendered by the last successful Generate
-        # Plot click (see _on_generate) — distinct from _plot_type_combo's
-        # current value, which the user can change without regenerating.
-        # ComparisonsPlotGeneratedValidator reads this, not the combo, so a
-        # tutorial step correctly keeps failing until Generate is clicked
-        # again for whatever the dropdown is now showing.
-        self._last_generated_plot_type: str | None = None
-        self._pending_plot_type: str | None = None
+        # The plot type the last successful Generate Plot rendered (see
+        # _on_generate), which can differ from the combo's current value.
+        # ComparisonsPlotGeneratedValidator reads this, so a tutorial step
+        # keeps failing until Generate is clicked for the new selection.
+        self._last_generated_plot_type: PlotType | None = None
+        self._pending_plot_type: PlotType | None = None
 
         self._setup_ui()
         self.refresh_samples()
@@ -207,8 +205,8 @@ class ComparisonsViewer(QWidget):
 
         self._plot_type_combo = BioComboBox()
         self._plot_type_combo.setObjectName("ComparisonsPlotTypeCombo")
-        for name in PLOT_REGISTRY:
-            self._plot_type_combo.addItem(name)
+        for plot_type, spec in PLOT_REGISTRY.items():
+            self._plot_type_combo.addItem(spec.label, plot_type.value)
         self._plot_type_combo.currentIndexChanged.connect(self._on_plot_type_changed)
         cl.addWidget(self._plot_type_combo)
 
@@ -273,10 +271,10 @@ class ComparisonsViewer(QWidget):
 
         self._options_stack = DynamicStackedWidget()
         self._options_stack.setObjectName("ComparisonsOptionsPanel")
-        for name, spec in PLOT_REGISTRY.items():
+        for plot_type, spec in PLOT_REGISTRY.items():
             panel = spec.options_panel_cls()
             panel.bind_state(self._state)
-            self._options_panels[name] = panel
+            self._options_panels[plot_type] = panel
             self._options_stack.addWidget(panel)
         cl.addWidget(self._options_stack)
 
@@ -387,10 +385,7 @@ class ComparisonsViewer(QWidget):
         """SRP: swap options panel + update help text + apply this plot
         type's sample/population/channel constraints (PlotTypeSpec).
         """
-        plot_name = self._plot_type_combo.currentText()
-        if not plot_name or plot_name not in PLOT_REGISTRY:
-            return
-        spec = PLOT_REGISTRY[plot_name]
+        spec = self._current_spec()
         self._options_stack.setCurrentIndex(index)
 
         self._plot_help_btn.setHelpText(spec.help_body, spec.help_title)
@@ -442,9 +437,9 @@ class ComparisonsViewer(QWidget):
         if self._worker and self._worker.isRunning():
             return
 
-        plot_name = self._plot_type_combo.currentText()
-        spec = PLOT_REGISTRY[plot_name]
-        panel = self._options_panels[plot_name]
+        plot_type = self.current_plot_type()
+        spec = PLOT_REGISTRY[plot_type]
+        panel = self._options_panels[plot_type]
         config = panel.get_config()  # type: ignore
 
         sample_ids = self._selector.get_checked_sample_ids()
@@ -488,7 +483,7 @@ class ComparisonsViewer(QWidget):
             render_kwargs.setdefault(key, value)
 
         renderer = spec.renderer_cls()
-        self._pending_plot_type = plot_name
+        self._pending_plot_type = plot_type
         self._worker = ComparisonsWorker(renderer, render_kwargs, self)
         self._worker.finished_ok.connect(self._on_render_done)
         self._worker.finished_err.connect(self._on_render_error)
@@ -612,8 +607,12 @@ class ComparisonsViewer(QWidget):
 
     # ── Data helpers ─────────────────────────────────────────────────────────
 
+    def current_plot_type(self) -> PlotType:
+        """The id of the plot type selected in the combo."""
+        return PlotType(self._plot_type_combo.currentData())
+
     def _current_spec(self) -> PlotTypeSpec:
-        return PLOT_REGISTRY[self._plot_type_combo.currentText()]
+        return PLOT_REGISTRY[self.current_plot_type()]
 
     def _is_multi_channel_mode(self) -> bool:
         return self._current_spec().channel_mode == ChannelMode.MULTI
@@ -751,7 +750,7 @@ class ComparisonsViewer(QWidget):
         """Populate the Pseudocolor Overlay panel's X/Y channel combos from
         the first checked sample (it's a single-sample plot type, like FMO).
         """
-        panel = self._options_panels.get("🌈  Pseudocolor Overlay")
+        panel = self._options_panels.get(PlotType.PSEUDOCOLOR_OVERLAY)
         if not panel or not hasattr(panel, "populate_channels"):
             return
         sample_ids = self._selector.get_checked_sample_ids()
