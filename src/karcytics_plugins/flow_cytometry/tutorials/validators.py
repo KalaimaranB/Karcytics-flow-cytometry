@@ -6,11 +6,13 @@ Each class implements IValidator with a single validate(app_state) method
 app_state is expected to be a FlowState instance from analysis.state.
 """
 
+from __future__ import annotations
+
 import time
 from abc import abstractmethod
 from collections.abc import Callable
 from dataclasses import fields
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from karcytics_sdk.plugin import CentralEventBus, get_logger
@@ -22,6 +24,13 @@ from ..analysis.state import FlowState
 from ..main_tabs import MainTab
 from ..ui.academy_context import AcademyContext
 from ..ui.widgets.comparisons.plot_spec import PlotType
+
+if TYPE_CHECKING:
+    from ..ui.academy_context import ClusterResultsSnapshot, PopulationAnalysisSnapshot
+    from ..ui.widgets.cluster_map_view import ClusterMapView
+    from ..ui.widgets.flowsom_tree import FlowsomTreeView
+    from ..ui.widgets.phenograph_graph import PhenographGraphView
+    from ..ui.widgets.sample_lens.sample_lens_tab import SampleLensTab
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -804,24 +813,10 @@ class GateShapeValidator(FlowValidator):
             min_x, max_x = getattr(gate, "x_min", 0.0), getattr(gate, "x_max", 0.0)
             min_y, max_y = getattr(gate, "y_min", 0.0), getattr(gate, "y_max", 0.0)
         elif gate_type == "QuadrantGate":
-            # QuadrantGate stores its crosshair position as x_mid/y_mid (see
-            # analysis/gating/quadrant.py) — this used to read the
-            # nonexistent x_threshold/y_threshold, so getattr's default
-            # silently made min_x/max_x/min_y/max_y always (0.0, 0.0),
-            # meaning a quadrant gate's actual click position was never
-            # really checked.
+            # The crosshair (x_mid/y_mid) is one point, not two edges: the
+            # per-edge tolerance below would accept a band ~12x the target
+            # window, so check it lies in the (slightly widened) window.
             x_mid, y_mid = getattr(gate, "x_mid", 0.0), getattr(gate, "y_mid", 0.0)
-            # A single click point has no "edge" to apply the ±10%-of-axis
-            # tolerance below to — that formula is for RangeGate/RectangleGate,
-            # where min_x and max_x are two genuinely different edges each
-            # compared to its own target edge. Naively reusing it here (by
-            # setting min_x = max_x = x_mid) checked "close to either target
-            # edge independently", which works out to accepting anywhere in
-            # roughly a +/-26000-unit band regardless of the target window's
-            # actual width (here, target_bounds = 3000-7000 — a 4000-unit
-            # window) — over 12x more lenient than intended. A quadrant
-            # target window is meant to already BE the acceptable region, so
-            # just check containment directly, no extra tolerance layered on.
             mx = (t_max_x - t_min_x) * self.QUADRANT_MARGIN
             my = (t_max_y - t_min_y) * self.QUADRANT_MARGIN
             return t_min_x - mx <= x_mid <= t_max_x + mx and t_min_y - my <= y_mid <= t_max_y + my
@@ -862,20 +857,10 @@ class WorkflowSavedValidator(FlowValidator):
     def __init__(self):
         self._saved_payload = None
         self._saved_at: float | None = None
-        # Every course that ends on a "please save" step creates its own
-        # instance of this validator, but ALL of them subscribe to the same
-        # process-wide WORKFLOW_SAVED event as soon as the course
-        # module is imported (i.e. at plugin load, well before the user has
-        # even started Course 1). Without arming, Course 3's instance would
-        # already be sitting on a truthy `_saved_payload` the moment its step
-        # becomes current, left over from Course 1 or Course 2's own
-        # required save — reported live as "I didn't click save but it
-        # detected I did." Recording a timestamp the first time this
-        # instance is actually polled (i.e. once its step is genuinely the
-        # active one) and only accepting saves that happened at or after
-        # that point fixes it without changing the prerequisite-unlocking
-        # behavior below, which deliberately does want to count any past
-        # save.
+        # Every course's instance hears every save from plugin load on, so a
+        # later course would pass on an earlier course's save. Armed at the
+        # first poll (its step is current), only saves from then on count;
+        # prerequisite unlocking below still counts any past save.
         self._armed_at: float | None = None
 
         CentralEventBus.subscribe(events.WORKFLOW_SAVED, self._on_workflow_saved)
@@ -1346,10 +1331,10 @@ class UmapSampleSelectedValidator(FlowUIValidator):
         self._sample = sample_substr.lower()
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if not viewer or not hasattr(viewer, "_sample_combo"):
-            return self.log_failure("Population analysis viewer or sample combo missing.")
-        current = viewer._sample_combo.currentText().lower()
+        pa = _population_analysis(ui)
+        if pa is None:
+            return self.log_failure("Population analysis viewer missing.")
+        current = pa.sample_label.lower()
         if self._sample not in current:
             return self.log_failure(f"Selected sample is '{current}', expected '{self._sample}'.")
         return True
@@ -1362,10 +1347,10 @@ class UmapGateSelectedValidator(FlowUIValidator):
         self._gate = gate_substr.lower()
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if not viewer or not hasattr(viewer, "_gate_combo"):
-            return self.log_failure("Population analysis viewer or gate combo missing.")
-        current = viewer._gate_combo.currentText().lower()
+        pa = _population_analysis(ui)
+        if pa is None:
+            return self.log_failure("Population analysis viewer missing.")
+        current = pa.gate_label.lower()
         if self._gate not in current:
             return self.log_failure(f"Selected gate is '{current}', expected '{self._gate}'.")
         return True
@@ -1380,20 +1365,15 @@ class UmapChannelExcludedValidator(FlowUIValidator):
         self._excluded = {k.lower() for k in excluded_channel_keys}
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        from PySide6.QtCore import Qt as _Qt
-
-        viewer = ui.population_analysis
-        if not viewer or not hasattr(viewer, "_channel_list"):
-            return self.log_failure("Population analysis viewer or channel list missing.")
-
-        channel_list = viewer._channel_list
-        if channel_list.count() == 0:
+        pa = _population_analysis(ui)
+        if pa is None:
+            return self.log_failure("Population analysis viewer missing.")
+        checks = pa.channel_checks
+        if not checks:
             return self.log_failure("Channel list is empty — no sample selected yet.")
 
-        for i in range(channel_list.count()):
-            item = channel_list.item(i)
-            key = (item.data(_Qt.ItemDataRole.UserRole) or "").lower()
-            is_checked = item.checkState() == _Qt.CheckState.Checked
+        for channel, is_checked in checks.items():
+            key = channel.lower()
             if key in self._excluded and is_checked:
                 return self.log_failure(f"Channel '{key}' should be excluded but is still checked.")
             if key not in self._excluded and not is_checked:
@@ -1405,10 +1385,10 @@ class UmapRunNameProvidedValidator(FlowUIValidator):
     """Verifies the Population Analysis run-name field is non-empty."""
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if not viewer or not hasattr(viewer, "_run_name_input"):
-            return self.log_failure("Population analysis viewer or run name input missing.")
-        if not viewer._run_name_input.text().strip():
+        pa = _population_analysis(ui)
+        if pa is None:
+            return self.log_failure("Population analysis viewer missing.")
+        if not pa.run_name.strip():
             return self.log_failure("Run name is empty.")
         return True
 
@@ -1420,10 +1400,10 @@ class UmapSubsampleValueValidator(FlowUIValidator):
         self._expected = expected_pct
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if not viewer or not hasattr(viewer, "_n_events_slider"):
-            return self.log_failure("Population analysis viewer or subsample slider missing.")
-        current = viewer._n_events_slider.value()
+        pa = _population_analysis(ui)
+        if pa is None:
+            return self.log_failure("Population analysis viewer missing.")
+        current = pa.subsample_percent
         if current != self._expected:
             return self.log_failure(f"Subsample is {current}%, expected {self._expected}%.")
         return True
@@ -1433,10 +1413,10 @@ class UmapHdbscanEnabledValidator(FlowUIValidator):
     """Verifies the Population Analysis HDBSCAN checkbox is checked."""
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if not viewer or not hasattr(viewer, "_run_hdbscan_cb"):
-            return self.log_failure("Population analysis viewer or HDBSCAN checkbox missing.")
-        if not viewer._run_hdbscan_cb.isChecked():
+        pa = _population_analysis(ui)
+        if pa is None:
+            return self.log_failure("Population analysis viewer missing.")
+        if not pa.hdbscan_enabled:
             return self.log_failure("HDBSCAN checkbox is not checked.")
         return True
 
@@ -1451,14 +1431,14 @@ class UmapResultsReadyValidator(FlowUIValidator):
     """
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if not viewer:
+        pa = _population_analysis(ui)
+        if pa is None:
             return self.log_failure("Population analysis viewer missing.")
-        if getattr(viewer, "_is_analysis_running", False):
+        if pa.is_running:
             return self.log_failure("Analysis is still running.")
-        if getattr(viewer, "_is_animation_playing", False):
+        if pa.is_animating:
             return self.log_failure("Animation is still playing.")
-        if getattr(viewer, "_last_results", None) is None:
+        if not pa.has_results:
             return self.log_failure("No results yet.")
         return True
 
@@ -1472,12 +1452,10 @@ class ClusterResultsTabActiveValidator(FlowUIValidator):
         self._label = tab_label.lower()
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        results_panel = getattr(viewer, "_results_panel", None) if viewer else None
-        tabs = getattr(results_panel, "_tabs", None)
-        if not tabs:
+        panel = _results_panel(ui)
+        if panel is None:
             return self.log_failure("Cluster results tabs not available yet.")
-        current = tabs.tabText(tabs.currentIndex()).lower()
+        current = panel.tab_label.lower()
         if self._label not in current:
             return self.log_failure(f"Active results tab is '{current}', expected '{self._label}'.")
         return True
@@ -1490,12 +1468,11 @@ class UmapMarkerColoredValidator(FlowUIValidator):
         self._label = label_substr.lower()
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        results_panel = getattr(viewer, "_results_panel", None) if viewer else None
-        combo = getattr(results_panel, "_interactive_combo", None)
-        if not combo:
+        panel = _results_panel(ui)
+        label = panel.color_label if panel is not None else None
+        if label is None:
             return self.log_failure("Interactive map combo not available yet.")
-        current = combo.currentText().lower()
+        current = label.lower()
         if self._label not in current:
             return self.log_failure(
                 f"Interactive map is showing '{current}', expected '{self._label}'."
@@ -1506,11 +1483,21 @@ class UmapMarkerColoredValidator(FlowUIValidator):
 # ── FlowSOM (Course 4) ────────────────────────────────────────────────────
 
 
-def _flowsom_tree(ui: AcademyContext) -> Any | None:
-    """The FlowSOM Tree view of the results on screen, if a FlowSOM run is showing."""
+def _population_analysis(ui: AcademyContext) -> PopulationAnalysisSnapshot | None:
     viewer = ui.population_analysis
-    panel = getattr(viewer, "_results_panel", None) if viewer else None
-    return getattr(panel, "_tree_view", None)
+    return viewer.academy_snapshot() if viewer is not None else None
+
+
+def _results_panel(ui: AcademyContext) -> ClusterResultsSnapshot | None:
+    """The clustering results on screen, if any."""
+    pa = _population_analysis(ui)
+    return pa.results if pa is not None else None
+
+
+def _flowsom_tree(ui: AcademyContext) -> FlowsomTreeView | None:
+    """The FlowSOM Tree view of the results on screen, if a FlowSOM run is showing."""
+    panel = _results_panel(ui)
+    return panel.tree if panel is not None else None
 
 
 class ClusteringMethodValidator(FlowUIValidator):
@@ -1520,8 +1507,8 @@ class ClusteringMethodValidator(FlowUIValidator):
         self._key = method_key
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if viewer is None or viewer._algo_combo.currentData() != self._key:
+        pa = _population_analysis(ui)
+        if pa is None or pa.method_key != self._key:
             return self.log_failure(f"Algorithm isn't '{self._key}'.")
         return True
 
@@ -1530,8 +1517,8 @@ class NewRunSelectedValidator(FlowUIValidator):
     """History shows [ New Run ]: the settings are editable again."""
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if viewer is None or viewer._history_combo.currentData() is not None:
+        pa = _population_analysis(ui)
+        if pa is None or not pa.new_run_selected:
             return self.log_failure("A past run is selected in History.")
         return True
 
@@ -1540,8 +1527,8 @@ class FlowsomResultsReadyValidator(FlowUIValidator):
     """A FlowSOM run finished and its tree is on screen."""
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if viewer is None or getattr(viewer, "_is_analysis_running", False):
+        pa = _population_analysis(ui)
+        if pa is None or pa.is_running:
             return self.log_failure("FlowSOM is still running.")
         if _flowsom_tree(ui) is None:
             return self.log_failure("No FlowSOM tree on screen yet.")
@@ -1559,7 +1546,7 @@ class FlowsomColorValidator(FlowUIValidator):
         tree = _flowsom_tree(ui)
         if tree is None:
             return self.log_failure("No FlowSOM tree on screen.")
-        if not tree._color_combo.currentText().casefold().endswith(self._marker):
+        if not tree.academy_snapshot().color_label.casefold().endswith(self._marker):
             return self.log_failure(f"Tree isn't coloured by '{self._marker}'.")
         if self._on_found is not None:
             self._on_found(tree)
@@ -1575,22 +1562,26 @@ class FlowsomKValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         tree = _flowsom_tree(ui)
-        if tree is None or tree._run.get("k") != self._k:
+        if tree is None or tree.academy_snapshot().run.get("k") != self._k:
             return self.log_failure(f"The run isn't at k = {self._k}.")
         if self._on_found is not None:
             self._on_found(tree)
         return True
 
 
-def clusters_positive_for(view: Any, marker: str) -> list[str]:
+def clusters_positive_for(view: ClusterMapView, marker: str) -> list[str]:
     """Tags of a cluster map's clusters that are + for ``marker`` ("M0", "C3", ...), largest first."""
-    out = []
-    for summary in view._summaries:
-        level = dict(zip(summary.markers, summary.level, strict=True))
-        value = next((v for m, v in level.items() if m.casefold() == marker.casefold()), None)
-        if value is not None and value >= 2 / 3:  # noqa: PLR2004 (the "+" call)
-            out.append(view._method.tag(summary.cluster))
-    return out
+    from ..analysis.clustering.describe import HI
+
+    snap = view.academy_snapshot()
+    return [
+        snap.method.tag(summary.cluster)
+        for summary in snap.summaries
+        if any(
+            m.casefold() == marker.casefold() and level >= HI
+            for m, level in zip(summary.markers, summary.level, strict=True)
+        )
+    ]
 
 
 metaclusters_positive_for = clusters_positive_for
@@ -1599,11 +1590,10 @@ metaclusters_positive_for = clusters_positive_for
 # ── PhenoGraph (Course 6) ─────────────────────────────────────────────────
 
 
-def _phenograph_graph(ui: AcademyContext) -> Any | None:
+def _phenograph_graph(ui: AcademyContext) -> PhenographGraphView | None:
     """The Cluster Graph view of the results on screen, if a PhenoGraph run is showing."""
-    viewer = ui.population_analysis
-    panel = getattr(viewer, "_results_panel", None) if viewer else None
-    return getattr(panel, "_graph_view", None)
+    panel = _results_panel(ui)
+    return panel.graph if panel is not None else None
 
 
 class PhenographResultsReadyValidator(FlowUIValidator):
@@ -1613,8 +1603,8 @@ class PhenographResultsReadyValidator(FlowUIValidator):
         self._on_found = on_found
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
-        viewer = ui.population_analysis
-        if viewer is None or getattr(viewer, "_is_analysis_running", False):
+        pa = _population_analysis(ui)
+        if pa is None or pa.is_running:
             return self.log_failure("PhenoGraph is still running.")
         graph = _phenograph_graph(ui)
         if graph is None:
@@ -1631,7 +1621,7 @@ class PhenographColorValidator(FlowsomColorValidator):
         graph = _phenograph_graph(ui)
         if graph is None:
             return self.log_failure("No cluster graph on screen.")
-        if not graph._color_combo.currentText().casefold().endswith(self._marker):
+        if not graph.academy_snapshot().color_label.casefold().endswith(self._marker):
             return self.log_failure(f"Graph isn't coloured by '{self._marker}'.")
         if self._on_found is not None:
             self._on_found(graph)
@@ -1647,7 +1637,7 @@ class PhenographResolutionValidator(FlowUIValidator):
 
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         graph = _phenograph_graph(ui)
-        value = graph._run.get("resolution") if graph is not None else None
+        value = graph.academy_snapshot().run.get("resolution") if graph is not None else None
         if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
             return self.log_failure(f"The run isn't at resolution {self._resolution}.")
         if self._on_found is not None:
@@ -1700,11 +1690,10 @@ class UmapBestBCellClusterValidator(FlowUIValidator):
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         import numpy as np
 
-        viewer = ui.population_analysis
-        results_panel = getattr(viewer, "_results_panel", None) if viewer else None
-        results = getattr(results_panel, "_results", None)
-        cluster_ui = getattr(results_panel, "_cluster_ui_elements", None)
-        if not results or not cluster_ui:
+        panel = _results_panel(ui)
+        results = panel.results if panel is not None else None
+        rows = panel.cluster_rows if panel is not None else {}
+        if not results or not rows:
             return self.log_failure("Results panel not ready yet.")
 
         clusters = np.asarray(results.get("clusters"))
@@ -1748,18 +1737,18 @@ class UmapBestBCellClusterValidator(FlowUIValidator):
                 f"rename ID {best_cid}'s field to **{self._expected_name_display}**."
             )
 
-        return self._rows_match_expected(cluster_ui, best_cid)
+        return self._rows_match_expected(rows, best_cid)
 
-    def _rows_match_expected(self, cluster_ui: dict, best_cid: int) -> bool:
-        for cid, (checkbox, name_edit) in cluster_ui.items():
+    def _rows_match_expected(self, rows: dict[Any, tuple[bool, str]], best_cid: int) -> bool:
+        for cid, (checked, name) in rows.items():
             should_check = int(cid) == best_cid
-            if checkbox.isChecked() != should_check:
+            if checked != should_check:
                 return self.log_failure(
-                    f"Cluster {cid} checked={checkbox.isChecked()}, expected {should_check}."
+                    f"Cluster {cid} checked={checked}, expected {should_check}."
                 )
-            if should_check and name_edit.text().strip().lower() != self._expected_name:
+            if should_check and name.strip().lower() != self._expected_name:
                 return self.log_failure(
-                    f"Best cluster name is '{name_edit.text()}', expected '{self._expected_name}'."
+                    f"Best cluster name is '{name}', expected '{self._expected_name}'."
                 )
         return True
 
@@ -2356,7 +2345,7 @@ class _LensValidator(FlowUIValidator):
         return self.validate_lens(lens)
 
     @abstractmethod
-    def validate_lens(self, lens: Any) -> bool:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
         pass
 
 
@@ -2366,8 +2355,8 @@ class LensSampleValidator(_LensValidator):
     def __init__(self, sample_name: str) -> None:
         self._sample_name = sample_name.casefold()
 
-    def validate_lens(self, lens: Any) -> bool:
-        sample = lens._model.sample
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        sample = lens.model.sample
         if sample is None or self._sample_name not in sample.display_name.casefold():
             return self.log_failure(f"Lens isn't on '{self._sample_name}'.")
         return True
@@ -2379,10 +2368,10 @@ class LensRunMethodValidator(_LensValidator):
     def __init__(self, method_key: str) -> None:
         self._key = method_key
 
-    def validate_lens(self, lens: Any) -> bool:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
         from ..analysis.clustering import method_of
 
-        run = lens._model.run
+        run = lens.model.run
         if run is None or method_of(run).key != self._key:
             return self.log_failure(f"The lens's run isn't a '{self._key}' run.")
         return True
@@ -2394,8 +2383,8 @@ class LensKValidator(_LensValidator):
     def __init__(self, k: int) -> None:
         self._k = k
 
-    def validate_lens(self, lens: Any) -> bool:
-        run = lens._model.run
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        run = lens.model.run
         if run is None or run.get("k") != self._k:
             return self.log_failure(f"The lens's run isn't at k = {self._k}.")
         return True
@@ -2411,10 +2400,10 @@ class LensResolutionValidator(_LensValidator):
         self._resolution = resolution
         self._on_found = on_found
 
-    def validate_lens(self, lens: Any) -> bool:
-        run = lens._model.run
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        run = lens.model.run
         value = run.get("resolution") if run is not None else None
-        if lens._model._reclustering is not None:
+        if lens.model.is_reclustering:
             return self.log_failure("Still re-clustering.")
         if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
             return self.log_failure(f"The lens's run isn't at resolution {self._resolution}.")
@@ -2433,8 +2422,8 @@ class LensAgreementValidator(_LensValidator):
     def __init__(self, on_found: Callable[[list[tuple[Any, Any]]], None] | None = None) -> None:
         self._on_found = on_found
 
-    def validate_lens(self, lens: Any) -> bool:
-        model = lens._model
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        model = lens.model
         pairs = list(zip(model.findings, model.agreements, strict=False))
         if not pairs or not any(a.compared for _f, a in pairs):
             return self.log_failure("No other run of this population to compare with.")
@@ -2446,8 +2435,8 @@ class LensAgreementValidator(_LensValidator):
 class LensRunReadyValidator(_LensValidator):
     """The lens is judging the gates against a run with clusters."""
 
-    def validate_lens(self, lens: Any) -> bool:
-        scope = lens._model.scope
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        scope = lens.model.scope
         if scope is None or not scope.has_clusters:
             return self.log_failure("No clustered run selected in the lens.")
         return True
@@ -2459,8 +2448,8 @@ class LensPopulationSelectedValidator(_LensValidator):
     def __init__(self, name: str) -> None:
         self._name = name.casefold()
 
-    def validate_lens(self, lens: Any) -> bool:
-        model = lens._model
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        model = lens.model
         if model.selected_node_id is None:
             return self.log_failure("No population selected in the lens.")
         if model.population_name(model.selected_node_id).casefold() != self._name:
@@ -2468,13 +2457,13 @@ class LensPopulationSelectedValidator(_LensValidator):
         return True
 
 
-def _lens_findings(lens: Any, kind: Any, gate: str | None) -> list[Any]:
+def _lens_findings(lens: SampleLensTab, kind: Any, gate: str | None) -> list[Any]:
     """The lens's findings of ``kind``, naming the population ``gate`` if given."""
     from ..analysis.population_matching import PATH_SEP
 
     return [
         f
-        for f in lens._model.findings
+        for f in lens.model.findings
         if f.kind is kind
         and (gate is None or (f.population or "").rsplit(PATH_SEP, 1)[-1].casefold() == gate)
     ]
@@ -2500,7 +2489,7 @@ class LensFindingValidator(_LensValidator):
         self._present = present
         self._on_found = on_found
 
-    def validate_lens(self, lens: Any) -> bool:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
         found = _lens_findings(lens, self._kind, self._gate)
         if found and self._on_found is not None:
             self._on_found(found[0])
@@ -2520,8 +2509,8 @@ class LensNoFindingsValidator(_LensValidator):
     def __init__(self, on_findings: Callable[[list[Any]], None] | None = None) -> None:
         self._on_findings = on_findings
 
-    def validate_lens(self, lens: Any) -> bool:
-        findings = list(lens._model.findings)
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        findings = list(lens.model.findings)
         if self._on_findings is not None:
             self._on_findings(findings)
         if findings:
@@ -2536,13 +2525,13 @@ class LensFindingFocusedValidator(_LensValidator):
         self._kind = kind
         self._on_found = on_found
 
-    def validate_lens(self, lens: Any) -> bool:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
         found = _lens_findings(lens, self._kind, None)
         if not found:
             return self.log_failure(f"No {self._kind.value} finding.")
         if self._on_found is not None:
             self._on_found(found[0])
-        if not any(lens._emphasis == f.clusters for f in found):
+        if not any(lens.emphasis == f.clusters for f in found):
             return self.log_failure(f"The {self._kind.value} finding hasn't been clicked.")
         return True
 
@@ -2553,8 +2542,8 @@ class LensFocusValidator(_LensValidator):
     def __init__(self, on: bool = True) -> None:
         self._on = on
 
-    def validate_lens(self, lens: Any) -> bool:
-        if lens._path.focused != self._on:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        if lens.path.focused != self._on:
             return self.log_failure(f"Focus mode isn't {'on' if self._on else 'off'}.")
         return True
 
@@ -2565,8 +2554,8 @@ class LensColumnsValidator(_LensValidator):
     def __init__(self, columns: int) -> None:
         self._columns = columns
 
-    def validate_lens(self, lens: Any) -> bool:
-        if lens._path.columns != self._columns:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        if lens.path.columns != self._columns:
             return self.log_failure(f"Plots per row isn't {self._columns or 'All'}.")
         return True
 
@@ -2578,10 +2567,10 @@ class LensPlotViewValidator(_LensValidator):
         self._target = target.casefold()
         self._view = view
 
-    def validate_lens(self, lens: Any) -> bool:
-        for plot in lens._path._shown():
-            if plot.caption.text().casefold().endswith(self._target):
-                if plot.view.currentData() == self._view:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        for caption, view in lens.path.shown_views():
+            if caption.casefold().endswith(self._target):
+                if view == self._view:
                     return True
                 return self.log_failure(f"'{self._target}' plot isn't shown as {self._view}.")
         return self.log_failure(f"No '{self._target}' plot on the path.")
@@ -2593,20 +2582,20 @@ class LensProposalValidator(_LensValidator):
     def __init__(self, on_found: Callable[[list[str]], None] | None = None) -> None:
         self._on_found = on_found
 
-    def validate_lens(self, lens: Any) -> bool:
-        if lens._proposal is None or not lens._proposal.steps:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
+        if lens.proposal is None or not lens.proposal.steps:
             return self.log_failure("No gate proposal shown.")
         if self._on_found is not None:
             self._on_found(proposal_axes(lens))
         return True
 
 
-def proposal_axes(lens: Any) -> list[str]:
+def proposal_axes(lens: SampleLensTab) -> list[str]:
     """Each proposed gate's markers, in order: ["B220 vs CD3", "CD4 vs CD8"]."""
     from ..analysis.clustering.describe import short_marker
     from ..analysis.fcs_io import get_channel_marker_label
 
-    sample = lens._model.sample
+    sample, proposal = lens.model.sample, lens.proposal
     fcs = sample.fcs_data if sample is not None else None
 
     def marker(channel: str) -> str:
@@ -2614,7 +2603,7 @@ def proposal_axes(lens: Any) -> list[str]:
 
     return [
         " vs ".join(marker(c) for c in (step.gate.x_param, step.gate.y_param) if c)
-        for step in lens._proposal.steps
+        for step in (proposal.steps if proposal is not None else ())
     ]
 
 
@@ -2624,13 +2613,13 @@ class LensProposalAddedValidator(_LensValidator):
     UMAP exports can carry the same default name, so they don't count.
     """
 
-    def validate_lens(self, lens: Any) -> bool:
+    def validate_lens(self, lens: SampleLensTab) -> bool:
         import re
 
         from ..analysis.population_matching import populations
         from ..analysis.sample_lens.scope import is_cluster_population
 
-        sample = lens._model.sample
+        sample = lens.model.sample
         names = [
             node.name or ""
             for _, node in (populations(sample) if sample else [])

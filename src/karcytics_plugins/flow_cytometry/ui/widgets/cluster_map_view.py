@@ -29,6 +29,7 @@ from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QListWidgetItem, QVBoxLayout, QWidget
 
 from ...analysis.clustering import call, method_of, short_marker, summarize_clusters
+from ..academy_context import ClusterMapSnapshot
 
 MIN_SIZE, MAX_SIZE = 30.0, 520.0  # circle area range, points²
 RECUT_DELAY_MS = 350
@@ -198,6 +199,12 @@ class ClusterMapView(QWidget):
         side_widget.setLayout(side)
         side_widget.setFixedWidth(SIDE_WIDTH)
         return side_widget
+
+    def academy_snapshot(self) -> ClusterMapSnapshot:
+        summaries = tuple(self._summaries)
+        return ClusterMapSnapshot(
+            self._run, self._method, self._color_combo.currentText(), summaries
+        )
 
     # ── Data ──────────────────────────────────────────────────────────
 

@@ -286,6 +286,26 @@ class SampleLensTab(QWidget):
         self._proposal_bar.hide()
         return self._proposal_bar
 
+    # ── Read-only, for the Academy ─────────────────────────────────────
+
+    @property
+    def model(self) -> SampleLensModel:
+        return self._model
+
+    @property
+    def path(self) -> GatingPathStrip:
+        return self._path
+
+    @property
+    def emphasis(self) -> tuple[int, ...]:
+        """The clusters circled on the run map."""
+        return self._emphasis
+
+    @property
+    def proposal(self) -> Proposal | None:
+        """The gates being previewed, if any."""
+        return self._proposal
+
     # ── Lifecycle ──────────────────────────────────────────────────────
 
     def showEvent(self, event: Any) -> None:  # noqa: N802 - Qt override

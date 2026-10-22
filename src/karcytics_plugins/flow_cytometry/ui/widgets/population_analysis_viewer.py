@@ -54,6 +54,7 @@ from karcytics_plugins.flow_cytometry.analysis.services.umap_service import (
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
+from ..academy_context import PopulationAnalysisSnapshot
 from .checkbox_style import checkbox_qss
 from .cluster_results_panel import ClusterResultsPanel
 from .flowsom_params import FlowsomParamsPanel, PhenographParamsPanel
@@ -251,11 +252,8 @@ class PopulationAnalysisViewer(QWidget):
             lambda val: self._n_neigh_val_lbl.setText(str(val))
         )
 
-        # Groups the title/value row + slider under one objectName so a
-        # tutorial step can spotlight the whole parameter — label, live
-        # value, and control together — as a single region, rather than
-        # just the bare slider (which gave no visual link to its own label
-        # and could scroll out of view independently of it).
+        # One objectName over label, value and slider, so a tutorial step
+        # spotlights the whole parameter, not just the bare slider.
         n_neigh_group = QWidget()
         n_neigh_group.setObjectName("UmapNeighborsGroup")
         n_neigh_group_layout = QVBoxLayout(n_neigh_group)
@@ -711,16 +709,35 @@ class PopulationAnalysisViewer(QWidget):
                 self._cluster_panel._apply_theme_styles()
 
     def _on_hdbscan_toggled(self, checked: bool) -> None:
-        # In read-only (history) mode, silently revert any user click on the
-        # checkbox. The checkbox is kept *enabled* so that macOS's native Aqua
-        # style actually renders the checked indicator — disabled checkboxes on
-        # macOS render as blank regardless of their logical check state.
+        # Read-only (history) mode reverts clicks: the box stays enabled because
+        # macOS draws a disabled checkbox blank whatever its state.
         if self._params_read_only:
             self._run_hdbscan_cb.blockSignals(True)
             self._run_hdbscan_cb.setChecked(not checked)  # revert
             self._run_hdbscan_cb.blockSignals(False)
             return
         self._min_cluster_container.setVisible(checked)
+
+    def academy_snapshot(self) -> PopulationAnalysisSnapshot:
+        items = filter(None, map(self._channel_list.item, range(self._channel_list.count())))
+        checked = Qt.CheckState.Checked
+        panel = self._results_panel
+        return PopulationAnalysisSnapshot(
+            sample_label=self._sample_combo.currentText(),
+            gate_label=self._gate_combo.currentText(),
+            channel_checks={
+                i.data(Qt.ItemDataRole.UserRole) or "": i.checkState() == checked for i in items
+            },
+            run_name=self._run_name_input.text(),
+            subsample_percent=self._n_events_slider.value(),
+            hdbscan_enabled=self._run_hdbscan_cb.isChecked(),
+            method_key=self._algo_combo.currentData(),
+            new_run_selected=self._history_combo.currentData() is None,
+            is_running=self._is_analysis_running,
+            is_animating=self._is_animation_playing,
+            has_results=self._last_results is not None,
+            results=panel.academy_snapshot() if isinstance(panel, ClusterResultsPanel) else None,
+        )
 
     @property
     def _method(self) -> ClusteringMethod:
@@ -748,10 +765,7 @@ class PopulationAnalysisViewer(QWidget):
         self._n_events_slider.setEnabled(not read_only)
         self._metric_combo.setEnabled(not read_only)
         self._seed_input.setReadOnly(read_only)
-        # NOTE: _run_hdbscan_cb is intentionally NOT disabled here.
-        # On macOS, QCheckBox.setEnabled(False) causes the native Aqua style to
-        # render the indicator as a blank box regardless of the check state.
-        # Read-only enforcement for the checkbox is handled in _on_hdbscan_toggled.
+        # _run_hdbscan_cb stays enabled (macOS); _on_hdbscan_toggled keeps it read-only.
 
         self._min_cluster_size_box.setEnabled(not read_only)
         self._min_cluster_container.setVisible(self._run_hdbscan_cb.isChecked())
@@ -957,11 +971,8 @@ class PopulationAnalysisViewer(QWidget):
         """
         self._last_results = run_data
 
-        # Freeze the UI first — on macOS/PySide6, calling setEnabled(False) on a
-        # QCheckBox AFTER setChecked(True) causes the native style to repaint
-        # the indicator as visually unchecked even though isChecked() is True.
-        # By disabling first and then setting values on the already-disabled
-        # widgets we avoid that repaint artifact entirely.
+        # Freeze first: on macOS, disabling a QCheckBox after setChecked(True)
+        # repaints it unchecked, so values go onto already-disabled widgets.
         self._set_parameters_read_only(True)
         self._run_details_lbl.setVisible(False)
 
@@ -1013,13 +1024,9 @@ class PopulationAnalysisViewer(QWidget):
         used_channels = run_data.get("channels", [])
         if used_channels:
             for i in range(self._channel_list.count()):
-                item = self._channel_list.item(i)
-                if item:
-                    ch = item.data(Qt.ItemDataRole.UserRole)
-                    if ch in used_channels:
-                        item.setCheckState(Qt.CheckState.Checked)
-                    else:
-                        item.setCheckState(Qt.CheckState.Unchecked)
+                if item := self._channel_list.item(i):
+                    used = item.data(Qt.ItemDataRole.UserRole) in used_channels
+                    item.setCheckState(Qt.CheckState.Checked if used else Qt.CheckState.Unchecked)
 
     def _on_history_changed(self, index: int) -> None:
         self._update_delete_button_state()
@@ -1085,8 +1092,7 @@ class PopulationAnalysisViewer(QWidget):
 
             self.refresh_history()
 
-            # refresh_history() blocks signals to prevent spurious updates, so we must manually
-            # trigger the UI transition to either the next available run or the [ New Run ] screen.
+            # refresh_history() blocks signals: show the next run or [ New Run ] by hand.
             self._on_history_changed(self._history_combo.currentIndex())
 
     def start_analysis(self) -> None:  # noqa: PLR0915
@@ -1184,12 +1190,8 @@ class PopulationAnalysisViewer(QWidget):
                 if not success:
                     return {"success": False, "prep": None, "frames": None, "colors": None}
 
-                # Also build the ~750 per-frame animation entries here, on this
-                # same background thread, instead of back on the GUI thread —
-                # this pure numpy/Python loop (no widget access) was the real
-                # source of the freeze/spinning-beachball reported right
-                # after this "quick UMAP run", not the UMAP fit itself (which
-                # was already backgrounded).
+                # The ~750 animation frames are built here too: on the GUI
+                # thread this loop froze the app after a quick UMAP run.
                 frames, colors = build_umap_animation_frames(p, fps=self._animator.fps)
                 logger.debug(f"[ANIM-PREP] Built {len(frames)} animation frames in background")
                 return {"success": True, "prep": p, "frames": frames, "colors": colors}
@@ -1453,10 +1455,8 @@ class PopulationAnalysisViewer(QWidget):
 
         experiment_edits.add_umap_run(self._state, results)
 
-        # We NO LONGER build the ClusterResultsPanel here, because building 10+ matplotlib
-        # scatter plots takes 5-10 seconds and blocks the UI thread, which causes the
-        # still-running UMAP animation to freeze jarringly.
-        # Instead, we defer it to _check_transition_to_results().
+        # The results panel is built in _check_transition_to_results(), not here:
+        # its plots take seconds and would freeze the running animation.
 
         self._replay_anim_btn.setEnabled(method_of(results) is UMAP_HDBSCAN)
         self._placeholder_lbl.setText("Configure a run in the left panel to begin.")

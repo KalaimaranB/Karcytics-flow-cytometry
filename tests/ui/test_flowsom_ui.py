@@ -161,3 +161,39 @@ def test_course_4_flowsom_checks_follow_the_learner(viewer):
     tree._recut_timer.timeout.emit()
     assert FlowsomKValidator(3).check(state, ui)
     assert "k=3" in viewer._history_combo.currentText()
+
+
+@pytest.mark.ui
+def test_course_3_checks_read_the_sidebar_and_the_results(viewer):
+    from karcytics_plugins.flow_cytometry.tutorials.validators import (
+        ClusterResultsTabActiveValidator,
+        UmapChannelExcludedValidator,
+        UmapGateSelectedValidator,
+        UmapHdbscanEnabledValidator,
+        UmapMarkerColoredValidator,
+        UmapResultsReadyValidator,
+        UmapRunNameProvidedValidator,
+        UmapSampleSelectedValidator,
+        UmapSubsampleValueValidator,
+    )
+
+    state, ui = viewer._state, AcademyContext(population_analysis=viewer)
+    assert UmapSampleSelectedValidator("s1").check(state, ui)
+    assert UmapGateSelectedValidator("all events").check(state, ui)
+    assert not UmapRunNameProvidedValidator().check(state, ui)
+    assert UmapSubsampleValueValidator(10).check(state, ui)
+    assert not UmapHdbscanEnabledValidator().check(state, ui)
+    assert not UmapChannelExcludedValidator("CD56").check(state, ui)
+    assert not UmapResultsReadyValidator().check(state, ui)
+    assert not ClusterResultsTabActiveValidator("flowsom tree").check(state, ui)
+
+    viewer._channel_list.item(3).setCheckState(viewer._channel_list.item(3).checkState().Unchecked)
+    assert UmapChannelExcludedValidator("CD56").check(state, ui)
+    viewer._run_hdbscan_cb.setChecked(True)
+    assert UmapHdbscanEnabledValidator().check(state, ui)
+
+    run_flowsom(viewer, k=3)
+    assert UmapResultsReadyValidator().check(state, ui)
+    assert ClusterResultsTabActiveValidator("flowsom tree").check(state, ui)
+    assert UmapMarkerColoredValidator("auto-cluster").check(state, ui)
+    assert not UmapMarkerColoredValidator("cd3").check(state, ui)

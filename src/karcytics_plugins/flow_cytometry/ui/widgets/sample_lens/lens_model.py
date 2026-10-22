@@ -200,6 +200,10 @@ class SampleLensModel(QObject):
         runs = self._state.data.umap_results.get(self.run_ref.key, [])
         return runs[self.run_ref.index] if self.run_ref.index < len(runs) else None
 
+    @property
+    def is_reclustering(self) -> bool:
+        return self._reclustering is not None
+
     def population_name(self, node_id: str | None) -> str:
         node = self.node(node_id)
         return node.name if node is not None and node_id else "All Events"

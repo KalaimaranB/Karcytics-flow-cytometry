@@ -84,9 +84,8 @@ NO_HISTOGRAM = (
 def view_options(gate: Gate, channels: pd.Index) -> list[tuple[str, str, bool]]:
     """(key, label, enabled) for each way this gate's plot can be shown.
 
-    A 1-D (range) gate keeps its meaning on any plot with its channel on X:
-    histogram, or a dot plot against a scatter channel. A 2-D gate needs both
-    of its axes, so it gets the 2-D modes and a disabled histogram.
+    A range gate works on any plot with its channel on X (histogram, or a dot
+    plot against a scatter channel); a 2-D gate needs both axes: no histogram.
     """
     axes = gate_axes(gate)
     if len(axes) == 1:
@@ -344,6 +343,9 @@ class GatingPathStrip(QWidget):
         super().resizeEvent(event)
         self._fit_sizes()
 
+    def shown_views(self) -> list[tuple[str, str]]:  # (caption, view key), left to right
+        return [(p.caption.text(), p.view.currentData()) for p in self._shown()]
+
     def _shown(self) -> list[_PathPlot]:
         return [p for p in self._plots if not p.isHidden()]
 
@@ -386,10 +388,8 @@ class GatingPathStrip(QWidget):
     def _resize_next(self) -> None:
         """Resize one waiting plot, then come back for the next.
 
-        A resized plot redraws all its points (~0.15 s); resizing them all at
-        once froze the tab for the whole batch with nothing painted. One per
-        turn of the event loop shows each as it's ready, the rest keep their
-        "Loading plot…" pill until their turn.
+        A resize redraws every point (~0.15 s): all at once froze the tab, so
+        one per event-loop turn, the rest keeping their "Loading plot…" pill.
         """
         plot = next((p for p in self._shown() if p.target), None)
         if plot is None:

@@ -37,6 +37,7 @@ from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
 
 from ...analysis.clustering import FLOWSOM, PHENOGRAPH, method_of
 from ...analysis.flowsom_analysis import recut_run
+from ..academy_context import ClusterResultsSnapshot
 from .cluster_plot_render_task import ClusterPlotRenderTask
 from .cluster_scatter_draw import draw_cluster_scatter
 from .flowsom_tree import FlowsomTreeView
@@ -213,6 +214,20 @@ class ClusterResultsPanel(QWidget):
         self.destroyed.connect(self._cleanup_task_scheduler_connections)
         self._setup_ui()
 
+    def academy_snapshot(self) -> ClusterResultsSnapshot:
+        clustered = "clusters" in self._results  # only then is there an Interactive Map
+        return ClusterResultsSnapshot(
+            results=self._results,
+            tab_label=self._tabs.tabText(self._tabs.currentIndex()),
+            color_label=self._interactive_combo.currentText() if clustered else None,
+            cluster_rows={
+                cid: (checkbox.isChecked(), name_edit.text())
+                for cid, (checkbox, name_edit) in self._cluster_ui_elements.items()
+            },
+            tree=self._tree_view,
+            graph=self._graph_view,
+        )
+
     def _cleanup_task_scheduler_connections(self) -> None:
         try:
             task_scheduler.task_finished.disconnect(self._on_global_task_finished)
@@ -226,12 +241,8 @@ class ClusterResultsPanel(QWidget):
 
         self._tabs = QTabWidget()
         self._tabs.setObjectName("ClusterResultsTabs")
-        # A separate, narrower objectName for just the clickable tab-header
-        # row — spotlighting "ClusterResultsTabs" itself highlights the
-        # WHOLE tab widget (header + the entire content pane below it,
-        # nearly the whole results panel), not the tabs a "click this tab"
-        # tutorial step actually means. Mirrors MainTabBar (workspace_builder.py),
-        # which is a standalone QTabBar for exactly this reason.
+        # Its own objectName for the tab-header row: a "click this tab" step
+        # spotlights the tabs, not the whole widget (as MainTabBar does).
         tab_bar = self._tabs.tabBar()
         if tab_bar is not None:
             tab_bar.setObjectName("ClusterResultsTabBar")
@@ -347,13 +358,9 @@ class ClusterResultsPanel(QWidget):
         min_c=0,
         max_c=0,
     ) -> CopyableCanvas:
-        # `draw_cluster_scatter`'s `fig.tight_layout()` call measures text/tick
-        # extents via a temporary Agg renderer — a real call into matplotlib's
-        # (thread-unsafe) Agg C backend, same as `canvas.draw()`. Built on the
-        # UI thread, this can otherwise race a background `ClusterPlotRenderTask`
-        # (Plot Gallery) doing the same thing under this same lock, corrupting
-        # shared Agg state (observed as a silent process crash, no traceback —
-        # matches the SIGBUS this lock exists to prevent, see render_task.py).
+        # tight_layout() renders through the thread-unsafe Agg backend, which a
+        # background ClusterPlotRenderTask may be using: take the lock (a silent
+        # crash otherwise, the SIGBUS this lock exists to prevent).
         with MPL_RASTER_LOCK:
             fig = Figure(facecolor=Colors.BG_DARK, figsize=(5, 4))
             draw_cluster_scatter(
@@ -483,19 +490,9 @@ class ClusterResultsPanel(QWidget):
         scroll.setWidget(container)
         self._tabs.addTab(scroll, "Plot Gallery")
 
-    # A gallery tile is a static, off-thread-rendered image, not a live
-    # matplotlib canvas that re-renders crisp at whatever size Qt gives it —
-    # that's what makes the off-thread render possible in the first place.
-    # It's displayed at this one fixed, deterministic logical size
-    # (`CopyablePixmapLabel`'s docstring has the full history of why: three
-    # different dynamic expand-and-fill approaches each introduced a new
-    # visual bug in turn). Bigger than the original synchronous canvas's
-    # figsize=(5, 4)-at-100-dpi footprint (500x400) so tiles don't look
-    # artificially denser than the Interactive Map's plot, without relying on
-    # any `QGridLayout` stretch/expand behavior to get there.
-    # `_GALLERY_SUPERSAMPLE` renders that many times bigger so downscaling to
-    # this display size stays sharp instead of visibly softening (the same
-    # trick group_preview.py's thumbnails already use).
+    # A gallery tile is an image rendered off-thread, shown at one fixed size
+    # (CopyablePixmapLabel's docstring says why: expand-to-fill caused bugs).
+    # _GALLERY_SUPERSAMPLE renders it larger so the downscale stays sharp.
     _GALLERY_TILE_WIDTH_PX = 467
     _GALLERY_TILE_HEIGHT_PX = 373
     _GALLERY_SUPERSAMPLE = 2
@@ -969,10 +966,7 @@ class ClusterResultsPanel(QWidget):
             )
             left_layout.addWidget(vis_lbl)
 
-            # See _create_plot's comment: Figure construction through
-            # CopyableCanvas() must be lock-protected against a concurrent
-            # background ClusterPlotRenderTask (Plot Gallery) touching the
-            # same thread-unsafe Agg backend.
+            # Locked, as in _create_plot.
             with MPL_RASTER_LOCK:
                 fig = Figure(facecolor=Colors.BG_DARK, figsize=(6, 4))
                 ax = fig.add_subplot(111)
