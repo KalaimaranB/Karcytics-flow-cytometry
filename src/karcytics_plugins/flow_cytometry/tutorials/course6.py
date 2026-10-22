@@ -555,7 +555,7 @@ course_6_reporting = Course(
             hide_next_button=True,
             target_widget_names=["StatsPopulationPickerButton"],
             validator=PopulationsCheckedValidator(
-                "_statistics_explorer",
+                "statistics_explorer",
                 "b-cells",
                 "umap b cells",
                 max_checked=4,
@@ -794,7 +794,7 @@ course_6_reporting = Course(
             hide_next_button=True,
             target_widget_names=["ComparisonsPopulationPickerButton"],
             validator=PopulationsCheckedValidator(
-                "_comparisons_viewer",
+                "comparisons_viewer",
                 "b-cells",
                 max_checked=3,
                 require_popup_closed=True,
@@ -884,7 +884,7 @@ course_6_reporting = Course(
             hide_next_button=True,
             target_widget_names=["ComparisonsPopulationPickerButton"],
             validator=PopulationsCheckedValidator(
-                "_comparisons_viewer",
+                "comparisons_viewer",
                 "b-cells",
                 "umap b cells",
                 max_checked=4,
@@ -1083,13 +1083,13 @@ course_6_reporting = Course(
                     id="c6_export_comparisons_plot",
                     instruction="Here on Comparisons: '📸 Export' saves this plot (PNG, PDF or SVG).",
                     target_widget_name="ComparisonsExportButton",
-                    validator=ExportDoneValidator("_comparisons_viewer", "plot"),
+                    validator=ExportDoneValidator("comparisons_viewer", "plot"),
                 ),
                 SubTask(
                     id="c6_export_stats_csv",
                     instruction="On Statistics: '📤 Export CSV' saves the table for a spreadsheet.",
                     target_widget_name="StatsExportButton",
-                    validator=ExportDoneValidator("_statistics_explorer", "csv"),
+                    validator=ExportDoneValidator("statistics_explorer", "csv"),
                 ),
             ],
             next_step_id="c6_s27k_save_workspace",

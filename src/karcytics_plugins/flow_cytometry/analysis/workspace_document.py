@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from .state import FlowState, ViewState
 
 #: View settings persisted in a workflow, in save order. Everything else on
-#: ``ViewState`` (live widget references, the group filter, the FMO overlay,
+#: ``ViewState`` (the group filter, the FMO overlay, the properties pane,
 #: fallback scales) is session-only and reset to its default on load.
 PERSISTED_VIEW_FIELDS: tuple[str, ...] = (
     "current_sample_id",

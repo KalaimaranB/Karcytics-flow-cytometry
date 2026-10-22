@@ -23,6 +23,7 @@ from karcytics_plugins.flow_cytometry.tutorials.validators import (
     PreviewShowsValidator,
     SavedMatrixValidator,
 )
+from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import ALL_SAMPLES
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_preview import VIEW_BOTH
@@ -78,8 +79,12 @@ def view(qtbot, state):
     view = CompensationView(state)
     qtbot.addWidget(view)
     view.show()
-    state.view._compensation_view = view
     return view
+
+
+@pytest.fixture
+def ui(view):
+    return AcademyContext(compensation_view=view)
 
 
 def _pick(combo, data) -> None:
@@ -87,88 +92,88 @@ def _pick(combo, data) -> None:
 
 
 def test_validators_fail_quietly_before_the_tab_exists(state):
-    assert CompensationPageValidator(PAGE_SETUP).validate(state) is False
+    assert CompensationPageValidator(PAGE_SETUP).check(state) is False
 
 
-def test_method_and_page_follow_the_tab(view, state):
-    assert CompensationMethodValidator("cytometer").validate(state)  # the files carry a matrix
-    assert CompensationPageValidator(PAGE_SETUP).validate(state)
+def test_method_and_page_follow_the_tab(view, state, ui):
+    assert CompensationMethodValidator("cytometer").check(state, ui)  # the files carry a matrix
+    assert CompensationPageValidator(PAGE_SETUP).check(state, ui)
 
     view._btn_run.click()
 
-    assert CompensationPageValidator(PAGE_MATRIX).validate(state)
-    assert EditorMatrixValidator("cytometer").validate(state)
-    assert not EditorMatrixValidator("fmo").validate(state)
+    assert CompensationPageValidator(PAGE_MATRIX).check(state, ui)
+    assert EditorMatrixValidator("cytometer").check(state, ui)
+    assert not EditorMatrixValidator("fmo").check(state, ui)
 
     view._btn_library_page.click()
     _pick(view._method_combo, "fmo")
 
-    assert CompensationPageValidator(PAGE_MATRICES).validate(state)
-    assert CompensationMethodValidator("fmo").validate(state)
+    assert CompensationPageValidator(PAGE_MATRICES).check(state, ui)
+    assert CompensationMethodValidator("fmo").check(state, ui)
 
 
-def test_the_fit_gate_and_the_step_by_step_picture(view, state):
+def test_the_fit_gate_and_the_step_by_step_picture(view, state, ui):
     _pick(view._method_combo, "fmo")
-    assert not CompensationFitGateValidator("Cells").validate(state)
-    assert not IllustrationPlayedValidator().validate(state)
+    assert not CompensationFitGateValidator("Cells").check(state, ui)
+    assert not IllustrationPlayedValidator().check(state, ui)
 
     _pick(view._setup._gate_combo, "Cells")
     view._setup._illustration.go_to(3)
 
-    assert CompensationFitGateValidator("cells").validate(state)
-    assert IllustrationPlayedValidator().validate(state)
+    assert CompensationFitGateValidator("cells").check(state, ui)
+    assert IllustrationPlayedValidator().check(state, ui)
 
 
-def test_a_hand_edited_cell_is_recognised(view, state):
+def test_a_hand_edited_cell_is_recognised(view, state, ui):
     _pick(view._method_combo, "fmo")
     view._btn_run.click()
     filled = EditorMatrixValidator("fmo", "PE-A", "APC-A", 0.30)
-    assert EditorMatrixValidator("fmo").validate(state)
-    assert not filled.validate(state)  # estimated, not typed
-    assert SavedMatrixValidator("fmo").validate(state)  # every run is kept
-    assert not SavedMatrixValidator("fmo", fine_tuned=True).validate(state)
+    assert EditorMatrixValidator("fmo").check(state, ui)
+    assert not filled.check(state, ui)  # estimated, not typed
+    assert SavedMatrixValidator("fmo").check(state, ui)  # every run is kept
+    assert not SavedMatrixValidator("fmo", fine_tuned=True).check(state, ui)
 
     view.editor._table.item(1, 2).setText("0.5")
-    assert not filled.validate(state)  # edited, but to the wrong value
+    assert not filled.check(state, ui)  # edited, but to the wrong value
     view.editor._table.item(1, 2).setText("0.31")
-    assert filled.validate(state)
+    assert filled.check(state, ui)
 
     state.data.matrix_library.append(SavedMatrix("Mine", view.editor.matrix))
-    assert SavedMatrixValidator("fmo", fine_tuned=True).validate(state)
+    assert SavedMatrixValidator("fmo", fine_tuned=True).check(state, ui)
 
 
-def test_the_preview_selection_is_checked_field_by_field(view, state):
+def test_the_preview_selection_is_checked_field_by_field(view, state, ui):
     view._btn_run.click()
     editor = view.editor
     editor._x_combo.setCurrentText("PE-A")
     editor._y_combo.setCurrentText("APC-A")
 
-    assert PreviewShowsValidator(x="PE-A", y="APC-A").validate(state)
-    assert not PreviewShowsValidator(x="PE-A", view=VIEW_BOTH).validate(state)
-    assert not PreviewShowsValidator(sample=ALL_SAMPLES).validate(state)
+    assert PreviewShowsValidator(x="PE-A", y="APC-A").check(state, ui)
+    assert not PreviewShowsValidator(x="PE-A", view=VIEW_BOTH).check(state, ui)
+    assert not PreviewShowsValidator(sample=ALL_SAMPLES).check(state, ui)
 
     _pick(editor._view_combo, VIEW_BOTH)
     _pick(editor._sample_combo, ALL_SAMPLES)
 
-    assert PreviewShowsValidator(x="PE-A", view=VIEW_BOTH, sample=ALL_SAMPLES).validate(state)
+    assert PreviewShowsValidator(x="PE-A", view=VIEW_BOTH, sample=ALL_SAMPLES).check(state, ui)
 
 
-def test_only_the_files_matrix_applied_to_every_sample_passes_the_handover(view, state):
+def test_only_the_files_matrix_applied_to_every_sample_passes_the_handover(view, state, ui):
     handover = EmbeddedMatrixInUseValidator()
-    assert not handover.validate(state)  # nothing in use yet
+    assert not handover.check(state, ui)  # nothing in use yet
 
     view._btn_run.click()  # the file's matrix
     view._on_apply(None)
-    assert handover.validate(state)
+    assert handover.check(state, ui)
 
     _pick(view._method_combo, "fmo")
     view._btn_run.click()
     view._on_apply(None)
-    assert not handover.validate(state)  # the learner's own matrix is in use
+    assert not handover.check(state, ui)  # the learner's own matrix is in use
 
     saved = next(s for s in state.data.matrix_library if s.matrix.source == "cytometer")
     view._on_apply(saved)
-    assert handover.validate(state)
+    assert handover.check(state, ui)
 
 
 def test_the_course_constants_match_the_widgets():
@@ -178,9 +183,9 @@ def test_the_course_constants_match_the_widgets():
     assert constants.PREVIEW_VIEW_BOTH == VIEW_BOTH
 
 
-def test_the_preview_sample_can_be_named(view, state):
+def test_the_preview_sample_can_be_named(view, state, ui):
     view._btn_run.click()
     _pick(view.editor._sample_combo, "FMO PE")
 
-    assert PreviewShowsValidator(sample_name="fmo pe").validate(state)
-    assert not PreviewShowsValidator(sample_name="FMO APC").validate(state)
+    assert PreviewShowsValidator(sample_name="fmo pe").check(state, ui)
+    assert not PreviewShowsValidator(sample_name="FMO APC").check(state, ui)

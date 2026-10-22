@@ -7,6 +7,7 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import PlotType
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer import ComparisonsViewer
 
@@ -50,7 +51,7 @@ def test_plot_types_are_ids_with_display_labels(qtbot, flow_state_with_samples):
 
     widget = ComparisonsViewer(flow_state_with_samples)
     qtbot.addWidget(widget)
-    flow_state_with_samples.view._comparisons_viewer = widget
+    ui = AcademyContext(comparisons_viewer=widget)
     combo = widget._plot_type_combo
 
     assert [combo.itemText(i) for i in range(combo.count())] == [
@@ -58,5 +59,5 @@ def test_plot_types_are_ids_with_display_labels(qtbot, flow_state_with_samples):
     ]
     combo.setCurrentIndex(combo.findData(PlotType.RADAR.value))
     assert widget.current_plot_type() is PlotType.RADAR
-    assert ComparisonPlotTypeValidator(PlotType.RADAR).validate_flow(flow_state_with_samples)
-    assert not ComparisonPlotTypeValidator(PlotType.VIOLIN).validate_flow(flow_state_with_samples)
+    assert ComparisonPlotTypeValidator(PlotType.RADAR).check(flow_state_with_samples, ui)
+    assert not ComparisonPlotTypeValidator(PlotType.VIOLIN).check(flow_state_with_samples, ui)

@@ -9,6 +9,7 @@ from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.sample_lens import FindingKind
+from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.widgets.sample_lens import SampleLensTab
 from tests.fixtures.lens import (
     FakeUmapService,
@@ -279,28 +280,28 @@ def test_the_lens_remembers_the_run_picked_for_each_sample(lens):
     analysis.n_events = 10**6
     analysis.channels = ["CD3", "CD4", "CD8", "CD56"]
     experiment_edits.add_umap_run(state, analysis.run(state))
-    state.view._sample_lens = tab
+    ui = AcademyContext(sample_lens=tab)
     tab._model.sample_id = None
     tab._populate_samples()
-    assert LensRunMethodValidator("flowsom").validate(state)  # the newest
+    assert LensRunMethodValidator("flowsom").check(state, ui)  # the newest
 
     umap = next(
         i for i in range(tab._run_combo.count()) if "FlowSOM" not in tab._run_combo.itemText(i)
     )
     tab._run_combo.setCurrentIndex(umap)
-    assert LensRunMethodValidator("umap_hdbscan").validate(state)
+    assert LensRunMethodValidator("umap_hdbscan").check(state, ui)
     tab._sample_combo.setCurrentIndex(tab._sample_combo.findData("s1"))
     tab._sample_combo.setCurrentIndex(tab._sample_combo.findData("s0"))
-    assert LensRunMethodValidator("umap_hdbscan").validate(state)
+    assert LensRunMethodValidator("umap_hdbscan").check(state, ui)
 
     flowsom = next(
         i for i in range(tab._run_combo.count()) if "FlowSOM" in tab._run_combo.itemText(i)
     )
     tab._run_combo.setCurrentIndex(flowsom)
-    assert not LensKValidator(8).validate(state)
+    assert not LensKValidator(8).check(state, ui)
     tab._k_spin.setValue(8)
     tab._k_timer.timeout.emit()
-    assert LensKValidator(8).validate(state)
+    assert LensKValidator(8).check(state, ui)
 
 
 def test_unticking_a_proposed_step_leaves_its_gate_out(lens):
@@ -375,17 +376,17 @@ def test_focus_mode_gives_the_plots_the_tab(lens, qtbot):
     )
 
     tab, state, _ = lens
-    state.view._sample_lens = tab
+    ui = AcademyContext(sample_lens=tab)
     tab._model.select(_cd4_node(state).node_id)
     qtbot.waitUntil(lambda: not tab._path._resizing)
     small = _shown(tab)[0].canvas.width()
-    assert not LensFocusValidator().validate(state)
+    assert not LensFocusValidator().check(state, ui)
 
     tab._path._focus_btn.click()
-    assert LensFocusValidator().validate(state)
+    assert LensFocusValidator().check(state, ui)
     assert tab._sidebar.isHidden() and tab._lower.isHidden()
     tab._path.set_columns(2)
-    assert LensColumnsValidator(2).validate(state)
+    assert LensColumnsValidator(2).check(state, ui)
     grid = tab._path._grid
     rows = [grid.getItemPosition(grid.indexOf(p))[:2] for p in _shown(tab)]
     assert rows == [(0, 0), (0, 1), (1, 0)]
@@ -407,7 +408,7 @@ def test_each_plot_switches_view_where_its_gate_allows(lens):
     from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
 
     tab, state, _ = lens
-    state.view._sample_lens = tab
+    ui = AcademyContext(sample_lens=tab)
     t_cells = state.data.experiment.samples["s0"].gate_tree.children[0].children[0]
     bright = t_cells.add_child(RangeGate("CD56", low=2000, high=10**5), "CD56 bright")
     tab._model.select(bright.node_id)
@@ -421,7 +422,7 @@ def test_each_plot_switches_view_where_its_gate_allows(lens):
     plot.view.setCurrentIndex(plot.view.findData("vs:SSC-A"))
     assert plot.canvas._display_mode is DisplayMode.PSEUDOCOLOR
     assert plot.canvas._y_param == "SSC-A"
-    assert LensPlotViewValidator("cd56 bright", "vs:SSC-A").validate(state)
+    assert LensPlotViewValidator("cd56 bright", "vs:SSC-A").check(state, ui)
 
     two_d = _shown(tab)[0]  # a rectangle: 2-D views, histogram greyed out
     model = two_d.view.model()
@@ -569,13 +570,13 @@ def test_plots_per_row_offers_all_as_a_choice(lens):
     from karcytics_plugins.flow_cytometry.tutorials.validators import LensColumnsValidator
 
     tab, state, _ = lens
-    state.view._sample_lens = tab
+    ui = AcademyContext(sample_lens=tab)
     combo = tab._path._columns
     assert combo.itemText(0) == "All"
     combo.setCurrentIndex(combo.findText("2"))
-    assert LensColumnsValidator(2).validate(state)
+    assert LensColumnsValidator(2).check(state, ui)
     combo.setCurrentIndex(combo.findText("All"))
-    assert LensColumnsValidator(0).validate(state)
+    assert LensColumnsValidator(0).check(state, ui)
 
 
 def test_findings_are_numbered_and_the_map_labels_each_cluster_once(lens):

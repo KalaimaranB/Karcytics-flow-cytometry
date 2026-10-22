@@ -123,7 +123,7 @@ class WorkspaceBuilder:
         panel._compensation_ribbon = CompensationRibbon(panel.state)
         panel._gating_ribbon = GatingRibbon(panel.state)
         panel._pipeline_ribbon = PipelineRibbon(panel.state)
-        panel.state.view._pipeline_ribbon = panel._pipeline_ribbon
+        panel._academy_widgets.pipeline_ribbon = panel._pipeline_ribbon
         panel._stats_ribbon = StatisticsRibbon(panel.state)
         panel._spectral_ribbon = SpectralRibbon(panel.state)
         panel._comparisons_ribbon = ComparisonsRibbon()
@@ -264,7 +264,7 @@ class WorkspaceBuilder:
             controller=panel._gate_coordinator,
         )
         panel._graph_manager.setObjectName("GraphManager")
-        panel.state.view._graph_manager = panel._graph_manager
+        panel._academy_widgets.graph_manager = panel._graph_manager
         logger.debug("[phase2] build_step_graph_manager: done")
 
     @staticmethod
@@ -283,7 +283,7 @@ class WorkspaceBuilder:
         from karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer import SpectralViewer
 
         panel._spectral_viewer = SpectralViewer(panel.state, panel._fluor_service, panel)
-        panel.state.view._spectral_viewer = panel._spectral_viewer
+        panel._academy_widgets.spectral_viewer = panel._spectral_viewer
 
     @staticmethod
     def build_step_population(panel: FlowCytometryPanel) -> None:
@@ -299,7 +299,7 @@ class WorkspaceBuilder:
             gate_coordinator=panel._gate_coordinator,
             parent=panel,
         )
-        panel.state.view._population_analysis_viewer = panel._population_analysis_viewer
+        panel._academy_widgets.population_analysis = panel._population_analysis_viewer
 
     @staticmethod
     def build_step_statistics(panel: FlowCytometryPanel) -> None:
@@ -312,7 +312,7 @@ class WorkspaceBuilder:
         panel._statistics_explorer = StatisticsExplorer(
             panel.state, gate_coordinator=panel._gate_coordinator, parent=panel
         )
-        panel.state.view._statistics_explorer = panel._statistics_explorer
+        panel._academy_widgets.statistics_explorer = panel._statistics_explorer
 
     @staticmethod
     def build_step_comparisons(panel: FlowCytometryPanel) -> None:
@@ -325,7 +325,7 @@ class WorkspaceBuilder:
         panel._comparisons_viewer = ComparisonsViewer(
             panel.state, gate_coordinator=panel._gate_coordinator, parent=panel
         )
-        panel.state.view._comparisons_viewer = panel._comparisons_viewer
+        panel._academy_widgets.comparisons_viewer = panel._comparisons_viewer
 
     @staticmethod
     def build_step_compensation(panel: FlowCytometryPanel) -> None:
@@ -336,7 +336,7 @@ class WorkspaceBuilder:
         )
 
         panel._compensation_view = CompensationView(panel.state, parent=panel)
-        panel.state.view._compensation_view = panel._compensation_view
+        panel._academy_widgets.compensation_view = panel._compensation_view
 
     @staticmethod
     def finalize_center_stack(panel: FlowCytometryPanel) -> None:
@@ -367,7 +367,7 @@ class WorkspaceBuilder:
             parent=panel,
         )
         panel._center_stack.addWidget(panel._sample_lens)  # 7
-        panel.state.view._sample_lens = panel._sample_lens  # read by the Academy validators
+        panel._academy_widgets.sample_lens = panel._sample_lens
 
         panel._center_stack.setCurrentIndex(0)
 

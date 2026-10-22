@@ -39,6 +39,7 @@ from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
+from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.controllers.derived_editor_controller import (
     DerivedEditorController,
 )
@@ -196,7 +197,7 @@ class FlowCytometryPanel(PluginBase):
             remove_population=self._gate_coordinator.remove_population,
             parent=self,
         )
-        self.state.view._derived_editor = self._derived_editor
+        self._academy_widgets = AcademyContext(derived_editor=self._derived_editor)
 
         # ── Undo/redo & unsaved changes ───────────────────────────────
         # The store snapshots self.state (never a copy of it) into an SDK
@@ -368,10 +369,6 @@ class FlowCytometryPanel(PluginBase):
     def _handle_update(self) -> None:
         """Overwrite the currently loaded workflow using Karcytics SDK services."""
         self._workspace_io_handler.handle_update()
-
-    def _handle_load(self) -> None:
-        """Handle load workspace request."""
-        self._workspace_io_handler.handle_load()
 
     def _setup_ui(self) -> None:
         """Build the workspace skeleton (Phase 1).
@@ -707,10 +704,6 @@ class FlowCytometryPanel(PluginBase):
             global_tutorial_manager._emit_step_changed()
         except (AttributeError, NameError) as e:
             self.logger.error(f"Failed to clear tutorial state: {e}")
-
-    def _on_course_overlay_dismissed(self) -> None:
-        """User dismissed the completion overlay."""
-        self.status_message.emit("Course complete. Workspace restored.")
 
     def _refresh_node_canvas(self, *args, **kwargs) -> None:
         """Helper to refresh the node canvas if it's currently visible.
@@ -1420,6 +1413,10 @@ class FlowCytometryPanel(PluginBase):
         return choice == Btn.Discard
 
     # ── Academy (called by the SDK's open_academy / build_academy_overlay) ──
+
+    def academy_context(self) -> AcademyContext:
+        """The tab widgets the Academy validators query (see academy_context.py)."""
+        return self._academy_widgets
 
     def start_academy_course(self, course_id: str) -> None:
         """The catalog's "Start Course": run it in this workflow."""

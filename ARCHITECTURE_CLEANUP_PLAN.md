@@ -239,8 +239,8 @@ offscreen platform and a test-only plugin id, and keeps the frames the SDK would
 - [x] A second hidden bug surfaced when the whole suite ran in one process: the SDK's task
       scheduler kept Qt's default 512 KB thread stack (macOS), and `numpy.linalg.inv` inside the
       compensation-preview render task overflowed it (SIGBUS). The SDK scheduler now gives pool
-      threads 16 MB. The Hub's own `TaskScheduler` (in-process plugins) has the same default
-      and needs the same change.
+      threads 16 MB. (The Hub's in-process scheduler is not changed: in-process plugins are
+      being retired.)
 - [x] The fake `karcytics` (Hub) module is gone.
 - [x] The contract test runs with the unit tests (pre-commit) and the main CI test step.
 - [x] `test_ui_daemon.py` uses the SDK's `spawn_ui_daemon`; the SDK harness gained
@@ -256,10 +256,13 @@ The SDK half is done (9e0fe91): `PluginBase.academy_context()`, and `IValidator.
 `_population_analysis_viewer`, `_sample_lens`, `_derived_editor`). `tutorials/validators.py`
 is 2,733 lines with 102 validator classes, and reaches widgets' private attributes throughout.
 
-- [ ] Add a typed `AcademyContext` returned by the panel's `academy_context()`. Each inspected
-      widget exposes small public read-only queries (as `ComparisonsViewer.current_plot_type()`
-      now does); validators override `check(state, context)`.
-- [ ] Move validators over course by course, then remove the 9 widget fields from `ViewState`.
+- [x] B5.1: a typed `AcademyContext` (`ui/academy_context.py`) returned by the panel's
+      `academy_context()`; the workspace builder fills it as Phase 2 builds each tab. Widget
+      validators derive from `FlowUIValidator` and implement `validate_ui(state, ui)`; `AllOf`
+      forwards the context. The 9 widget fields are gone from `ViewState`.
+- [ ] B5.2: each inspected widget exposes small public read-only queries (as
+      `ComparisonsViewer.current_plot_type()` does), replacing validators' reads of private
+      attributes (`lens._model`, `viewer._results_panel`, ...). Course by course.
 - [ ] Split `tutorials/validators.py` by course. Leave the course content files as they are.
 
 ## B6. Adopt the SDK's shared pieces

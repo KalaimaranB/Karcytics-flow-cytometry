@@ -7,6 +7,7 @@ import pytest
 from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
 from karcytics_plugins.flow_cytometry.analysis.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import ClusterResultsPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
@@ -136,27 +137,27 @@ def test_course_4_flowsom_checks_follow_the_learner(viewer):
     )
 
     state = viewer._state
-    state.view._population_analysis_viewer = viewer
-    assert NewRunSelectedValidator().validate(state)
-    assert not ClusteringMethodValidator("flowsom").validate(state)
-    assert not FlowsomResultsReadyValidator().validate(state)
+    ui = AcademyContext(population_analysis=viewer)
+    assert NewRunSelectedValidator().check(state, ui)
+    assert not ClusteringMethodValidator("flowsom").check(state, ui)
+    assert not FlowsomResultsReadyValidator().check(state, ui)
 
     run_flowsom(viewer, k=5)
-    assert ClusteringMethodValidator("flowsom").validate(state)
-    assert FlowsomResultsReadyValidator().validate(state)
-    assert not NewRunSelectedValidator().validate(state)  # the run is showing
+    assert ClusteringMethodValidator("flowsom").check(state, ui)
+    assert FlowsomResultsReadyValidator().check(state, ui)
+    assert not NewRunSelectedValidator().check(state, ui)  # the run is showing
 
     tree = viewer._results_panel._tree_view
     seen = []
     colour = FlowsomColorValidator("CD56", on_found=seen.append)
-    assert not colour.validate(state)
+    assert not colour.check(state, ui)
     tree._color_combo.setCurrentIndex(tree._color_combo.findText("Marker: CD56"))
-    assert colour.validate(state)
+    assert colour.check(state, ui)
     assert seen == [tree]
     assert metaclusters_positive_for(tree, "CD56")  # NK and NKT cells
 
-    assert not FlowsomKValidator(3).validate(state)
+    assert not FlowsomKValidator(3).check(state, ui)
     tree._k_spin.setValue(3)
     tree._recut_timer.timeout.emit()
-    assert FlowsomKValidator(3).validate(state)
+    assert FlowsomKValidator(3).check(state, ui)
     assert "k=3" in viewer._history_combo.currentText()

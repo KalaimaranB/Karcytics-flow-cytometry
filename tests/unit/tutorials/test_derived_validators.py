@@ -18,6 +18,7 @@ from karcytics_plugins.flow_cytometry.tutorials.validators import (
     ExportDoneValidator,
     StatsDerivedChannelValidator,
 )
+from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 
 RATIO = DerivedParameter("derived:ratio001", "B220/CD45", "[FITC-A] / [APC-A]")
 REVERSED = DerivedParameter("derived:revrs001", "CD45/B220", "[APC-A] / [FITC-A]")
@@ -61,51 +62,48 @@ class TestDerivedEditorClosed:
         ],
     )
     def test_open_state(self, editor, expected):
-        st = _state()
-        st.view._derived_editor = editor
-        assert DerivedEditorClosedValidator().validate(st) is expected
+        ui = AcademyContext(derived_editor=editor)
+        assert DerivedEditorClosedValidator().check(_state(), ui) is expected
 
 
-def _with_active_graph(st: FlowState, x_param: str) -> FlowState:
+def _active_graph(x_param: str) -> AcademyContext:
     graph = SimpleNamespace(_axis_panel=SimpleNamespace(get_current_x=lambda: x_param))
-    st.view._graph_manager = SimpleNamespace(get_active_graph=lambda: graph)
-    return st
+    return AcademyContext(graph_manager=SimpleNamespace(get_active_graph=lambda: graph))
 
 
 class TestActiveGraphDerivedAxis:
     def test_passes_on_ratio_axis(self):
-        st = _with_active_graph(_state(RATIO), RATIO.param_id)
-        assert ActiveGraphDerivedAxisValidator("FITC-A", "APC-A").validate(st)
+        ui = _active_graph(RATIO.param_id)
+        assert ActiveGraphDerivedAxisValidator("FITC-A", "APC-A").check(_state(RATIO), ui)
 
     @pytest.mark.parametrize("x_param", ["FITC-A", OTHER.param_id, REVERSED.param_id])
     def test_fails_on_other_axes(self, x_param):
-        st = _with_active_graph(_state(RATIO, OTHER, REVERSED), x_param)
-        assert not ActiveGraphDerivedAxisValidator("FITC-A", "APC-A").validate(st)
+        st = _state(RATIO, OTHER, REVERSED)
+        assert not ActiveGraphDerivedAxisValidator("FITC-A", "APC-A").check(
+            st, _active_graph(x_param)
+        )
 
     def test_fails_without_graph(self):
-        st = _state(RATIO)
-        st.view._graph_manager = SimpleNamespace(get_active_graph=lambda: None)
-        assert not ActiveGraphDerivedAxisValidator("FITC-A", "APC-A").validate(st)
+        ui = AcademyContext(graph_manager=SimpleNamespace(get_active_graph=lambda: None))
+        assert not ActiveGraphDerivedAxisValidator("FITC-A", "APC-A").check(_state(RATIO), ui)
 
 
 class TestStatsDerivedChannel:
-    def _explorer_state(self, channel: str) -> FlowState:
-        st = _state(RATIO)
+    def _explorer(self, channel: str) -> AcademyContext:
         combo = MagicMock()
         combo.currentData.return_value = channel
-        st.view._statistics_explorer = SimpleNamespace(_channel_combo=combo)
-        return st
+        return AcademyContext(statistics_explorer=SimpleNamespace(_channel_combo=combo))
 
     def test_passes_when_ratio_selected(self):
-        st = self._explorer_state(RATIO.param_id)
-        assert StatsDerivedChannelValidator("FITC-A", "APC-A").validate(st)
+        ui = self._explorer(RATIO.param_id)
+        assert StatsDerivedChannelValidator("FITC-A", "APC-A").check(_state(RATIO), ui)
 
     def test_fails_on_detector_channel(self):
-        st = self._explorer_state("FITC-A")
-        assert not StatsDerivedChannelValidator("FITC-A", "APC-A").validate(st)
+        ui = self._explorer("FITC-A")
+        assert not StatsDerivedChannelValidator("FITC-A", "APC-A").check(_state(RATIO), ui)
 
     def test_fails_without_explorer(self):
-        assert not StatsDerivedChannelValidator("FITC-A", "APC-A").validate(_state(RATIO))
+        assert not StatsDerivedChannelValidator("FITC-A", "APC-A").check(_state(RATIO))
 
 
 class TestComparisonsDerivedChannel:
@@ -119,21 +117,29 @@ class TestComparisonsDerivedChannel:
         ],
     )
     def test_only_the_ratio_checked(self, checked, expected):
-        st = _state(RATIO)
-        st.view._comparisons_viewer = SimpleNamespace(_get_checked_channels=lambda: checked)
-        assert ComparisonsDerivedChannelValidator("FITC-A", "APC-A").validate(st) is expected
+        ui = AcademyContext(
+            comparisons_viewer=SimpleNamespace(_get_checked_channels=lambda: checked)
+        )
+        assert (
+            ComparisonsDerivedChannelValidator("FITC-A", "APC-A").check(_state(RATIO), ui)
+            is expected
+        )
 
 
 class TestExportDone:
     def test_needs_a_completed_export_of_that_kind(self):
-        st = FlowState()
-        st.view._statistics_explorer = SimpleNamespace(completed_exports={"copy"})
-        assert not ExportDoneValidator("_statistics_explorer", "csv").validate(st)
-        st.view._statistics_explorer.completed_exports.add("csv")
-        assert ExportDoneValidator("_statistics_explorer", "csv").validate(st)
+        explorer = SimpleNamespace(completed_exports={"copy"})
+        ui = AcademyContext(statistics_explorer=explorer)
+        assert not ExportDoneValidator("statistics_explorer", "csv").check(FlowState(), ui)
+        explorer.completed_exports.add("csv")
+        assert ExportDoneValidator("statistics_explorer", "csv").check(FlowState(), ui)
 
     def test_missing_tab_fails(self):
-        assert not ExportDoneValidator("_comparisons_viewer", "plot").validate(FlowState())
+        assert not ExportDoneValidator("comparisons_viewer", "plot").check(FlowState())
+
+    def test_an_unknown_tab_is_rejected_when_the_course_is_built(self):
+        with pytest.raises(ValueError, match="no field"):
+            ExportDoneValidator("_statistics_explorer", "csv")
 
 
 def test_all_of_needs_every_validator():
@@ -143,3 +149,12 @@ def test_all_of_needs_every_validator():
         DerivedRatioExistsValidator("FITC-A", "APC-A"),
         DerivedRatioExistsValidator("APC-A", "FITC-A"),
     ).validate(st)
+
+
+def test_all_of_hands_the_context_to_widget_checks():
+    closed = AcademyContext(derived_editor=SimpleNamespace(is_open=False))
+    open_ = AcademyContext(derived_editor=SimpleNamespace(is_open=True))
+    check = AllOf(DerivedRatioExistsValidator("FITC-A", "APC-A"), DerivedEditorClosedValidator())
+
+    assert check.check(_state(RATIO), closed)
+    assert not check.check(_state(RATIO), open_)

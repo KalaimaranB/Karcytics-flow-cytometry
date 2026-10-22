@@ -214,6 +214,24 @@ def test_each_tab_shows_its_own_view(panel, tab):
         assert panel._ribbon_stack.currentWidget() is getattr(panel, ribbon)
 
 
+def test_the_academy_context_holds_each_tab_once_phase_two_built_it(panel):
+    from dataclasses import fields
+
+    from karcytics_plugins.flow_cytometry.ui.builders.workspace_builder import WorkspaceBuilder
+
+    ui = panel.academy_context()
+    assert ui.derived_editor is panel._derived_editor
+    assert ui.pipeline_ribbon is panel._pipeline_ribbon
+
+    if not hasattr(panel, "_graph_manager"):
+        WorkspaceBuilder.build_heavy(panel)
+
+    assert panel.academy_context() is ui
+    assert [f.name for f in fields(ui) if getattr(ui, f.name) is None] == []
+    assert ui.population_analysis is panel._population_analysis_viewer
+    assert ui.sample_lens is panel._sample_lens
+
+
 def test_resume_returns_to_the_saved_step_and_tab(panel):
     start_in_academy(panel)
     panel.manager.next_step()

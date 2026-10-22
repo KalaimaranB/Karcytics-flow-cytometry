@@ -59,20 +59,6 @@ class ViewState:
     fallback_scales: dict[str, Any] = field(default_factory=dict)
     _render_config: RenderConfig = field(default_factory=RenderConfig)
 
-    # Live widget references bolted on by WorkspaceBuilder so tutorial
-    # validators can introspect UI state without importing Qt widget
-    # classes here. Never serialized (to_dict below is hand-written and
-    # omits them) and excluded from repr/eq since widgets aren't picklable.
-    _graph_manager: Any | None = field(default=None, repr=False, compare=False)
-    _pipeline_ribbon: Any | None = field(default=None, repr=False, compare=False)
-    _spectral_viewer: Any | None = field(default=None, repr=False, compare=False)
-    _statistics_explorer: Any | None = field(default=None, repr=False, compare=False)
-    _comparisons_viewer: Any | None = field(default=None, repr=False, compare=False)
-    _compensation_view: Any | None = field(default=None, repr=False, compare=False)
-    _population_analysis_viewer: Any | None = field(default=None, repr=False, compare=False)
-    _sample_lens: Any | None = field(default=None, repr=False, compare=False)
-    _derived_editor: Any | None = field(default=None, repr=False, compare=False)
-
     @property
     def render_config(self) -> RenderConfig:
         return self._render_config

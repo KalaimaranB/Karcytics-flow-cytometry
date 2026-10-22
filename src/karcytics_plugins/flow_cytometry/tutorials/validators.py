@@ -9,6 +9,7 @@ app_state is expected to be a FlowState instance from analysis.state.
 import time
 from abc import abstractmethod
 from collections.abc import Callable
+from dataclasses import fields
 from typing import Any
 
 import numpy as np
@@ -19,6 +20,7 @@ from ..analysis import events
 from ..analysis.gating import QuadrantSubGate
 from ..analysis.state import FlowState
 from ..main_tabs import MainTab
+from ..ui.academy_context import AcademyContext
 from ..ui.widgets.comparisons.plot_spec import PlotType
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -42,16 +44,15 @@ class FlowValidator(LoggingValidator):
     """Adapter that strongly types the IValidator interface to FlowState."""
 
     def validate(self, app_state: Any) -> bool:
+        return self._guarded(app_state, self.validate_flow)
+
+    def _guarded(self, app_state: Any, run: Callable[[FlowState], bool]) -> bool:
         if not isinstance(app_state, FlowState):
             return self.log_failure(f"Expected FlowState, got {type(app_state).__name__}")
         try:
-            return self.validate_flow(app_state)
+            return run(app_state)
         except Exception as exc:
-            # The tutorial polling loop (workspace_window.timerEvent) only
-            # print()s exceptions raised here — they never reach the app's
-            # structured logs, so a step can silently stall forever with no
-            # trace of why. Log it properly so a failure is diagnosable
-            # instead of invisible.
+            # Logged here: otherwise a step stalls with no trace of why.
             logger.exception(
                 "%s: validate_flow raised an exception — treating as failed.",
                 self.__class__.__name__,
@@ -60,6 +61,28 @@ class FlowValidator(LoggingValidator):
 
     @abstractmethod
     def validate_flow(self, app_state: FlowState) -> bool:
+        pass
+
+
+def _context_field(name: str) -> str:
+    """`name` if it is an `AcademyContext` field; a course with a typo fails when built."""
+    if name not in {f.name for f in fields(AcademyContext)}:
+        raise ValueError(f"AcademyContext has no field {name!r}")
+    return name
+
+
+class FlowUIValidator(FlowValidator):
+    """Also reads widgets, via the `AcademyContext` the SDK passes `check()` (none: fails)."""
+
+    def check(self, app_state: Any, context: Any = None) -> bool:
+        ui = context if isinstance(context, AcademyContext) else AcademyContext()
+        return self._guarded(app_state, lambda state: self.validate_ui(state, ui))
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        return self.validate_ui(app_state, AcademyContext())
+
+    @abstractmethod
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         pass
 
 
@@ -435,21 +458,6 @@ class AxisChannelValidator(FlowValidator):
         if self._keyword not in x_param.lower():
             return self.log_failure(
                 f"Active X channel '{x_param}' does not contain keyword '{self._keyword}'."
-            )
-        return True
-
-
-class AxisTransformValidator(FlowValidator):
-    """Verifies that the active X axis transform matches a specific type (e.g. 'biexponential')."""
-
-    def __init__(self, transform_name: str) -> None:
-        self._transform = transform_name.lower()
-
-    def validate_flow(self, app_state: FlowState) -> bool:
-        active = getattr(app_state.view, "active_transform_x", "") or ""
-        if active.lower() != self._transform:
-            return self.log_failure(
-                f"Active X transform is '{active}', expected '{self._transform}'."
             )
         return True
 
@@ -974,15 +982,15 @@ class BaseGatesStateValidator(FlowValidator):
         return self._leukocytes.validate(app_state)
 
 
-class PlotTypeValidator(FlowValidator):
+class PlotTypeValidator(FlowUIValidator):
     """Verifies that the active graph is displaying the specified plot type (e.g. 'Histogram', 'Pseudocolor')."""
 
     def __init__(self, expected_plot_type: str) -> None:
         self.expected = expected_plot_type.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
 
-        graph_manager = getattr(app_state.view, "_graph_manager", None)
+        graph_manager = ui.graph_manager
         active_graph = (
             graph_manager.get_active_graph()
             if graph_manager and hasattr(graph_manager, "get_active_graph")
@@ -1003,15 +1011,15 @@ class PlotTypeValidator(FlowValidator):
         return True
 
 
-class PipelineOrientationValidator(FlowValidator):
+class PipelineOrientationValidator(FlowUIValidator):
     """Verifies that the pipeline canvas is set to a specific layout orientation (e.g., 'Horizontal')."""
 
     def __init__(self, expected_orientation: str) -> None:
         self.expected = expected_orientation.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
 
-        pipeline_ribbon = getattr(app_state.view, "_pipeline_ribbon", None)
+        pipeline_ribbon = ui.pipeline_ribbon
         if not pipeline_ribbon or not hasattr(pipeline_ribbon, "_orientation_combo"):
             return self.log_failure("Pipeline ribbon or orientation combo missing.")
 
@@ -1023,13 +1031,13 @@ class PipelineOrientationValidator(FlowValidator):
         return True
 
 
-class LearningCompensationCompleteValidator(FlowValidator):
+class LearningCompensationCompleteValidator(FlowUIValidator):
     """Verifies the user actually finished the Learning Compensation slide-
     deck's final reasoning task — not just paged through to the last slide."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
 
-        spectral_viewer = getattr(app_state.view, "_spectral_viewer", None)
+        spectral_viewer = ui.spectral_viewer
         if not spectral_viewer or not hasattr(spectral_viewer, "_learning_tab"):
             return self.log_failure("Spectral viewer or learning tab missing.")
 
@@ -1044,33 +1052,6 @@ class LearningCompensationCompleteValidator(FlowValidator):
                 "Reached the last slide but hasn't answered both reasoning questions yet."
             )
         return True
-
-
-class GateAbsentValidator(FlowValidator):
-    """Verifies that a gate with the given name no longer exists on the active sample.
-
-    Used to confirm a population was deleted (e.g. via the Pipeline canvas Delete key).
-    """
-
-    def __init__(self, target_gate_name: str) -> None:
-        self._target = target_gate_name.lower()
-
-    def validate_flow(self, app_state: FlowState) -> bool:
-        sample_id = getattr(app_state.view, "current_sample_id", None)
-        if not sample_id:
-            return self.log_failure("No active sample ID in view.")
-        sample = app_state.data.experiment.samples.get(sample_id)
-        if not sample:
-            return self.log_failure(f"Sample ID {sample_id} not found in experiment.")
-
-        if self._gate_found(sample.gate_tree):
-            return self.log_failure(f"Gate '{self._target}' still exists on the active sample.")
-        return True
-
-    def _gate_found(self, node: Any) -> bool:
-        if (getattr(node, "name", "") or "").lower() == self._target:
-            return True
-        return any(self._gate_found(child) for child in getattr(node, "children", []))
 
 
 class LogicGateExistsValidator(FlowValidator):
@@ -1105,52 +1086,14 @@ class LogicGateExistsValidator(FlowValidator):
         return any(self._logic_found(child) for child in getattr(node, "children", []))
 
 
-class SpectralFluorsLoadedValidator(FlowValidator):
-    """Verifies that at least N fluorophore spectra are currently loaded in the Spectral viewer."""
-
-    def __init__(self, min_count: int = 6) -> None:
-        self._min_count = min_count
-
-    def validate_flow(self, app_state: FlowState) -> bool:
-        spectral_viewer = getattr(app_state.view, "_spectral_viewer", None)
-        if not spectral_viewer or not hasattr(spectral_viewer, "_active_fluors"):
-            return self.log_failure("Spectral viewer or active fluors dict missing.")
-        count = len(spectral_viewer._active_fluors)
-        if count < self._min_count:
-            return self.log_failure(
-                f"Only {count} fluorophores loaded, expected >= {self._min_count}."
-            )
-        return True
-
-
-class UmapClusterExportedValidator(FlowValidator):
-    """Verifies a 'UMAP Reduction' node with at least one exported cluster child exists."""
-
-    def validate_flow(self, app_state: FlowState) -> bool:
-        for sample in app_state.data.experiment.samples.values():
-            node = self._find_umap_parent(sample.gate_tree)
-            if node is not None and len(getattr(node, "children", [])) > 0:
-                return True
-        return self.log_failure("No 'UMAP Reduction' node with exported clusters found.")
-
-    def _find_umap_parent(self, node: Any) -> Any | None:
-        if (getattr(node, "name", "") or "").lower() == "umap reduction":
-            return node
-        for child in getattr(node, "children", []):
-            found = self._find_umap_parent(child)
-            if found is not None:
-                return found
-        return None
-
-
-class StatsChartTypeValidator(FlowValidator):
+class StatsChartTypeValidator(FlowUIValidator):
     """Verifies the Statistics tab's chart-type combo is set to a specific value (e.g. 'Heatmap')."""
 
     def __init__(self, expected_type: str) -> None:
         self._expected = expected_type.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        explorer = getattr(app_state.view, "_statistics_explorer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        explorer = ui.statistics_explorer
         if not explorer or not hasattr(explorer, "_chart_type_combo"):
             return self.log_failure("Statistics explorer or chart type combo missing.")
         current = explorer._chart_type_combo.currentText().lower()
@@ -1159,7 +1102,7 @@ class StatsChartTypeValidator(FlowValidator):
         return True
 
 
-class SampleAndGateOpenValidator(FlowValidator):
+class SampleAndGateOpenValidator(FlowUIValidator):
     """Verifies a specific sample is open with a specific gate/population as the active view.
 
     Reads directly from the live GraphManager's active GraphWindow rather than
@@ -1172,8 +1115,8 @@ class SampleAndGateOpenValidator(FlowValidator):
         self._sample = sample_substr.lower()
         self._gate = gate_substr.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        graph_manager = getattr(app_state.view, "_graph_manager", None)
+    def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
+        graph_manager = ui.graph_manager
         if not graph_manager or not hasattr(graph_manager, "get_active_graph"):
             return self.log_failure("Graph manager not available.")
 
@@ -1200,14 +1143,14 @@ class SampleAndGateOpenValidator(FlowValidator):
         return True
 
 
-class ComparisonPlotTypeValidator(FlowValidator):
+class ComparisonPlotTypeValidator(FlowUIValidator):
     """Verifies the Comparisons tab's plot-type combo is set to a specific chart."""
 
     def __init__(self, expected_type: PlotType) -> None:
         self._expected = expected_type
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.comparisons_viewer
         if not viewer:
             return self.log_failure("Comparisons viewer missing.")
         current = viewer.current_plot_type()
@@ -1216,7 +1159,7 @@ class ComparisonPlotTypeValidator(FlowValidator):
         return True
 
 
-class HistogramOverlayLayoutValidator(FlowValidator):
+class HistogramOverlayLayoutValidator(FlowUIValidator):
     """Verifies Histogram Overlay's Layout setting (its own options panel,
     not the plot-type combo) is set to a specific mode — the default is
     Ridge ("waterfall"); this lets a step require the user to actually
@@ -1226,8 +1169,8 @@ class HistogramOverlayLayoutValidator(FlowValidator):
     def __init__(self, expected_layout: str) -> None:
         self._expected = expected_layout.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.comparisons_viewer
         panel = getattr(viewer, "_options_panels", {}).get(PlotType.HISTOGRAM_OVERLAY)
         combo = getattr(panel, "_layout_combo", None)
         if combo is None:
@@ -1235,29 +1178,6 @@ class HistogramOverlayLayoutValidator(FlowValidator):
         current = (combo.currentData() or "").lower()
         if current != self._expected:
             return self.log_failure(f"Layout is '{current}', expected '{self._expected}'.")
-        return True
-
-
-class QuadrantGateExistsValidator(FlowValidator):
-    """Verifies a QuadrantGate has actually been placed on the active sample.
-
-    Used instead of a plain tool-click InteractionStep so the tutorial waits
-    for the gate to exist, not just for the Quadrant tool to be selected.
-    """
-
-    def validate_flow(self, app_state: FlowState) -> bool:
-        sample_id = getattr(app_state.view, "current_sample_id", None)
-        if not sample_id:
-            return self.log_failure("No active sample ID in view.")
-        sample = app_state.data.experiment.samples.get(sample_id)
-        if not sample:
-            return self.log_failure(f"Sample ID {sample_id} not found in experiment.")
-
-        # A QuadrantGate never lands in the tree as a node's own .gate —
-        # create_nodes() attaches 4 sibling leaves whose .gate is a
-        # QuadrantSubGate wrapping the parent QuadrantGate instead.
-        if not any(isinstance(n.gate, QuadrantSubGate) for n in sample.gate_tree.iter_dag()):
-            return self.log_failure("No QuadrantSubGate leaves found on active sample.")
         return True
 
 
@@ -1419,14 +1339,14 @@ class PopulationAnalysisCompleteValidator(FlowValidator):
         return any(self._and_node_found(child) for child in getattr(node, "children", []))
 
 
-class UmapSampleSelectedValidator(FlowValidator):
+class UmapSampleSelectedValidator(FlowUIValidator):
     """Verifies the Population Analysis sidebar's sample combo shows a specific sample."""
 
     def __init__(self, sample_substr: str) -> None:
         self._sample = sample_substr.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if not viewer or not hasattr(viewer, "_sample_combo"):
             return self.log_failure("Population analysis viewer or sample combo missing.")
         current = viewer._sample_combo.currentText().lower()
@@ -1435,14 +1355,14 @@ class UmapSampleSelectedValidator(FlowValidator):
         return True
 
 
-class UmapGateSelectedValidator(FlowValidator):
+class UmapGateSelectedValidator(FlowUIValidator):
     """Verifies the Population Analysis sidebar's population/gate combo matches a target."""
 
     def __init__(self, gate_substr: str) -> None:
         self._gate = gate_substr.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if not viewer or not hasattr(viewer, "_gate_combo"):
             return self.log_failure("Population analysis viewer or gate combo missing.")
         current = viewer._gate_combo.currentText().lower()
@@ -1451,7 +1371,7 @@ class UmapGateSelectedValidator(FlowValidator):
         return True
 
 
-class UmapChannelExcludedValidator(FlowValidator):
+class UmapChannelExcludedValidator(FlowUIValidator):
     """Verifies specific channels (by raw FCS channel key) are unchecked in the
     Population Analysis channel list, and every other channel stays checked.
     """
@@ -1459,10 +1379,10 @@ class UmapChannelExcludedValidator(FlowValidator):
     def __init__(self, *excluded_channel_keys: str) -> None:
         self._excluded = {k.lower() for k in excluded_channel_keys}
 
-    def validate_flow(self, app_state: FlowState) -> bool:
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         from PySide6.QtCore import Qt as _Qt
 
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        viewer = ui.population_analysis
         if not viewer or not hasattr(viewer, "_channel_list"):
             return self.log_failure("Population analysis viewer or channel list missing.")
 
@@ -1481,11 +1401,11 @@ class UmapChannelExcludedValidator(FlowValidator):
         return True
 
 
-class UmapRunNameProvidedValidator(FlowValidator):
+class UmapRunNameProvidedValidator(FlowUIValidator):
     """Verifies the Population Analysis run-name field is non-empty."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if not viewer or not hasattr(viewer, "_run_name_input"):
             return self.log_failure("Population analysis viewer or run name input missing.")
         if not viewer._run_name_input.text().strip():
@@ -1493,14 +1413,14 @@ class UmapRunNameProvidedValidator(FlowValidator):
         return True
 
 
-class UmapSubsampleValueValidator(FlowValidator):
+class UmapSubsampleValueValidator(FlowUIValidator):
     """Verifies the Population Analysis subsample-events slider matches a target percentage."""
 
     def __init__(self, expected_pct: int) -> None:
         self._expected = expected_pct
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if not viewer or not hasattr(viewer, "_n_events_slider"):
             return self.log_failure("Population analysis viewer or subsample slider missing.")
         current = viewer._n_events_slider.value()
@@ -1509,11 +1429,11 @@ class UmapSubsampleValueValidator(FlowValidator):
         return True
 
 
-class UmapHdbscanEnabledValidator(FlowValidator):
+class UmapHdbscanEnabledValidator(FlowUIValidator):
     """Verifies the Population Analysis HDBSCAN checkbox is checked."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if not viewer or not hasattr(viewer, "_run_hdbscan_cb"):
             return self.log_failure("Population analysis viewer or HDBSCAN checkbox missing.")
         if not viewer._run_hdbscan_cb.isChecked():
@@ -1521,7 +1441,7 @@ class UmapHdbscanEnabledValidator(FlowValidator):
         return True
 
 
-class UmapResultsReadyValidator(FlowValidator):
+class UmapResultsReadyValidator(FlowUIValidator):
     """Verifies a UMAP run has fully finished: real results are in, and neither
     the background analysis nor the animation is still in flight.
 
@@ -1530,8 +1450,8 @@ class UmapResultsReadyValidator(FlowValidator):
     real UI would itself transition to showing results.
     """
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if not viewer:
             return self.log_failure("Population analysis viewer missing.")
         if getattr(viewer, "_is_analysis_running", False):
@@ -1543,7 +1463,7 @@ class UmapResultsReadyValidator(FlowValidator):
         return True
 
 
-class ClusterResultsTabActiveValidator(FlowValidator):
+class ClusterResultsTabActiveValidator(FlowUIValidator):
     """Verifies the results panel's own sub-tab widget (Plot Gallery /
     Interactive Map / Population Statistics) is showing a specific tab.
     """
@@ -1551,8 +1471,8 @@ class ClusterResultsTabActiveValidator(FlowValidator):
     def __init__(self, tab_label: str) -> None:
         self._label = tab_label.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         results_panel = getattr(viewer, "_results_panel", None) if viewer else None
         tabs = getattr(results_panel, "_tabs", None)
         if not tabs:
@@ -1563,14 +1483,14 @@ class ClusterResultsTabActiveValidator(FlowValidator):
         return True
 
 
-class UmapMarkerColoredValidator(FlowValidator):
+class UmapMarkerColoredValidator(FlowUIValidator):
     """Verifies the Interactive Map's marker/cluster-ID dropdown is showing a specific marker."""
 
     def __init__(self, label_substr: str) -> None:
         self._label = label_substr.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         results_panel = getattr(viewer, "_results_panel", None) if viewer else None
         combo = getattr(results_panel, "_interactive_combo", None)
         if not combo:
@@ -1586,61 +1506,57 @@ class UmapMarkerColoredValidator(FlowValidator):
 # ── FlowSOM (Course 4) ────────────────────────────────────────────────────
 
 
-def _pa_viewer(app_state: FlowState) -> Any | None:
-    return getattr(app_state.view, "_population_analysis_viewer", None)
-
-
-def _flowsom_tree(app_state: FlowState) -> Any | None:
+def _flowsom_tree(ui: AcademyContext) -> Any | None:
     """The FlowSOM Tree view of the results on screen, if a FlowSOM run is showing."""
-    viewer = _pa_viewer(app_state)
+    viewer = ui.population_analysis
     panel = getattr(viewer, "_results_panel", None) if viewer else None
     return getattr(panel, "_tree_view", None)
 
 
-class ClusteringMethodValidator(FlowValidator):
+class ClusteringMethodValidator(FlowUIValidator):
     """The Population Analysis Algorithm menu is set to ``method_key``."""
 
     def __init__(self, method_key: str) -> None:
         self._key = method_key
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = _pa_viewer(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if viewer is None or viewer._algo_combo.currentData() != self._key:
             return self.log_failure(f"Algorithm isn't '{self._key}'.")
         return True
 
 
-class NewRunSelectedValidator(FlowValidator):
+class NewRunSelectedValidator(FlowUIValidator):
     """History shows [ New Run ]: the settings are editable again."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = _pa_viewer(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if viewer is None or viewer._history_combo.currentData() is not None:
             return self.log_failure("A past run is selected in History.")
         return True
 
 
-class FlowsomResultsReadyValidator(FlowValidator):
+class FlowsomResultsReadyValidator(FlowUIValidator):
     """A FlowSOM run finished and its tree is on screen."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = _pa_viewer(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if viewer is None or getattr(viewer, "_is_analysis_running", False):
             return self.log_failure("FlowSOM is still running.")
-        if _flowsom_tree(app_state) is None:
+        if _flowsom_tree(ui) is None:
             return self.log_failure("No FlowSOM tree on screen yet.")
         return True
 
 
-class FlowsomColorValidator(FlowValidator):
+class FlowsomColorValidator(FlowUIValidator):
     """The FlowSOM tree is coloured by ``marker``; ``on_found`` gets the tree view."""
 
     def __init__(self, marker: str, on_found: Callable[[Any], None] | None = None) -> None:
         self._marker = marker.casefold()
         self._on_found = on_found
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        tree = _flowsom_tree(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        tree = _flowsom_tree(ui)
         if tree is None:
             return self.log_failure("No FlowSOM tree on screen.")
         if not tree._color_combo.currentText().casefold().endswith(self._marker):
@@ -1650,15 +1566,15 @@ class FlowsomColorValidator(FlowValidator):
         return True
 
 
-class FlowsomKValidator(FlowValidator):
+class FlowsomKValidator(FlowUIValidator):
     """The FlowSOM run on screen is cut into ``k`` metaclusters; ``on_found`` gets the tree."""
 
     def __init__(self, k: int, on_found: Callable[[Any], None] | None = None) -> None:
         self._k = k
         self._on_found = on_found
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        tree = _flowsom_tree(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        tree = _flowsom_tree(ui)
         if tree is None or tree._run.get("k") != self._k:
             return self.log_failure(f"The run isn't at k = {self._k}.")
         if self._on_found is not None:
@@ -1683,24 +1599,24 @@ metaclusters_positive_for = clusters_positive_for
 # ── PhenoGraph (Course 6) ─────────────────────────────────────────────────
 
 
-def _phenograph_graph(app_state: FlowState) -> Any | None:
+def _phenograph_graph(ui: AcademyContext) -> Any | None:
     """The Cluster Graph view of the results on screen, if a PhenoGraph run is showing."""
-    viewer = _pa_viewer(app_state)
+    viewer = ui.population_analysis
     panel = getattr(viewer, "_results_panel", None) if viewer else None
     return getattr(panel, "_graph_view", None)
 
 
-class PhenographResultsReadyValidator(FlowValidator):
+class PhenographResultsReadyValidator(FlowUIValidator):
     """A PhenoGraph run finished and its cluster graph is on screen; ``on_found`` gets the view."""
 
     def __init__(self, on_found: Callable[[Any], None] | None = None) -> None:
         self._on_found = on_found
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = _pa_viewer(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.population_analysis
         if viewer is None or getattr(viewer, "_is_analysis_running", False):
             return self.log_failure("PhenoGraph is still running.")
-        graph = _phenograph_graph(app_state)
+        graph = _phenograph_graph(ui)
         if graph is None:
             return self.log_failure("No cluster graph on screen yet.")
         if self._on_found is not None:
@@ -1711,8 +1627,8 @@ class PhenographResultsReadyValidator(FlowValidator):
 class PhenographColorValidator(FlowsomColorValidator):
     """The cluster graph is coloured by ``marker``; ``on_found`` gets the graph view."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        graph = _phenograph_graph(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        graph = _phenograph_graph(ui)
         if graph is None:
             return self.log_failure("No cluster graph on screen.")
         if not graph._color_combo.currentText().casefold().endswith(self._marker):
@@ -1722,15 +1638,15 @@ class PhenographColorValidator(FlowsomColorValidator):
         return True
 
 
-class PhenographResolutionValidator(FlowValidator):
+class PhenographResolutionValidator(FlowUIValidator):
     """The PhenoGraph run on screen is clustered at ``resolution``; ``on_found`` gets the graph."""
 
     def __init__(self, resolution: float, on_found: Callable[[Any], None] | None = None) -> None:
         self._resolution = resolution
         self._on_found = on_found
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        graph = _phenograph_graph(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        graph = _phenograph_graph(ui)
         value = graph._run.get("resolution") if graph is not None else None
         if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
             return self.log_failure(f"The run isn't at resolution {self._resolution}.")
@@ -1739,7 +1655,7 @@ class PhenographResolutionValidator(FlowValidator):
         return True
 
 
-class UmapBestBCellClusterValidator(FlowValidator):
+class UmapBestBCellClusterValidator(FlowUIValidator):
     """Computes which real HDBSCAN cluster is this run's B-cell population —
     the one with the largest *contrast* between the given marker and every
     other marker (mean marker expression minus the mean of all other
@@ -1781,10 +1697,10 @@ class UmapBestBCellClusterValidator(FlowValidator):
         self._expected_name_display = expected_name
         self._expected_name = expected_name.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         import numpy as np
 
-        viewer = getattr(app_state.view, "_population_analysis_viewer", None)
+        viewer = ui.population_analysis
         results_panel = getattr(viewer, "_results_panel", None) if viewer else None
         results = getattr(results_panel, "_results", None)
         cluster_ui = getattr(results_panel, "_cluster_ui_elements", None)
@@ -1894,7 +1810,7 @@ class LogicNodeStatsReadyValidator(FlowValidator):
         return None
 
 
-class PopulationsCheckedValidator(FlowValidator):
+class PopulationsCheckedValidator(FlowUIValidator):
     """Verifies the Statistics/Comparisons tab's population selector has at
     least the given labels checked (substring/case-insensitive).
 
@@ -1914,13 +1830,13 @@ class PopulationsCheckedValidator(FlowValidator):
         max_checked: int | None = None,
         require_popup_closed: bool = False,
     ) -> None:
-        self._explorer_attr = explorer_attr
+        self._explorer_attr = _context_field(explorer_attr)
         self._required = [lbl.lower() for lbl in required_labels]
         self._max_checked = max_checked
         self._require_popup_closed = require_popup_closed
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        explorer = getattr(app_state.view, self._explorer_attr, None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        explorer = getattr(ui, self._explorer_attr)
         selector = getattr(explorer, "_selector", None)
         if not selector:
             return self.log_failure(f"{self._explorer_attr} or its selector missing.")
@@ -1941,7 +1857,7 @@ class PopulationsCheckedValidator(FlowValidator):
         return True
 
 
-class StatsCheckedValidator(FlowValidator):
+class StatsCheckedValidator(FlowUIValidator):
     """Verifies the Statistics tab has at least the given StatType values
     checked, and — if `max_checked` is given — no more than that many
     overall (3 stats default to pre-checked, so simply adding more on top
@@ -1952,8 +1868,8 @@ class StatsCheckedValidator(FlowValidator):
         self._required = required
         self._max_checked = max_checked
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        explorer = getattr(app_state.view, "_statistics_explorer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        explorer = ui.statistics_explorer
         checkboxes = getattr(explorer, "_stat_checkboxes", None)
         if not checkboxes:
             return self.log_failure("Statistics explorer or stat checkboxes missing.")
@@ -1974,21 +1890,21 @@ class StatsCheckedValidator(FlowValidator):
         return True
 
 
-class StatsResultsReadyValidator(FlowValidator):
+class StatsResultsReadyValidator(FlowUIValidator):
     """Verifies the Statistics tab's Compute Statistics run has actually
     finished — the table/chart stay on their placeholder (no numbers at
     all) until the user clicks Compute, which kicks off an async worker
     rather than updating live off the checkboxes.
     """
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        explorer = getattr(app_state.view, "_statistics_explorer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        explorer = ui.statistics_explorer
         if not getattr(explorer, "_last_results", None):
             return self.log_failure("Statistics haven't been computed yet.")
         return True
 
 
-class ComparisonsPlotGeneratedValidator(FlowValidator):
+class ComparisonsPlotGeneratedValidator(FlowUIValidator):
     """Verifies the Comparisons tab has rendered a plot of the given type.
 
     Reads `_last_generated_plot_type` (set by `ComparisonsViewer._on_generate`),
@@ -1998,8 +1914,8 @@ class ComparisonsPlotGeneratedValidator(FlowValidator):
     def __init__(self, expected_type: PlotType) -> None:
         self._expected = expected_type
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.comparisons_viewer
         generated = getattr(viewer, "_last_generated_plot_type", None)
         if generated != self._expected:
             return self.log_failure(
@@ -2054,25 +1970,25 @@ class DerivedRatioExistsValidator(FlowValidator):
         return None
 
 
-class DerivedEditorClosedValidator(FlowValidator):
+class DerivedEditorClosedValidator(FlowUIValidator):
     """The Derived Parameters dialog is not currently open."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        editor = getattr(app_state.view, "_derived_editor", None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        editor = ui.derived_editor
         if editor is not None and editor.is_open:
             return self.log_failure("Derived Parameters dialog is still open.")
         return True
 
 
-class ActiveGraphDerivedAxisValidator(FlowValidator):
+class ActiveGraphDerivedAxisValidator(FlowUIValidator):
     """The active graph's X axis shows the ``numerator ÷ denominator`` parameter."""
 
     def __init__(self, numerator: str, denominator: str) -> None:
         self._num = numerator
         self._den = denominator
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        graph_manager = getattr(app_state.view, "_graph_manager", None)
+    def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
+        graph_manager = ui.graph_manager
         graph = graph_manager.get_active_graph() if graph_manager else None
         if graph is None:
             return self.log_failure("No active graph.")
@@ -2082,15 +1998,15 @@ class ActiveGraphDerivedAxisValidator(FlowValidator):
         return True
 
 
-class StatsDerivedChannelValidator(FlowValidator):
+class StatsDerivedChannelValidator(FlowUIValidator):
     """The Statistics ★ channel picker is set to the ``numerator ÷ denominator`` ratio."""
 
     def __init__(self, numerator: str, denominator: str) -> None:
         self._num = numerator
         self._den = denominator
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        explorer = getattr(app_state.view, "_statistics_explorer", None)
+    def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
+        explorer = ui.statistics_explorer
         combo = getattr(explorer, "_channel_combo", None)
         if combo is None:
             return self.log_failure("Statistics channel picker missing.")
@@ -2100,15 +2016,15 @@ class StatsDerivedChannelValidator(FlowValidator):
         return True
 
 
-class ComparisonsDerivedChannelValidator(FlowValidator):
+class ComparisonsDerivedChannelValidator(FlowUIValidator):
     """The Comparisons Channels list has exactly the ``numerator ÷ denominator`` ratio checked."""
 
     def __init__(self, numerator: str, denominator: str) -> None:
         self._num = numerator
         self._den = denominator
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        viewer = getattr(app_state.view, "_comparisons_viewer", None)
+    def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
+        viewer = ui.comparisons_viewer
         if viewer is None:
             return self.log_failure("Comparisons viewer missing.")
         checked = viewer._get_checked_channels()
@@ -2117,7 +2033,7 @@ class ComparisonsDerivedChannelValidator(FlowValidator):
         return True
 
 
-class ExportDoneValidator(FlowValidator):
+class ExportDoneValidator(FlowUIValidator):
     """An export button on a tab has actually written its file (or clipboard).
 
     Reads the tab's ``completed_exports`` set, which each export handler
@@ -2125,24 +2041,24 @@ class ExportDoneValidator(FlowValidator):
     """
 
     def __init__(self, view_attr: str, kind: str) -> None:
-        self._view_attr = view_attr
+        self._view_attr = _context_field(view_attr)
         self._kind = kind
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        tab = getattr(app_state.view, self._view_attr, None)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        tab = getattr(ui, self._view_attr)
         if self._kind not in getattr(tab, "completed_exports", set()):
             return self.log_failure(f"No '{self._kind}' export from {self._view_attr} yet.")
         return True
 
 
-class AllOf(FlowValidator):
+class AllOf(FlowUIValidator):
     """Passes only when every wrapped validator passes (one step, several settings)."""
 
     def __init__(self, *validators: FlowValidator) -> None:
         self._validators = validators
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        return all(v.validate_flow(app_state) for v in self._validators)
+    def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
+        return all(v.check(app_state, ui) for v in self._validators)
 
 
 # ── Compensation tab (Courses 1–2) ────────────────────────────────────────────
@@ -2150,15 +2066,11 @@ class AllOf(FlowValidator):
 _SAME_MATRIX_TOLERANCE = 5e-5  # the files store the matrix to four decimals
 
 
-def _compensation_view(app_state: FlowState) -> Any | None:
-    return getattr(app_state.view, "_compensation_view", None)
-
-
-class _CompensationTabValidator(FlowValidator):
+class _CompensationTabValidator(FlowUIValidator):
     """A check on what the Compensation tab is showing."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        view = _compensation_view(app_state)
+    def validate_ui(self, app_state: FlowState, ui: AcademyContext) -> bool:
+        view = ui.compensation_view
         if view is None:
             return self.log_failure("The Compensation tab isn't built yet.")
         problem = self.problem(view, app_state)
@@ -2417,10 +2329,6 @@ class _GateEditUndone(FlowValidator):
 # ── Sample Lens (Course 5) ────────────────────────────────────────────────────
 
 
-def _lens(app_state: FlowState) -> Any | None:
-    return getattr(app_state.view, "_sample_lens", None)
-
-
 class ClusteredRunValidator(FlowValidator):
     """A sample whose name contains ``sample_name`` has a UMAP run with clusters."""
 
@@ -2438,11 +2346,11 @@ class ClusteredRunValidator(FlowValidator):
         return self.log_failure(f"No clustered run on '{self._sample_name}'.")
 
 
-class _LensValidator(FlowValidator):
+class _LensValidator(FlowUIValidator):
     """A check on what the Sample Lens tab is showing."""
 
-    def validate_flow(self, app_state: FlowState) -> bool:
-        lens = _lens(app_state)
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        lens = ui.sample_lens
         if lens is None:
             return self.log_failure("Sample Lens tab missing.")
         return self.validate_lens(lens)
