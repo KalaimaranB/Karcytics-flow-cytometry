@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin import get_logger, repopulate_combo
 from karcytics_sdk.plugin.components import BioComboBox, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_error
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
@@ -252,14 +252,8 @@ class MatrixLibraryPanel(QWidget):
     def _fill_compare(self, keep: str | None) -> None:
         """Every other matrix can be compared against; keep the choice if it is still there."""
         selected = self._selected_key()
-        self._compare_combo.blockSignals(True)
-        self._compare_combo.clear()
-        self._compare_combo.addItem("— nothing —", None)
-        for entry in self._entries:
-            if entry.key != selected:
-                self._compare_combo.addItem(entry.title, entry.key)
-        self._compare_combo.setCurrentIndex(max(0, self._compare_combo.findData(keep)))
-        self._compare_combo.blockSignals(False)
+        others = [(e.title, e.key) for e in self._entries if e.key != selected]
+        repopulate_combo(self._compare_combo, [("— nothing —", None), *others], restore_data=keep)
 
     # ── The matrix on show ────────────────────────────────────────────
 

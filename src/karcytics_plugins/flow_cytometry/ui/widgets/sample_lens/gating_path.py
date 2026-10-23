@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+from karcytics_sdk.plugin import repopulate_combo
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioComboBox,
@@ -203,20 +204,16 @@ class _PathPlot(QWidget):
 
     def show_options(self, options: list[tuple[str, str, bool]], current: str) -> None:
         """Fill the view combo (only when the options change) and show ``current``."""
-        self.view.blockSignals(True)
-        if options != self.options:
-            self.options = options
-            self.view.clear()
-            model = self.view.model()
-            assert isinstance(model, QStandardItemModel)  # QComboBox's own
-            for i, (key, label, enabled) in enumerate(options):
-                self.view.addItem(label, key)
-                if not enabled:
-                    item = model.item(i)
-                    item.setEnabled(False)
-                    item.setToolTip(NO_HISTOGRAM)
-        self.view.setCurrentIndex(max(0, self.view.findData(current)))
-        self.view.blockSignals(False)
+        self.options = options
+        repopulate_combo(
+            self.view, [(label, key) for key, label, _ in options], restore_data=current
+        )
+        model = self.view.model()
+        assert isinstance(model, QStandardItemModel)  # QComboBox's own
+        for i, (_key, _label, enabled) in enumerate(options):
+            item = model.item(i)
+            item.setEnabled(enabled)
+            item.setToolTip("" if enabled else NO_HISTOGRAM)
 
     def needs_size(self, width: int, height: int) -> bool:
         return (self.canvas.width(), self.canvas.height()) != (width, height)

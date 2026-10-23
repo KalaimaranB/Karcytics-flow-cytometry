@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.components import BioComboBox
+from karcytics_sdk.plugin.components import BioComboBox, repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
@@ -199,32 +199,25 @@ class AxisControlPanel(QWidget):
         self._x_combo.blockSignals(block)
         self._y_combo.blockSignals(block)
 
-    def clear_combos(self) -> None:
-        self._x_combo.clear()
-        self._y_combo.clear()
-
     def clear_fmo_combo(self) -> None:
         self._fmo_combo.blockSignals(True)
         self._fmo_combo.clear()
         self._fmo_combo.addItem("None", "")
         self._fmo_combo.blockSignals(False)
 
-    def set_defaults(self, defaults: list[str]) -> None:
-        self.clear_combos()
-        self._x_combo.addItems(defaults)
-        self._y_combo.addItems(defaults)
-        self._x_combo.setCurrentText("FSC-A")
-        self._y_combo.setCurrentText("SSC-A")
+    def set_channels(self, channels: list[tuple[str, str]], *, derived_entry: bool = True) -> None:
+        """Offer ``channels`` as (label, channel) on both axes, keeping each axis's choice.
 
-    def add_channel(self, label: str, ch: str) -> None:
-        self._x_combo.addItem(label, ch)
-        self._y_combo.addItem(label, ch)
-
-    def add_new_derived_entry(self) -> None:
-        """Append the "＋ New derived parameter…" action after the channels."""
-        for combo in (self._x_combo, self._y_combo):
-            combo.insertSeparator(combo.count())
-            combo.addItem(NEW_DERIVED_LABEL, NEW_DERIVED_SENTINEL)
+        ``derived_entry`` ends the lists with "＋ New derived parameter…".
+        """
+        items = list(channels)
+        if derived_entry:
+            items.append((NEW_DERIVED_LABEL, NEW_DERIVED_SENTINEL))
+        for axis, combo in (("x", self._x_combo), ("y", self._y_combo)):
+            repopulate_combo(combo, items, restore_data=combo.currentData())
+            if derived_entry:
+                combo.insertSeparator(combo.count() - 1)
+            self._last_index[axis] = max(combo.currentIndex(), 0)
 
     def set_current_x(self, ch: str) -> None:
         self._set_current(self._x_combo, "x", ch)

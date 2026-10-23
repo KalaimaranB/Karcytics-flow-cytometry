@@ -104,9 +104,7 @@ def _gate_on(state, sample_id: str, param_id: str):
 def test_axis_dropdown_new_entry_emits_and_snaps_back(qtbot):
     panel = AxisControlPanel()
     qtbot.addWidget(panel)
-    for ch in ("FSC-A", "FITC-A"):
-        panel.add_channel(ch, ch)
-    panel.add_new_derived_entry()
+    panel.set_channels([("FSC-A", "FSC-A"), ("FITC-A", "FITC-A")])
     panel.set_current_x("FITC-A")
 
     requested, changed = [], []
@@ -125,9 +123,7 @@ def test_axis_dropdown_new_entry_emits_and_snaps_back(qtbot):
 def test_axis_dropdown_normal_change_still_emits(qtbot):
     panel = AxisControlPanel()
     qtbot.addWidget(panel)
-    for ch in ("FSC-A", "FITC-A"):
-        panel.add_channel(ch, ch)
-    panel.add_new_derived_entry()
+    panel.set_channels([("FSC-A", "FSC-A"), ("FITC-A", "FITC-A")])
     changed = []
     panel.axis_changed.connect(lambda: changed.append(True))
     panel._y_combo.setCurrentIndex(panel._y_combo.findData("FITC-A"))

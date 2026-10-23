@@ -291,8 +291,10 @@ The SDK side is done (332a609, 45a925f): `rendering.style_axes` / `AxesColors`,
       hand-built list dialogs (delete with children, rename in several samples, delete a
       connection). The gating panel's gate delete already asks through its scope dialog, so it
       keeps that rather than a second prompt.
-- [ ] The 7 hand-rebuilt combos (KS243) → `repopulate_combo`, including `axis_control_panel`
-      after its incremental API (`add_channel` / `set_current_x` …) is reworked.
+- [x] The 7 hand-rebuilt combos (KS243) → `repopulate_combo`. `AxisControlPanel` swaps its
+      `clear_combos` / `add_channel` / `add_new_derived_entry` sequence for one
+      `set_channels(channels, derived_entry=)`. Needed SDK 1a69e0a: `restore_data=None` used to
+      mean "leave it", so an "All events" (None) item could not be reselected.
 - [ ] The 22 `_apply_theme_styles` → `theme_manager.apply_style()` where the stylesheet is
       static; the ones that branch on state or drive matplotlib go with their widget in B7.
 

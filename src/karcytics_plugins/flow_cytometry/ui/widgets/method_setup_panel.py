@@ -8,6 +8,7 @@ shown comes from the source, so a new method needs no changes here.
 
 from __future__ import annotations
 
+from karcytics_sdk.plugin import repopulate_combo
 from karcytics_sdk.plugin.components import BioComboBox
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
@@ -172,15 +173,15 @@ class MethodSetupPanel(QWidget):
         if gates is None or self._options.gate not in gates:
             self._options.gate = None
 
-        _repopulate(
+        repopulate_combo(
             self._sample_combo,
             [(_FIRST_SAMPLE, None), *(samples or [])],
-            self._options.sample_id,
+            restore_data=self._options.sample_id,
         )
-        _repopulate(
+        repopulate_combo(
             self._gate_combo,
             [(_ALL_EVENTS, None), *((gate, gate) for gate in gates or [])],
-            self._options.gate,
+            restore_data=self._options.gate,
         )
         self._options_form.setRowVisible(self._sample_combo, samples is not None)
         self._options_form.setRowVisible(self._gate_combo, gates is not None)
@@ -207,7 +208,9 @@ class MethodSetupPanel(QWidget):
         if not choices:
             self._illustration_shown = None
             return
-        _repopulate(self._illustration_combo, choices, self._illustration_combo.currentData())
+        repopulate_combo(
+            self._illustration_combo, choices, restore_data=self._illustration_combo.currentData()
+        )
         self._load_illustration()
 
     def _load_illustration(self) -> None:
@@ -259,7 +262,7 @@ class MethodSetupPanel(QWidget):
             if not row.choices:
                 continue
             combo = BioComboBox(fit_contents=True)
-            _repopulate(combo, list(row.choices), row.choice)
+            repopulate_combo(combo, list(row.choices), restore_data=row.choice)
             pass_wheel_to_page(combo)
             # ``activated``, so picking the dye already shown confirms it.
             combo.activated.connect(
@@ -326,13 +329,3 @@ def _fill(table: QTableWidget, headers: list[str], rows: list[tuple[str, ...]]) 
     header = table.horizontalHeader()
     header_height = header.height() if header is not None else _ROW_HEIGHT
     table.setFixedHeight(header_height + _ROW_HEIGHT * len(rows) + 4)
-
-
-def _repopulate(combo: BioComboBox, items: list, current: str | None) -> None:
-    """Set a combo's (label, value) items and selection without announcing it."""
-    combo.blockSignals(True)
-    combo.clear()
-    for label, value in items:
-        combo.addItem(label, value)
-    combo.setCurrentIndex(max(0, combo.findData(current)))
-    combo.blockSignals(False)

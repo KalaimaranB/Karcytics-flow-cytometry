@@ -358,12 +358,7 @@ class CompensationEditor(QWidget):
 
     def set_matrix_choices(self, choices: list[tuple[str, str]], current: str | None) -> None:
         """The matrices the editor can switch to, as (label, key), and the one it holds."""
-        self._matrix_combo.blockSignals(True)
-        self._matrix_combo.clear()
-        for label, key in choices:
-            self._matrix_combo.addItem(label, key)
-        self._matrix_combo.setCurrentIndex(max(0, self._matrix_combo.findData(current)))
-        self._matrix_combo.blockSignals(False)
+        repopulate_combo(self._matrix_combo, choices, restore_data=current)
         self._matrix_combo.setEnabled(len(choices) > 1)
 
     def refresh_samples(self) -> None:

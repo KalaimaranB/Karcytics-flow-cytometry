@@ -217,10 +217,9 @@ class GraphWindow(QWidget):
         new_y = _fallback(y_ch, "SSC-A")
 
         self._axis_panel.block_combos(True)
-        self._axis_panel.clear_combos()
-        for ch in fcs.channels:
-            self._axis_panel.add_channel(get_channel_marker_label(fcs, ch), ch)
-        self._axis_panel.add_new_derived_entry()
+        self._axis_panel.set_channels(
+            [(get_channel_marker_label(fcs, ch), ch) for ch in fcs.channels]
+        )
         self._axis_panel.set_current_x(new_x)
         self._axis_panel.set_current_y(new_y)
         self._axis_panel.block_combos(False)
@@ -400,14 +399,14 @@ class GraphWindow(QWidget):
 
         if sample is None or sample.fcs_data is None:
             defaults = ["FSC-A", "SSC-A", "FSC-H", "SSC-H"]
-            self._axis_panel.set_defaults(defaults)
+            self._axis_panel.set_channels([(d, d) for d in defaults], derived_entry=False)
+            self._axis_panel.set_current_x("FSC-A")
+            self._axis_panel.set_current_y("SSC-A")
         else:
-            self._axis_panel.clear_combos()
             fcs = sample.fcs_data
-            for ch in fcs.channels:
-                label = get_channel_marker_label(fcs, ch)
-                self._axis_panel.add_channel(label, ch)
-            self._axis_panel.add_new_derived_entry()
+            self._axis_panel.set_channels(
+                [(get_channel_marker_label(fcs, ch), ch) for ch in fcs.channels]
+            )
 
             self._populate_fmo_combo()
 

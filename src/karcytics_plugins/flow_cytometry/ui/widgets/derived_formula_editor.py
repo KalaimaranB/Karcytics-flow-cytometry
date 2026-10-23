@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from itertools import permutations
 
+from karcytics_sdk.plugin import repopulate_combo
 from karcytics_sdk.plugin.components import BioComboBox, BioLineEdit, SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import QTimer, Signal
@@ -355,17 +356,9 @@ class DerivedParameterEditor(QWidget):
     # ── Sources ───────────────────────────────────────────────────────────
 
     def _fill_channel_combos(self) -> None:
+        items = [(label, ch) for ch, label in self._channels.items()]
         for combo in (self._chan_a, self._chan_b):
-            previous = combo.currentData()
-            combo.blockSignals(True)
-            combo.clear()
-            for ch, label in self._channels.items():
-                combo.addItem(label, ch)
-            if previous is not None:
-                idx = combo.findData(previous)
-                if idx >= 0:
-                    combo.setCurrentIndex(idx)
-            combo.blockSignals(False)
+            repopulate_combo(combo, items, restore_data=combo.currentData())
 
     def _fill_chips(self) -> None:
         while self._chip_grid.count():
@@ -379,30 +372,22 @@ class DerivedParameterEditor(QWidget):
             self._chip_grid.addWidget(btn, i // CHIP_COLUMNS, i % CHIP_COLUMNS)
 
     def _fill_preview_samples(self) -> None:
-        previous = self._preview_sample.currentData()
-        self._preview_sample.blockSignals(True)
-        self._preview_sample.clear()
-        for sid, sample in self._state.data.experiment.samples.items():
-            if sample.fcs_data is not None:
-                self._preview_sample.addItem(sample.display_name, sid)
-        target = previous or self._state.view.current_sample_id
-        idx = self._preview_sample.findData(target) if target else -1
-        self._preview_sample.setCurrentIndex(max(idx, 0))
-        self._preview_sample.blockSignals(False)
+        samples = self._state.data.experiment.samples.items()
+        repopulate_combo(
+            self._preview_sample,
+            [(sample.display_name, sid) for sid, sample in samples if sample.fcs_data is not None],
+            restore_data=self._preview_sample.currentData() or self._state.view.current_sample_id,
+        )
         self._fill_preview_populations(prefer=self._state.view.current_gate_id)
 
     def _fill_preview_populations(self, prefer: str | None = None) -> None:
-        self._preview_population.blockSignals(True)
-        self._preview_population.clear()
-        self._preview_population.addItem("All events", None)
         sample = self._state.data.experiment.samples.get(self._preview_sample.currentData() or "")
-        if sample is not None:
-            for node in sample.gate_tree.iter_dag():
-                if not node.is_root:
-                    self._preview_population.addItem(node.name, node.node_id)
-        idx = self._preview_population.findData(prefer) if prefer else -1
-        self._preview_population.setCurrentIndex(max(idx, 0))
-        self._preview_population.blockSignals(False)
+        nodes = [n for n in sample.gate_tree.iter_dag() if not n.is_root] if sample else []
+        repopulate_combo(
+            self._preview_population,
+            [("All events", None), *((n.name, n.node_id) for n in nodes)],
+            restore_data=prefer,
+        )
 
     def _on_preview_sample_changed(self) -> None:
         self._fill_preview_populations()
