@@ -287,8 +287,10 @@ The SDK side is done (332a609, 45a925f): `rendering.style_axes` / `AxesColors`,
 - [x] `FlowComboBox` (13 users) → `BioComboBox(fit_contents=True)`; delete `styled_combo.py`.
 - [x] Zoom overlays in `node_canvas/canvas_view.py` and `gate_hierarchy/` → `ZoomControls` (the
       Pan toggle rides along as a `BioToggleButton` extra).
-- [ ] Deletes that affect other items (gate subtree, node-canvas delete preview) →
-      `confirm_destructive`.
+- [x] Deletes that affect other items → `confirm_destructive`: the Pipeline canvas's three
+      hand-built list dialogs (delete with children, rename in several samples, delete a
+      connection). The gating panel's gate delete already asks through its scope dialog, so it
+      keeps that rather than a second prompt.
 - [ ] The 7 hand-rebuilt combos (KS243) → `repopulate_combo`, including `axis_control_panel`
       after its incremental API (`add_channel` / `set_current_x` …) is reworked.
 - [ ] The 22 `_apply_theme_styles` → `theme_manager.apply_style()` where the stylesheet is

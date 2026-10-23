@@ -663,12 +663,12 @@
       "KS360": 6
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/node_canvas/canvas_view.py": {
-      "KS220": 4,
+      "KS220": 1,
       "KS242": 1,
       "KS310": 5,
       "KS342": 1,
       "KS343": 1,
-      "KS360": 15
+      "KS360": 12
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/node_canvas/items/edge_item.py": {
       "KS310": 1

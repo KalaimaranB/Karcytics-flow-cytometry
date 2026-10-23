@@ -3,6 +3,7 @@
 from typing import Any
 
 from karcytics_sdk.plugin import BioToggleButton, ZoomControls
+from karcytics_sdk.plugin.dialogs import confirm_destructive
 from karcytics_sdk.plugin.rendering.graphics_scene import (
     DirtyTrackingGraphicsScene,
     DirtyTrackingGraphicsView,
@@ -313,32 +314,15 @@ class NodeCanvas(QWidget):
 
         _collect_child_names(node)
 
-        if child_names:
-            from PySide6.QtWidgets import QMessageBox
-
-            msg_box = QMessageBox(self)
-            msg_box.setIcon(QMessageBox.Icon.Warning)
-            msg_box.setWindowTitle(
-                "Delete Logic Node" if node.is_logic_node else "Delete Population"
-            )
-            max_display = 6
-            count = len(child_names)
-            children_str = "\n".join(f"• {c}" for c in child_names[:max_display])
-            if count > max_display:
-                children_str += f"\n... and {count - max_display} more"
-
-            msg_box.setText(
-                f"Deleting '{node.name}' will also delete all of its {count} child population{'s' if count != 1 else ''}:\n\n"
-                f"{children_str}\n\n"
-                f"Are you sure you want to continue?"
-            )
-            msg_box.setStandardButtons(
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            msg_box.setDefaultButton(QMessageBox.StandardButton.No)
-
-            if msg_box.exec() != QMessageBox.StandardButton.Yes:
-                return
+        count = len(child_names)
+        if count and not confirm_destructive(
+            self,
+            "Delete Logic Node" if node.is_logic_node else "Delete Population",
+            f"Deleting '{node.name}' also deletes its {count} child "
+            f"population{'s' if count != 1 else ''}. Continue?",
+            child_names,
+        ):
+            return
 
         self.node_removed.emit(node_id)
 
@@ -394,28 +378,14 @@ class NodeCanvas(QWidget):
         scope, group_id = dialog.get_scope()
         target_ids = resolve_target_samples(scope, group_id, self.current_sample_id, experiment)
 
-        if len(target_ids) > 1:
-            from PySide6.QtWidgets import QMessageBox
-
-            names = [
-                experiment.samples[s].display_name for s in target_ids if s in experiment.samples
-            ]
-            max_display = 6
-            names_str = "\n".join(f"• {n}" for n in names[:max_display])
-            if len(names) > max_display:
-                names_str += f"\n... and {len(names) - max_display} more"
-            msg_box = QMessageBox(self)
-            msg_box.setIcon(QMessageBox.Icon.Warning)
-            msg_box.setWindowTitle(dialog_title)
-            msg_box.setText(
-                f"Rename '{node.name}' to '{new_name}' in {len(names)} samples?\n\n{names_str}"
-            )
-            msg_box.setStandardButtons(
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            msg_box.setDefaultButton(QMessageBox.StandardButton.No)
-            if msg_box.exec() != QMessageBox.StandardButton.Yes:
-                return
+        names = [experiment.samples[s].display_name for s in target_ids if s in experiment.samples]
+        if len(target_ids) > 1 and not confirm_destructive(
+            self,
+            dialog_title,
+            f"Rename '{node.name}' to '{new_name}' in {len(names)} samples?",
+            names,
+        ):
+            return
 
         self.rename_requested.emit(node_id, new_name, target_ids)
 
@@ -452,23 +422,14 @@ class NodeCanvas(QWidget):
         scope, group_id = dialog.get_scope()
         target_ids = resolve_target_samples(scope, group_id, self.current_sample_id, experiment)
 
-        from PySide6.QtWidgets import QMessageBox
-
         names = [experiment.samples[s].display_name for s in target_ids if s in experiment.samples]
-        max_display = 6
-        names_str = "\n".join(f"• {n}" for n in names[:max_display])
-        if len(names) > max_display:
-            names_str += f"\n... and {len(names) - max_display} more"
-        msg_box = QMessageBox(self)
-        msg_box.setIcon(QMessageBox.Icon.Warning)
-        msg_box.setWindowTitle("Delete Connection")
-        msg_box.setText(
+        if not confirm_destructive(
+            self,
+            "Delete Connection",
             f"Remove the connection '{source.name}' → '{target.name}' "
-            f"in {len(names)} sample{'s' if len(names) != 1 else ''}?\n\n{names_str}"
-        )
-        msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.setDefaultButton(QMessageBox.StandardButton.No)
-        if msg_box.exec() != QMessageBox.StandardButton.Yes:
+            f"in {len(names)} sample{'s' if len(names) != 1 else ''}?",
+            names,
+        ):
             return
 
         self.link_delete_requested.emit(source_node_id, target_node_id, target_ids)
