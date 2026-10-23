@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -69,8 +70,8 @@ def panel(qapp, qtbot, monkeypatch):
     qtbot.addWidget(p)
     p.logger = MagicMock()
     set_real_view_defaults(p.state)
-    p._store.reset()
-    p._workflow_service._data_loader = FakeLoader()
+    p.services.store.reset()
+    p.services.workflow_service._data_loader = FakeLoader()
     monkeypatch.setattr(p, "_get_project_manager", lambda: None)
     # _refresh_all() touches Phase-2 widgets this minimal panel never built.
     monkeypatch.setattr(p, "_refresh_all", lambda: None)
@@ -114,7 +115,7 @@ def _edit(panel, name="Edited"):
     ].gate_tree.add_child(
         RectangleGate("FSC-A", "SSC-A", x_min=0.0, x_max=1.0, y_min=0.0, y_max=1.0), name=name
     )
-    panel._store.commit(f"Add Gate '{name}'")
+    panel.services.store.commit(f"Add Gate '{name}'")
 
 
 # ── Round trip ────────────────────────────────────────────────────────
@@ -132,9 +133,9 @@ def test_load_reproduces_the_saved_workspace_exactly(panel):
 def test_loaded_workflow_is_a_clean_baseline(panel):
     panel.load_workflow(_saved(build_rich_state()))
     assert not panel._workflow_loading
-    assert not panel._store.is_dirty
+    assert not panel.services.store.is_dirty
     assert not panel.can_undo()
-    assert panel._store.record_unannounced_changes() is False
+    assert panel.services.store.record_unannounced_changes() is False
 
 
 def test_state_identity_survives_loads(panel):
@@ -154,7 +155,7 @@ def test_project_relative_sample_paths_resolve_against_the_new_project(panel, tm
     panel._get_project_manager = lambda: monkeypatch_pm
     panel.load_workflow(payload)
 
-    requested = dict(panel._workflow_service._data_loader.requested[-1])
+    requested = dict(panel.services.workflow_service._data_loader.requested[-1])
     assert requested["s0"] == tmp_path / "s0.fcs"
 
 
@@ -191,12 +192,14 @@ def test_edits_before_a_load_can_never_undo_into_the_new_workspace(panel):
     assert not panel.can_undo()
     assert panel.undo() is False
     assert list(panel.state.data.experiment.samples) == ["b0"]
-    assert not panel._store.is_dirty
+    assert not panel.services.store.is_dirty
 
 
 def test_a_step_pending_at_load_time_does_not_leak_into_the_new_history(panel):
     bus, defer = FakeBus(), ManualDefer()
-    panel._history_recorder = HistoryRecorder(panel._store, bus.subscribe, bus.unsubscribe, defer)
+    panel._history_recorder = HistoryRecorder(
+        panel.services.store, bus.subscribe, bus.unsubscribe, defer
+    )
     panel.load_workflow(_saved(build_rich_state()))
 
     panel.state.data.experiment.samples["s0"].display_name = "pending edit"
@@ -205,7 +208,7 @@ def test_a_step_pending_at_load_time_does_not_leak_into_the_new_history(panel):
     defer.run()
 
     assert not panel.can_undo()
-    assert not panel._store.is_dirty
+    assert not panel.services.store.is_dirty
 
 
 def test_undo_after_load_and_edits_returns_exactly_to_the_loaded_state(panel):
@@ -215,9 +218,9 @@ def test_undo_after_load_and_edits_returns_exactly_to_the_loaded_state(panel):
     _edit(panel, "two")
     assert panel.undo() and panel.undo()
     assert _normalized(capture_model(panel.state, {})) == loaded
-    assert not panel._store.is_dirty
+    assert not panel.services.store.is_dirty
     assert panel.redo() and panel.redo()
-    assert panel._store.is_dirty
+    assert panel.services.store.is_dirty
 
 
 # ── Loads that don't go to plan ───────────────────────────────────────
@@ -236,8 +239,8 @@ def test_a_failed_load_leaves_an_unsaved_but_working_workspace(panel, monkeypatc
 
     assert errors, "the user must be told the load failed"
     assert not panel._workflow_loading
-    assert panel._store.is_recording
-    assert panel._store.is_dirty  # whatever is on screen was never saved
+    assert panel.services.store.is_recording
+    assert panel.services.store.is_dirty  # whatever is on screen was never saved
     _edit(panel)
     assert panel.undo()
 
@@ -250,13 +253,13 @@ def test_undo_is_refused_while_a_load_is_still_reloading_data(panel):
 
     stuck = FakeLoader()
     stuck._scheduler = MagicMock()  # submit() never completes
-    panel._workflow_service._data_loader = stuck
+    panel.services.workflow_service._data_loader = stuck
     panel.load_workflow(_saved(_one_sample_state()))
 
     assert panel._workflow_loading
     assert panel.undo() is False
     assert any("loading" in m for m in messages)
-    assert panel._store.commit("ignored") is False
+    assert panel.services.store.commit("ignored") is False
 
 
 def test_a_late_load_completion_cannot_wipe_newer_history(panel):
@@ -264,7 +267,7 @@ def test_a_late_load_completion_cannot_wipe_newer_history(panel):
     _edit(panel)
     panel._finish_workflow_load(clean=True)  # e.g. a stray duplicate callback
     assert panel.can_undo()
-    assert panel._store.is_dirty
+    assert panel.services.store.is_dirty
 
 
 def test_raw_fcs_injection_starts_unsaved(panel, monkeypatch):
@@ -274,10 +277,10 @@ def test_raw_fcs_injection_starts_unsaved(panel, monkeypatch):
         on_done({"x": object()})
 
     loader.load_samples_async.side_effect = _load_samples_async
-    monkeypatch.setattr(panel._factory, "get", lambda name: loader)
+    monkeypatch.setattr(panel, "services", replace(panel.services, data_loader_service=loader))
     panel.load_workflow({}, filename="/tmp/raw.fcs")
     assert not panel._workflow_loading
-    assert panel._store.is_dirty
+    assert panel.services.store.is_dirty
     assert not panel.can_undo()
 
 
@@ -319,4 +322,4 @@ def test_set_state_adopts_contents_without_replacing_the_state(panel):
     assert panel.state is state
     assert list(state.data.experiment.samples) == ["s0", "s1", "s2"]
     assert state.data.experiment.samples["s0"] is not other.data.experiment.samples["s0"]
-    assert panel._store.is_dirty
+    assert panel.services.store.is_dirty

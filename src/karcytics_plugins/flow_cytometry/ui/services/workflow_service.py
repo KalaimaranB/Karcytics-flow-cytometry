@@ -28,6 +28,7 @@ class WorkflowService(QObject):
         self._attachment_manager = attachment_manager
         self._pending_task_id = None
         self._pending_on_complete = None
+        self.last_error = "Check logs for details."
 
         scheduler = getattr(self._data_loader, "_scheduler", None)
         if scheduler is not None and hasattr(scheduler, "task_finished"):
@@ -157,7 +158,7 @@ class WorkflowService(QObject):
 
             return True
         except Exception as exc:
-            self._last_error = str(exc)
+            self.last_error = str(exc)
             self.logger.exception(f"Failed to load workflow: {exc}")
             return False
 

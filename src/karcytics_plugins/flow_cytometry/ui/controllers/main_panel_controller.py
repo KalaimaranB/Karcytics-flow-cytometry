@@ -17,6 +17,7 @@ class MainPanelController:
     def wire(panel: FlowCytometryPanel) -> None:  # noqa: PLR0915
         """Connect internal widget signals and CentralEventBus subscriptions."""
         panel._subscriptions = []  # type: ignore[attr-defined]
+        coordinator = panel.services.gate_coordinator
 
         def _subscribe(topic, cb):
             CentralEventBus.subscribe(topic, cb)
@@ -30,7 +31,7 @@ class MainPanelController:
         from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRecorder
 
         panel._history_recorder = HistoryRecorder(  # type: ignore[attr-defined]
-            panel._store,
+            panel.services.store,
             CentralEventBus.subscribe,
             CentralEventBus.unsubscribe,
             defer=lambda fn: QTimer.singleShot(0, fn),
@@ -78,23 +79,21 @@ class MainPanelController:
 
         # ── Pipeline Ribbon & Node Canvas ─────────────────────────────
         panel._pipeline_ribbon.sample_selected.connect(panel._node_canvas.set_sample)
-        panel._pipeline_ribbon.logic_node_requested.connect(panel._gate_coordinator.add_logic_node)
+        panel._pipeline_ribbon.logic_node_requested.connect(coordinator.add_logic_node)
         panel._pipeline_ribbon.orientation_changed.connect(panel._node_canvas.set_orientation)
         panel._node_canvas.node_double_clicked.connect(panel._on_gate_double_clicked)
         panel._node_canvas.node_removed.connect(
             lambda node_id: (
-                panel._gate_coordinator.remove_population(
-                    panel._node_canvas.current_sample_id, node_id
-                )
+                coordinator.remove_population(panel._node_canvas.current_sample_id, node_id)
                 if panel._node_canvas.current_sample_id
                 else None
             )
         )
-        panel._node_canvas.connection_requested.connect(panel._gate_coordinator.add_connection)
-        panel._node_canvas.connection_removed.connect(panel._gate_coordinator.remove_connection)
+        panel._node_canvas.connection_requested.connect(coordinator.add_connection)
+        panel._node_canvas.connection_removed.connect(coordinator.remove_connection)
         panel._node_canvas.rename_requested.connect(
             lambda node_id, new_name, target_ids: (
-                panel._gate_coordinator.rename_population(
+                coordinator.rename_population(
                     panel._node_canvas.current_sample_id, node_id, new_name, target_ids
                 )
                 if panel._node_canvas.current_sample_id
@@ -102,7 +101,7 @@ class MainPanelController:
             )
         )
         panel._node_canvas.link_delete_requested.connect(
-            lambda src, tgt, target_ids: panel._gate_coordinator.remove_connection_for_samples(
+            lambda src, tgt, target_ids: coordinator.remove_connection_for_samples(
                 src, tgt, target_ids
             )
         )
@@ -114,8 +113,9 @@ class MainPanelController:
         panel._gating_ribbon.tool_selected.connect(panel._graph_manager.set_drawing_mode)
         panel._gating_ribbon.delete_gate_requested.connect(panel._on_delete_selected_gate)
         panel._gating_ribbon.copy_gates_requested.connect(panel._on_copy_gates_from_active)
-        panel._gating_ribbon.derived_params_requested.connect(lambda: panel._derived_editor.open())
-        panel._graph_manager.derived_editor_requested.connect(panel._derived_editor.open_for_axis)
+        editor = panel.services.derived_editor
+        panel._gating_ribbon.derived_params_requested.connect(lambda: editor.open())
+        panel._graph_manager.derived_editor_requested.connect(editor.open_for_axis)
 
         # ── Graph manager → gate controller ───────────────────────────
         panel._graph_manager.gate_drawn.connect(panel._on_gate_drawn)
@@ -180,7 +180,7 @@ class MainPanelController:
                 if hasattr(validator, "set_explicit_failure"):
                     validator.set_explicit_failure(node_id)
                 # Validation failed! Auto-delete the gate.
-                panel._gate_coordinator.remove_population(sample_id, node_id)
+                coordinator.remove_population(sample_id, node_id)
                 _show_invalid_gate_flash()
                 return
 
@@ -207,7 +207,7 @@ class MainPanelController:
                 if validator and not validator.validate_shape(
                     tutorial_manager.app_state, node_id, sample_id
                 ):
-                    panel._gate_coordinator.remove_population(sample_id, node_id)
+                    coordinator.remove_population(sample_id, node_id)
                     any_invalid = True
                     continue
                 valid_node_ids.append(node_id)
@@ -299,15 +299,11 @@ class MainPanelController:
         # ── Gate Hierarchy → graph + properties ───────────────────────
         panel._gate_hierarchy.gate_double_clicked.connect(panel._on_gate_double_clicked)
         panel._gate_hierarchy.selection_changed.connect(panel._on_gate_selection_changed)
-        panel._gate_hierarchy.gate_rename_requested.connect(
-            panel._gate_coordinator.rename_population
-        )
+        panel._gate_hierarchy.gate_rename_requested.connect(coordinator.rename_population)
         panel._gate_hierarchy.gate_delete_requested.connect(panel.delete_gate_with_dialog)
         panel._gate_hierarchy.copy_gates_requested.connect(panel._on_copy_gates)
         panel._gate_hierarchy.propagation_mode_changed.connect(panel._on_propagation_mode_changed)
-        panel._gate_hierarchy.propagate_requested.connect(
-            panel._gate_coordinator.propagate_to_all_groups
-        )
+        panel._gate_hierarchy.propagate_requested.connect(coordinator.propagate_to_all_groups)
 
         # ── Groups panel selection → filter sample list ───────────────
         panel._groups_panel.group_selected.connect(panel._sample_list.filter_by_group)

@@ -79,7 +79,9 @@ def test_load_workflow_warns_when_some_samples_fail_to_reload(panel, monkeypatch
         on_complete({"loaded": ["Sample A"], "failed": ["Sample B"]})
         return True
 
-    monkeypatch.setattr(panel._workflow_service, "load_workflow", fake_service_load_workflow)
+    monkeypatch.setattr(
+        panel.services.workflow_service, "load_workflow", fake_service_load_workflow
+    )
 
     warnings = []
     monkeypatch.setattr(
@@ -104,7 +106,9 @@ def test_load_workflow_does_not_warn_when_all_samples_load(panel, monkeypatch):
         on_complete({"loaded": ["Sample A"], "failed": []})
         return True
 
-    monkeypatch.setattr(panel._workflow_service, "load_workflow", fake_service_load_workflow)
+    monkeypatch.setattr(
+        panel.services.workflow_service, "load_workflow", fake_service_load_workflow
+    )
 
     warnings = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: warnings.append(a))

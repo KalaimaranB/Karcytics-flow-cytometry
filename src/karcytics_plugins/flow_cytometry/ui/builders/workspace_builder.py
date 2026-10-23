@@ -107,7 +107,7 @@ class WorkspaceBuilder:
         panel._btn_smart_save.update_requested.connect(panel._handle_update)
         top_bar_layout.addWidget(panel._btn_smart_save)
 
-        panel.set_dirty(panel._store.is_dirty)
+        panel.set_dirty(panel.services.store.is_dirty)
         root.addLayout(top_bar_layout)
 
         # ── Ribbon Stack ──────────────────────────────────────────────
@@ -118,7 +118,7 @@ class WorkspaceBuilder:
         )
 
         panel._workspace_ribbon = WorkspaceRibbon(
-            panel.state, panel._factory.get("data_loader_service"), parent=panel
+            panel.state, panel.services.data_loader_service, parent=panel
         )
         panel._compensation_ribbon = CompensationRibbon(panel.state)
         panel._gating_ribbon = GatingRibbon(panel.state)
@@ -187,9 +187,9 @@ class WorkspaceBuilder:
         # Right: properties panel (lightweight, no data until gate selected)
         panel._properties_panel = PropertiesPanel(
             panel.state,
-            panel._factory.get("axis_manager"),
-            panel._factory.get("population_service"),
-            panel._gate_coordinator,
+            panel.services.axis_manager,
+            panel.services.population_service,
+            panel.services.gate_coordinator,
         )
 
         panel._main_splitter.addWidget(panel._left_sidebar)
@@ -259,9 +259,9 @@ class WorkspaceBuilder:
         logger.debug("[phase2] build_step_graph_manager: GraphManager imported, constructing")
         panel._graph_manager = GraphManager(
             panel.state,
-            panel._factory.get("axis_manager"),
-            panel._factory.get("population_service"),
-            controller=panel._gate_coordinator,
+            panel.services.axis_manager,
+            panel.services.population_service,
+            controller=panel.services.gate_coordinator,
         )
         panel._graph_manager.setObjectName("GraphManager")
         panel._academy_widgets.graph_manager = panel._graph_manager
@@ -282,7 +282,7 @@ class WorkspaceBuilder:
         # Deferred import — see build_step_graph_manager's comment.
         from karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer import SpectralViewer
 
-        panel._spectral_viewer = SpectralViewer(panel.state, panel._fluor_service, panel)
+        panel._spectral_viewer = SpectralViewer(panel.state, panel.services.fluor_service, panel)
         panel._academy_widgets.spectral_viewer = panel._spectral_viewer
 
     @staticmethod
@@ -295,8 +295,8 @@ class WorkspaceBuilder:
 
         panel._population_analysis_viewer = PopulationAnalysisViewer(
             panel.state,
-            panel._umap_service,
-            gate_coordinator=panel._gate_coordinator,
+            panel.services.umap_service,
+            gate_coordinator=panel.services.gate_coordinator,
             parent=panel,
         )
         panel._academy_widgets.population_analysis = panel._population_analysis_viewer
@@ -310,7 +310,7 @@ class WorkspaceBuilder:
         )
 
         panel._statistics_explorer = StatisticsExplorer(
-            panel.state, gate_coordinator=panel._gate_coordinator, parent=panel
+            panel.state, gate_coordinator=panel.services.gate_coordinator, parent=panel
         )
         panel._academy_widgets.statistics_explorer = panel._statistics_explorer
 
@@ -323,7 +323,7 @@ class WorkspaceBuilder:
         )
 
         panel._comparisons_viewer = ComparisonsViewer(
-            panel.state, gate_coordinator=panel._gate_coordinator, parent=panel
+            panel.state, gate_coordinator=panel.services.gate_coordinator, parent=panel
         )
         panel._academy_widgets.comparisons_viewer = panel._comparisons_viewer
 
@@ -360,10 +360,10 @@ class WorkspaceBuilder:
 
         panel._sample_lens = SampleLensTab(
             panel.state,
-            population_service=panel._factory.get("population_service"),
-            umap_service=panel._umap_service,
-            controller=panel._gate_coordinator,
-            axis_manager=panel._factory.get("axis_manager"),
+            population_service=panel.services.population_service,
+            umap_service=panel.services.umap_service,
+            controller=panel.services.gate_coordinator,
+            axis_manager=panel.services.axis_manager,
             parent=panel,
         )
         panel._center_stack.addWidget(panel._sample_lens)  # 7

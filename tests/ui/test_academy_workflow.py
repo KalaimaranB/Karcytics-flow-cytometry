@@ -70,7 +70,7 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
     rich = build_rich_state()
     p.state.data.experiment = rich.data.experiment
     set_real_view_defaults(p.state)
-    p._store.reset()
+    p.services.store.reset()
     monkeypatch.setattr(p, "_refresh_all", lambda: None)
 
     manager = AcademyManager(event_bus=FakeBus(), persistence_dir=tmp_path / "academy")
@@ -88,7 +88,7 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
         p.saves.append((filename, copy.deepcopy(metadata)))
         on_success(filename or "flow_academy.json")
 
-    monkeypatch.setattr(p._workspace_io_handler, "_run_save_to_pm", _fake_save)
+    monkeypatch.setattr(p.services.workspace_io_handler, "_run_save_to_pm", _fake_save)
     p.overlay_calls = []
     monkeypatch.setattr(
         p._academy, "_show_overlay", lambda pausable: p.overlay_calls.append(pausable)
@@ -220,7 +220,7 @@ def test_the_academy_context_holds_each_tab_once_phase_two_built_it(panel):
     from karcytics_plugins.flow_cytometry.ui.builders.workspace_builder import WorkspaceBuilder
 
     ui = panel.academy_context()
-    assert ui.derived_editor is panel._derived_editor
+    assert ui.derived_editor is panel.services.derived_editor
     assert ui.pipeline_ribbon is panel._pipeline_ribbon
 
     if not hasattr(panel, "_graph_manager"):

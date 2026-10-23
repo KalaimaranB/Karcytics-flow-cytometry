@@ -311,7 +311,8 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
 
 - [ ] `ui/main_panel.py` (1,623). Target ≤ 600: gate events and delete → a `GatingController`;
       workflow load/save/close → `WorkspaceIOHandler`; async startup → a startup sequencer;
-      Academy hooks → `AcademyWorkflowController`.
+      Academy hooks → `AcademyWorkflowController`, which then takes that workflow-document
+      interface instead of the whole panel and is built in the composition root (from B8).
 - [ ] `population_analysis_viewer.py` (1,527).
 - [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
       its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the
@@ -329,10 +330,13 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
 
 ## B8. Composition root and typing
 
-- [ ] Replace the string-keyed `ServiceFactory.get("…") -> Any` (20 call sites) with a frozen
-      dataclass of typed services.
-- [ ] Build `FlowStore`, `DerivedEditorController` and `AcademyWorkflowController` in the
-      composition root.
+- [x] Replace the string-keyed `ServiceFactory.get("…") -> Any` (20 call sites) with a frozen
+      dataclass of typed services. `build_services()` returns `FlowServices`; the panel keeps it
+      as `panel.services`, and its eight per-service aliases are gone.
+- [x] Build `FlowStore` and `DerivedEditorController` in the composition root.
+      `AcademyWorkflowController` moved to B7: it reads seven of the panel's private fields
+      (workflow filename/metadata, `_close_after_save`, tab bar…), so it needs the narrow
+      workflow-document interface that B7's main_panel split creates.
 - [ ] Move scheduling out of `analysis/` (KS205, 7: the propagator's `Debouncer`, the
       FCS/UMAP/PhenoGraph `PluginDaemon` use, `UmapService`'s `AnalysisWorker`) and replace the
       hand-rolled FCS warm-up thread (KS231).

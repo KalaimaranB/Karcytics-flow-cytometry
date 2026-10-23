@@ -34,8 +34,8 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
 
     state = build_rich_state()
     panel = Mock()
-    panel._store = FlowStore(state, lambda *_: None)
-    panel._store.reset()
+    panel.services.store = FlowStore(state, lambda *_: None)
+    panel.services.store.reset()
     MainPanelController.wire(panel)
 
     recorder = panel._history_recorder
@@ -47,10 +47,10 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
     handlers[0]({"sample_id": "s0", "gate_id": "g1"})  # same turn → same step
     recorder.flush()
 
-    assert panel._store.history.undo_label() == "Edit Gate"
-    assert panel._store.history.undo() is not None
-    assert panel._store.history.undo() is None  # exactly one step
-    assert panel._store.is_dirty is False  # back at the baseline
+    assert panel.services.store.history.undo_label() == "Edit Gate"
+    assert panel.services.store.history.undo() is not None
+    assert panel.services.store.history.undo() is None  # exactly one step
+    assert panel.services.store.is_dirty is False  # back at the baseline
 
     MainPanelController.unwire(panel)
     assert recorder._subscriptions == []

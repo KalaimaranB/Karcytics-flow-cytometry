@@ -40,9 +40,7 @@ from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
-from karcytics_plugins.flow_cytometry.ui.controllers.derived_editor_controller import (
-    DerivedEditorController,
-)
+from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -176,47 +174,22 @@ class FlowCytometryPanel(PluginBase):
 
     def _setup_services(self) -> None:
         """Initialize and wire all core analysis and UI services."""
-        logger.debug("[phase1] _setup_services: importing composition_root")
-        from .composition_root import ServiceFactory
-
-        self._factory = ServiceFactory(self.state, self)
-        logger.debug("[phase1] _setup_services: calling ServiceFactory.build_all()")
-        self._factory.build_all()
-        logger.debug("[phase1] _setup_services: ServiceFactory.build_all() done")
-
-        self._gate_coordinator = self._factory.get("gate_coordinator")
-        self._gate_propagator = self._factory.get("gate_propagator")
-        self._workflow_service = self._factory.get("workflow_service")
-        self._umap_service = self._factory.get("umap_service")
-        self._fluor_service = self._factory.get("fluor_service")
-        self._workspace_io_handler = self._factory.get("workspace_io_handler")
-        self._derived_service = self._factory.get("derived_parameter_service")
-        self._derived_editor = DerivedEditorController(
-            self.state,
-            self._derived_service,
-            remove_population=self._gate_coordinator.remove_population,
-            parent=self,
-        )
+        self.services = build_services(self.state, self)
         self._academy_widgets = AcademyContext(
-            derived_editor=self._derived_editor, gate_coordinator=self._gate_coordinator
+            derived_editor=self.services.derived_editor,
+            gate_coordinator=self.services.gate_coordinator,
         )
 
         # ── Undo/redo & unsaved changes ───────────────────────────────
-        # The store snapshots self.state (never a copy of it) into an SDK
-        # UndoHistory; PluginBase's undo()/redo() and the isolated window's
-        # Edit menu drive it through bind_undo_history. Domain events are
-        # turned into steps by the HistoryRecorder MainPanelController wires.
-        from karcytics_sdk.plugin import CentralEventBus
-
-        from ..analysis.store import FlowStore
-
-        self._store = FlowStore(self.state, CentralEventBus.publish)
-        self._store.add_dirty_listener(self.set_dirty)
+        # PluginBase's undo()/redo() and the isolated window's Edit menu
+        # drive the store's history through bind_undo_history. Domain events
+        # are turned into steps by the HistoryRecorder MainPanelController wires.
+        self.services.store.add_dirty_listener(self.set_dirty)
         # state_changed keeps meaning "a user edit happened" (ui_daemon
         # forwards it to the Hub, e.g. for the Academy's file-import check).
-        self._store.add_commit_listener(lambda _label: self.state_changed.emit())
-        self._store.reset()
-        self.bind_undo_history(self._store.history, self._store.restore)
+        self.services.store.add_commit_listener(lambda _label: self.state_changed.emit())
+        self.services.store.reset()
+        self.bind_undo_history(self.services.store.history, self.services.store.restore)
         self._workflow_loading = False
         self._close_after_save = False
 
@@ -227,8 +200,8 @@ class FlowCytometryPanel(PluginBase):
         # preferences page automatically (see PluginBase.populate_preferences).
         self._workflow_autosave_controller = self.setup_workflow_autosave(
             has_saved_once=lambda: bool(getattr(self, "_current_workflow_filename", None)),
-            save=self._workspace_io_handler.handle_autosave,
-            has_unsaved_changes=lambda: self._store.is_dirty,
+            save=self.services.workspace_io_handler.handle_autosave,
+            has_unsaved_changes=lambda: self.services.store.is_dirty,
         )
 
         # Academy courses run inside Academy workflows: pausable, saved as
@@ -282,7 +255,7 @@ class FlowCytometryPanel(PluginBase):
 
     @property
     def _is_dirty(self) -> bool:
-        return self._store.is_dirty
+        return self.services.store.is_dirty
 
     def set_dirty(self, dirty: bool) -> None:
         """Show whether the workspace has unsaved changes.
@@ -362,15 +335,15 @@ class FlowCytometryPanel(PluginBase):
             self._comparisons_viewer.refresh_samples()
 
     def _get_project_manager(self):
-        return self._workspace_io_handler._get_project_manager()
+        return self.services.workspace_io_handler._get_project_manager()
 
     def _handle_save(self) -> None:
         """Handle save workspace request."""
-        self._workspace_io_handler.handle_save()
+        self.services.workspace_io_handler.handle_save()
 
     def _handle_update(self) -> None:
         """Overwrite the currently loaded workflow using Karcytics SDK services."""
-        self._workspace_io_handler.handle_update()
+        self.services.workspace_io_handler.handle_update()
 
     def _setup_ui(self) -> None:
         """Build the workspace skeleton (Phase 1).
@@ -727,7 +700,7 @@ class FlowCytometryPanel(PluginBase):
     def _on_gate_drawn(self, gate, sample_id: str, parent_node_id) -> None:
         """Handle a gate drawn on the canvas → add to model."""
         # Get a placeholder name for this gate (e.g., "Gate 1")
-        default_name = self._gate_coordinator.unique_name(sample_id)
+        default_name = self.services.gate_coordinator.unique_name(sample_id)
 
         if not gate.takes_population_name:
             # A quadrant gate names its own four leaves; prompting would be
@@ -748,7 +721,7 @@ class FlowCytometryPanel(PluginBase):
                 return
             name = typed_name.strip()
 
-        node_id = self._gate_coordinator.add_gate(
+        node_id = self.services.gate_coordinator.add_gate(
             gate, sample_id, name=name, parent_node_id=parent_node_id
         )
         if node_id:
@@ -903,7 +876,7 @@ class FlowCytometryPanel(PluginBase):
             scope, group_id, sample_id, self.state.data.experiment
         )
 
-        deleted_nodes_by_sample = self._gate_coordinator.populations_under_gate(
+        deleted_nodes_by_sample = self.services.gate_coordinator.populations_under_gate(
             physical_gate_id, target_samples
         )
 
@@ -917,7 +890,7 @@ class FlowCytometryPanel(PluginBase):
                     parent_node_id = selected_node.parents[0].node_id
                 self._graph_manager.open_graph_for_sample(active_graph.sample_id, parent_node_id)
 
-        removed = self._gate_coordinator.delete_gate(physical_gate_id, target_samples)
+        removed = self.services.gate_coordinator.delete_gate(physical_gate_id, target_samples)
 
         if hasattr(self._graph_manager, "close_graphs_for_nodes"):
             self._graph_manager.close_graphs_for_nodes(removed)
@@ -929,7 +902,7 @@ class FlowCytometryPanel(PluginBase):
         """Handle AUTO-PROPAGATE toggle flip from GateHierarchy."""
         self._propagation_active = enabled
         # Actually gate the propagation in the model layer
-        self._gate_coordinator.set_propagation_enabled(enabled)
+        self.services.gate_coordinator.set_propagation_enabled(enabled)
         if enabled:
             self.status_message.emit("Auto-propagation ON — gates will propagate on every change.")
         else:
@@ -939,7 +912,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _on_copy_gates(self, sample_id: str) -> None:
         """Copy gates from a sample to all others in its group."""
-        count = self._gate_coordinator.copy_gates_to_group(sample_id)
+        count = self.services.gate_coordinator.copy_gates_to_group(sample_id)
         self._gate_hierarchy.refresh()
         self.state_changed.emit()
         self.status_message.emit(f"Gates copied to {count} sample{'s' if count != 1 else ''}.")
@@ -978,7 +951,7 @@ class FlowCytometryPanel(PluginBase):
             # current_gate_id pointing at a stale population — so a later legitimate
             # select_gate() call for that same node_id gets silently swallowed by its
             # dedup guard, and GroupPreviewPanel never learns the population changed.
-            self._gate_coordinator.select_gate(sample_id, node_id)
+            self.services.gate_coordinator.select_gate(sample_id, node_id)
             self._gate_hierarchy.set_active_sample(sample_id)
             self._properties_panel.show_sample_properties(sample_id, node_id)
 
@@ -1069,7 +1042,7 @@ class FlowCytometryPanel(PluginBase):
             # Also select the gate so the properties panel and group preview
             # update their context to this node. Without this, GroupPreviewPanel
             # never receives the correct node_id and renders thumbnails with no gates.
-            self._gate_coordinator.select_gate(sample_id, node_id)
+            self.services.gate_coordinator.select_gate(sample_id, node_id)
 
     def _on_gate_selected(self, node_id: str | None) -> None:
         """Central selection handler for populations across all UI components."""
@@ -1082,7 +1055,7 @@ class FlowCytometryPanel(PluginBase):
             sample_id = graph.sample_id if graph else self._gate_hierarchy._active_sample_id
 
         if sample_id:
-            self._gate_coordinator.select_gate(sample_id, node_id)
+            self.services.gate_coordinator.select_gate(sample_id, node_id)
 
     def _on_gate_selected_from_controller(self, sample_id: str, node_id: str | None) -> None:
         """Global selection update from the model layer."""
@@ -1119,7 +1092,9 @@ class FlowCytometryPanel(PluginBase):
             if graph.sample_id != sample_id:
                 continue
 
-            gates, nodes = self._gate_coordinator.get_gates_for_display(sample_id, graph.node_id)
+            gates, nodes = self.services.gate_coordinator.get_gates_for_display(
+                sample_id, graph.node_id
+            )
             graph.refresh_gates(gates, nodes)
 
     # ── Existing callbacks ────────────────────────────────────────────
@@ -1183,9 +1158,12 @@ class FlowCytometryPanel(PluginBase):
 
         if payload.get("action") == "updated":
             param_id = payload.get("param_id", "")
-            affected = {d.sample_id for d in self._derived_service.find_dependents(param_id)}
+            affected = {
+                d.sample_id
+                for d in self.services.derived_parameter_service.find_dependents(param_id)
+            }
             for sample_id in affected:
-                self._gate_coordinator.recompute_all_stats(sample_id)
+                self.services.gate_coordinator.recompute_all_stats(sample_id)
 
     def _on_compensation_changed(self) -> None:
         """Callback when the compensation matrix changes."""
@@ -1228,8 +1206,7 @@ class FlowCytometryPanel(PluginBase):
             del self._startup_stats_cb
 
         # 1. Stop background timers/workers via Coordinator
-        if hasattr(self, "_gate_coordinator"):
-            self._gate_coordinator.cleanup()
+        self.services.gate_coordinator.cleanup()
 
         if hasattr(self, "_graph_manager"):
             self._graph_manager.cleanup()
@@ -1245,8 +1222,7 @@ class FlowCytometryPanel(PluginBase):
         if hasattr(self, "_compensation_view"):
             self._compensation_view.cleanup()
 
-        if hasattr(self, "_umap_service"):
-            self._umap_service.cancel()
+        self.services.umap_service.cancel()
 
         super().cleanup()
 
@@ -1256,7 +1232,7 @@ class FlowCytometryPanel(PluginBase):
 
     def push_state(self, label: str = "") -> None:
         """Record the current state as an undo step (see ``FlowStore.commit``)."""
-        self._store.commit(label or "Edit")
+        self.services.store.commit(label or "Edit")
 
     def set_state(self, state: Any) -> None:
         """Adopt `state`'s contents into this panel's own ``FlowState``, in place.
@@ -1271,7 +1247,7 @@ class FlowCytometryPanel(PluginBase):
 
         apply_workspace(self.state, state.to_dict())
         sync_experiment(self.state.data.experiment)
-        self._store.reset(clean=False)
+        self.services.store.reset(clean=False)
         self._refresh_all()
 
     # ── Undo / redo ───────────────────────────────────────────────────
@@ -1302,9 +1278,9 @@ class FlowCytometryPanel(PluginBase):
         # change nothing announced, must be its own step before we move.
         if getattr(self, "_history_recorder", None) is not None:
             self._history_recorder.flush()
-        self._store.record_unannounced_changes()
+        self.services.store.record_unannounced_changes()
 
-        history = self._store.history
+        history = self.services.store.history
         label = history.undo_label() if direction == "undo" else history.redo_label()
         stepped = super().undo() if direction == "undo" else super().redo()
         if stepped:
@@ -1314,10 +1290,10 @@ class FlowCytometryPanel(PluginBase):
 
     def _on_state_restored(self, _payload: Any = None) -> None:
         """Undo/redo replaced the model — make every view re-read it by id."""
-        self._gate_propagator.cancel_pending()
+        self.services.gate_propagator.cancel_pending()
         for sid, sample in self.state.data.experiment.samples.items():
             if sample.fcs_data is not None and sample.gate_tree.children:
-                self._gate_coordinator.recompute_all_stats(sid)
+                self.services.gate_coordinator.recompute_all_stats(sid)
         if hasattr(self, "_graph_manager"):
             self._graph_manager.reconcile_with_state()
             self._refresh_all()
@@ -1329,11 +1305,11 @@ class FlowCytometryPanel(PluginBase):
         """Call right before a save starts; hand the token to ``_finish_save``."""
         if getattr(self, "_history_recorder", None) is not None:
             self._history_recorder.flush()
-        return self._store.begin_save()
+        return self.services.store.begin_save()
 
     def _finish_save(self, token: Any) -> None:
         """A save that started with `token` succeeded."""
-        self._store.finish_save(token)
+        self.services.store.finish_save(token)
         if self._close_after_save:
             self._close_after_save = False
             self._close_window_when_idle()
@@ -1365,7 +1341,7 @@ class FlowCytometryPanel(PluginBase):
         academy_decision = self._academy.confirm_close()
         if academy_decision is not None:
             return academy_decision
-        if not self._store.is_dirty:
+        if not self.services.store.is_dirty:
             return True
 
         Btn = QMessageBox.StandardButton
@@ -1396,7 +1372,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _confirm_discard_before_load(self) -> bool:
         """A workflow is about to replace a workspace with unsaved changes."""
-        if not self._store.is_dirty:
+        if not self.services.store.is_dirty:
             return True
         Btn = QMessageBox.StandardButton
         choice = self._ask_unsaved_changes(
@@ -1428,7 +1404,7 @@ class FlowCytometryPanel(PluginBase):
         """Serialize the workspace for saving to disk."""
         pm = self._get_project_manager()
         project_dir = pm.project_dir if pm else None
-        return self._workflow_service.export_workflow(project_dir=project_dir)
+        return self.services.workflow_service.export_workflow(project_dir=project_dir)
 
     def load_workflow(  # noqa: PLR0912, PLR0915
         self, payload: dict, filename: str | None = None, metadata: dict | None = None
@@ -1459,8 +1435,7 @@ class FlowCytometryPanel(PluginBase):
                 self._finish_workflow_load(clean=False)
                 self._emit_data_ready_once()
 
-            data_loader = self._factory.get("data_loader_service")
-            data_loader.load_samples_async(
+            self.services.data_loader_service.load_samples_async(
                 [filename],
                 self.state,
                 on_done=_on_done,
@@ -1493,7 +1468,7 @@ class FlowCytometryPanel(PluginBase):
             for sid, sample in self.state.data.experiment.samples.items():
                 if sample.fcs_data is not None and sample.gate_tree is not None:
                     if len(sample.gate_tree.children) > 0:
-                        self._gate_coordinator.recompute_all_stats(sid)
+                        self.services.gate_coordinator.recompute_all_stats(sid)
 
             # 2. The loaded workspace is the new, saved baseline.
             self._finish_workflow_load(clean=True)
@@ -1528,13 +1503,13 @@ class FlowCytometryPanel(PluginBase):
                 self._emit_data_ready_once()
 
         project_dir = pm.project_dir if pm else None
-        if not self._workflow_service.load_workflow(
+        if not self.services.workflow_service.load_workflow(
             payload, context=context, project_dir=project_dir, on_complete=_on_fcs_done
         ):
             # Whatever was partially replaced is unsaved, not a clean workflow.
             self._finish_workflow_load(clean=False)
             # Try to grab the last exception if we stored it
-            error_msg = getattr(self._workflow_service, "_last_error", "Check logs for details.")
+            error_msg = self.services.workflow_service.last_error
             show_error(self, "Load Error", f"Failed to restore workflow. {error_msg}")
 
     def _begin_workflow_load(self) -> None:
@@ -1545,8 +1520,8 @@ class FlowCytometryPanel(PluginBase):
             self._history_recorder.flush()
         if not self._workflow_loading:
             self._workflow_loading = True
-            self._store.pause()
-        self._gate_propagator.cancel_pending()
+            self.services.store.pause()
+        self.services.gate_propagator.cancel_pending()
 
     def _finish_workflow_load(self, clean: bool) -> None:
         # Only the load that's actually in progress may restart the history —
@@ -1554,8 +1529,8 @@ class FlowCytometryPanel(PluginBase):
         if not self._workflow_loading:
             return
         self._workflow_loading = False
-        self._store.resume()
-        self._store.reset(clean=clean)
+        self.services.store.resume()
+        self.services.store.reset(clean=clean)
 
     # ── Internal helpers ──────────────────────────────────────────────
 

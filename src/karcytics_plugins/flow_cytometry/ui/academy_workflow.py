@@ -645,7 +645,7 @@ class AcademyWorkflowController(QObject):
                 f"Your place in the course couldn't be saved:\n{err}",
             )
 
-        self._panel._workspace_io_handler._run_save_to_pm(
+        self._panel.services.workspace_io_handler._run_save_to_pm(
             pm, filename, metadata, _on_success, _on_error
         )
 
