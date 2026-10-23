@@ -607,9 +607,9 @@
       "KS360": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_hierarchy/widget.py": {
-      "KS210": 5,
+      "KS210": 2,
       "KS220": 1,
-      "KS302:GateHierarchy._setup_ui": 121,
+      "KS302:GateHierarchy._setup_ui": 104,
       "KS310": 1,
       "KS320": 1,
       "KS343": 1,
@@ -663,12 +663,11 @@
       "KS360": 6
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/node_canvas/canvas_view.py": {
-      "KS210": 4,
       "KS220": 4,
       "KS242": 1,
       "KS310": 5,
       "KS342": 1,
-      "KS343": 5,
+      "KS343": 1,
       "KS360": 15
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/node_canvas/items/edge_item.py": {

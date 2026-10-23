@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from karcytics_sdk.plugin import BioToggleButton, ZoomControls
 from karcytics_sdk.plugin.rendering.graphics_scene import (
     DirtyTrackingGraphicsScene,
     DirtyTrackingGraphicsView,
@@ -11,8 +12,6 @@ from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPen, QPolygonF, QWheelEvent
 from PySide6.QtWidgets import (
     QGraphicsView,
-    QHBoxLayout,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -198,46 +197,11 @@ class NodeCanvas(QWidget):
         layout.addWidget(self._view)
 
         # ── Overlay Controls ──
-        overlay_layout = QHBoxLayout(self._view)
-        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
-        overlay_layout.setContentsMargins(0, 0, 16, 16)
-        overlay_layout.setSpacing(8)
-
-        btn_style = (
-            f"QPushButton {{"
-            f"  background: {Colors.BG_MEDIUM};"
-            f"  color: {Colors.FG_PRIMARY};"
-            f"  border: 1px solid {Colors.BORDER};"
-            f"  border-radius: 4px;"
-            f"  padding: 6px 12px;"
-            f"}}"
-            f"QPushButton:hover {{"
-            f"  background: {Colors.BG_LIGHT};"
-            f"  border: 1px solid {Colors.ACCENT_PRIMARY};"
-            f"}}"
-        )
-
-        self.btn_zoom_in = QPushButton("Zoom In (+)")
-        self.btn_zoom_in.setStyleSheet(btn_style)
-        self.btn_zoom_in.clicked.connect(self._view.zoom_in)
-
-        self.btn_zoom_out = QPushButton("Zoom Out (-)")
-        self.btn_zoom_out.setStyleSheet(btn_style)
-        self.btn_zoom_out.clicked.connect(self._view.zoom_out)
-
-        self.btn_fit = QPushButton("Fit View (F)")
-        self.btn_fit.setStyleSheet(btn_style)
-        self.btn_fit.clicked.connect(self.center_on_nodes)
-
-        self.btn_pan = QPushButton("Pan Tool")
-        self.btn_pan.setCheckable(True)
-        self.btn_pan.setStyleSheet(btn_style)
+        self.btn_pan = BioToggleButton("Pan Tool")
         self.btn_pan.toggled.connect(self._on_pan_toggled)
-
-        overlay_layout.addWidget(self.btn_pan)
-        overlay_layout.addWidget(self.btn_zoom_out)
-        overlay_layout.addWidget(self.btn_zoom_in)
-        overlay_layout.addWidget(self.btn_fit)
+        ZoomControls(
+            self._view.zoom_in, self._view.zoom_out, self.center_on_nodes, extra=[self.btn_pan]
+        ).overlay_on(self._view)
 
         self._apply_theme_styles()
 
@@ -248,27 +212,6 @@ class NodeCanvas(QWidget):
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         if hasattr(self, "_view"):
             self._view.setBackgroundBrush(QColor(Colors.BG_DARKEST))
-        btn_style = (
-            f"QPushButton {{"
-            f"  background: {Colors.BG_MEDIUM};"
-            f"  color: {Colors.FG_PRIMARY};"
-            f"  border: 1px solid {Colors.BORDER};"
-            f"  border-radius: 4px;"
-            f"  padding: 6px 12px;"
-            f"}}"
-            f"QPushButton:hover {{"
-            f"  background: {Colors.BG_LIGHT};"
-            f"  border: 1px solid {Colors.ACCENT_PRIMARY};"
-            f"}}"
-        )
-        for btn in (
-            getattr(self, "btn_zoom_in", None),
-            getattr(self, "btn_zoom_out", None),
-            getattr(self, "btn_fit", None),
-            getattr(self, "btn_pan", None),
-        ):
-            if btn:
-                btn.setStyleSheet(btn_style)
             self._view._apply_theme_styles()
 
     def _on_pan_toggled(self, checked: bool) -> None:

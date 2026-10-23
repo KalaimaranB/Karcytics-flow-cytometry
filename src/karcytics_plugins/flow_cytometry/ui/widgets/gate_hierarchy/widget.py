@@ -10,7 +10,7 @@ New public additions:
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin import CentralEventBus
+from karcytics_sdk.plugin import CentralEventBus, ZoomControls
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -160,26 +160,9 @@ class GateHierarchy(QWidget):
         layout.addWidget(self._scroll, stretch=1)
 
         # ── Overlay Controls ──
-        overlay_layout = QHBoxLayout(self._scroll)
-        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
-        overlay_layout.setContentsMargins(0, 0, 16, 16)
-        overlay_layout.setSpacing(8)
-
-        self.btn_zoom_in = QPushButton("Zoom In (+)")
-        self.btn_zoom_in.clicked.connect(self._sample_view.zoom_in)
-        self._style_zoom_btn(self.btn_zoom_in)
-
-        self.btn_zoom_out = QPushButton("Zoom Out (-)")
-        self.btn_zoom_out.clicked.connect(self._sample_view.zoom_out)
-        self._style_zoom_btn(self.btn_zoom_out)
-
-        self.btn_fit = QPushButton("Fit View (F)")
-        self.btn_fit.clicked.connect(self._sample_view.fit_view)
-        self._style_zoom_btn(self.btn_fit)
-
-        overlay_layout.addWidget(self.btn_zoom_out)
-        overlay_layout.addWidget(self.btn_zoom_in)
-        overlay_layout.addWidget(self.btn_fit)
+        ZoomControls(
+            self._sample_view.zoom_in, self._sample_view.zoom_out, self._sample_view.fit_view
+        ).overlay_on(self._scroll)
 
         # ── Empty state ───────────────────────────────────────────────
         self._empty_label = QLabel(
@@ -197,22 +180,6 @@ class GateHierarchy(QWidget):
         )
         layout.addWidget(self._empty_label, stretch=1)
         self._empty_label.hide()
-
-    def _style_zoom_btn(self, btn: QPushButton) -> None:
-        theme_manager.apply_style(
-            btn,
-            "QPushButton {"
-            "  background: {BG_MEDIUM};"
-            "  color: {FG_PRIMARY};"
-            "  border: 1px solid {BORDER};"
-            "  border-radius: 4px;"
-            "  padding: 6px 12px;"
-            "}"
-            "QPushButton:hover {"
-            "  background: {BORDER};"
-            "  border: 1px solid {ACCENT_PRIMARY};"
-            "}",
-        )
 
     def _setup_events(self) -> None:
         CentralEventBus.subscribe(events.GATE_CREATED, self._on_gate_change)
