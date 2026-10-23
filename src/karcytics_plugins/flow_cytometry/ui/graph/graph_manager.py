@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QLabel,
@@ -110,44 +110,6 @@ class GraphManager(QWidget):
         self._tabs.tabCloseRequested.connect(self._close_tab)
         self._tabs.currentChanged.connect(self._on_tab_changed)
 
-        self._tabs.setStyleSheet(
-            f"QTabWidget {{ background-color: {Colors.BG_DARKEST}; border: none; }}"
-            f"QTabWidget::pane {{ border: none; background-color: {Colors.BG_DARKEST}; }}"
-            f"QTabWidget::tab-bar {{ left: 0px; alignment: left; }}"
-            f"QTabBar {{ background-color: {Colors.BG_DARKEST}; border: none; }}"
-            f"QTabBar::tab {{"
-            f"  background-color: {Colors.BG_DARK};"
-            f"  color: {Colors.FG_SECONDARY};"
-            f"  padding: 6px 32px 6px 12px;"
-            f"  border: none;"
-            f"  border-bottom: 2px solid transparent;"
-            f"  font-size: {Fonts.SIZE_SMALL}px;"
-            f"  margin-right: 2px;"
-            f"  min-width: 120px;"
-            f"}}"
-            f"QTabBar::tab:selected {{"
-            f"  color: {Colors.FG_PRIMARY};"
-            f"  border-bottom: 2px solid {Colors.ACCENT_PRIMARY};"
-            f"  background-color: {Colors.BG_DARKEST};"
-            f"}}"
-            f"QTabBar::tab:hover {{"
-            f"  color: {Colors.FG_PRIMARY};"
-            f"  background-color: {Colors.BG_MEDIUM};"
-            f"}}"
-            f"QTabBar::close-button {{"
-            f"  background-color: {Colors.BG_MEDIUM};"
-            f"  border: 1px solid {Colors.BORDER};"
-            f"  border-radius: 3px;"
-            f"  margin: 2px 4px;"
-            f"  padding: 2px;"
-            f"  subcontrol-position: right center;"
-            f"}}"
-            f"QTabBar::close-button:hover {{"
-            f"  background-color: {Colors.ACCENT_PRIMARY};"
-            f"  border: 1px solid {Colors.ACCENT_PRIMARY};"
-            f"}}"
-        )
-
         # Welcome/empty screen
         self._welcome = QWidget()
         welcome_layout = QVBoxLayout(self._welcome)
@@ -170,67 +132,48 @@ class GraphManager(QWidget):
         layout.addWidget(self._welcome)
         layout.addWidget(self._tabs)
 
-        self._apply_theme_styles()
+        self._apply_static_styles()
         self._update_visibility()
 
+    def _apply_static_styles(self) -> None:
+        """Theme-tracked stylesheets (theme_manager re-applies them on a theme change)."""
+        apply = theme_manager.apply_style
+        apply(self, "background: {BG_DARKEST};")
+        apply(
+            self._tabs,
+            "QTabWidget { background-color: {BG_DARKEST}; border: none; }"
+            "QTabWidget::pane { border: none; background-color: {BG_DARKEST}; }"
+            "QTabWidget::tab-bar { left: 0px; alignment: left; }"
+            "QTabBar { background-color: {BG_DARKEST}; border: none; }"
+            "QTabBar::tab { background-color: {BG_DARK}; color: {FG_SECONDARY};"
+            " padding: 6px 32px 6px 12px; border: none; border-bottom: 2px solid transparent;"
+            f" font-size: {Fonts.SIZE_SMALL}px; margin-right: 2px; min-width: 120px; }}"
+            "QTabBar::tab:selected { color: {FG_PRIMARY};"
+            " border-bottom: 2px solid {ACCENT_PRIMARY}; background-color: {BG_DARKEST}; }"
+            "QTabBar::tab:hover { color: {FG_PRIMARY}; background-color: {BG_MEDIUM}; }"
+            "QTabBar::close-button { background-color: {BG_MEDIUM}; border: 1px solid {BORDER};"
+            " border-radius: 3px; margin: 2px 4px; padding: 2px; subcontrol-position: right center; }"
+            "QTabBar::close-button:hover { background-color: {ACCENT_PRIMARY};"
+            " border: 1px solid {ACCENT_PRIMARY}; }",
+        )
+        apply(self._welcome, "background: {BG_DARKEST};")
+        apply(
+            self._welcome_title,
+            "color: {FG_PRIMARY}; font-size: 20px; font-weight: 700; background: transparent;",
+        )
+        apply(
+            self._welcome_subtitle,
+            f"color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_NORMAL}px;"
+            " background: transparent; margin-top: 8px;",
+        )
+        apply(
+            self._welcome_hints,
+            f"color: {{FG_DISABLED}}; font-size: {Fonts.SIZE_SMALL}px;"
+            " background: transparent; margin-top: 16px;",
+        )
+
     def _apply_theme_styles(self) -> None:
-        """Dynamically refresh colors based on the current theme."""
-        self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        if hasattr(self, "_tabs"):
-            self._tabs.setStyleSheet(
-                f"QTabWidget {{ background-color: {Colors.BG_DARKEST}; border: none; }}"
-                f"QTabWidget::pane {{ border: none; background-color: {Colors.BG_DARKEST}; }}"
-                f"QTabWidget::tab-bar {{ left: 0px; alignment: left; }}"
-                f"QTabBar {{ background-color: {Colors.BG_DARKEST}; border: none; }}"
-                f"QTabBar::tab {{"
-                f"  background-color: {Colors.BG_DARK};"
-                f"  color: {Colors.FG_SECONDARY};"
-                f"  padding: 6px 32px 6px 12px;"
-                f"  border: none;"
-                f"  border-bottom: 2px solid transparent;"
-                f"  font-size: {Fonts.SIZE_SMALL}px;"
-                f"  margin-right: 2px;"
-                f"  min-width: 120px;"
-                f"}}"
-                f"QTabBar::tab:selected {{"
-                f"  color: {Colors.FG_PRIMARY};"
-                f"  border-bottom: 2px solid {Colors.ACCENT_PRIMARY};"
-                f"  background-color: {Colors.BG_DARKEST};"
-                f"}}"
-                f"QTabBar::tab:hover {{"
-                f"  color: {Colors.FG_PRIMARY};"
-                f"  background-color: {Colors.BG_MEDIUM};"
-                f"}}"
-                f"QTabBar::close-button {{"
-                f"  background-color: {Colors.BG_MEDIUM};"
-                f"  border: 1px solid {Colors.BORDER};"
-                f"  border-radius: 3px;"
-                f"  margin: 2px 4px;"
-                f"  padding: 2px;"
-                f"  subcontrol-position: right center;"
-                f"}}"
-                f"QTabBar::close-button:hover {{"
-                f"  background-color: {Colors.ACCENT_PRIMARY};"
-                f"  border: 1px solid {Colors.ACCENT_PRIMARY};"
-                f"}}"
-            )
-        if hasattr(self, "_welcome"):
-            self._welcome.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        if hasattr(self, "_welcome_title"):
-            self._welcome_title.setStyleSheet(
-                f"color: {Colors.FG_PRIMARY}; font-size: 20px;"
-                f" font-weight: 700; background: transparent;"
-            )
-        if hasattr(self, "_welcome_subtitle"):
-            self._welcome_subtitle.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: {Fonts.SIZE_NORMAL}px;"
-                f" background: transparent; margin-top: 8px;"
-            )
-        if hasattr(self, "_welcome_hints"):
-            self._welcome_hints.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: {Fonts.SIZE_SMALL}px;"
-                f" background: transparent; margin-top: 16px;"
-            )
+        """Pass a theme change on to the open graphs (their plots bake colours in)."""
         for graph in getattr(self, "_graphs", {}).values():
             if hasattr(graph, "_apply_theme_styles"):
                 graph._apply_theme_styles()

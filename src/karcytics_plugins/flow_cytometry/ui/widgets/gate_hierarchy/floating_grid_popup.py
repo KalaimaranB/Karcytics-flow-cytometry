@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import QEvent, QPoint, QRect, Qt, QTimer
 from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
@@ -328,7 +328,7 @@ class FloatingGridPopup(QFrame):
         self._size_grip.setCursor(Qt.CursorShape.ArrowCursor)
         self._size_grip.raise_()
 
-        self._apply_theme_styles()
+        self._apply_static_styles()
 
     def _build_header_row(self) -> QWidget:
         """Blank corner + horizontally-scrolling sample-name headers, pinned
@@ -401,54 +401,59 @@ class FloatingGridPopup(QFrame):
             )
             self._size_grip.raise_()
 
+    def _apply_static_styles(self) -> None:
+        """Theme-tracked stylesheets (theme_manager re-applies them on a theme change)."""
+        apply = theme_manager.apply_style
+        apply(
+            self,
+            f"{type(self).__name__} "
+            "{ background: {BG_DARKEST}; border: 1px solid {BORDER}; border-radius: 10px; }",
+        )
+        apply(
+            self._title_bar,
+            "background: {BG_DARK}; border-bottom: 1px solid {BORDER};"
+            " border-top-left-radius: 10px; border-top-right-radius: 10px;",
+        )
+        apply(
+            self._title_lbl,
+            "color: {FG_PRIMARY}; font-size: 12px; font-weight: 600; background: transparent;",
+        )
+        apply(self._esc_lbl, "color: {FG_DISABLED}; font-size: 10px; background: transparent;")
+        apply(
+            self._btn_close,
+            "color: {FG_SECONDARY}; font-size: 15px; font-weight: bold;"
+            " background: transparent; border-radius: 4px;",
+        )
+        apply(
+            self._scroll,
+            "QScrollArea { background: transparent; border: none; }"
+            "QScrollBar:vertical { background: {BG_DARK}; width: 6px; border-radius: 3px; }"
+            "QScrollBar::handle:vertical { background: {BORDER}; border-radius: 3px; }"
+            "QScrollBar:horizontal { background: {BG_DARK}; height: 6px; border-radius: 3px; }"
+            "QScrollBar::handle:horizontal { background: {BORDER}; border-radius: 3px; }",
+        )
+        apply(
+            self._frozen_scroll,
+            "QScrollArea { background: transparent; border: none; border-right: 1px solid {BORDER}; }"
+            "QScrollBar:vertical { width: 0px; }"
+            "QScrollBar:horizontal { height: 0px; }",
+        )
+        apply(
+            self._header_scroll,
+            "QScrollArea { background: transparent; border: none; border-bottom: 1px solid {BORDER}; }"
+            "QScrollBar:vertical { height: 0px; }"
+            "QScrollBar:horizontal { height: 0px; }",
+        )
+        apply(
+            self._corner,
+            "background: {BG_DARKEST}; border-right: 1px solid {BORDER};"
+            " border-bottom: 1px solid {BORDER};",
+        )
+        for content in (self._content, self._frozen_content, self._header_content):
+            apply(content, "background: {BG_DARKEST};")
+        apply(self._size_grip, "background: transparent; color: {FG_DISABLED};")
+
     def _apply_theme_styles(self) -> None:
-        self.setStyleSheet(f"""
-            {type(self).__name__} {{
-                background: {Colors.BG_DARKEST};
-                border: 1px solid {Colors.BORDER};
-                border-radius: 10px;
-            }}
-        """)
-        self._title_bar.setStyleSheet(
-            f"background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER};"
-            " border-top-left-radius: 10px; border-top-right-radius: 10px;"
-        )
-        self._title_lbl.setStyleSheet(
-            f"color: {Colors.FG_PRIMARY}; font-size: 12px; font-weight: 600;"
-            " background: transparent;"
-        )
-        self._esc_lbl.setStyleSheet(
-            f"color: {Colors.FG_DISABLED}; font-size: 10px; background: transparent;"
-        )
-        self._btn_close.setStyleSheet(
-            f"color: {Colors.FG_SECONDARY}; font-size: 15px; font-weight: bold;"
-            " background: transparent; border-radius: 4px;"
-        )
-        self._scroll.setStyleSheet(
-            f"QScrollArea {{ background: transparent; border: none; }}"
-            f"QScrollBar:vertical {{ background: {Colors.BG_DARK}; width: 6px; border-radius: 3px; }}"
-            f"QScrollBar::handle:vertical {{ background: {Colors.BORDER}; border-radius: 3px; }}"
-            f"QScrollBar:horizontal {{ background: {Colors.BG_DARK}; height: 6px; border-radius: 3px; }}"
-            f"QScrollBar::handle:horizontal {{ background: {Colors.BORDER}; border-radius: 3px; }}"
-        )
-        self._frozen_scroll.setStyleSheet(
-            f"QScrollArea {{ background: transparent; border: none; border-right: 1px solid {Colors.BORDER}; }}"
-            f"QScrollBar:vertical {{ width: 0px; }}"
-            f"QScrollBar:horizontal {{ height: 0px; }}"
-        )
-        self._header_scroll.setStyleSheet(
-            f"QScrollArea {{ background: transparent; border: none; border-bottom: 1px solid {Colors.BORDER}; }}"
-            f"QScrollBar:vertical {{ height: 0px; }}"
-            f"QScrollBar:horizontal {{ height: 0px; }}"
-        )
-        self._corner.setStyleSheet(
-            f"background: {Colors.BG_DARKEST}; border-right: 1px solid {Colors.BORDER};"
-            f" border-bottom: 1px solid {Colors.BORDER};"
-        )
-        self._content.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        self._frozen_content.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        self._header_content.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        self._size_grip.setStyleSheet(f"background: transparent; color: {Colors.FG_DISABLED};")
         # Row labels and cells paint the theme's colours themselves.
         for painted in self._frozen_content.findChildren(QWidget) + self._content.findChildren(
             QWidget

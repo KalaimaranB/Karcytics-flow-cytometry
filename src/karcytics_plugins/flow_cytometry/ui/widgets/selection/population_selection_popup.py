@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QVBoxLayout, QWidget
@@ -317,12 +317,20 @@ class PopulationSelectionPopup(FloatingGridPopup):
 
         container = QWidget()
         self._toolbar = container
+        theme_manager.apply_style(
+            container, "background: {BG_DARK}; border-bottom: 1px solid {BORDER};"
+        )
         outer = QVBoxLayout(container)
         outer.setContentsMargins(14, 8, 14, 8)
         outer.setSpacing(6)
 
         self._search_box = QLineEdit()
         self._search_box.setPlaceholderText("Search populations...")
+        theme_manager.apply_style(
+            self._search_box,
+            "QLineEdit { background: {BG_MEDIUM}; color: {FG_PRIMARY};"
+            " border: 1px solid {BORDER}; border-radius: 4px; padding: 4px 8px; }",
+        )
         self._search_box.textChanged.connect(self._on_search_changed)
         outer.addWidget(self._search_box)
 
@@ -340,18 +348,6 @@ class PopulationSelectionPopup(FloatingGridPopup):
         outer.addLayout(btn_row)
 
         return container
-
-    def _apply_theme_styles(self) -> None:
-        super()._apply_theme_styles()
-        if hasattr(self, "_toolbar"):
-            self._toolbar.setStyleSheet(
-                f"background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER};"
-            )
-        if hasattr(self, "_search_box"):
-            self._search_box.setStyleSheet(
-                f"QLineEdit {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 4px; padding: 4px 8px; }}"
-            )
 
     def _on_search_changed(self, text: str) -> None:
         self._search_text = text.strip().lower()

@@ -295,8 +295,11 @@ The SDK side is done (332a609, 45a925f): `rendering.style_axes` / `AxesColors`,
       `clear_combos` / `add_channel` / `add_new_derived_entry` sequence for one
       `set_channels(channels, derived_entry=)`. Needed SDK 1a69e0a: `restore_data=None` used to
       mean "leave it", so an "All events" (None) item could not be reselected.
-- [ ] The 22 `_apply_theme_styles` → `theme_manager.apply_style()` where the stylesheet is
-      static; the ones that branch on state or drive matplotlib go with their widget in B7.
+- [x] `_apply_theme_styles` → `theme_manager.apply_style()` where the stylesheet is static:
+      `GraphManager`, `FloatingGridPopup` and both subclasses (whose overrides are gone), and the
+      UMAP caption. What is left re-renders plots or repaints, or belongs to a B7 god class
+      (`main_panel`, `population_analysis_viewer`, `statistics_explorer`, `comparisons_viewer`,
+      `spectral_viewer`, `cluster_results_panel`); those go with their split.
 
 Not in scope here: the bulk theming debt (216 hard-coded colours KS240, 173 hand-built
 stylesheets KS242, 76 raw Qt widgets KS210, 18 raw dialogs KS220). The ratchet stops growth;

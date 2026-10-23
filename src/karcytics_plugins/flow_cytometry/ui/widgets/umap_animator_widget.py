@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -201,16 +201,11 @@ class UmapAnimatorWidget(QWidget):
 
         # ── Caption overlay (absolute position over canvas) ───────────────────
         self._caption_lbl = QLabel("", self._canvas)
-        self._caption_lbl.setStyleSheet(f"""
-            QLabel {{
-                color: {Colors.FG_PRIMARY};
-                font-size: 13px;
-                font-style: italic;
-                background-color: rgba(10, 14, 26, 200);
-                padding: 5px 12px;
-                border-radius: 5px;
-            }}
-        """)
+        theme_manager.apply_style(
+            self._caption_lbl,
+            "QLabel { color: {FG_PRIMARY}; font-size: 13px; font-style: italic;"
+            " background-color: rgba(10, 14, 26, 200); padding: 5px 12px; border-radius: 5px; }",
+        )
         self._caption_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._caption_lbl.setWordWrap(True)
         self._caption_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
@@ -221,16 +216,6 @@ class UmapAnimatorWidget(QWidget):
     def _apply_theme_styles(self) -> None:
         self._figure.patch.set_facecolor(Colors.BG_DARK)
         self._ax.set_facecolor(Colors.BG_DARK)
-        self._caption_lbl.setStyleSheet(f"""
-            QLabel {{
-                color: {Colors.FG_PRIMARY};
-                font-size: 13px;
-                font-style: italic;
-                background-color: rgba(10, 14, 26, 200);
-                padding: 5px 12px;
-                border-radius: 5px;
-            }}
-        """)
         self._canvas.draw_idle()
 
     def _on_canvas_resize(self, event) -> None:

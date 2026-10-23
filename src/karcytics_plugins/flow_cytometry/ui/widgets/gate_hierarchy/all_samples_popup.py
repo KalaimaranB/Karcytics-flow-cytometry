@@ -17,7 +17,7 @@ widgets) without vanishing the moment something else is clicked.
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
@@ -89,42 +89,29 @@ class AllSamplesPopup(FloatingGridPopup):
         legend = QWidget()
         self._legend = legend
         legend.setFixedHeight(28)
+        theme_manager.apply_style(legend, "background: {BG_DARK}; border-top: 1px solid {BORDER};")
         legend_layout = QHBoxLayout(legend)
         legend_layout.setContentsMargins(14, 0, 14, 0)
         legend_layout.setSpacing(16)
 
-        # (dot, the theme colour it takes) and the labels, styled in _apply_theme_styles.
-        self._legend_dots: list[tuple[QLabel, str]] = []
-        self._legend_labels: list[QLabel] = []
         for dot_token, label_text in [
             ("ACCENT_PRIMARY", "Gated"),
             ("FG_DISABLED", "Not applied"),
             ("BORDER", "0 events"),
         ]:
             dot = QLabel("●")
+            theme_manager.apply_style(
+                dot, f"color: {{{dot_token}}}; font-size: 10px; background: transparent;"
+            )
             lbl = QLabel(label_text)
-            self._legend_dots.append((dot, dot_token))
-            self._legend_labels.append(lbl)
+            theme_manager.apply_style(
+                lbl, "color: {FG_SECONDARY}; font-size: 10px; background: transparent;"
+            )
             legend_layout.addWidget(dot)
             legend_layout.addWidget(lbl)
 
         legend_layout.addStretch()
         return legend
-
-    def _apply_theme_styles(self) -> None:
-        super()._apply_theme_styles()
-        if hasattr(self, "_legend"):
-            self._legend.setStyleSheet(
-                f"background: {Colors.BG_DARK}; border-top: 1px solid {Colors.BORDER};"
-            )
-            for dot, token in self._legend_dots:
-                dot.setStyleSheet(
-                    f"color: {getattr(Colors, token)}; font-size: 10px; background: transparent;"
-                )
-            for lbl in self._legend_labels:
-                lbl.setStyleSheet(
-                    f"color: {Colors.FG_SECONDARY}; font-size: 10px; background: transparent;"
-                )
 
     def _rebuild_grid(self) -> None:
         """Clear and repopulate the grid from the current model."""
