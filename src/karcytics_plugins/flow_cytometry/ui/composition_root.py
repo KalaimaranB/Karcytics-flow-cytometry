@@ -24,6 +24,7 @@ from ..analysis.services.derived_parameter_service import DerivedParameterServic
 from ..analysis.services.umap_service import UmapService
 from ..analysis.store import FlowStore
 from .controllers.derived_editor_controller import DerivedEditorController
+from .services.flow_daemon import call_flow_daemon
 from .services.workflow_service import WorkflowService
 from .services.workspace_io_handler import WorkspaceIOHandler
 
@@ -72,9 +73,9 @@ def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices:
     gate_coordinator = GateCoordinator(state, axis_manager, population_service, task_scheduler)
 
     logger.debug("[phase1] build_services: constructing DataLoaderService")
-    data_loader_service = DataLoaderService(task_scheduler)
+    data_loader_service = DataLoaderService(task_scheduler, call_flow_daemon)
     workflow_service = WorkflowService(state, data_loader_service, AttachmentManager(axis_manager))
-    umap_service = UmapService(state, task_scheduler)
+    umap_service = UmapService(state, task_scheduler, call_flow_daemon)
 
     logger.debug("[phase1] build_services: constructing WorkspaceIOHandler")
     workspace_io_handler = WorkspaceIOHandler(

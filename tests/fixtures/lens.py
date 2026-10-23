@@ -130,12 +130,10 @@ class FakeUmapService:
     def recluster_phenograph(self, run, resolution, on_done, on_error_cb):
         """Re-clusters on the spot, in-process (the real service uses the daemon)."""
         from karcytics_plugins.flow_cytometry.analysis import phenograph_analysis
-        from tests.fixtures.phenograph import in_process_compute
+        from tests.fixtures.daemon import in_process_daemon
 
         self.calls.append(("recluster", resolution))
-        compute, phenograph_analysis.compute = phenograph_analysis.compute, in_process_compute
-        try:
-            result = phenograph_analysis.PhenographReclusterAnalysis(run, resolution).run()
-        finally:
-            phenograph_analysis.compute = compute
+        result = phenograph_analysis.PhenographReclusterAnalysis(
+            run, resolution, in_process_daemon
+        ).run()
         (on_error_cb(result["error"]) if "error" in result else on_done(result))

@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from karcytics_plugins.flow_cytometry.analysis import phenograph_analysis
 from karcytics_plugins.flow_cytometry.analysis.phenograph_analysis import (
     PhenographAnalysis,
     PhenographReclusterAnalysis,
@@ -15,8 +14,8 @@ from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import Cl
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
 )
+from tests.fixtures.daemon import in_process_daemon
 from tests.fixtures.lens import make_sample
-from tests.fixtures.phenograph import in_process_compute
 
 MARKERS = ["CD3", "CD4", "CD8", "CD56"]
 
@@ -26,25 +25,26 @@ class SyncPhenographService(UmapService):
 
     def run_phenograph(self, params, on_done, on_error_cb, on_progress=None):
         self.params = params
-        analysis = PhenographAnalysis()
+        analysis = PhenographAnalysis(in_process_daemon)
         for name, value in vars(params).items():
             setattr(analysis, name, value)
         on_done(analysis.run(self._state))
 
     def recluster_phenograph(self, run, resolution, on_done, on_error_cb):
         self.reclustered = resolution
-        on_done(PhenographReclusterAnalysis(run, resolution).run())
+        on_done(PhenographReclusterAnalysis(run, resolution, in_process_daemon).run())
 
 
 @pytest.fixture
 def viewer(qtbot, monkeypatch):
     # Gallery tiles render on worker threads; not what these tests are about.
     monkeypatch.setattr(ClusterResultsPanel, "_request_gallery_tile", lambda *_a, **_k: None)
-    monkeypatch.setattr(phenograph_analysis, "compute", in_process_compute)
     state = FlowState()
     sample, _events, _truth = make_sample("s1", n=3000)
     state.data.experiment.add_sample(sample)
-    widget = PopulationAnalysisViewer(state, SyncPhenographService(state, MagicMock()))
+    widget = PopulationAnalysisViewer(
+        state, SyncPhenographService(state, MagicMock(), in_process_daemon)
+    )
     qtbot.addWidget(widget)
     return widget
 

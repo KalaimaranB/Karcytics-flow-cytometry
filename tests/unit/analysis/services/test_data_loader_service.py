@@ -20,6 +20,7 @@ from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.services.data_loader_service import (
     DataLoaderService,
 )
+from tests.fixtures.daemon import in_process_daemon
 
 
 def _make_fcs_data(path: Path, n_events: int = 5) -> FCSData:
@@ -29,7 +30,7 @@ def _make_fcs_data(path: Path, n_events: int = 5) -> FCSData:
 
 @pytest.fixture
 def service() -> DataLoaderService:
-    return DataLoaderService()
+    return DataLoaderService(None, in_process_daemon)
 
 
 def test_reload_samples_batch_makes_a_single_batched_call(service: DataLoaderService):
@@ -50,7 +51,7 @@ def test_reload_samples_batch_makes_a_single_batched_call(service: DataLoaderSer
         )
 
     mock_batch.assert_called_once()
-    (called_paths,), _kwargs = mock_batch.call_args
+    (called_paths, _daemon), _kwargs = mock_batch.call_args
     assert set(called_paths) == {path_a, path_b}
     assert result == {"loaded": ["Sample A", "Sample B"], "failed": []}
     assert sample_a.fcs_data is not None

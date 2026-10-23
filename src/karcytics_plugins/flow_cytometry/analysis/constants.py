@@ -93,9 +93,6 @@ LOGICLE_NEG_COUNT_MIN = 10
 OUTLIER_PERCENTILE_MAX = 50.0
 
 # ── FCS I/O ──────────────────────────────────────────────────────────
-# If acquiring the FCS file lock takes longer than this (seconds) we log a warning.
-FCS_LOCK_WARN_SECONDS = 0.5
-
 # If more than this fraction of claimed events is stripped during load we warn.
 FCS_STRIP_RATIO_WARN = 0.05
 

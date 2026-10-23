@@ -11,6 +11,7 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.umap_analysis import UmapAnalysis
+from tests.fixtures.daemon import in_process_daemon
 
 # Skip entire module if umap/numba is incompatible with the installed NumPy
 pytest.importorskip(
@@ -56,7 +57,7 @@ def test_state():
 
 def test_umap_validation_missing_sample(test_state):
     """Verify validation fails if no sample is selected or present."""
-    analysis = UmapAnalysis()
+    analysis = UmapAnalysis(in_process_daemon)
     analysis.target_sample_id = "nonexistent"
 
     is_valid, err = analysis.validate(test_state)
@@ -79,7 +80,7 @@ def test_umap_validation_too_few_events(test_state):
         events=events_df,
     )
 
-    analysis = UmapAnalysis()
+    analysis = UmapAnalysis(in_process_daemon)
     analysis.target_sample_id = "s1"
 
     is_valid, err = analysis.validate(test_state)
@@ -89,7 +90,7 @@ def test_umap_validation_too_few_events(test_state):
 
 def test_umap_validation_success(test_state):
     """Verify validation passes on a valid loaded sample."""
-    analysis = UmapAnalysis()
+    analysis = UmapAnalysis(in_process_daemon)
     analysis.target_sample_id = "s1"
 
     is_valid, err = analysis.validate(test_state)
@@ -99,7 +100,7 @@ def test_umap_validation_success(test_state):
 
 def test_umap_run_success(test_state):
     """Verify UMAP runs successfully and returns correct structures."""
-    analysis = UmapAnalysis()
+    analysis = UmapAnalysis(in_process_daemon)
     analysis.target_sample_id = "s1"
     analysis.n_events = 50
     analysis.n_neighbors = 5

@@ -11,7 +11,6 @@ import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Experiment as Experiment
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample as Sample
-from karcytics_plugins.flow_cytometry.analysis.fcs_io import load_fcs
 from karcytics_plugins.flow_cytometry.analysis.gating import (
     EllipseGate,
     PolygonGate,

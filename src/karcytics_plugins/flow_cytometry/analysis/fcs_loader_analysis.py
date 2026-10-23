@@ -5,11 +5,14 @@ from __future__ import annotations
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
 from .fcs_io import load_fcs_batch
+
+if TYPE_CHECKING:
+    from .daemon_port import DaemonCall
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -25,8 +28,9 @@ _CHUNK_SIZE = 6
 class FCSLoaderAnalysis(AnalysisBase):
     """Background analyzer for parallel loading of FCS files."""
 
-    def __init__(self, plugin_id: str = "flow_cytometry"):
+    def __init__(self, daemon: DaemonCall, plugin_id: str = "flow_cytometry"):
         super().__init__(plugin_id)
+        self._daemon = daemon
         self.file_paths: list[str | Path] = []
         self.project_manager: object | None = None
         self.copy_all: bool = False
@@ -128,7 +132,7 @@ class FCSLoaderAnalysis(AnalysisBase):
                 return None
 
             chunk = ordered_final_paths[i : i + _CHUNK_SIZE]
-            chunk_results = load_fcs_batch(chunk, cancel_poll=self.is_cancelled)
+            chunk_results = load_fcs_batch(chunk, self._daemon, cancel_poll=self.is_cancelled)
 
             for final_path in chunk:
                 value = chunk_results.get(final_path)

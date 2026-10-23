@@ -37,7 +37,6 @@
     "src/karcytics_plugins/flow_cytometry/analysis/daemon_worker.py": {
       "KS302:handle_load_fcs_batch": 97,
       "KS310": 1,
-      "KS320": 1,
       "KS360": 3
     },
     "src/karcytics_plugins/flow_cytometry/analysis/derived/expression.py": {
@@ -47,13 +46,11 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/fcs_io.py": {
-      "KS205": 3,
-      "KS300": 851,
+      "KS300": 793,
       "KS302:_auto_apply_spill": 87,
       "KS302:_load_with_fcsparser": 242,
       "KS310": 6,
-      "KS320": 1,
-      "KS360": 10
+      "KS360": 5
     },
     "src/karcytics_plugins/flow_cytometry/analysis/fcs_loader_analysis.py": {
       "KS343": 3
@@ -91,9 +88,8 @@
       "KS360": 3
     },
     "src/karcytics_plugins/flow_cytometry/analysis/phenograph_analysis.py": {
-      "KS205": 1,
       "KS310": 1,
-      "KS360": 5
+      "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/propagation_worker.py": {
       "KS310": 1,
@@ -134,11 +130,10 @@
       "KS360": 7
     },
     "src/karcytics_plugins/flow_cytometry/analysis/umap_analysis.py": {
-      "KS205": 1,
-      "KS302:UmapAnalysis.run": 124,
+      "KS302:UmapAnalysis.run": 112,
       "KS310": 1,
       "KS343": 10,
-      "KS360": 6
+      "KS360": 2
     },
     "src/karcytics_plugins/flow_cytometry/analysis/workspace_document.py": {
       "KS360": 1

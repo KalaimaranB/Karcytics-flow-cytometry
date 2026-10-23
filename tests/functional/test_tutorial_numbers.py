@@ -38,6 +38,7 @@ from karcytics_plugins.flow_cytometry.tutorials.courses import (
     course_5_sample_lens,
     course_6_reporting,
 )
+from tests.fixtures.daemon import in_process_daemon
 
 pytestmark = pytest.mark.functional
 
@@ -124,7 +125,9 @@ def _measure_sample(events: pd.DataFrame) -> dict[str, float]:
 @pytest.fixture(scope="module")
 def measured(fcs_test_data_dir) -> dict[str, dict[str, float]]:
     m = {
-        s: _measure_sample(load_fcs(str(fcs_test_data_dir / f"Specimen_001_{s}.fcs")).events)
+        s: _measure_sample(
+            load_fcs(str(fcs_test_data_dir / f"Specimen_001_{s}.fcs"), in_process_daemon).events
+        )
         for s in SAMPLES
     }
     c, b = m["Sample C"], m["Sample B"]
@@ -212,7 +215,7 @@ def test_the_matrix_values_the_compensation_steps_quote(fcs_test_data_dir):
     )
 
     files = {
-        p.stem.replace("Specimen_001_", ""): load_fcs(str(p))
+        p.stem.replace("Specimen_001_", ""): load_fcs(str(p), in_process_daemon)
         for p in fcs_test_data_dir.glob("*FMO*.fcs")
     }
     embedded = extract_spill_from_fcs(next(iter(files.values())))

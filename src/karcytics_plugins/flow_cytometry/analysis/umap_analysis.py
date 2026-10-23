@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
 from .clustering.methods import UMAP_HDBSCAN
 from .clustering.run_input import cluster_tables, prepare_run_input
 from .constants import UMAP_MIN_EVENTS
+from .daemon_port import decode_array, encode_array
+
+if TYPE_CHECKING:
+    from .daemon_port import DaemonCall
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -17,8 +20,9 @@ logger = get_logger(__name__, "flow_cytometry")
 class UmapAnalysis(AnalysisBase):
     """Background analyzer for running UMAP dimensionality reduction."""
 
-    def __init__(self, plugin_id: str = "flow_cytometry"):
+    def __init__(self, daemon: DaemonCall, plugin_id: str = "flow_cytometry"):
         super().__init__(plugin_id)
+        self._daemon = daemon
         self.target_sample_id: str = ""
         self.target_node_id: str | None = None  # None = All Events
         self.name: str = ""
@@ -106,17 +110,6 @@ class UmapAnalysis(AnalysisBase):
         self.signals.analysis_progress.emit(30)
 
         try:
-            import base64
-            import io
-
-            from karcytics_sdk.plugin import PluginDaemon
-
-            from .fcs_io import _decode_array
-
-            buf = io.BytesIO()
-            np.save(buf, x_mat, allow_pickle=False)
-            x_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-
             params = {
                 "n_neighbors": self.n_neighbors,
                 "min_dist": self.min_dist,
@@ -127,10 +120,9 @@ class UmapAnalysis(AnalysisBase):
                 "min_cluster_size": getattr(self, "min_cluster_size", 100),
             }
 
-            daemon = PluginDaemon.get_instance("flow_cytometry")
-            res_dict = daemon.call(
+            res_dict = self._daemon(
                 "run_umap",
-                {"x_b64": x_b64, "params": params},
+                {"x_b64": encode_array(x_mat), "params": params},
                 cancel_poll=self.is_cancelled,
                 timeout=300.0,
             )
@@ -138,10 +130,10 @@ class UmapAnalysis(AnalysisBase):
             if "error" in res_dict:
                 raise RuntimeError(res_dict["error"])
 
-            embedding = _decode_array(res_dict["embedding_b64"])
+            embedding = decode_array(res_dict["embedding_b64"])
             clusters = None
             if "clusters_b64" in res_dict:
-                clusters = _decode_array(res_dict["clusters_b64"])
+                clusters = decode_array(res_dict["clusters_b64"])
 
         except Exception as e:
             logger.exception(f"UmapAnalysis: UMAP reduction failed: {e}")

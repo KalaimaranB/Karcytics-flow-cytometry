@@ -15,6 +15,7 @@ from ..umap_analysis import UmapAnalysis
 if TYPE_CHECKING:
     from karcytics_sdk.plugin import AnalysisBase, AnalysisWorker
 
+    from ..daemon_port import DaemonCall
     from ..state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -75,9 +76,10 @@ class PhenographParams:
 class UmapService:
     """Facade for submitting and managing background UMAP tasks using TaskScheduler."""
 
-    def __init__(self, state: FlowState, scheduler: Any):
+    def __init__(self, state: FlowState, scheduler: Any, daemon: DaemonCall):
         self._state = state
         self._scheduler = scheduler
+        self._daemon = daemon
         self._current_worker: AnalysisWorker | None = None
         self._current_task_id: str | None = None
 
@@ -89,7 +91,7 @@ class UmapService:
         on_progress: Callable[[int], None] | None = None,
     ) -> None:
         """Cancel any in-flight task, and submit a new UMAP analysis."""
-        analyzer = UmapAnalysis()
+        analyzer = UmapAnalysis(self._daemon)
         analyzer.target_sample_id = params.target_sample_id
         analyzer.target_node_id = params.target_node_id
         analyzer.name = params.name
@@ -127,7 +129,7 @@ class UmapService:
         on_progress: Callable[[int], None] | None = None,
     ) -> None:
         """Cancel any in-flight task, and submit a new PhenoGraph run."""
-        analyzer = PhenographAnalysis()
+        analyzer = PhenographAnalysis(self._daemon)
         for name, value in vars(params).items():
             setattr(analyzer, name, value)
         analyzer.channels = params.channels or []
@@ -145,7 +147,9 @@ class UmapService:
         ``on_done`` gets the new arrays; apply them on the GUI thread with
         ``phenograph_analysis.apply_clusters``.
         """
-        self._submit(PhenographReclusterAnalysis(run, resolution), on_done, on_error_cb, None)
+        self._submit(
+            PhenographReclusterAnalysis(run, resolution, self._daemon), on_done, on_error_cb, None
+        )
 
     def _submit(  # noqa: C901
         self,

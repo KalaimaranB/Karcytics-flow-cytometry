@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import typing
 import uuid
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
@@ -18,6 +18,10 @@ from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 from .clustering import PHENOGRAPH
 from .clustering.phenograph import graph_embedding
 from .clustering.run_input import cluster_tables, prepare_run_input
+from .daemon_port import decode_array, encode_array
+
+if TYPE_CHECKING:
+    from .daemon_port import DaemonCall
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -25,26 +29,20 @@ DAEMON_TIMEOUT_S = 600.0
 
 
 def compute(
-    x: np.ndarray, params: dict[str, Any], run_uid: str, cancelled: Any = None
+    x: np.ndarray,
+    params: dict[str, Any],
+    run_uid: str,
+    daemon: DaemonCall,
+    cancelled: Any = None,
 ) -> dict[str, np.ndarray]:
     """Cluster ``x`` in the daemon; the per-event clusters and the cluster graph.
 
-    Raises RuntimeError with the daemon's message on failure. Tests replace
-    this with an in-process call.
+    Raises RuntimeError with the daemon's message on failure.
     """
-    import base64
-    import io
-
-    from karcytics_sdk.plugin import PluginDaemon
-
-    from .fcs_io import _decode_array
-
-    buf = io.BytesIO()
-    np.save(buf, np.asarray(x), allow_pickle=False)
-    reply = PluginDaemon.get_instance("flow_cytometry").call(
+    reply = daemon(
         "run_phenograph",
         {
-            "x_b64": base64.b64encode(buf.getvalue()).decode("ascii"),
+            "x_b64": encode_array(x),
             "params": params,
             "run_uid": run_uid,
         },
@@ -54,7 +52,7 @@ def compute(
     if "error" in reply:
         raise RuntimeError(reply["error"])
     return {
-        key: _decode_array(reply[f"{key}_b64"])
+        key: decode_array(reply[f"{key}_b64"])
         for key in ("clusters", "edges", "connectivity", "layout")
     }
 
@@ -72,8 +70,9 @@ def run_params(run: dict[str, Any], resolution: float | None = None) -> dict[str
 class PhenographAnalysis(AnalysisBase):
     """Runs PhenoGraph on one population of one sample."""
 
-    def __init__(self, plugin_id: str = "flow_cytometry"):
+    def __init__(self, daemon: DaemonCall, plugin_id: str = "flow_cytometry"):
         super().__init__(plugin_id)
+        self._daemon = daemon
         self.target_sample_id: str = ""
         self.target_node_id: str | None = None  # None = All Events
         self.name: str = ""
@@ -139,7 +138,9 @@ class PhenographAnalysis(AnalysisBase):
             "embedding_kind": "graph",
         }
         try:
-            arrays = compute(prepared.x, run_params(run), run["run_uid"], self.is_cancelled)
+            arrays = compute(
+                prepared.x, run_params(run), run["run_uid"], self._daemon, self.is_cancelled
+            )
         except Exception as e:  # the daemon's own message is the useful part
             logger.exception("PhenographAnalysis: clustering failed")
             return {"error": f"PhenoGraph failed: {e}"}
@@ -157,8 +158,15 @@ class PhenographAnalysis(AnalysisBase):
 class PhenographReclusterAnalysis(AnalysisBase):
     """Re-clusters an existing PhenoGraph run at another resolution (the daemon keeps its graph)."""
 
-    def __init__(self, run: dict[str, Any], resolution: float, plugin_id: str = "flow_cytometry"):
+    def __init__(
+        self,
+        run: dict[str, Any],
+        resolution: float,
+        daemon: DaemonCall,
+        plugin_id: str = "flow_cytometry",
+    ):
         super().__init__(plugin_id)
+        self._daemon = daemon
         self.run_dict = run
         self.resolution = resolution
 
@@ -174,6 +182,7 @@ class PhenographReclusterAnalysis(AnalysisBase):
                 np.asarray(run["intensities"]),
                 run_params(run, self.resolution),
                 run["run_uid"],
+                self._daemon,
                 self.is_cancelled,
             )
         except Exception as e:

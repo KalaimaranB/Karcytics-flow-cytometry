@@ -340,6 +340,16 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
 - [ ] Move scheduling out of `analysis/` (KS205, 7: the propagator's `Debouncer`, the
       FCS/UMAP/PhenoGraph `PluginDaemon` use, `UmapService`'s `AnalysisWorker`) and replace the
       hand-rolled FCS warm-up thread (KS231).
+  - [x] The worker process: `analysis/daemon_port.py` holds a Qt-free `DaemonCall` protocol
+        (and the array wire format); fcs_io, UMAP and PhenoGraph take one. The real one is
+        `ui/services/flow_daemon.py`, which also starts the worker through `task_scheduler`
+        instead of a hand-rolled thread. fcs_io's `_daemon_lock` went: `PluginDaemon` already
+        takes one call at a time. Tests pass `tests.fixtures.daemon.in_process_daemon`, which
+        runs the worker's handlers in-process, instead of monkeypatching `compute`.
+  - [ ] The schedulers: `GatePropagator` (its `Debouncer`), `UmapService` and
+        `DataLoaderService` to `ui/services/`, the propagator handed to `GateCoordinator` by
+        the composition root; the tutorial download thread (`tutorial_assets.py`, KS231) onto
+        `task_scheduler`.
 - [ ] Hoist the in-function imports that only broke cycles (KS360: 406). Mark deliberate
       startup ones `# karcytics: allow KS360 - <reason>`.
 - [ ] Initialise in `__init__` the attributes behind the 142 `getattr`/`hasattr(self, …)` reads

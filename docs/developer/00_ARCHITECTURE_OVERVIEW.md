@@ -69,7 +69,7 @@ sequenceDiagram
     participant WB as WorkspaceBuilder
 
     Hub->>Panel: __init__()
-    Panel->>Panel: _setup_services() (ServiceFactory.build_all())
+    Panel->>Panel: _setup_services() (build_services())
     Panel->>WB: build_skeleton(self)  [Phase 1, synchronous, <50ms]
     Note over WB: tab bar, ribbon stack, sidebar,<br/>empty _center_stack placeholder
     Panel-->>Hub: constructor returns
@@ -344,7 +344,7 @@ that changes geometry.
   full end-to-end workflow traces (draw a gate, load an FCS file, run
   Academy).
 - **[Services & Dependency Injection (`04_SERVICES_AND_DEPENDENCY_INJECTION.md`)](04_SERVICES_AND_DEPENDENCY_INJECTION.md)** —
-  `ServiceFactory`/`composition_root.py` and the full service inventory.
+  `build_services()`/`composition_root.py` and the full service inventory.
 - **[Gating & Compensation Deep Dive (`05_GATING_AND_COMPENSATION_DEEP_DIVE.md`)](05_GATING_AND_COMPENSATION_DEEP_DIVE.md)**,
   **[Transforms & Scaling (`06_TRANSFORMS_AND_SCALING.md`)](06_TRANSFORMS_AND_SCALING.md)**,
   **[Rendering & Visualization (`07_RENDERING_AND_VISUALIZATION.md`)](07_RENDERING_AND_VISUALIZATION.md)** —

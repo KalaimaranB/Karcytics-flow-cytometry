@@ -104,11 +104,11 @@ def get_panel_class() -> type:
     # Pre-warm the FCS daemon worker process so the first file import of the
     # session doesn't pay for subprocess startup + heavy imports on top of
     # actual file parsing.
-    logger.debug("[phase1] get_panel_class: importing fcs_io")
-    from .analysis.fcs_io import warmup_daemon
+    logger.debug("[phase1] get_panel_class: importing flow_daemon")
+    from .ui.services.flow_daemon import warm_up_flow_daemon
 
-    logger.debug("[phase1] get_panel_class: calling warmup_daemon()")
-    warmup_daemon()
+    logger.debug("[phase1] get_panel_class: calling warm_up_flow_daemon()")
+    warm_up_flow_daemon()
 
     # Fix bokeh's own frozen-app template detection before anything can ever
     # trigger it (bokeh assumes that if the process is frozen, bokeh itself

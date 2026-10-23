@@ -253,7 +253,7 @@ Called from `main_panel.py._on_samples_loaded`: if `state.data.compensation is N
 
 ## 5. `GateCoordinator` — `analysis/gate_coordinator.py`
 
-The facade every UI surface (ribbons, canvas, hierarchy tree) calls into for gating operations. Constructed once by `ServiceFactory.build_all()` and exposed on `main_panel.py` as `self._gate_coordinator`.
+The facade every UI surface (ribbons, canvas, hierarchy tree) calls into for gating operations. Constructed once by `build_services()` (`ui/composition_root.py`) and exposed as `panel.services.gate_coordinator`.
 
 ```python
 class GateCoordinator:

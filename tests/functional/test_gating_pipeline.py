@@ -31,6 +31,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating import (
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from tests.fixtures.daemon import in_process_daemon
 
 pytestmark = pytest.mark.functional
 
@@ -84,7 +85,9 @@ UPPER = 262_144
 @pytest.fixture(scope="module")
 def events_by_sample(fcs_test_data_dir) -> dict[str, pd.DataFrame]:
     return {
-        name: load_fcs(str(fcs_test_data_dir / f"Specimen_001_{name}.fcs")).events
+        name: load_fcs(
+            str(fcs_test_data_dir / f"Specimen_001_{name}.fcs"), in_process_daemon
+        ).events
         for name in GOLDEN_COUNTS
     }
 

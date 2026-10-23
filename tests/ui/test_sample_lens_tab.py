@@ -440,11 +440,10 @@ def test_each_plot_switches_view_where_its_gate_allows(lens):
 def _phenograph_lens(qtbot, monkeypatch, resolution=0.1):
     from karcytics_plugins.flow_cytometry.analysis import phenograph_analysis
     from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-    from tests.fixtures.phenograph import in_process_compute
+    from tests.fixtures.daemon import in_process_daemon
 
-    monkeypatch.setattr(phenograph_analysis, "compute", in_process_compute)
     state = build_lens_state()
-    analysis = phenograph_analysis.PhenographAnalysis()
+    analysis = phenograph_analysis.PhenographAnalysis(in_process_daemon)
     analysis.target_sample_id = "s0"
     analysis.n_events = 10**6
     analysis.resolution = resolution

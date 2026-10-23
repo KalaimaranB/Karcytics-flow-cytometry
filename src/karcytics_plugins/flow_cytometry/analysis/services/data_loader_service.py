@@ -5,10 +5,12 @@ high-level services like WorkflowService from depending directly
 on concrete io functions.
 """
 
+from __future__ import annotations
+
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import PluginState, get_logger
 
@@ -16,6 +18,9 @@ from ..compensation import CompensationMatrix, apply_compensation
 from ..experiment import Sample
 from ..fcs_io import FCSData, load_fcs, load_fcs_batch
 from ..fcs_loader_analysis import FCSLoaderAnalysis
+
+if TYPE_CHECKING:
+    from ..daemon_port import DaemonCall
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -60,8 +65,11 @@ def _log_dataframe_backend_once() -> None:
 class DataLoaderService:
     """Service responsible for loading Flow Cytometry Standard data."""
 
-    def __init__(self, scheduler: object | None = None, plugin_id: str = "flow_cytometry"):
+    def __init__(
+        self, scheduler: object | None, daemon: DaemonCall, plugin_id: str = "flow_cytometry"
+    ):
         self._scheduler: Any = scheduler
+        self._daemon = daemon
         self._current_worker = None
         self._current_task_id = None
         self._plugin_id = plugin_id
@@ -84,7 +92,7 @@ class DataLoaderService:
             return False
 
         try:
-            fcs_data = load_fcs(path)
+            fcs_data = load_fcs(path, self._daemon)
 
             # Re-apply compensation if it was active when saved
             if (
@@ -116,8 +124,8 @@ class DataLoaderService:
 
         Prefer this over calling ``reload_sample()`` for each sample from a
         pool of worker threads: every ``reload_sample()`` -> ``load_fcs()``
-        call serializes through fcs_io's single process-wide daemon IPC lock
-        (``_daemon_lock``), so "parallel" reloads collapse into one file at a
+        call serializes through the worker process (PluginDaemon takes one call at a
+        time), so "parallel" reloads collapse into one file at a
         time — and one slow or stuck file blocks every other sample's load
         behind it for up to its full IPC timeout. Batching sends a single
         request and lets the daemon parse files concurrently inside its own
@@ -134,7 +142,7 @@ class DataLoaderService:
         paths = [path for _, path in samples_with_paths]
         logger.info(f"reload_samples_batch: calling load_fcs_batch for {len(paths)} files...")
         t0 = time.monotonic()
-        results = load_fcs_batch(paths)
+        results = load_fcs_batch(paths, self._daemon)
         logger.info(
             f"reload_samples_batch: load_fcs_batch returned after {time.monotonic() - t0:.2f}s"
         )
@@ -186,7 +194,7 @@ class DataLoaderService:
             on_error_cb("No TaskScheduler available.")
             return
 
-        analyzer = FCSLoaderAnalysis()
+        analyzer = FCSLoaderAnalysis(self._daemon)
         analyzer.file_paths = paths
         analyzer.project_manager = project_manager
         analyzer.copy_all = copy_all

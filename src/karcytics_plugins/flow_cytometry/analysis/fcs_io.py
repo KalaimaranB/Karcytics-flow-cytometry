@@ -24,7 +24,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import get_logger
 
@@ -45,12 +45,12 @@ import pandas as pd  # noqa: E402
 
 logger.debug("[phase1] fcs_io: numpy/pandas imported")
 
-from .constants import (  # noqa: E402
-    DERIVED_PREFIX,
-    FCS_LOCK_WARN_SECONDS,
-    FCS_STRIP_RATIO_WARN,
-)
+from .constants import DERIVED_PREFIX, FCS_STRIP_RATIO_WARN  # noqa: E402
+from .daemon_port import decode_array  # noqa: E402
 from .derived.state import DerivedColumnsState  # noqa: E402
+
+if TYPE_CHECKING:
+    from .daemon_port import DaemonCall
 
 
 def _log_import_diagnostics() -> None:
@@ -213,20 +213,10 @@ class FCSData:
         return len(self.channels)
 
 
-def _decode_array(b64_str: str) -> np.ndarray:
-    """Decode base64 string back into numpy array."""
-    import base64
-    import io
-
-    raw = base64.b64decode(b64_str.encode("ascii"))
-    buf = io.BytesIO(raw)
-    return np.load(buf, allow_pickle=False)
-
-
-def load_fcs(path: str | Path) -> FCSData:
+def load_fcs(path: str | Path, daemon: DaemonCall) -> FCSData:
     """Load an FCS file and return an :class:`FCSData` container.
 
-    Uses the long-lived PluginDaemon worker process.
+    The worker process (`daemon`) parses it; the local fcsparser reader is the fallback.
     """
     path = Path(path)
     from karcytics_sdk.plugin import validate_file_exists
@@ -236,7 +226,7 @@ def load_fcs(path: str | Path) -> FCSData:
         raise FileNotFoundError(msg)
 
     try:
-        return _load_with_flowkit(path)
+        return _load_with_flowkit(path, daemon)
     except Exception as exc:
         logger.warning(
             "FlowKit/Daemon loader failed for %s: %s — trying local fcsparser fallback.",
@@ -246,48 +236,12 @@ def load_fcs(path: str | Path) -> FCSData:
         return _load_with_fcsparser(path)
 
 
-import threading  # noqa: E402
-
-_daemon_lock = threading.Lock()
-
-_warmup_done = False
-_warmup_lock = threading.Lock()
-
-
-def warmup_daemon() -> None:
-    """Start the PluginDaemon worker process in the background.
-
-    Call once at plugin load time. Spawning the subprocess and importing
-    FlowKit/fcsparser/numpy inside it costs several seconds — paying that
-    cost here means the first real ``load_fcs`` call in a session lands on
-    an already-warm daemon instead of stalling behind a cold start.
-    """
-    global _warmup_done
-    with _warmup_lock:
-        if _warmup_done:
-            return
-        _warmup_done = True
-
-    t = threading.Thread(target=_do_daemon_warmup, name="fcs-daemon-warmup", daemon=True)
-    t.start()
-
-
-def _do_daemon_warmup() -> None:
-    try:
-        from karcytics_sdk.plugin import PluginDaemon
-
-        with _daemon_lock:
-            PluginDaemon.start_instance("flow_cytometry")
-    except Exception as exc:
-        logger.warning("FCS daemon warm-up failed (will retry lazily on first load): %s", exc)
-
-
 def _build_fcs_data_from_daemon_response(path: Path, res: dict[str, Any]) -> FCSData:
     """Decode a daemon ``load_fcs``-style response dict into an FCSData object."""
     channels = res["channels"]
     markers = res["markers"]
     metadata = res["metadata"]
-    events_arr = _decode_array(res["events_b64"])
+    events_arr = decode_array(res["events_b64"])
     events_df = pd.DataFrame(events_arr, columns=channels)
 
     # Copy only when there's actually an embedded spillover matrix to
@@ -308,13 +262,9 @@ def _build_fcs_data_from_daemon_response(path: Path, res: dict[str, Any]) -> FCS
     )
 
 
-def _load_with_flowkit(path: Path) -> FCSData:
-    """Load using the long-lived PluginDaemon worker process."""
-    from karcytics_sdk.plugin import PluginDaemon
-
-    with _daemon_lock:
-        daemon = PluginDaemon.get_instance("flow_cytometry")
-        res = daemon.call("load_fcs", {"path": str(path)})
+def _load_with_flowkit(path: Path, daemon: DaemonCall) -> FCSData:
+    """Load using the long-lived worker process."""
+    res = daemon("load_fcs", {"path": str(path)})
 
     if "error" in res:
         raise ImportError(f"Daemon failed to load FCS file '{path.name}': {res['error']}")
@@ -344,44 +294,36 @@ def _split_existing_paths(
 
 
 def _call_daemon_batch(
-    valid_paths: list[Path], cancel_poll: Callable[[], bool] | None
+    valid_paths: list[Path], daemon: DaemonCall, cancel_poll: Callable[[], bool] | None
 ) -> dict[str, dict[str, Any]]:
     """Send one batched ``load_fcs_batch`` request and return its per-path results.
 
     Returns an empty dict (triggering a full local fallback for every path)
     if the daemon call itself failed outright, e.g. it couldn't start.
     """
-    from karcytics_sdk.plugin import PluginDaemon
-
-    t_lock_wait = time.monotonic()
-    with _daemon_lock:
-        lock_wait = time.monotonic() - t_lock_wait
-        if lock_wait > FCS_LOCK_WARN_SECONDS:
-            logger.info(f"_call_daemon_batch: waited {lock_wait:.2f}s to acquire _daemon_lock")
-        daemon = PluginDaemon.get_instance("flow_cytometry")
-        t_call = time.monotonic()
-        res = daemon.call(
-            "load_fcs_batch",
-            {"paths": [str(p) for p in valid_paths]},
-            cancel_poll=cancel_poll,
-            # Deliberately tighter than it looks like it should be: the
-            # daemon itself now bounds handle_load_fcs_batch to well under a
-            # minute (see _batch_deadline_seconds), so under normal
-            # conditions this returns in well under a second. A generous
-            # client-side timeout here doesn't add safety margin — it adds
-            # risk, because PluginDaemon.call() retries up to 3x on timeout,
-            # killing and respawning the daemon each time, all on a plain
-            # (non-daemon) thread. A 300s timeout could mean up to 15
-            # minutes before daemon.call() ever returns control — and since
-            # that thread is still alive, the whole app won't exit cleanly
-            # even after the UI has long since moved on (this is what was
-            # causing Karcytics to hang on quit rather than close promptly).
-            timeout=min(90.0, max(45.0, 10.0 * len(valid_paths))),
-        )
-        logger.info(
-            f"_call_daemon_batch: daemon.call('load_fcs_batch', {len(valid_paths)} files) "
-            f"took {time.monotonic() - t_call:.2f}s"
-        )
+    t_call = time.monotonic()
+    res = daemon(
+        "load_fcs_batch",
+        {"paths": [str(p) for p in valid_paths]},
+        cancel_poll=cancel_poll,
+        # Deliberately tighter than it looks like it should be: the
+        # daemon itself now bounds handle_load_fcs_batch to well under a
+        # minute (see _batch_deadline_seconds), so under normal
+        # conditions this returns in well under a second. A generous
+        # client-side timeout here doesn't add safety margin — it adds
+        # risk, because PluginDaemon.call() retries up to 3x on timeout,
+        # killing and respawning the daemon each time, all on a plain
+        # (non-daemon) thread. A 300s timeout could mean up to 15
+        # minutes before daemon.call() ever returns control — and since
+        # that thread is still alive, the whole app won't exit cleanly
+        # even after the UI has long since moved on (this is what was
+        # causing Karcytics to hang on quit rather than close promptly).
+        timeout=min(90.0, max(45.0, 10.0 * len(valid_paths))),
+    )
+    logger.info(
+        f"_call_daemon_batch: daemon.call('load_fcs_batch', {len(valid_paths)} files) "
+        f"took {time.monotonic() - t_call:.2f}s"
+    )
 
     if "error" in res:
         logger.warning(
@@ -413,14 +355,14 @@ def _run_local_fallback(fallback_paths: list[Path]) -> dict[Path, FCSData | Exce
 
 
 def load_fcs_batch(
-    paths: list[Path], cancel_poll: Callable[[], bool] | None = None
+    paths: list[Path], daemon: DaemonCall, cancel_poll: Callable[[], bool] | None = None
 ) -> dict[Path, FCSData | Exception]:
     """Load multiple FCS files via a single batched daemon round-trip.
 
     The daemon parses all files concurrently inside its own process (see
     ``handle_load_fcs_batch`` in ``daemon_worker.py``), so this gets real
     wall-clock parallelism instead of the single-file ``load_fcs`` path's
-    one-request-per-file serialization through the daemon lock.
+    one-request-per-file serialization.
 
     Each path resolves independently to either an ``FCSData`` or an
     ``Exception`` — one bad file never fails the whole batch. Any file the
@@ -430,7 +372,7 @@ def load_fcs_batch(
     fallback_paths: list[Path] = []
 
     if valid_paths:
-        batch_results = _call_daemon_batch(valid_paths, cancel_poll)
+        batch_results = _call_daemon_batch(valid_paths, daemon, cancel_poll)
         for path in valid_paths:
             entry = batch_results.get(str(path))
             if entry is None or "error" in entry:

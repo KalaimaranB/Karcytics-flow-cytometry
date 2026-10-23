@@ -24,6 +24,7 @@ from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
     get_fluorescence_channels,
     load_fcs,
 )
+from tests.fixtures.daemon import in_process_daemon
 
 
 def _write_minimal_fcs(
@@ -137,7 +138,7 @@ def test_fcs_data_dataclass():
 
 def test_load_fcs_file_not_found():
     with pytest.raises(FileNotFoundError):
-        load_fcs("non_existent_file.fcs")
+        load_fcs("non_existent_file.fcs", in_process_daemon)
 
 
 # ── _auto_apply_spill ─────────────────────────────────────────────────────────

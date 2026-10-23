@@ -13,6 +13,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
 )
+from tests.fixtures.daemon import in_process_daemon
 
 
 @pytest.fixture
@@ -20,7 +21,7 @@ def viewer(qtbot):
     state = FlowState()
     for sid in ("s1", "s2"):
         state.data.experiment.samples[sid] = Sample(sample_id=sid, display_name=f"Sample {sid}")
-    umap_service = UmapService(state, MagicMock())
+    umap_service = UmapService(state, MagicMock(), in_process_daemon)
     widget = PopulationAnalysisViewer(state, umap_service)
     qtbot.addWidget(widget)
     return widget

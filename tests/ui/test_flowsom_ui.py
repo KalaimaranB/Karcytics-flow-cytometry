@@ -12,6 +12,7 @@ from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import Cl
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
 )
+from tests.fixtures.daemon import in_process_daemon
 from tests.fixtures.lens import make_sample
 
 MARKERS = ["CD3", "CD4", "CD8", "CD56"]
@@ -35,7 +36,9 @@ def viewer(qtbot, monkeypatch):
     state = FlowState()
     sample, _events, _truth = make_sample("s1", n=3000)
     state.data.experiment.add_sample(sample)
-    widget = PopulationAnalysisViewer(state, SyncFlowsomService(state, MagicMock()))
+    widget = PopulationAnalysisViewer(
+        state, SyncFlowsomService(state, MagicMock(), in_process_daemon)
+    )
     qtbot.addWidget(widget)
     return widget
 

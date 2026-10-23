@@ -435,6 +435,12 @@ _HANDLERS: dict[str, Any] = {
 }
 
 
+def dispatch(method: str, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Runs one request's handler (the loop below; tests call it in-process)."""
+    handler = _HANDLERS.get(method)
+    return handler(kwargs) if handler else {"error": f"Unknown method '{method}'"}
+
+
 def main() -> None:
     """Worker daemon main loop."""
     sys.stderr.write("KARCYTICS_WORKER_READY\n")
@@ -454,8 +460,7 @@ def main() -> None:
 
             if method == "exit":
                 break
-            handler = _HANDLERS.get(method)
-            res = handler(kwargs) if handler else {"error": f"Unknown method '{method}'"}
+            res = dispatch(method, kwargs)
             if method == "load_fcs_batch":
                 _dlog(
                     f"main: writing load_fcs_batch response, {len(res.get('results', {}))} results"

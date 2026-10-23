@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 from sklearn.metrics import adjusted_rand_score
 
-from karcytics_plugins.flow_cytometry.analysis import phenograph_analysis
 from karcytics_plugins.flow_cytometry.analysis.attachment_manager import AttachmentManager
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.clustering import PHENOGRAPH, method_of
@@ -17,29 +16,22 @@ from karcytics_plugins.flow_cytometry.analysis.phenograph_analysis import (
     apply_clusters,
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from tests.fixtures.daemon import in_process_daemon
 from tests.fixtures.lens import make_sample
-from tests.fixtures.phenograph import in_process_compute
 from tests.unit.analysis.test_flowsom_analysis import FakeContext
 
 
 @pytest.fixture(scope="module")
 def planted():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(phenograph_analysis, "compute", in_process_compute)
-        state = FlowState()
-        sample, events, truth = make_sample("s1")
-        state.data.experiment.add_sample(sample)
-        analysis = PhenographAnalysis()
-        analysis.target_sample_id = "s1"
-        analysis.n_events = len(events)
-        analysis.resolution = 0.1
-        analysis.channels = ["CD3", "CD4", "CD8", "CD56"]
-        yield state, events, truth, analysis.run(state)
-
-
-@pytest.fixture
-def in_process(monkeypatch):
-    monkeypatch.setattr(phenograph_analysis, "compute", in_process_compute)
+    state = FlowState()
+    sample, events, truth = make_sample("s1")
+    state.data.experiment.add_sample(sample)
+    analysis = PhenographAnalysis(in_process_daemon)
+    analysis.target_sample_id = "s1"
+    analysis.n_events = len(events)
+    analysis.resolution = 0.1
+    analysis.channels = ["CD3", "CD4", "CD8", "CD56"]
+    return state, events, truth, analysis.run(state)
 
 
 def _expected(events, truth, run):
@@ -67,11 +59,11 @@ def test_the_run_has_a_cluster_graph_a_map_and_the_usual_tables(planted):
     assert run["run_uid"]
 
 
-def test_reclustering_at_a_higher_resolution_gives_more_clusters(planted, in_process):  # noqa: ARG001
+def test_reclustering_at_a_higher_resolution_gives_more_clusters(planted):  # noqa: ARG001
     *_, run = planted
     run = dict(run, custom_clusters=[{"name": "Mine", "mask": [0, 1, 2]}], cluster_names={"0": "x"})
     before = int(run["clusters"].max()) + 1
-    arrays = PhenographReclusterAnalysis(run, 2.0).run()
+    arrays = PhenographReclusterAnalysis(run, 2.0, in_process_daemon).run()
     assert "error" not in arrays
     apply_clusters(run, arrays)
     assert run["resolution"] == 2.0  # noqa: PLR2004
@@ -81,7 +73,7 @@ def test_reclustering_at_a_higher_resolution_gives_more_clusters(planted, in_pro
     assert len(run["layout"]) == int(run["clusters"].max()) + 1
 
 
-def test_a_saved_run_loads_back_and_reclusters_without_its_graph(planted, tmp_path, in_process):  # noqa: ARG001
+def test_a_saved_run_loads_back_and_reclusters_without_its_graph(planted, tmp_path):  # noqa: ARG001
     state, events, truth, run = planted
     manager = AttachmentManager(AxisManager(state))
     manager.temp_dir = tmp_path
@@ -102,14 +94,14 @@ def test_a_saved_run_loads_back_and_reclusters_without_its_graph(planted, tmp_pa
     ]
 
     again["run_uid"] = "not-in-the-cache"  # as after a restart: the graph is rebuilt
-    arrays = PhenographReclusterAnalysis(again, again["resolution"]).run()
+    arrays = PhenographReclusterAnalysis(again, again["resolution"], in_process_daemon).run()
     # A rebuilt graph can differ by a neighbour or two: the same clusters, near enough.
     assert adjusted_rand_score(arrays["clusters"], run["clusters"]) > 0.95  # noqa: PLR2004
 
 
 def test_too_few_events_for_the_neighbours_is_refused(planted):
     state, *_ = planted
-    analysis = PhenographAnalysis()
+    analysis = PhenographAnalysis(in_process_daemon)
     analysis.target_sample_id = "s1"
     analysis.n_events = 20
     assert "more than 30 events" in analysis.run(state)["error"]
