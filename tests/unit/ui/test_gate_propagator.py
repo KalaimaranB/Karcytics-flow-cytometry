@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
-from karcytics_plugins.flow_cytometry.analysis.gate_propagator import GatePropagator
+from karcytics_plugins.flow_cytometry.ui.services.gate_propagator import GatePropagator
 
 
 def test_gate_propagator_debounce(flow_state, qtbot):
@@ -66,7 +66,9 @@ def test_propagation_complete_reports_partial_failures(flow_state, qtbot):
 
     propagator = GatePropagator(flow_state, MagicMock())
 
-    with patch("karcytics_plugins.flow_cytometry.analysis.gate_propagator.CentralEventBus") as bus:
+    with patch(
+        "karcytics_plugins.flow_cytometry.ui.services.gate_propagator.CentralEventBus"
+    ) as bus:
         propagator._on_propagation_finished(
             "task_1",
             {"propagation_results": {"s2": {"error": "missing channel FSC-A"}}},
@@ -90,7 +92,9 @@ def test_propagation_complete_all_succeeded_has_no_errors(flow_state, qtbot):
 
     propagator = GatePropagator(flow_state, MagicMock())
 
-    with patch("karcytics_plugins.flow_cytometry.analysis.gate_propagator.CentralEventBus") as bus:
+    with patch(
+        "karcytics_plugins.flow_cytometry.ui.services.gate_propagator.CentralEventBus"
+    ) as bus:
         propagator._on_propagation_finished(
             "task_1",
             {"propagation_results": {"s2": {"stats": {}, "tree": s2.gate_tree}}},
@@ -110,8 +114,8 @@ def test_cancel_pending_drops_queued_and_running_propagation():
     """
     from unittest.mock import MagicMock
 
-    from karcytics_plugins.flow_cytometry.analysis.gate_propagator import GatePropagator
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+    from karcytics_plugins.flow_cytometry.ui.services.gate_propagator import GatePropagator
 
     propagator = GatePropagator(FlowState(), task_scheduler=None)
     propagator.request_propagation("gate", "s0")

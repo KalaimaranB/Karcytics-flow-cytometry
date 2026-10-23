@@ -18,6 +18,7 @@ from enum import Enum
 
 from karcytics_sdk.plugin import get_logger
 
+from .compensation import CompensationMatrix, apply_compensation
 from .derived.models import DerivedParameter
 from .derived.sync import sync_sample
 from .fcs_io import FCSData
@@ -122,6 +123,16 @@ class Sample:
     def event_count(self) -> int:
         """Total number of events (0 if no data loaded)."""
         return self.fcs_data.num_events if self.fcs_data else 0
+
+    def adopt_reloaded_data(
+        self, data: FCSData, compensation_matrix: CompensationMatrix | None
+    ) -> None:
+        """Takes freshly re-read `data`, compensated again if this sample was."""
+        if self.is_compensated and compensation_matrix is not None and not data.is_compensated:
+            data.events = apply_compensation(data, compensation_matrix)
+            data.is_compensated = True
+            logger.info(f"Re-applied the compensation matrix to reloaded '{self.display_name}'")
+        self.fcs_data = data
 
 
 @dataclass

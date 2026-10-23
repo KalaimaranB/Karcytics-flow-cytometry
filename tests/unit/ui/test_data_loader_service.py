@@ -17,7 +17,7 @@ import pytest
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
-from karcytics_plugins.flow_cytometry.analysis.services.data_loader_service import (
+from karcytics_plugins.flow_cytometry.ui.services.data_loader_service import (
     DataLoaderService,
 )
 from tests.fixtures.daemon import in_process_daemon
@@ -40,7 +40,7 @@ def test_reload_samples_batch_makes_a_single_batched_call(service: DataLoaderSer
     path_a, path_b = Path("/data/a.fcs"), Path("/data/b.fcs")
 
     with patch(
-        "karcytics_plugins.flow_cytometry.analysis.services.data_loader_service.load_fcs_batch"
+        "karcytics_plugins.flow_cytometry.ui.services.data_loader_service.load_fcs_batch"
     ) as mock_batch:
         mock_batch.return_value = {
             path_a: _make_fcs_data(path_a),
@@ -65,7 +65,7 @@ def test_reload_samples_batch_isolates_one_bad_file(service: DataLoaderService):
     good_path, bad_path = Path("/data/good.fcs"), Path("/data/bad.fcs")
 
     with patch(
-        "karcytics_plugins.flow_cytometry.analysis.services.data_loader_service.load_fcs_batch"
+        "karcytics_plugins.flow_cytometry.ui.services.data_loader_service.load_fcs_batch"
     ) as mock_batch:
         mock_batch.return_value = {
             good_path: _make_fcs_data(good_path),
@@ -86,7 +86,7 @@ def test_reload_samples_batch_handles_missing_result(service: DataLoaderService)
     path = Path("/data/missing.fcs")
 
     with patch(
-        "karcytics_plugins.flow_cytometry.analysis.services.data_loader_service.load_fcs_batch"
+        "karcytics_plugins.flow_cytometry.ui.services.data_loader_service.load_fcs_batch"
     ) as mock_batch:
         mock_batch.return_value = {}
         result = service.reload_samples_batch([(sample, path)], compensation_matrix=None)
@@ -97,7 +97,7 @@ def test_reload_samples_batch_handles_missing_result(service: DataLoaderService)
 
 def test_reload_samples_batch_empty_input_short_circuits(service: DataLoaderService):
     with patch(
-        "karcytics_plugins.flow_cytometry.analysis.services.data_loader_service.load_fcs_batch"
+        "karcytics_plugins.flow_cytometry.ui.services.data_loader_service.load_fcs_batch"
     ) as mock_batch:
         result = service.reload_samples_batch([], compensation_matrix=None)
 
@@ -114,7 +114,7 @@ def test_reload_samples_batch_reapplies_compensation(service: DataLoaderService)
     comp = CompensationMatrix(matrix=np.eye(2), channel_names=["FSC-A", "SSC-A"])
 
     with patch(
-        "karcytics_plugins.flow_cytometry.analysis.services.data_loader_service.load_fcs_batch"
+        "karcytics_plugins.flow_cytometry.ui.services.data_loader_service.load_fcs_batch"
     ) as mock_batch:
         mock_batch.return_value = {path: fcs_data}
         service.reload_samples_batch([(sample, path)], compensation_matrix=comp)

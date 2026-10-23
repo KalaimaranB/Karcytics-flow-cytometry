@@ -47,13 +47,13 @@ from karcytics_plugins.flow_cytometry.analysis.clustering import (
     method_of,
 )
 from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
-from karcytics_plugins.flow_cytometry.analysis.services.umap_service import (
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.services.umap_service import (
     FlowsomParams,
     PhenographParams,
     UmapParams,
     UmapService,
 )
-from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 from ..academy_context import PopulationAnalysisSnapshot
 from .checkbox_style import checkbox_qss

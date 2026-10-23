@@ -15,14 +15,15 @@ from karcytics_sdk.plugin.runtime_services import task_scheduler
 
 from . import events
 from .derived.sync import sync_sample
-from .gate_propagator import GatePropagator
 from .gating import Gate, GateNode, tree_edits
+from .propagation import propagation_targets
 from .statistics_analysis import StatisticsAnalysis
 
 if TYPE_CHECKING:
     from .axis_manager import AxisManager
     from .experiment import Sample
     from .population_service import PopulationService
+    from .propagation import Propagation
     from .state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -40,19 +41,15 @@ class GateCoordinator:
         state: FlowState,
         axis_manager: AxisManager,
         population_service: PopulationService,
-        task_scheduler: Any | None = None,
+        propagator: Propagation | None = None,
     ):
         self._state = state
         self._axis_manager = axis_manager
         self._population_service = population_service
-        self._propagator = GatePropagator(state, task_scheduler)
+        self._propagator = propagator  # None: changes stay on their own sample (tests)
         self._propagation_enabled = True
         # Compute statistics inline instead of on the task scheduler (tests).
         self.sync_stats = False
-
-    @property
-    def propagator(self) -> GatePropagator:
-        return self._propagator
 
     def _sample(self, sample_id: str) -> Sample | None:
         return self._state.data.experiment.samples.get(sample_id)
@@ -65,11 +62,12 @@ class GateCoordinator:
         logger.info("Propagation %s", "enabled" if enabled else "disabled")
 
     def request_propagation(self, gate_id: str, source_sample_id: str) -> None:
-        if self._propagation_enabled:
+        if self._propagation_enabled and self._propagator is not None:
             self._propagator.request_propagation(gate_id, source_sample_id)
 
     def propagate_to_all_groups(self, sample_id: str, node_id: str) -> None:
-        self._propagator.request_cross_group_propagation(node_id, sample_id)
+        if self._propagator is not None:
+            self._propagator.request_cross_group_propagation(node_id, sample_id)
 
     # ── Queries ─────────────────────────────────────────────────────────
 
@@ -274,7 +272,7 @@ class GateCoordinator:
         if target_sample_ids is not None:
             target_ids = set(target_sample_ids)
         else:
-            target_ids = {t.sample_id for t in self._propagator.find_targets(sample_id)}
+            target_ids = {t.sample_id for t in propagation_targets(self._state, sample_id)}
         target_ids.add(sample_id)
 
         renamed_any = False
@@ -478,5 +476,6 @@ class GateCoordinator:
         logger.info("Applied background stats for sample %s", sample_id)
 
     def cleanup(self) -> None:
-        self._propagator.cleanup()
+        if self._propagator is not None:
+            self._propagator.cleanup()
         logger.info("GateCoordinator cleaned up")

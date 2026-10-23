@@ -12,15 +12,16 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pandas
 from karcytics_sdk.plugin import PluginState, get_logger
 
-from ..compensation import CompensationMatrix, apply_compensation
-from ..experiment import Sample
-from ..fcs_io import FCSData, load_fcs, load_fcs_batch
-from ..fcs_loader_analysis import FCSLoaderAnalysis
+from ...analysis.compensation import CompensationMatrix
+from ...analysis.experiment import Sample
+from ...analysis.fcs_io import FCSData, load_fcs, load_fcs_batch
+from ...analysis.fcs_loader_analysis import FCSLoaderAnalysis
 
 if TYPE_CHECKING:
-    from ..daemon_port import DaemonCall
+    from ...analysis.daemon_port import DaemonCall
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -44,10 +45,9 @@ def _log_dataframe_backend_once() -> None:
         return
     _backend_diag_logged = True
     try:
-        import pandas
-
         logger.info(f"dataframe backend check: pandas {pandas.__version__} from {pandas.__file__}")
         try:
+            # karcytics: allow KS360 - optional, not a declared dependency; the check is whether it imports
             import pyarrow  # type: ignore[import-not-found]  # optional — not a declared dependency
 
             logger.info(
@@ -93,20 +93,7 @@ class DataLoaderService:
 
         try:
             fcs_data = load_fcs(path, self._daemon)
-
-            # Re-apply compensation if it was active when saved
-            if (
-                sample.is_compensated
-                and compensation_matrix is not None
-                and not fcs_data.is_compensated
-            ):
-                fcs_data.events = apply_compensation(fcs_data, compensation_matrix)
-                fcs_data.is_compensated = True
-                logger.info(
-                    f"Re-applied Karcytics compensation matrix to reloaded sample '{sample.display_name}'"
-                )
-
-            sample.fcs_data = fcs_data
+            sample.adopt_reloaded_data(fcs_data, compensation_matrix)
             logger.info(
                 f"Reloaded FCS data for '{sample.display_name}': {fcs_data.num_events} events"
             )
@@ -159,19 +146,7 @@ class DataLoaderService:
                 continue
 
             fcs_data = result
-            if (
-                sample.is_compensated
-                and compensation_matrix is not None
-                and not fcs_data.is_compensated
-            ):
-                fcs_data.events = apply_compensation(fcs_data, compensation_matrix)
-                fcs_data.is_compensated = True
-                logger.info(
-                    f"Re-applied Karcytics compensation matrix to reloaded sample "
-                    f"'{sample.display_name}'"
-                )
-
-            sample.fcs_data = fcs_data
+            sample.adopt_reloaded_data(fcs_data, compensation_matrix)
             logger.info(
                 f"Reloaded FCS data for '{sample.display_name}': {fcs_data.num_events} events"
             )
@@ -179,7 +154,7 @@ class DataLoaderService:
 
         return {"loaded": loaded, "failed": failed}
 
-    def load_samples_async(  # noqa: PLR0913
+    def load_samples_async(  # noqa: PLR0913 - one keyword per load option callers pass
         self,
         paths: list[str | Path],
         state: PluginState | None,

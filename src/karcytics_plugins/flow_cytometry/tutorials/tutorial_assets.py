@@ -285,6 +285,8 @@ def ensure_tutorial_files(project_assets_dir: Path | None) -> None:
         with _status.lock:
             _status.done = True
 
+    # karcytics: allow KS231 - minutes of downloads with retry sleeps: on the task pool it would
+    # hold a pool thread and Qt waits for the pool at quit; a daemon thread never blocks quitting
     threading.Thread(target=_run, daemon=True, name="tutorial-fcs-provision").start()
 
 

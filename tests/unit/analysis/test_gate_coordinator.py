@@ -7,8 +7,8 @@ from PySide6.QtWidgets import QApplication
 # Ensure QApplication exists for signal processing
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
-from karcytics_plugins.flow_cytometry.analysis.gate_propagator import GatePropagator
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
+from karcytics_plugins.flow_cytometry.ui.services.gate_propagator import GatePropagator
 
 app = QApplication.instance() or QApplication(sys.argv)
 
@@ -38,15 +38,14 @@ def gate_coordinator(flow_state):
                 mock_scheduler.task_finished.emit("test_task_1", res)
         else:
             # Call the finished signal manually since we aren't using the real scheduler
-            controller.propagator._on_propagation_finished("test_task_1", res)
+            propagator._on_propagation_finished("test_task_1", res)
         return MagicMock(task_id="test_task_1")
 
     mock_scheduler.submit.side_effect = sync_submit
     mock_scheduler.task_finished = MagicMock()
 
-    controller = GateCoordinator(
-        flow_state, axis_manager, pop_service, task_scheduler=mock_scheduler
-    )
+    propagator = GatePropagator(flow_state, mock_scheduler)
+    controller = GateCoordinator(flow_state, axis_manager, pop_service, propagator)
     controller.sync_stats = True
     return controller
 
@@ -56,7 +55,7 @@ def wait_for_propagation(gate_coordinator):
     deadline = time.monotonic() + 0.05
     while time.monotonic() < deadline:
         app.processEvents()
-    gate_coordinator.propagator.cleanup()
+    gate_coordinator.cleanup()
 
 
 def test_add_rectangle_gate(gate_coordinator, flow_state, gate_rectangle_singlet):

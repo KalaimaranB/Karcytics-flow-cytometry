@@ -262,11 +262,11 @@ class GateCoordinator:
         state: FlowState,
         axis_manager: AxisManager,
         population_service: PopulationService,
-        task_scheduler: Any | None = None,
+        propagator: Propagation | None = None,
     ): ...
 ```
 
-Owns a `GatePropagator` (the `propagator` property). Each edit goes through `gating.tree_edits`, then the coordinator recomputes the affected statistics, publishes the change, and requests propagation where geometry changed.
+Spreads changes through the `Propagation` it is given (`ui/services/gate_propagator.GatePropagator` in the app; None in unit tests, so changes stay on their sample). Each edit goes through `gating.tree_edits`, then the coordinator recomputes the affected statistics, publishes the change, and requests propagation where geometry changed.
 
 | Method | Signature | Notes |
 |---|---|---|
@@ -280,7 +280,7 @@ Owns a `GatePropagator` (the `propagator` property). Each edit goes through `gat
 | `add_connection` | `(sample_id: str, source_node_id: str, target_node_id: str) -> bool` | Rejects cycles and wiring into root. |
 | `remove_connection` | `(sample_id: str, source_node_id: str, target_node_id: str) -> bool` | |
 | `remove_connection_for_samples` | `(source_node_id: str, target_node_id: str, sample_ids: list[str]) -> int` | Count removed. |
-| `rename_population` | `(sample_id: str, node_id: str, new_name: str, target_sample_ids: list[str] \| None = None) -> bool` | Renames here and in `target_sample_ids` (default: `propagator.find_targets`). No stats recompute or propagation. |
+| `rename_population` | `(sample_id: str, node_id: str, new_name: str, target_sample_ids: list[str] \| None = None) -> bool` | Renames here and in `target_sample_ids` (default: `analysis.propagation.propagation_targets`). No stats recompute or propagation. |
 | `modify_gate` | `(gate_id: str, sample_id: str, **kwargs) -> bool` | `tree_edits.modify_gate` (validated; see below). |
 | `split_population` | `(sample_id: str, node_id: str) -> str \| None` | Adds the inverse sibling (`tree_edits.split_population`). |
 | `copy_gates_to_group` | `(source_sample_id: str) -> int` | Count of samples updated. |
@@ -289,7 +289,7 @@ Owns a `GatePropagator` (the `propagator` property). Each edit goes through `gat
 | `set_propagation_enabled` | `(enabled: bool) -> None` | |
 | `request_propagation` | `(gate_id: str, source_sample_id: str) -> None` | No-ops while propagation is disabled. |
 | `propagate_to_all_groups` | `(sample_id: str, node_id: str) -> None` | Forwards to `propagator.request_cross_group_propagation` — bypasses the active group filter. |
-| `cleanup` | `() -> None` | Cancels the propagator's pending debounce timer. |
+| `cleanup` | `() -> None` | Cleans up the propagator (cancels its pending debounce). |
 
 !!! note "Method-name mismatch to watch for"
     `GateCoordinator.propagate_to_all_groups(sample_id, node_id)` calls `self._propagator.request_cross_group_propagation(node_id, sample_id)` — the **argument order is swapped** between the two method signatures (`node_id` becomes the propagator's `gate_id` positional argument). This is intentional per the propagator's signature (`request_cross_group_propagation(self, gate_id, source_sample_id)`) but easy to get backwards when calling either method directly.
@@ -345,7 +345,7 @@ def copy_gates_to_group(experiment: Experiment, source_sample_id: str) -> list[S
 - `remove_subtree` returns the ids no longer in the tree: a logic node below the removed node survives when it is still reachable through another parent.
 - `clone_gate_tree` deep-clones **every** reachable node (including multi-parent logic nodes) and gives each cloned physical gate a fresh `gate_id`. `copy_gates_to_group` copies to the loaded samples sharing a group with the source (or every other loaded sample if there are none) and returns them.
 
-### `DataLoaderService` — `analysis/services/data_loader_service.py`
+### `DataLoaderService` — `ui/services/data_loader_service.py`
 
 ```python
 class DataLoaderService:
@@ -357,7 +357,7 @@ class DataLoaderService:
 
 `reload_samples_batch` is preferred over N `reload_sample()` calls: `load_fcs()` serializes through a single process-wide daemon IPC lock, so per-sample reloads from a thread pool collapse into sequential loads anyway; batching sends one request to the daemon and lets it parse concurrently.
 
-### `UmapService` / `UmapParams` — `analysis/services/umap_service.py`
+### `UmapService` / `UmapParams` — `ui/services/umap_service.py`
 
 ```python
 @dataclass

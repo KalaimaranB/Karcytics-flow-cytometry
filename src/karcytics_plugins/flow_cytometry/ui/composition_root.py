@@ -19,19 +19,19 @@ from ..analysis.axis_manager import AxisManager
 from ..analysis.biology_services import FluorophoreService
 from ..analysis.gate_coordinator import GateCoordinator
 from ..analysis.population_service import PopulationService
-from ..analysis.services.data_loader_service import DataLoaderService
 from ..analysis.services.derived_parameter_service import DerivedParameterService
-from ..analysis.services.umap_service import UmapService
 from ..analysis.store import FlowStore
 from .controllers.derived_editor_controller import DerivedEditorController
+from .services.data_loader_service import DataLoaderService
 from .services.flow_daemon import call_flow_daemon
+from .services.gate_propagator import GatePropagator
+from .services.umap_service import UmapService
 from .services.workflow_service import WorkflowService
 from .services.workspace_io_handler import WorkspaceIOHandler
 
 if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
-    from ..analysis.gate_propagator import GatePropagator
     from ..analysis.state import FlowState
 
 # The [phase1] breadcrumbs show which construction a stalled daemon never got past.
@@ -47,16 +47,13 @@ class FlowServices:
     derived_parameter_service: DerivedParameterService
     fluor_service: FluorophoreService
     gate_coordinator: GateCoordinator
+    gate_propagator: GatePropagator
     data_loader_service: DataLoaderService
     workflow_service: WorkflowService
     umap_service: UmapService
     workspace_io_handler: WorkspaceIOHandler
     store: FlowStore
     derived_editor: DerivedEditorController
-
-    @property
-    def gate_propagator(self) -> GatePropagator:
-        return self.gate_coordinator.propagator
 
 
 def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices:
@@ -70,7 +67,8 @@ def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices:
     cache_dir = pathlib.Path.home() / ".karcytics" / "cache" / "biology"
     fluor_service = FluorophoreService(CacheManager(cache_dir))
     derived_parameter_service = DerivedParameterService(state)
-    gate_coordinator = GateCoordinator(state, axis_manager, population_service, task_scheduler)
+    gate_propagator = GatePropagator(state, task_scheduler)
+    gate_coordinator = GateCoordinator(state, axis_manager, population_service, gate_propagator)
 
     logger.debug("[phase1] build_services: constructing DataLoaderService")
     data_loader_service = DataLoaderService(task_scheduler, call_flow_daemon)
@@ -97,6 +95,7 @@ def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices:
         derived_parameter_service=derived_parameter_service,
         fluor_service=fluor_service,
         gate_coordinator=gate_coordinator,
+        gate_propagator=gate_propagator,
         data_loader_service=data_loader_service,
         workflow_service=workflow_service,
         umap_service=umap_service,

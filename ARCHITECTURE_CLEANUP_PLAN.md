@@ -337,7 +337,7 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       `AcademyWorkflowController` moved to B7: it reads seven of the panel's private fields
       (workflow filename/metadata, `_close_after_save`, tab bar…), so it needs the narrow
       workflow-document interface that B7's main_panel split creates.
-- [ ] Move scheduling out of `analysis/` (KS205, 7: the propagator's `Debouncer`, the
+- [x] Move scheduling out of `analysis/` (KS205, 7: the propagator's `Debouncer`, the
       FCS/UMAP/PhenoGraph `PluginDaemon` use, `UmapService`'s `AnalysisWorker`) and replace the
       hand-rolled FCS warm-up thread (KS231).
   - [x] The worker process: `analysis/daemon_port.py` holds a Qt-free `DaemonCall` protocol
@@ -346,10 +346,17 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
         instead of a hand-rolled thread. fcs_io's `_daemon_lock` went: `PluginDaemon` already
         takes one call at a time. Tests pass `tests.fixtures.daemon.in_process_daemon`, which
         runs the worker's handlers in-process, instead of monkeypatching `compute`.
-  - [ ] The schedulers: `GatePropagator` (its `Debouncer`), `UmapService` and
-        `DataLoaderService` to `ui/services/`, the propagator handed to `GateCoordinator` by
-        the composition root; the tutorial download thread (`tutorial_assets.py`, KS231) onto
-        `task_scheduler`.
+  - [x] The schedulers: `GatePropagator` (its `Debouncer`), `UmapService` and
+        `DataLoaderService` moved to `ui/services/`. The composition root builds the propagator
+        and hands it to `GateCoordinator`, which knows it only as `analysis.propagation.Propagation`;
+        which samples a change reaches is the pure `propagation_targets()` there. Re-compensating
+        a reloaded sample (written twice in the loader, flagged KS331 once it left `analysis/`)
+        is now `Sample.adopt_reloaded_data()`. KS205 and KS231 are at 0.
+  - Not moved: the tutorial download thread (`tutorial_assets.py`) keeps its daemon thread,
+    with a stated reason. It is minutes of downloads with retry sleeps; on the task pool it
+    would hold a pool thread, and Qt waits for the pool at quit. `GateCoordinator` still
+    submits its statistics jobs to `task_scheduler` itself (the rule does not count that); it
+    goes when B7 splits the coordinator's callers.
 - [ ] Hoist the in-function imports that only broke cycles (KS360: 406). Mark deliberate
       startup ones `# karcytics: allow KS360 - <reason>`.
 - [ ] Initialise in `__init__` the attributes behind the 142 `getattr`/`hasattr(self, …)` reads

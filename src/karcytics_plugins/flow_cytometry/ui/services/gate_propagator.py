@@ -19,10 +19,11 @@ from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, Debouncer, get_logger
 
-from . import events
-from .experiment import Sample
-from .propagation_worker import _PropagationWorker
-from .state import FlowState
+from ...analysis import events
+from ...analysis.experiment import Sample
+from ...analysis.propagation import propagation_targets
+from ...analysis.propagation_worker import _PropagationWorker
+from ...analysis.state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -198,37 +199,7 @@ class GatePropagator:
 
     def find_targets(self, source_id: str) -> list[Sample]:
         """The loaded samples a change on `source_id` propagates to."""
-        state = self._state
-        source = state.data.experiment.samples.get(source_id)
-        if source is None:
-            return []
-
-        target_ids: set[str] = set()
-
-        cross_group = self._cross_group_override
-        active_group_id = getattr(state.view, "active_group_filter", "__all__")
-
-        if cross_group:
-            for group_id in source.group_ids:
-                group = state.data.experiment.groups.get(group_id)
-                if group:
-                    target_ids.update(group.sample_ids)
-        elif active_group_id != "__all__":
-            group = state.data.experiment.groups.get(active_group_id)
-            if group and source_id in group.sample_ids:
-                target_ids.update(group.sample_ids)
-        else:
-            # Propagate to all samples
-            target_ids = set(state.data.experiment.samples.keys())
-
-        target_ids.discard(source_id)
-
-        return [
-            state.data.experiment.samples[sid]
-            for sid in target_ids
-            if sid in state.data.experiment.samples
-            and state.data.experiment.samples[sid].fcs_data is not None
-        ]
+        return propagation_targets(self._state, source_id, cross_group=self._cross_group_override)
 
     def cleanup(self) -> None:
         """Clean up resources."""

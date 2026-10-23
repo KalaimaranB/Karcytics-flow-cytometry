@@ -8,8 +8,8 @@ from karcytics_plugins.flow_cytometry.analysis.phenograph_analysis import (
     PhenographAnalysis,
     PhenographReclusterAnalysis,
 )
-from karcytics_plugins.flow_cytometry.analysis.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import ClusterResultsPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,

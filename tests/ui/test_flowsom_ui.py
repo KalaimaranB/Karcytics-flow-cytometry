@@ -5,9 +5,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
-from karcytics_plugins.flow_cytometry.analysis.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
+from karcytics_plugins.flow_cytometry.ui.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import ClusterResultsPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,

@@ -58,9 +58,6 @@
     "src/karcytics_plugins/flow_cytometry/analysis/flowsom_analysis.py": {
       "KS360": 1
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/gate_propagator.py": {
-      "KS205": 1
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/base.py": {
       "KS360": 1
     },
@@ -105,16 +102,8 @@
     "src/karcytics_plugins/flow_cytometry/analysis/scaling.py": {
       "KS310": 1
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/services/data_loader_service.py": {
-      "KS310": 1,
-      "KS360": 2
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/services/experiment_edits.py": {
       "KS360": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/services/umap_service.py": {
-      "KS205": 1,
-      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/state.py": {
       "KS360": 2
@@ -170,7 +159,6 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/tutorial_assets.py": {
-      "KS231": 1,
       "KS310": 4,
       "KS360": 5
     },

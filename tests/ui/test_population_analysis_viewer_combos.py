@@ -8,8 +8,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
-from karcytics_plugins.flow_cytometry.analysis.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
 )

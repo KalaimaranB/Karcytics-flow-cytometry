@@ -113,7 +113,7 @@ class PopulationGroups:
 
     Known limitation, not fixed here: matching is by display-label text, not
     a stable cross-sample population ID. Gate propagation
-    (analysis/gate_propagator.py) rebuilds a fresh GateNode per target sample
+    (ui/services/gate_propagator.py) rebuilds a fresh GateNode per target sample
     from a serialized dict rather than sharing a reference, so a gate renamed
     on one sample after propagation silently drops out of ``shared``. Fixing
     that needs a stable population ID in the data model — a follow-up, not

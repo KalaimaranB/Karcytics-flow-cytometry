@@ -14,15 +14,13 @@ class FlowServices:
     derived_parameter_service: DerivedParameterService
     fluor_service: FluorophoreService
     gate_coordinator: GateCoordinator
+    gate_propagator: GatePropagator
     data_loader_service: DataLoaderService
     workflow_service: WorkflowService
     umap_service: UmapService
     workspace_io_handler: WorkspaceIOHandler
     store: FlowStore
     derived_editor: DerivedEditorController
-
-    @property
-    def gate_propagator(self) -> GatePropagator: ...  # gate_coordinator.propagator
 
 
 def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices: ...
@@ -41,7 +39,7 @@ def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices: ..
 
 1. `AxisManager(state)` and `PopulationService(state)`, both also set on `state` (`state.axis_manager`, `state.population_service`).
 2. `FluorophoreService(CacheManager(~/.karcytics/cache/biology))` and `DerivedParameterService(state)`.
-3. `GateCoordinator(state, axis_manager, population_service, task_scheduler)`. It builds its own `GatePropagator`; `FlowServices.gate_propagator` re-exposes it.
+3. `GatePropagator(state, task_scheduler)`, then `GateCoordinator(state, axis_manager, population_service, gate_propagator)`. The coordinator only knows the propagator as `analysis.propagation.Propagation` (request, cross-group request, cleanup); without one, a change stays on its own sample, which is what unit tests use.
 4. `DataLoaderService(task_scheduler, call_flow_daemon)`, `WorkflowService(state, data_loader_service, AttachmentManager(axis_manager))`, `UmapService(state, task_scheduler, call_flow_daemon)`.
 5. `WorkspaceIOHandler(workflow_service=..., parent_widget=...)`, the undo store `FlowStore(state, CentralEventBus.publish)` and `DerivedEditorController(state, derived_parameter_service, remove_population=gate_coordinator.remove_population, parent=...)`.
 
@@ -82,17 +80,17 @@ graph TB
         FS["FluorophoreService"]
         DPS["DerivedParameterService"]
         GC["GateCoordinator"]
-        GP["GatePropagator<br/>(built inside GateCoordinator)"]
         TE["gating.tree_edits<br/>(module functions)"]
         ATT["AttachmentManager"]
-        DLS["DataLoaderService"]
-        US["UmapService"]
         ST["FlowStore"]
     end
 
     subgraph UI["UI (ui/services/, ui/controllers/)"]
         WF["WorkflowService"]
         WIO["WorkspaceIOHandler"]
+        GP["GatePropagator"]
+        DLS["DataLoaderService"]
+        US["UmapService"]
         DEC["DerivedEditorController"]
     end
 
@@ -100,7 +98,7 @@ graph TB
     BS -->|constructs| PS
     BS -->|constructs| FS
     BS -->|constructs| DPS
-    BS -->|constructs, needs AM+PS+TS| GC
+    BS -->|constructs, needs AM+PS+GP| GC
     BS -->|constructs, needs TS+FD| DLS
     BS -->|constructs, needs AM| ATT
     BS -->|constructs, needs DLS+ATT| WF
@@ -109,7 +107,8 @@ graph TB
     BS -->|constructs| ST
     BS -->|constructs, needs DPS+GC| DEC
 
-    GC -->|builds internally| GP
+    BS -->|constructs, needs TS| GP
+    GC -->|asks to propagate| GP
     GC -->|edits the tree with| TE
     GC -->|submits stats jobs to| TS
     GP -->|submits jobs to| TS
@@ -186,9 +185,9 @@ Depends on `WorkflowService` (constructor param) and, at call time, reaches for 
 
 ---
 
-## 4. `analysis/services/` — domain operations
+## 4. Scheduling services (`ui/services/`) and domain operations
 
-### `DataLoaderService` — `analysis/services/data_loader_service.py`
+### `DataLoaderService` — `ui/services/data_loader_service.py`
 
 **Responsibility:** all FCS ingestion and re-application of compensation on reload.
 
@@ -213,7 +212,7 @@ Depends on the SDK `task_scheduler` (submits an `FCSLoaderAnalysis` worker for `
 
 **Depended on by:** `GateCoordinator`, which wraps each edit with the stats recompute, the events, and propagation. Tests and the derived-parameter code call the functions directly.
 
-### `UmapService` / `UmapParams` — `analysis/services/umap_service.py`
+### `UmapService` / `UmapParams` — `ui/services/umap_service.py`
 
 **Responsibility:** a facade over `TaskScheduler` for background UMAP dimensionality-reduction jobs (`UmapAnalysis` worker) — cancels any in-flight run before submitting a new one, so only one UMAP job runs per `UmapService` instance at a time.
 
@@ -239,4 +238,4 @@ Depends on the SDK `task_scheduler` and the worker process (`daemon`, passed on 
 | `PopulationService` | `analysis/population_service.py` | Read-only: sample/node lookup and a population's gated events (`get_gated_events`). Changes go through `GateCoordinator`. |
 | `FluorophoreService` / `MarkerService` | `analysis/biology_services.py` | External biology lookups: `FluorophoreService` queries FPbase's GraphQL API for fluorophore spectra (with local disk caching via `CacheManager`); `MarkerService` queries UniProt for CD-marker/protein metadata, falling back to a stub record if the network call fails or returns nothing. |
 
-`GatePropagator` (`analysis/gate_propagator.py`) is documented separately here because, while central, it is **not independently constructed** by the composition root — see §1 above. Its responsibility: debounced (200ms) re-application of a source sample's full gate tree to every other sample in scope (active group, or all samples, or explicit cross-group), run on the background `TaskScheduler` via `_PropagationWorker`, publishing `SAMPLE_UPDATED` per sample and `PROPAGATION_COMPLETE` once all targets finish. One bad sample's propagation failure is isolated and reported in `PROPAGATION_COMPLETE`'s `errors` dict rather than aborting the batch.
+`GatePropagator` (`ui/services/gate_propagator.py`) (built by the composition root, handed to `GateCoordinator`) is the scheduling half of propagation; which samples a change reaches is the pure `analysis.propagation.propagation_targets(state, source_id, cross_group=...)`. Its responsibility: debounced (200ms) re-application of a source sample's full gate tree to every other sample in scope (active group, or all samples, or explicit cross-group), run on the background `TaskScheduler` via `_PropagationWorker`, publishing `SAMPLE_UPDATED` per sample and `PROPAGATION_COMPLETE` once all targets finish. One bad sample's propagation failure is isolated and reported in `PROPAGATION_COMPLETE`'s `errors` dict rather than aborting the batch.

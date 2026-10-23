@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from karcytics_plugins.flow_cytometry.analysis import gate_coordinator
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
@@ -50,11 +51,11 @@ def test_rename_population_scoped_to_target_sample_ids(coordinator, state):
 
 def test_rename_population_defaults_to_propagation_targets(coordinator, state, monkeypatch):
     targets = MagicMock(return_value=[MagicMock(sample_id="sample-c")])
-    monkeypatch.setattr(coordinator.propagator, "find_targets", targets)
+    monkeypatch.setattr(gate_coordinator, "propagation_targets", targets)
 
     assert coordinator.rename_population("sample-a", SHARED, "Renamed")
 
-    targets.assert_called_once_with("sample-a")
+    targets.assert_called_once_with(state, "sample-a")
     assert [_name(state, s) for s in ("sample-a", "sample-b", "sample-c")] == [
         "Renamed",
         "Lymphocytes",

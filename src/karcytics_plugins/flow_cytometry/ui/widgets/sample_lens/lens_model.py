@@ -36,7 +36,7 @@ from ....analysis.sample_lens import (
 )
 from ....analysis.sample_lens.synthesis import match_scores
 from ....analysis.services import experiment_edits
-from ....analysis.services.umap_service import UmapParams
+from ...services.umap_service import UmapParams
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -44,8 +44,8 @@ if TYPE_CHECKING:
     from ....analysis.experiment import Sample
     from ....analysis.gating import GateNode
     from ....analysis.population_service import PopulationService
-    from ....analysis.services.umap_service import UmapService
     from ....analysis.state import FlowState
+    from ...services.umap_service import UmapService
 
 logger = get_logger(__name__, "flow_cytometry")
 

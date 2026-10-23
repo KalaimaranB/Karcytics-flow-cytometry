@@ -151,7 +151,7 @@ graph TD
 
     C --> K["transforms.py<br/>Logicle / Log / Linear"]
     C --> L["gating/<br/>Rectangle / Polygon / Ellipse / Quadrant / Range"]
-    C --> M["analysis/services/<br/>GateCoordinator, GatePropagator, ..."]
+    C --> M["gate_coordinator.py, propagation.py<br/>(GatePropagator: ui/services/)"]
     C --> N["compensation.py<br/>spillover matrix"]
 
     E -.->|mutate| D
@@ -328,7 +328,7 @@ Each `Sample` owns its own independent `gate_tree` (a `GateNode` DAG, root
 named "All Events"). `analysis/compute/dag_evaluator.py`
 evaluates node membership via topological sort + boolean mask combination.
 Gate edits on one sample can be cloned to sibling samples in the same group
-by `GatePropagator` (`analysis/gate_propagator.py`), debounced — see
+by `GatePropagator` (`ui/services/gate_propagator.py`), debounced — see
 `GateCoordinator`'s calls to `request_propagation()` after every edit
 that changes geometry.
 

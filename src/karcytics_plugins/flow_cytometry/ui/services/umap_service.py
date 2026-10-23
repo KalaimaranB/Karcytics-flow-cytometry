@@ -8,15 +8,15 @@ from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import get_logger
 
-from ..flowsom_analysis import FlowsomAnalysis
-from ..phenograph_analysis import PhenographAnalysis, PhenographReclusterAnalysis
-from ..umap_analysis import UmapAnalysis
+from ...analysis.flowsom_analysis import FlowsomAnalysis
+from ...analysis.phenograph_analysis import PhenographAnalysis, PhenographReclusterAnalysis
+from ...analysis.umap_analysis import UmapAnalysis
 
 if TYPE_CHECKING:
     from karcytics_sdk.plugin import AnalysisBase, AnalysisWorker
 
-    from ..daemon_port import DaemonCall
-    from ..state import FlowState
+    from ...analysis.daemon_port import DaemonCall
+    from ...analysis.state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -151,7 +151,7 @@ class UmapService:
             PhenographReclusterAnalysis(run, resolution, self._daemon), on_done, on_error_cb, None
         )
 
-    def _submit(  # noqa: C901
+    def _submit(  # noqa: C901 - the finished/error/cancelled handlers share the worker
         self,
         analyzer: AnalysisBase,
         on_done: Callable[[dict], None],

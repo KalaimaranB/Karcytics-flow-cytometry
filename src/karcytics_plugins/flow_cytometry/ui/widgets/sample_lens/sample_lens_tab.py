@@ -45,8 +45,8 @@ from .run_map import RunMap
 if TYPE_CHECKING:
     from ....analysis.experiment import Sample
     from ....analysis.population_service import PopulationService
-    from ....analysis.services.umap_service import UmapService
     from ....analysis.state import FlowState
+    from ...services.umap_service import UmapService
 
 SIDEBAR_WIDTH = 340
 POPULATIONS_HEIGHT = 280
