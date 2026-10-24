@@ -15,6 +15,7 @@ own modules under ``ui/widgets/``, ``ui/graph/``, and ``ui/ribbons/``.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
@@ -28,7 +29,7 @@ from karcytics_sdk.plugin.runtime_services import (
 )
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from karcytics_sdk.plugin.workflow import WorkflowContext
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QInputDialog,
     QMessageBox,
@@ -43,6 +44,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
+from karcytics_plugins.flow_cytometry.ui.startup_sequencer import StartupSequencer
 
 from ..analysis.workspace_document import apply_workspace
 
@@ -156,8 +158,7 @@ class FlowCytometryPanel(PluginBase):
         self._deferred_workflow_payload: dict[str, Any] | None = None
         self._deferred_workflow_filename: str | None = None
         self._deferred_workflow_metadata: dict[str, Any] | None = None
-        self._data_ready_emitted = False
-        self._awaiting_data_ready = False
+        self._startup = StartupSequencer(self.panel_ready, self.data_ready, self)
         self._themed_palette: Any = None
         self._workflow_autosave_controller: Any = None  # end of _setup_services
 
@@ -181,11 +182,6 @@ class FlowCytometryPanel(PluginBase):
         # Piped to the core status bar (see workspace_builder.connect_tab_bar
         # for the "Ready" message once Phase 2 completes).
         self.status_message.emit("Loading workspace…")
-
-        # Numba JIT warm-up waits for Phase 2's heavy widgets to finish
-        # building — see _start_numba_warmup for why starting it any earlier
-        # is unsafe, not just slow.
-        self.panel_ready.connect(self._start_numba_warmup)
 
     def _setup_services(self) -> None:
         """Initialize and wire all core analysis and UI services."""
@@ -361,170 +357,52 @@ class FlowCytometryPanel(PluginBase):
         self._apply_theme_styles()
         theme_manager.theme_changed.connect(self._apply_theme_styles)
 
-    # ── Ready Gate protocol — Phase 2 chained construction ────────────
-
-    def _start_numba_warmup(self) -> None:
-        """Pre-compile UMAP's numba kernels on a background thread, once
-        Phase 2's own heavy widget construction has already finished.
-
-        This used to run at plugin load time, before Phase 1 even started
-        (see the removed call in ``__init__.py``'s ``get_panel_class``) —
-        the earliest possible moment, on the theory that "in the background"
-        made its timing harmless. It doesn't: numba/llvmlite's JIT
-        compilation is Python-level orchestration around LLVM codegen that
-        holds the GIL through most of a compile, so any other CPU-bound
-        Python thread running at the same time — exactly what Phase 1/2's
-        own construction is — contends for it. Reproduced directly: a
-        single competing plain-Python thread turned this warmup from ~3s
-        into 100s+ with no end in sight. That contention was blocking the
-        whole process, including the Qt event loop's own request handling
-        (a hung ``exit`` request looks identical to a crash from the
-        outside), for however long it took to resolve — on a slow enough
-        machine, unbounded. Waiting for ``panel_ready`` means the warmup
-        only ever competes with genuinely idle time, not startup.
-        """
-        # karcytics: allow KS360 - off the Phase 1 path
-        from ..analysis.numba_warmup import warmup_numba_jit
-
-        warmup_numba_jit()
+    # ── Ready Gate protocol: Phase 2 (see startup_sequencer.py) ───────
 
     def begin_async_init(self) -> None:
-        """Chain Phase 2 widget construction via the Qt event loop (one widget per tick).
-
-        Called by Karcytics's ``PluginLoaderManager`` immediately after the skeleton
-        panel is added to the layout.  Each step in ``_phase2_queue`` builds
-        exactly one heavy widget then yields via ``QTimer.singleShot(0)`` so the
-        GalacticLoader QML animation gets a render frame between each construction.
-        """
+        """Phase 2: the Hub's loader calls this once the skeleton is on screen."""
         # karcytics: allow KS360 - off the Phase 1 path
-        from ..ui.builders.workspace_builder import WorkspaceBuilder
+        from ..ui.builders.workspace_builder import WorkspaceBuilder as B
 
-        # Best-effort, non-blocking: runs on a background thread and only
-        # ever shows a toast if GitHub actually has a newer release.
+        # Best-effort, non-blocking: only ever shows a toast if GitHub has a newer release.
         self.check_for_updates(
             repo_url="https://github.com/KalaimaranB/Karcytics-flow-cytometry",
             display_name="Flow Cytometry",
         )
+        self._startup.start(
+            [
+                ("graph_manager", lambda: B.build_step_graph_manager(self)),
+                ("node_canvas", lambda: B.build_step_node_canvas(self)),
+                ("spectral", lambda: B.build_step_spectral(self)),
+                ("population", lambda: B.build_step_population(self)),
+                ("statistics", lambda: B.build_step_statistics(self)),
+                ("comparisons", lambda: B.build_step_comparisons(self)),
+                ("compensation", lambda: B.build_step_compensation(self)),
+                ("finalize", self._finish_phase2),
+            ],
+            take_deferred_load=self._take_deferred_load,
+        )
 
-        logger.debug("[phase2] begin_async_init: scheduling queue")
-        self._phase2_queue = [
-            ("graph_manager", lambda: WorkspaceBuilder.build_step_graph_manager(self)),
-            ("node_canvas", lambda: WorkspaceBuilder.build_step_node_canvas(self)),
-            ("spectral", lambda: WorkspaceBuilder.build_step_spectral(self)),
-            ("population", lambda: WorkspaceBuilder.build_step_population(self)),
-            ("statistics", lambda: WorkspaceBuilder.build_step_statistics(self)),
-            ("comparisons", lambda: WorkspaceBuilder.build_step_comparisons(self)),
-            ("compensation", lambda: WorkspaceBuilder.build_step_compensation(self)),
-            ("finalize", self._phase2_finalize),
-        ]
-        QTimer.singleShot(0, self._run_next_phase2_step)
-
-    def _run_next_phase2_step(self) -> None:
-        """Pop and execute the next Phase 2 step, then re-schedule if more remain."""
-        if not self._phase2_queue:
-            return
-        name, step = self._phase2_queue.pop(0)
-        # TEMPORARY diagnostic instrumentation (see PR discussion) — pinpoints
-        # which Phase 2 step a Windows CI daemon subprocess stalls/dies in.
-        # logger.info() doesn't surface here: Python's logging module only
-        # emits to its default last-resort handler at WARNING+, so a silent
-        # daemon's captured stderr looked identical whether Phase 2 was
-        # running fine or genuinely stuck. .warning() is the lowest level
-        # guaranteed visible without any handler configuration.
-        logger.debug("[phase2] step start: %s", name)
-        step()
-        logger.debug("[phase2] step done: %s", name)
-        if self._phase2_queue:
-            QTimer.singleShot(0, self._run_next_phase2_step)
-
-    def _phase2_finalize(self) -> None:
-        """Complete Phase 2: wire signals, inject deferred workflow, emit panel_ready.
-
-        This is the last step in the Phase 2 queue.  After all six widgets are
-        built it:
-
-        1. Wires the center-stack and tab bar.
-        2. Runs ``_wire_signals`` and ``_apply_theme_styles``.
-        3. If a workflow payload was handed off by ``PluginLoaderManager``,
-           calls ``load_workflow`` (which may block briefly on FCS I/O) and
-           sets up the ``data_ready`` propagation counter.
-        4. Emits ``panel_ready`` — ``PluginLoaderManager`` then switches the
-           loader message to "Loading data…" and waits for ``data_ready``.
-        """
+    def _finish_phase2(self) -> None:
+        """The heavy widgets exist: stack them, wire them, theme them."""
         # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
-        logger.debug("[phase2] finalize: finalize_center_stack")
         WorkspaceBuilder.finalize_center_stack(self)
-        logger.debug("[phase2] finalize: _wire_signals")
         self._wire_signals()
-        logger.debug("[phase2] finalize: connect_tab_bar")
         WorkspaceBuilder.connect_tab_bar(self)
-        logger.debug("[phase2] finalize: _apply_theme_styles")
         self._apply_theme_styles()
-        logger.debug("[phase2] finalize: done")
 
-        # ── Deferred workflow injection (set up by PluginLoaderManager) ──────
-        _payload = self._deferred_workflow_payload
-        self._data_ready_emitted = False
-
-        if _payload is not None:
-            self._awaiting_data_ready = True
-            self._pending_prop_completions = 0
-            # Safety: force crossfade after 45 s (covers Numba JIT cold-start)
-            QTimer.singleShot(45_000, self._on_load_watchdog_timeout)
-
-            # Emit panel_ready NOW so the loader immediately shows "Loading data…"
-            # before the FCS-loading block hits on the next event-loop tick.
-            self.panel_ready.emit()
-
-            # Stash payload and defer load_workflow by one tick so the loader message
-            # has a chance to render before we freeze on reload_fcs_data I/O.
-            _filename = self._deferred_workflow_filename
-            _metadata = self._deferred_workflow_metadata
-            self._deferred_workflow_payload = None
-            self._deferred_workflow_filename = None
-            self._deferred_workflow_metadata = None
-            QTimer.singleShot(
-                0,
-                lambda: self.load_workflow(_payload, filename=_filename, metadata=_metadata),
-            )
-        else:
-            # Empty state: emit panel_ready first, then schedule data_ready on the next frame
-            self.panel_ready.emit()
-            QTimer.singleShot(0, self._emit_data_ready_once)
-
-    def _emit_data_ready_once(self) -> None:
-        """Emit data_ready exactly once regardless of how many callers invoke this."""
-        if not self._data_ready_emitted:
-            self.logger.info("--> [FlowCytometryPanel] Emitting data_ready signal NOW!")
-            self._data_ready_emitted = True
-            self.data_ready.emit()
-
-    def _on_load_watchdog_timeout(self) -> None:
-        """Fired 45 s after a deferred workflow load starts if it hasn't finished.
-
-        ``_awaiting_data_ready`` is only cleared by ``_on_fcs_done`` once the
-        background FCS reload genuinely completes. If it's still set here,
-        the reload never finished in time — most likely one sample's FCS
-        file stalled the load (see WorkflowService.reload_fcs_data). Rather
-        than silently crossfading into a workspace with missing samples and
-        gates showing 0 events, warn the user before doing so.
-        """
-        if self._awaiting_data_ready:
-            self.logger.error(
-                "FCS reload did not complete within 45s — forcing UI to show anyway. "
-                "Samples/gates may display as empty or 0 events until the load finishes."
-            )
-            show_warning(
-                self,
-                "Workspace Load Taking Too Long",
-                "Sample data is still loading after 45 seconds, so the workspace is "
-                "opening before it's finished.\n\n"
-                "Some samples or gates may show 0 events until loading completes in "
-                "the background. If this persists, check the logs for a stuck FCS file.",
-            )
-        self._emit_data_ready_once()
+    def _take_deferred_load(self) -> Callable[[], None] | None:
+        """The load of the workflow the SDK staged on `_deferred_workflow_*`, if any."""
+        payload = self._deferred_workflow_payload
+        if payload is None:
+            return None
+        filename, metadata = self._deferred_workflow_filename, self._deferred_workflow_metadata
+        self._deferred_workflow_payload = None
+        self._deferred_workflow_filename = None
+        self._deferred_workflow_metadata = None
+        return lambda: self.load_workflow(payload, filename=filename, metadata=metadata)
 
     def _wire_signals(self) -> None:
         """Connect internal widget signals to each other and to the Karcytics interface signals."""
@@ -969,12 +847,12 @@ class FlowCytometryPanel(PluginBase):
                 # Raw data was never saved as a workflow — starts unsaved.
                 self.services.document.finish_load(clean=False)
                 self._refresh_all()
-                self._emit_data_ready_once()
+                self._startup.emit_data_ready_once()
 
             def _on_error(err: str):
                 self.logger.error(f"FCS injection failed: {err}")
                 self.services.document.finish_load(clean=False)
-                self._emit_data_ready_once()
+                self._startup.emit_data_ready_once()
 
             self.services.data_loader_service.load_samples_async(
                 [filename],
@@ -1032,14 +910,7 @@ class FlowCytometryPanel(PluginBase):
             else:
                 self.status_message.emit("Workflow loaded successfully.")
 
-            # 3. Workspace state and canvas paint events ready — emit data_ready
-            if self._awaiting_data_ready:
-                self._awaiting_data_ready = False
-                self.logger.info("--> [_on_fcs_done] Scheduling data_ready.emit in 300ms...")
-                QTimer.singleShot(300, self._emit_data_ready_once)
-            else:
-                self.logger.info("--> [_on_fcs_done] Emitting data_ready immediately.")
-                self._emit_data_ready_once()
+            self._startup.data_loaded()
 
         project_dir = pm.project_dir if pm else None
         if not self.services.workflow_service.load_workflow(

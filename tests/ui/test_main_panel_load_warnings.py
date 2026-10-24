@@ -11,7 +11,10 @@ import sys
 from unittest.mock import MagicMock
 
 import pytest
+from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication, QMessageBox
+
+from karcytics_plugins.flow_cytometry.ui.startup_sequencer import StartupSequencer
 
 
 @pytest.fixture(scope="session")
@@ -34,10 +37,26 @@ def panel(qapp, qtbot):
     return p
 
 
-def test_watchdog_warns_and_still_emits_data_ready_when_load_never_finished(panel, monkeypatch):
+class _ReadyGate(QObject):
+    panel_ready = Signal()
+    data_ready = Signal()
+
+
+@pytest.fixture
+def gate(monkeypatch):
+    monkeypatch.setattr(
+        "karcytics_plugins.flow_cytometry.analysis.numba_warmup.warmup_numba_jit", lambda: None
+    )
+    return _ReadyGate()
+
+
+def test_watchdog_warns_and_still_emits_data_ready_when_load_never_finished(
+    panel, gate, monkeypatch, qtbot
+):
     """The 45s timer firing while a reload is still pending must warn, not stay silent."""
-    panel._awaiting_data_ready = True
-    panel._data_ready_emitted = False
+    startup = StartupSequencer(gate.panel_ready, gate.data_ready, panel)
+    with qtbot.waitSignal(gate.panel_ready):
+        startup.start([], take_deferred_load=lambda: lambda: None)  # a load that never ends
 
     warnings = []
     monkeypatch.setattr(
@@ -47,23 +66,22 @@ def test_watchdog_warns_and_still_emits_data_ready_when_load_never_finished(pane
     )
 
     received_ready = []
-    panel.data_ready.connect(lambda: received_ready.append(True))
+    gate.data_ready.connect(lambda: received_ready.append(True))
 
-    panel._on_load_watchdog_timeout()
+    startup.on_load_watchdog_timeout()
 
     assert len(warnings) == 1, "watchdog timeout with an unfinished load must warn the user"
     assert received_ready == [True], "the UI must still unblock even after warning"
 
 
-def test_watchdog_stays_silent_when_load_already_finished(panel, monkeypatch):
-    """If _on_fcs_done already cleared _awaiting_data_ready, the watchdog is a no-op."""
-    panel._awaiting_data_ready = False
-    panel._data_ready_emitted = False
+def test_watchdog_stays_silent_when_load_already_finished(panel, gate, monkeypatch):
+    """With no handed-over load still pending, the watchdog is a no-op."""
+    startup = StartupSequencer(gate.panel_ready, gate.data_ready, panel)
 
     warnings = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: warnings.append(a))
 
-    panel._on_load_watchdog_timeout()
+    startup.on_load_watchdog_timeout()
 
     assert warnings == []
 
