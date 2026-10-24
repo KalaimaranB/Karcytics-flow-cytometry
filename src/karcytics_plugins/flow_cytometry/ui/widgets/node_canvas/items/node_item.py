@@ -39,6 +39,7 @@ class NodeItem(QGraphicsObject):
 
     def __init__(self, node_id: str, name: str, parent=None):
         super().__init__(parent)
+        self._plot_error = False  # the plot failed: say "No Data", not "Loading plot..."
         self.node_id = node_id
         self.name = name
 
@@ -47,8 +48,7 @@ class NodeItem(QGraphicsObject):
         self.parent_percentage = 0.0
         self.is_logic_node = False
         self.is_umap_parent = False
-        # Set by CanvasManager._apply_stats_to_item from node.statistics —
-        # see dag_evaluator._propagate_estimation for what these mean.
+        # From node.statistics (CanvasManager); see dag_evaluator._propagate_estimation.
         self.is_estimated = False
         self.is_scale_valid = True
         self.logic_operator = "AND"
@@ -450,7 +450,7 @@ class NodeItem(QGraphicsObject):
                 plot_rect.width(),
                 40,
             )
-            msg = "No Data" if getattr(self, "_plot_error", False) else "Loading plot..."
+            msg = "No Data" if self._plot_error else "Loading plot..."
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, msg)
 
     def get_input_port_pos(self) -> QPointF:

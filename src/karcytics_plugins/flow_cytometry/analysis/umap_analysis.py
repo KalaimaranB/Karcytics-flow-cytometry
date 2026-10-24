@@ -41,7 +41,7 @@ class UmapAnalysis(AnalysisBase):
 
     def validate(self, state: Any) -> tuple[bool, str]:
         """Verify sample has FCS data loaded."""
-        sample_id = getattr(self, "target_sample_id", "")
+        sample_id: str | None = self.target_sample_id
         if not sample_id:
             sample_id = getattr(state, "current_sample_id", None)
 
@@ -70,7 +70,7 @@ class UmapAnalysis(AnalysisBase):
 
         flow_state = typing.cast(FlowState, state)
 
-        sample_id = getattr(self, "target_sample_id", "")
+        sample_id: str | None = self.target_sample_id
         if not sample_id:
             sample_id = flow_state.view.current_sample_id
 
@@ -113,9 +113,9 @@ class UmapAnalysis(AnalysisBase):
                 "min_dist": self.min_dist,
                 "metric": self.metric,
                 "random_seed": self.random_seed,
-                "run_hdbscan": getattr(self, "run_hdbscan", False),
-                "hdbscan_space": getattr(self, "hdbscan_space", "high_dim"),
-                "min_cluster_size": getattr(self, "min_cluster_size", 100),
+                "run_hdbscan": self.run_hdbscan,
+                "hdbscan_space": self.hdbscan_space,
+                "min_cluster_size": self.min_cluster_size,
             }
 
             res_dict = self._daemon(
@@ -147,15 +147,15 @@ class UmapAnalysis(AnalysisBase):
 
         result_dict = {
             "method": UMAP_HDBSCAN.key,
-            "name": getattr(self, "name", ""),
-            "percentage": getattr(self, "percentage", 10.0),
+            "name": self.name,
+            "percentage": self.percentage,
             "n_neighbors": self.n_neighbors,
             "min_dist": self.min_dist,
             "metric": self.metric,
             "random_seed": self.random_seed,
-            "run_hdbscan": getattr(self, "run_hdbscan", False),
-            "hdbscan_space": getattr(self, "hdbscan_space", "high_dim"),
-            "min_cluster_size": getattr(self, "min_cluster_size", 100),
+            "run_hdbscan": self.run_hdbscan,
+            "hdbscan_space": self.hdbscan_space,
+            "min_cluster_size": self.min_cluster_size,
             "channels": fluo_channels,
             "channel_labels": prepared.channel_labels,
             "embedding": embedding,

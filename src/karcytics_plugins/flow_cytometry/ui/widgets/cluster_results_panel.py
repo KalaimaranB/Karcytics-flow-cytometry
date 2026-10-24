@@ -212,6 +212,8 @@ class ClusterResultsPanel(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self._kdtree: Any = None  # nearest-cluster lookup for the map's hover card
+        self._interactive_canvas: FigureCanvasQTAgg | None = None
         self._results = results
         self._state = state
         self._gate_coordinator = gate_coordinator
@@ -693,7 +695,7 @@ class ClusterResultsPanel(QWidget):
                 self._hover_widget.show()
                 self._hover_widget.raise_()
 
-        if not hasattr(self, "_kdtree"):
+        if self._kdtree is None:
             return
 
         # Find nearest 50 neighbors
@@ -1271,7 +1273,7 @@ class ClusterResultsPanel(QWidget):
         )
 
     def _activate_polygon_drawer(self) -> None:
-        if not hasattr(self, "_interactive_canvas") or not self._interactive_canvas:
+        if self._interactive_canvas is None:
             return
 
         from matplotlib.widgets import PolygonSelector  # karcytics: allow KS360 - heavy library
@@ -1292,6 +1294,8 @@ class ClusterResultsPanel(QWidget):
         )
 
     def _on_polygon_drawn(self, verts) -> None:
+        if (canvas := self._interactive_canvas) is None:  # the map has gone meanwhile
+            return
         from matplotlib.path import Path  # karcytics: allow KS360 - heavy library
 
         if self._poly_selector:
@@ -1310,11 +1314,7 @@ class ClusterResultsPanel(QWidget):
         if count == 0:
             return
 
-        (count / len(embedding)) * 100
-
-        if "custom_clusters" not in self._results:
-            self._results["custom_clusters"] = []
-
+        self._results.setdefault("custom_clusters", [])
         custom_idx = len(self._results["custom_clusters"]) + 1
         name, ok = QInputDialog.getText(
             self,
@@ -1340,7 +1340,6 @@ class ClusterResultsPanel(QWidget):
             self._results["clusters"] = clusters
 
             # Recompute stats
-
             df_cluster = pd.DataFrame(
                 self._results["intensities"], columns=self._results["channels"]
             )
@@ -1362,7 +1361,7 @@ class ClusterResultsPanel(QWidget):
             heatmap_df = df_valid.groupby("Cluster_ID").median()
             self._results["marker_heatmap"] = heatmap_df.to_dict(orient="split")
 
-        ax = self._interactive_canvas.figure.axes[0]
+        ax = canvas.figure.axes[0]
         from matplotlib.patches import Polygon  # karcytics: allow KS360 - heavy library
 
         poly = Polygon(
@@ -1374,7 +1373,7 @@ class ClusterResultsPanel(QWidget):
             linestyle="--",
         )
         ax.add_patch(poly)
-        self._interactive_canvas.draw()
+        canvas.draw()
 
         self.results_modified.emit()
         self._refresh_statistics_tab()

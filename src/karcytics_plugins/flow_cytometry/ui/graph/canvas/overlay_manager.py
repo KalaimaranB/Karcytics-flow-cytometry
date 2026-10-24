@@ -79,8 +79,7 @@ class OverlayManager:
         # ax.clear() just invalidated every artist that was on the axes —
         # drop stale references so nothing later tries to .remove() them.
         self.canvas._guide_poly_patch = None
-        if hasattr(self.canvas, "_guide_patches"):
-            self.canvas._guide_patches.clear()
+        self.canvas._guide_patches.clear()
         self._instruction_text = None
         self.canvas._ax.set_facecolor(_PLOT_BG)
         self.canvas._ax.text(
@@ -106,8 +105,7 @@ class OverlayManager:
         # ax.clear() just invalidated every artist that was on the axes —
         # drop stale references so nothing later tries to .remove() them.
         self.canvas._guide_poly_patch = None
-        if hasattr(self.canvas, "_guide_patches"):
-            self.canvas._guide_patches.clear()
+        self.canvas._guide_patches.clear()
         self._instruction_text = None
         self.canvas._ax.set_facecolor(_PLOT_BG)
         self.canvas._ax.text(

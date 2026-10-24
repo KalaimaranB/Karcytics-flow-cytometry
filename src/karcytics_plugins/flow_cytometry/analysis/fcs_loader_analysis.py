@@ -32,12 +32,12 @@ class FCSLoaderAnalysis(AnalysisBase):
         super().__init__(plugin_id)
         self._daemon = daemon
         self.file_paths: list[str | Path] = []
-        self.project_manager: object | None = None
+        self.project_manager: Any = None  # the Hub's ProjectManager, when there is a project
         self.copy_all: bool = False
 
     def validate(self, _state: PluginState | None) -> tuple[bool, str]:
         """Verify that there are files to load and that they exist."""
-        if not getattr(self, "file_paths", []):
+        if not self.file_paths:
             return False, "No files selected for loading."
         for path in self.file_paths:
             if not Path(path).exists():
@@ -79,11 +79,11 @@ class FCSLoaderAnalysis(AnalysisBase):
 
         def register(path: Path) -> Path:
             final_path = path
-            pm = getattr(self, "project_manager", None)
+            pm = self.project_manager
             if pm:
                 with pm_lock:
                     is_in_workspace = pm.assets_dir.resolve() in path.resolve().parents
-                    should_copy = getattr(self, "copy_all", False) and not is_in_workspace
+                    should_copy = self.copy_all and not is_in_workspace
                     try:
                         file_hash = pm.add_image(path, should_copy)
                         resolved = pm.get_asset_path(file_hash)

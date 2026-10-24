@@ -276,9 +276,7 @@ class PropertiesPanel(QWidget):
         chrome (header/splitter/scroll) self-themes via `theme_manager` and
         doesn't need re-invocation here.
         """
-        if hasattr(self, "_current_sample_id") and (
-            self._current_sample_id or self._current_node_id
-        ):
+        if self._current_sample_id or self._current_node_id:
             self.refresh()
 
     def show_sample_properties(self, sample_id: str, gate_id: str | None) -> None:
@@ -354,9 +352,6 @@ class PropertiesPanel(QWidget):
         # Guard against callbacks firing after the C++ layout has been deleted
         if not self._is_alive:
             return
-        if not hasattr(self, "_content_layout") or self._content_layout is None:
-            return
-
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         while self._content_layout.count():
@@ -373,9 +368,8 @@ class PropertiesPanel(QWidget):
         self._current_sample_id = None
         self._current_node_id = None
 
-        if hasattr(self, "_group_preview"):
-            self._group_preview.update_context(None, None)
-            self._sync_histogram()
+        self._group_preview.update_context(None, None)
+        self._sync_histogram()
 
         self._content_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 

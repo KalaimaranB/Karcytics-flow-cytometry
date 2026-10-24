@@ -314,35 +314,19 @@ class SpectralViewer(QWidget):
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
 
-        if hasattr(self, "_search_input"):
-            self._search_input.setStyleSheet(
-                f"QLineEdit {{ background: {Colors.BG_DARKEST}; color: {Colors.FG_PRIMARY};"
-                f" border: 1px solid {Colors.BORDER}; border-radius: 4px; padding: 6px; }}"
-            )
-        if hasattr(self, "_search_results"):
-            self._search_results.setStyleSheet(
-                f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"
-                f" border-radius: 4px; color: {Colors.FG_PRIMARY}; }}"
-                f"QListWidget::item {{ padding: 4px; border-bottom: 1px solid {Colors.BORDER}; }}"
-                f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; }}"
-                f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM}; }}"
-            )
-
-        if hasattr(self, "_sample_combo") and hasattr(self._sample_combo, "_apply_theme_styles"):
-            self._sample_combo._apply_theme_styles()
-
-        for list_w in (
-            getattr(self, "_detector_list", None),
-            getattr(self, "_list_widget", None),
-        ):
-            if list_w:
-                list_w.setStyleSheet(
-                    f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"
-                    f" border-radius: 4px; color: {Colors.FG_PRIMARY}; }}"
-                    f"QListWidget::item {{ padding: 4px; border-bottom: 1px solid {Colors.BORDER}; }}"
-                    f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; }}"
-                    f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM}; }}"
-                )
+        self._search_input.setStyleSheet(
+            f"QLineEdit {{ background: {Colors.BG_DARKEST}; color: {Colors.FG_PRIMARY};"
+            f" border: 1px solid {Colors.BORDER}; border-radius: 4px; padding: 6px; }}"
+        )
+        list_qss = (
+            f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"
+            f" border-radius: 4px; color: {Colors.FG_PRIMARY}; }}"
+            f"QListWidget::item {{ padding: 4px; border-bottom: 1px solid {Colors.BORDER}; }}"
+            f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; }}"
+            f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM}; }}"
+        )
+        self._search_results.setStyleSheet(list_qss)
+        self._list_widget.setStyleSheet(list_qss)
 
         for child in self.findChildren(QLabel):
             if isinstance(child, BioCaptionLabel):

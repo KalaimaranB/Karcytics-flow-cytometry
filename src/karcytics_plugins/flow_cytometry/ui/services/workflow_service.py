@@ -256,7 +256,6 @@ class WorkflowService(QObject):
                 f"FCS reload FunctionalTask {finished_id} finished! Executing on_complete callback..."
             )
             self._pending_task_id = None
-            cb = getattr(self, "_pending_on_complete", None)
-            self._pending_on_complete = None
+            cb, self._pending_on_complete = self._pending_on_complete, None
             if cb:
                 cb(results)

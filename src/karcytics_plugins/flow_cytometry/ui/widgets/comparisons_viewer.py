@@ -750,11 +750,6 @@ class ComparisonsViewer(QWidget):
         if right:
             right.setStyleSheet(f"background-color: {Colors.BG_DARK};")
 
-        if hasattr(self, "_plot_type_combo") and hasattr(
-            self._plot_type_combo, "_apply_theme_styles"
-        ):
-            self._plot_type_combo._apply_theme_styles()
-
         fg_color = QColor(Colors.FG_PRIMARY)
 
         # Note: the sample checklist and population tree (self._selector) are

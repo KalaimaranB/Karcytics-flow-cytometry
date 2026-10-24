@@ -383,8 +383,7 @@ class FlowDataRasterizeStage(RasterizeStage):
         # These artists were just invalidated by the caller's ax.clear() —
         # drop the stale references so nothing later tries to .remove() them.
         canvas._guide_poly_patch = None
-        if hasattr(canvas, "_guide_patches"):
-            canvas._guide_patches.clear()
+        canvas._guide_patches.clear()
         canvas._overlay_manager._instruction_text = None
 
         if render_data.mode == "empty":

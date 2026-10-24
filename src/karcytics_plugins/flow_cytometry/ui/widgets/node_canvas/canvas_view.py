@@ -216,9 +216,8 @@ class NodeCanvas(QWidget):
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh colors when theme changes."""
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        if hasattr(self, "_view"):
-            self._view.setBackgroundBrush(QColor(Colors.BG_DARKEST))
-            self._view._apply_theme_styles()
+        self._view.setBackgroundBrush(QColor(Colors.BG_DARKEST))
+        self._view._apply_theme_styles()
 
     def _on_pan_toggled(self, checked: bool) -> None:
         if checked:

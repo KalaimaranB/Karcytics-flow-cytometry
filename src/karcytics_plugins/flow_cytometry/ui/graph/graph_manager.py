@@ -174,7 +174,7 @@ class GraphManager(QWidget):
 
     def _apply_theme_styles(self) -> None:
         """Pass a theme change on to the open graphs (their plots bake colours in)."""
-        for graph in getattr(self, "_graphs", {}).values():
+        for graph in self._graphs.values():
             if hasattr(graph, "_apply_theme_styles"):
                 graph._apply_theme_styles()
 

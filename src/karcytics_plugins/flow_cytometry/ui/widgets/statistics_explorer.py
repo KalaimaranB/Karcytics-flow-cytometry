@@ -1300,24 +1300,14 @@ class StatisticsExplorer(QWidget):
     def _apply_theme_styles(self) -> None:
         """Refresh all color-dependent styles when the theme changes."""
         self.setStyleSheet(f"background-color: {Colors.BG_DARKEST};")
-        if hasattr(self, "_sidebar") and self._sidebar:
-            self._sidebar.setStyleSheet(
-                f"background-color: {Colors.BG_DARKEST}; border-right: 1px solid {Colors.BORDER};"
-            )
-        if hasattr(self, "_right_panel") and self._right_panel:
-            self._right_panel.setStyleSheet(f"background-color: {Colors.BG_DARK};")
+        self._sidebar.setStyleSheet(
+            f"background-color: {Colors.BG_DARKEST}; border-right: 1px solid {Colors.BORDER};"
+        )
+        self._right_panel.setStyleSheet(f"background-color: {Colors.BG_DARK};")
 
         # Note: the sample checklist and population tree (self._selector) are
         # themed by MainPanel's own findChildren cascade reaching them
         # directly, not by this method — see ui/widgets/selection/.
-
-        for combo in (
-            getattr(self, "_channel_combo", None),
-            getattr(self, "_chart_type_combo", None),
-            getattr(self, "_chart_stat_combo", None),
-        ):
-            if combo and hasattr(combo, "_apply_theme_styles"):
-                combo._apply_theme_styles()
 
         self._table.setStyleSheet(
             f"""
@@ -1350,10 +1340,9 @@ class StatisticsExplorer(QWidget):
         for cb in self._stat_checkboxes.values():
             cb.setStyleSheet(checkbox_qss())
 
-        if hasattr(self, "_lbl_star"):
-            self._lbl_star.setStyleSheet(
-                f"color: {Colors.FG_DISABLED}; font-size: 10px; font-style: italic;"
-            )
+        self._lbl_star.setStyleSheet(
+            f"color: {Colors.FG_DISABLED}; font-size: 10px; font-style: italic;"
+        )
 
         self._status_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 12px;")
 

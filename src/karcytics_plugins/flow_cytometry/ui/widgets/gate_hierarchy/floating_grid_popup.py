@@ -155,6 +155,7 @@ class FloatingGridPopup(QFrame):
         dismiss_on_outside_click: bool = False,
     ) -> None:
         super().__init__(parent, Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
+        self._size_grip: QSizeGrip | None = None  # built with the bottom row
         if object_name:
             self.setObjectName(object_name)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -401,7 +402,7 @@ class FloatingGridPopup(QFrame):
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:  # noqa: N802
         super().resizeEvent(event)  # type: ignore[arg-type]
-        if hasattr(self, "_size_grip"):
+        if self._size_grip is not None:
             self._size_grip.move(
                 self.width() - self._size_grip.width() - 2,
                 self.height() - self._size_grip.height() - 2,

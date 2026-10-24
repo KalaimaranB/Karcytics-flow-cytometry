@@ -7,6 +7,7 @@ easier to add new interactive gate types.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
@@ -32,6 +33,25 @@ class DrawingState(Enum):
     EDITING = auto()  # Dragging a handle or the body of the selected gate
 
 
+class _RetryWhenFree:
+    """Runs the latest deferred call once, `delay_ms` after the raster lock was busy."""
+
+    def __init__(self, delay_ms: int) -> None:
+        self._delay_ms = delay_ms
+        self._call: Callable[[], None] | None = None
+
+    def defer(self, call: Callable[[], None]) -> None:
+        pending = self._call is not None
+        self._call = call
+        if not pending:
+            QTimer.singleShot(self._delay_ms, self._fire)
+
+    def _fire(self) -> None:
+        call, self._call = self._call, None
+        if call is not None:
+            call()
+
+
 class GateDrawingFSM:
     """Manages the interactive drawing process for different gate types."""
 
@@ -54,6 +74,15 @@ class GateDrawingFSM:
         self._edit_anchor: dict | None = None  # pre-drag geometry snapshot
         self._edit_press: tuple[float, float] | None = None  # press point, display space
         self._edit_preview_info: dict | None = None  # last-drawn preview artists bundle
+
+        # Previews drawn while the raster lock is busy are retried once it frees up.
+        self._edit_retry = _RetryWhenFree(15)
+        self._rubber_retry = _RetryWhenFree(15)
+        self._crosshair_retry = _RetryWhenFree(15)
+        self._polygon_retry = _RetryWhenFree(10)
+        self._clear_retry = {
+            name: _RetryWhenFree(10) for name in ("rubber", "crosshair", "polygon")
+        }
 
     def handle_press(self, x: float, y: float, mode: str, alt_cycle: bool = False):
         """Handle mouse press event.
@@ -231,19 +260,11 @@ class GateDrawingFSM:
         """
 
         def _on_busy() -> None:
-            self._pending_edit_args = (x, y)
-            if not getattr(self, "_edit_timer_active", False):
-                self._edit_timer_active = True
+            def _retry() -> None:
+                if self.state == DrawingState.EDITING:  # not released or cancelled meanwhile
+                    self._apply_edit_preview(x, y)
 
-                def _retry() -> None:
-                    self._edit_timer_active = False
-                    # The drag may have been released or cancelled meanwhile.
-                    if self.state != DrawingState.EDITING:
-                        return
-                    if hasattr(self, "_pending_edit_args"):
-                        self._apply_edit_preview(*self._pending_edit_args)
-
-                QTimer.singleShot(15, _retry)
+            self._edit_retry.defer(_retry)
 
         def _action() -> None:
             canvas = self.canvas
@@ -281,10 +302,7 @@ class GateDrawingFSM:
                 canvas._gate_overlay_artists[gate.gate_id] = info
                 canvas._gate_artists.extend(canvas._iter_overlay_artists(new_artists))
 
-            if (
-                getattr(canvas, "_use_cache", False)
-                and getattr(canvas, "_canvas_bitmap_cache", None) is not None
-            ):
+            if canvas.has_blit_background:
                 canvas._fig.canvas.restore_region(canvas._canvas_bitmap_cache)  # type: ignore
                 if new_artists:
                     for artist in canvas._iter_overlay_artists(new_artists):
@@ -307,21 +325,12 @@ class GateDrawingFSM:
         self._last_rubber_args = (x0, y0, x1, y1, mode)
 
         def _on_busy() -> None:
-            # Defer the draw if the lock is held, using a single debounced timer
-            self._pending_rubber_args = (x0, y0, x1, y1, mode)
-            if not getattr(self, "_rubber_timer_active", False):
-                self._rubber_timer_active = True
+            def _retry() -> None:
+                # A drag released or cancelled meanwhile would leave a ghost band behind.
+                if self.state == DrawingState.DRAWING:
+                    self._draw_rubber_band(x0, y0, x1, y1, mode)
 
-                def _retry() -> None:
-                    self._rubber_timer_active = False
-                    # The drag may have been released or cancelled meanwhile —
-                    # drawing now would leave a ghost band behind.
-                    if self.state != DrawingState.DRAWING:
-                        return
-                    if hasattr(self, "_pending_rubber_args"):
-                        self._draw_rubber_band(*self._pending_rubber_args)
-
-                QTimer.singleShot(15, _retry)
+            self._rubber_retry.defer(_retry)
 
         def _action() -> None:  # noqa: PLR0915
             ax = self.canvas._ax
@@ -394,10 +403,7 @@ class GateDrawingFSM:
                     self.canvas._fig.stale = False
                     ax.stale = False
 
-                if (
-                    getattr(self.canvas, "_use_cache", False)
-                    and getattr(self.canvas, "_canvas_bitmap_cache", None) is not None
-                ):
+                if self.canvas.has_blit_background:
                     self.canvas._fig.canvas.restore_region(  # type: ignore
                         self.canvas._canvas_bitmap_cache
                     )
@@ -426,14 +432,7 @@ class GateDrawingFSM:
 
     def _clear_rubber_band(self, blit: bool = True):
         def _on_busy() -> None:
-            if not getattr(self, "_clear_rubber_timer_active", False):
-                self._clear_rubber_timer_active = True
-
-                def _retry() -> None:
-                    self._clear_rubber_timer_active = False
-                    self._clear_rubber_band(blit)
-
-                QTimer.singleShot(10, _retry)
+            self._clear_retry["rubber"].defer(lambda: self._clear_rubber_band(blit))
 
         def _action() -> None:
             if self._rubber_band:
@@ -451,10 +450,7 @@ class GateDrawingFSM:
                 self._rubber_band = None
 
                 if blit:
-                    if (
-                        getattr(self.canvas, "_use_cache", False)
-                        and getattr(self.canvas, "_canvas_bitmap_cache", None) is not None
-                    ):
+                    if self.canvas.has_blit_background:
                         self.canvas._fig.canvas.restore_region(  # type: ignore
                             self.canvas._canvas_bitmap_cache
                         )
@@ -469,19 +465,12 @@ class GateDrawingFSM:
         """Live preview of where a Quadrant gate's threshold lines would sit."""
 
         def _on_busy() -> None:
-            self._pending_crosshair_args = (x, y)
-            if not getattr(self, "_crosshair_timer_active", False):
-                self._crosshair_timer_active = True
+            def _retry() -> None:
+                # The tool may have been switched or the gate placed meanwhile.
+                if self.canvas._drawing_mode.value == "quadrant":
+                    self._draw_quadrant_crosshair(x, y)
 
-                def _retry() -> None:
-                    self._crosshair_timer_active = False
-                    # The tool may have been switched or the gate placed meanwhile.
-                    if self.canvas._drawing_mode.value != "quadrant":
-                        return
-                    if hasattr(self, "_pending_crosshair_args"):
-                        self._draw_quadrant_crosshair(*self._pending_crosshair_args)
-
-                QTimer.singleShot(15, _retry)
+            self._crosshair_retry.defer(_retry)
 
         def _action() -> None:
             ax = self.canvas._ax
@@ -530,10 +519,7 @@ class GateDrawingFSM:
                 self.canvas._fig.stale = False
                 ax.stale = False
 
-            if (
-                getattr(self.canvas, "_use_cache", False)
-                and getattr(self.canvas, "_canvas_bitmap_cache", None) is not None
-            ):
+            if self.canvas.has_blit_background:
                 self.canvas._fig.canvas.restore_region(  # type: ignore
                     self.canvas._canvas_bitmap_cache
                 )
@@ -556,14 +542,7 @@ class GateDrawingFSM:
 
     def _clear_quadrant_crosshair(self, blit: bool = True):
         def _on_busy() -> None:
-            if not getattr(self, "_clear_crosshair_timer_active", False):
-                self._clear_crosshair_timer_active = True
-
-                def _retry() -> None:
-                    self._clear_crosshair_timer_active = False
-                    self._clear_quadrant_crosshair(blit)
-
-                QTimer.singleShot(10, _retry)
+            self._clear_retry["crosshair"].defer(lambda: self._clear_quadrant_crosshair(blit))
 
         def _action() -> None:
             if self._crosshair_artists:
@@ -583,10 +562,7 @@ class GateDrawingFSM:
                 self._crosshair_artists.clear()
 
                 if blit:
-                    if (
-                        getattr(self.canvas, "_use_cache", False)
-                        and getattr(self.canvas, "_canvas_bitmap_cache", None) is not None
-                    ):
+                    if self.canvas.has_blit_background:
                         self.canvas._fig.canvas.restore_region(  # type: ignore
                             self.canvas._canvas_bitmap_cache
                         )
@@ -606,19 +582,11 @@ class GateDrawingFSM:
             pts.append(current_mouse)
 
         def _on_busy() -> None:
-            self._pending_polygon_mouse = current_mouse
-            if not getattr(self, "_polygon_timer_active", False):
-                self._polygon_timer_active = True
+            def _retry() -> None:
+                if self.state == DrawingState.POLYGON:  # not closed or cancelled meanwhile
+                    self._draw_polygon_progress(current_mouse)
 
-                def _retry() -> None:
-                    self._polygon_timer_active = False
-                    # The polygon may have been closed or cancelled meanwhile.
-                    if self.state != DrawingState.POLYGON:
-                        return
-                    if hasattr(self, "_pending_polygon_mouse"):
-                        self._draw_polygon_progress(self._pending_polygon_mouse)
-
-                QTimer.singleShot(10, _retry)
+            self._polygon_retry.defer(_retry)
 
         def _action() -> None:
             ax = self.canvas._ax
@@ -682,10 +650,7 @@ class GateDrawingFSM:
                 self.canvas._fig.stale = False
                 ax.stale = False
 
-            if (
-                getattr(self.canvas, "_use_cache", False)
-                and getattr(self.canvas, "_canvas_bitmap_cache", None) is not None
-            ):
+            if self.canvas.has_blit_background:
                 self.canvas._fig.canvas.restore_region(self.canvas._canvas_bitmap_cache)  # type: ignore
                 for artist in self._polygon_artists:
                     ax.draw_artist(artist)  # type: ignore
@@ -705,14 +670,7 @@ class GateDrawingFSM:
 
     def _clear_polygon_progress(self, blit: bool = True):
         def _on_busy() -> None:
-            if not getattr(self, "_clear_polygon_timer_active", False):
-                self._clear_polygon_timer_active = True
-
-                def _retry() -> None:
-                    self._clear_polygon_timer_active = False
-                    self._clear_polygon_progress(blit)
-
-                QTimer.singleShot(10, _retry)
+            self._clear_retry["polygon"].defer(lambda: self._clear_polygon_progress(blit))
 
         def _action() -> None:
             if self._polygon_artists:
@@ -732,10 +690,7 @@ class GateDrawingFSM:
             self._polygon_artists.clear()
 
             if blit:
-                if (
-                    getattr(self.canvas, "_use_cache", False)
-                    and getattr(self.canvas, "_canvas_bitmap_cache", None) is not None
-                ):
+                if self.canvas.has_blit_background:
                     self.canvas._fig.canvas.restore_region(  # type: ignore
                         self.canvas._canvas_bitmap_cache
                     )

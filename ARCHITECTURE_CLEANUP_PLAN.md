@@ -328,7 +328,7 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       `statistics_explorer`, `cluster_results_panel`, `cluster_map_view`,
       `compensation_preview`.
 
-## B8. Composition root and typing
+## B8. Composition root and typing — done
 
 - [x] Replace the string-keyed `ServiceFactory.get("…") -> Any` (20 call sites) with a frozen
       dataclass of typed services. `build_services()` returns `FlowServices`; the panel keeps it
@@ -367,8 +367,16 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       numba…). The 60 left are real cycles, so they stay counted, not hidden: gates ↔
       `GateNode` (`analysis/gating`), `analysis/state` ↔ `workspace_document`, and the graph
       window / canvas layers ↔ the workspace builder. They go with B7's splits.
-- [ ] Initialise in `__init__` the attributes behind the 142 `getattr`/`hasattr(self, …)` reads
-      (KS343: 136).
+- [x] Initialise in `__init__` the attributes behind the 142 `getattr`/`hasattr(self, …)` reads
+      (KS343: 136). KS343 went 121 → 12. Each attribute got a real default (or `None` where it
+      is built later) and a direct read. Some probes guarded nothing and went with their dead
+      code: widgets never assigned (`_seed_spin`, `_cluster_panel`, `_detector_list`,
+      `_run_name_edit`, `_startup_stats_cb`), `FlowCanvas._dirty`, which nothing sets, and
+      re-theme calls on SDK widgets that theme themselves. The FSM's seven copies of a
+      busy-retry throttle became one `_RetryWhenFree`. The 12 left are main_panel's Phase 2
+      widgets (`_graph_manager`, `_sample_list`…), which the builder attaches later; making
+      them Optional would put a `None` check before 50+ uses, so they go with B7's main_panel
+      split.
 
 ## B9b. Tests and CI, the rest
 

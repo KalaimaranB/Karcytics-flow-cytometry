@@ -24,9 +24,10 @@ logger = get_logger(__name__, "flow_cytometry")
 class LoggingValidator(IValidator):
     """Base validator that provides stateful logging to avoid spam during polling."""
 
+    _last_log_reason = ""
+
     def log_failure(self, reason: str) -> bool:
-        last_reason = getattr(self, "_last_log_reason", "")
-        if reason != last_reason:
+        if reason != self._last_log_reason:
             logger.info("%s: %s", self.__class__.__name__, reason)
             self._last_log_reason = reason
         return False

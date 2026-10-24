@@ -55,6 +55,7 @@ class SampleViewWidget(QWidget):
 
     def __init__(self, state, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._tree_width = 0.0  # laid-out tree width, set by each layout
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_context_menu)
         self._state = state
@@ -138,7 +139,7 @@ class SampleViewWidget(QWidget):
         # of the available widget width.  NodeTreeEngine produces 0-based coords
         # (leftmost node left-edge = 0), so we simply shift right by half the
         # remaining space.
-        tree_w = getattr(self, "_tree_width", 0.0)
+        tree_w = self._tree_width
         unscaled_width = self.width() / self._scale
         x_offset = max(0.0, (unscaled_width - tree_w) / 2.0)
 
@@ -253,7 +254,7 @@ class SampleViewWidget(QWidget):
     # ── Mouse events ──────────────────────────────────────────────────
 
     def _rect_at(self, pos: QPoint) -> TreeNodeRect | None:
-        tree_w = getattr(self, "_tree_width", 0.0)
+        tree_w = self._tree_width
         unscaled_width = self.width() / self._scale
         x_offset = max(0.0, (unscaled_width - tree_w) / 2.0)
 
@@ -285,7 +286,7 @@ class SampleViewWidget(QWidget):
         self.set_scale(self._scale / 1.15)
 
     def fit_view(self) -> None:
-        tree_w = getattr(self, "_tree_width", 0.0)
+        tree_w = self._tree_width
         tree_h = max((r.y + r.height / 2 for r in self._rects), default=200.0)
 
         scroll_area = self.parentWidget()

@@ -203,7 +203,7 @@ class GateShapeValidator(FlowValidator):
             # (main_panel_controller) already knows exactly which
             # freshly-drawn node failed shape validation — trust it over
             # re-deriving the same answer below.
-            if getattr(self, "explicit_failed_node_id", None):
+            if self.explicit_failed_node_id:
                 self.last_failed_node_id = self.explicit_failed_node_id
                 self.explicit_failed_node_id = None
                 return self.log_failure("Freshly drawn gate failed shape validation.")

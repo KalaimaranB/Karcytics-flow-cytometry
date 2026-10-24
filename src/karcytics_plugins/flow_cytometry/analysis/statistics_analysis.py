@@ -35,7 +35,7 @@ class StatisticsAnalysis(AnalysisBase):
 
         The 'state' here is the FlowState.
         """
-        sample_id = getattr(self, "target_sample_id", None)
+        sample_id = self.target_sample_id
         if not sample_id and state and hasattr(state, "view"):
             sample_id = state.view.current_sample_id
 

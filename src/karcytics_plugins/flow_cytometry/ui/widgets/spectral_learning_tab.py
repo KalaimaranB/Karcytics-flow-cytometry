@@ -137,6 +137,8 @@ class SpectralLearningTab(QWidget):
         # pile up click after click)
         self._slide1_filter_done = False
         self._slide1_pair_done = False
+        self._slide1_markers: dict = {}  # built with slide 1
+        self._filter_center = 575.0  # nm: mid-wavelength, clear of the plot edge
         self._slide1_wrong_hint: str | None = None
 
         # Slide 2 (unstained control) predict-first micro-question
@@ -466,12 +468,8 @@ class SpectralLearningTab(QWidget):
         return target_peak_x
 
     def _slide1_render_filter(self, phase_a_done: bool, target_peak_x: float) -> None:
-        init_val = getattr(self, "_filter_center", None)
-        # Default to mid-wavelength (575 nm) so the filter is visually centred
-        # and clearly separate from the plot edge on first load.
-        if init_val is None or not phase_a_done:
-            init_val = 575.0
-        self._filter_center = init_val if not phase_a_done else target_peak_x
+        # Until phase A is done the filter starts mid-wavelength, clear of the plot edge.
+        self._filter_center = target_peak_x if phase_a_done else 575.0
         self._filter_width = 30
         fc = "#3fb950" if phase_a_done else "#8b949e"
         self._filter_patch = patches.Rectangle(
@@ -1242,7 +1240,7 @@ class SpectralLearningTab(QWidget):
             if abs(event.xdata - self._filter_center) < self._filter_width:
                 self._drag_state = "filter"
             return
-        if self._slide1_pair_done or not hasattr(self, "_slide1_markers"):
+        if self._slide1_pair_done or not self._slide1_markers:
             return
 
         # Every marker sits at the same x (the detector band's center) by

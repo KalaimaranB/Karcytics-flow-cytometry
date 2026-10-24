@@ -81,6 +81,7 @@ class PopulationAnalysisViewer(QWidget):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
+        self._last_prep_data: Any = None  # the UMAP run's animation frames, once prepared
         self._state = state
         self._umap_service = umap_service
         self._gate_coordinator = gate_coordinator
@@ -599,57 +600,21 @@ class PopulationAnalysisViewer(QWidget):
             #placeholder_panel {{ background-color: {Colors.BG_DARKEST}; border-radius: 8px; }}
         """)
 
-        # Re-theme all dropdowns and inputs
-        for combo in (
-            getattr(self, "_algo_combo", None),
-            getattr(self, "_sample_combo", None),
-            getattr(self, "_gate_combo", None),
-            getattr(self, "_metric_combo", None),
-            getattr(self, "_history_combo", None),
-            getattr(self, "_n_events_combo", None),
-        ):
-            if combo and hasattr(combo, "_apply_theme_styles"):
-                combo._apply_theme_styles()
-
         fg_color = QColor(Colors.FG_PRIMARY)
 
-        if hasattr(self, "_channel_list"):
-            self._channel_list.setStyleSheet(
-                f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"
-                f" border-radius: 4px; color: {Colors.FG_PRIMARY}; }}"
-                f"QListWidget::item {{ color: {Colors.FG_PRIMARY}; padding: 2px 4px; }}"
-                f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; color: {Colors.FG_PRIMARY}; }}"
-                f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY}; }}"
-            )
-            for i in range(self._channel_list.count()):
-                item = self._channel_list.item(i)
-                if item:
-                    item.setForeground(fg_color)
+        self._channel_list.setStyleSheet(
+            f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"
+            f" border-radius: 4px; color: {Colors.FG_PRIMARY}; }}"
+            f"QListWidget::item {{ color: {Colors.FG_PRIMARY}; padding: 2px 4px; }}"
+            f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; color: {Colors.FG_PRIMARY}; }}"
+            f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY}; }}"
+        )
+        for i in range(self._channel_list.count()):
+            item = self._channel_list.item(i)
+            if item:
+                item.setForeground(fg_color)
 
-        for line_edit in (
-            getattr(self, "_run_name_input", None),
-            getattr(self, "_run_name_edit", None),
-        ):
-            if line_edit:
-                if hasattr(line_edit, "_apply_theme_styles"):
-                    line_edit._apply_theme_styles()
-                else:
-                    line_edit.setStyleSheet(
-                        f"QLineEdit {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-                        f" border: 1px solid {Colors.BORDER}; border-radius: 4px; padding: 4px 8px; }}"
-                    )
-
-        if hasattr(self, "_seed_spin"):
-            if hasattr(self._seed_spin, "_apply_theme_styles"):
-                self._seed_spin._apply_theme_styles()
-            else:
-                self._seed_spin.setStyleSheet(
-                    f"QSpinBox {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY};"
-                    f" border: 1px solid {Colors.BORDER}; border-radius: 4px; padding: 4px 8px; }}"
-                )
-
-        if hasattr(self, "_placeholder_lbl"):
-            self._placeholder_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 14px;")
+        self._placeholder_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 14px;")
 
         self._status_lbl.setStyleSheet(
             f"color: {Colors.FG_SECONDARY}; font-size: 12px; font-weight: bold;"
@@ -662,8 +627,7 @@ class PopulationAnalysisViewer(QWidget):
         self._min_dist_val_lbl.setStyleSheet(
             f"color: {Colors.DNA_PRIMARY}; font-weight: bold; font-size: 11px;"
         )
-        if hasattr(self, "_n_events_title_lbl"):
-            self._n_events_title_lbl.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-size: 11px;")
+        self._n_events_title_lbl.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-size: 11px;")
 
         self._progress_bar.setStyleSheet(f"""
             QProgressBar {{
@@ -701,10 +665,6 @@ class PopulationAnalysisViewer(QWidget):
 
         if hasattr(self._animator, "_apply_theme_styles"):
             self._animator._apply_theme_styles()
-
-        if hasattr(self, "_cluster_panel") and self._cluster_panel:
-            if hasattr(self._cluster_panel, "_apply_theme_styles"):
-                self._cluster_panel._apply_theme_styles()
 
     def _on_hdbscan_toggled(self, checked: bool) -> None:
         # Read-only (history) mode reverts clicks: the box stays enabled because
@@ -1364,11 +1324,7 @@ class PopulationAnalysisViewer(QWidget):
             if isinstance(embedding, list):
                 embedding = np.array(embedding)
 
-            if (
-                hasattr(self, "_last_prep_data")
-                and self._last_prep_data
-                and self._last_prep_data.final_2d is not None
-            ):
+            if self._last_prep_data and self._last_prep_data.final_2d is not None:
                 import scipy.linalg  # karcytics: allow KS360 - heavy library
 
                 n_sub = len(self._last_prep_data.final_2d)
@@ -1484,7 +1440,7 @@ class PopulationAnalysisViewer(QWidget):
 
     def _play_animation(self) -> None:
         self._is_animation_playing = True
-        if not hasattr(self, "_last_prep_data") or not self._last_prep_data:
+        if not self._last_prep_data:
             return
         if hasattr(self._animator, "_anim_frame_counter"):
             self._animator._anim_frame_counter = 0

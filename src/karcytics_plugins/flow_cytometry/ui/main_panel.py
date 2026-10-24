@@ -18,7 +18,6 @@ from __future__ import annotations
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
-from karcytics_sdk.plugin import CentralEventBus as _CentralEventBus
 from karcytics_sdk.plugin.dialogs import show_error, show_warning
 from karcytics_sdk.plugin.runtime_services import (
     KarcyticsEvent,
@@ -152,6 +151,20 @@ class FlowCytometryPanel(PluginBase):
         # ── State ─────────────────────────────────────────────────────
         self.state = FlowState()
         self._propagation_active = True  # matches PropagationToggle default (ON)
+        # The open workflow document (WorkspaceIOHandler and the Academy write these).
+        self._current_workflow_filename: str | None = None
+        self._current_workflow_metadata: dict[str, Any] | None = None
+        self._current_workflow_path: str | None = None
+        self._loading = False  # a save or load is running
+        # Startup: a workflow PluginLoaderManager hands over before Phase 2 finishes.
+        self._deferred_workflow_payload: dict[str, Any] | None = None
+        self._deferred_workflow_filename: str | None = None
+        self._deferred_workflow_metadata: dict[str, Any] | None = None
+        self._data_ready_emitted = False
+        self._awaiting_data_ready = False
+        self._themed_palette: Any = None
+        self._history_recorder: Any = None  # MainPanelController.wire builds it
+        self._workflow_autosave_controller: Any = None  # end of _setup_services
 
         # ── Services ──────────────────────────────────────────────────
         logger.debug("[phase1] FlowCytometryPanel.__init__: _setup_services start")
@@ -206,7 +219,7 @@ class FlowCytometryPanel(PluginBase):
         # it's unsaved otherwise. Also contributes this panel's "Workspace"
         # preferences page automatically (see PluginBase.populate_preferences).
         self._workflow_autosave_controller = self.setup_workflow_autosave(
-            has_saved_once=lambda: bool(getattr(self, "_current_workflow_filename", None)),
+            has_saved_once=lambda: bool(self._current_workflow_filename),
             save=self.services.workspace_io_handler.handle_autosave,
             has_unsaved_changes=lambda: self.services.store.is_dirty,
         )
@@ -267,17 +280,14 @@ class FlowCytometryPanel(PluginBase):
         ``FlowStore.is_dirty``); also safe to call to re-sync the button.
         """
         if hasattr(self, "_btn_smart_save"):
-            has_wf = bool(
-                getattr(self, "_current_workflow_filename", None)
-                or getattr(self, "_current_workflow_path", None)
-            )
+            has_wf = bool(self._current_workflow_filename or self._current_workflow_path)
             self._btn_smart_save.set_workflow_active(has_wf)
             self._btn_smart_save.set_dirty(dirty)
         # Every point that clears the dirty flag is a point the workspace is
         # known to be in sync with disk (a manual save/update/load, or this
         # controller's own autosave) — restart the 15-minute countdown from
         # here rather than from whenever the plugin happened to start.
-        if not dirty and hasattr(self, "_workflow_autosave_controller"):
+        if not dirty and self._workflow_autosave_controller is not None:
             self._workflow_autosave_controller.notify_saved()
 
     # ── UI Construction ───────────────────────────────────────────────
@@ -472,14 +482,10 @@ class FlowCytometryPanel(PluginBase):
         logger.debug("[phase2] finalize: done")
 
         # ── Deferred workflow injection (set up by PluginLoaderManager) ──────
-        _has_deferred = (
-            hasattr(self, "_deferred_workflow_payload")
-            and self._deferred_workflow_payload is not None  # type: ignore
-        )
-
+        _payload = self._deferred_workflow_payload
         self._data_ready_emitted = False
 
-        if _has_deferred:
+        if _payload is not None:
             self._awaiting_data_ready = True
             self._pending_prop_completions = 0
             # Safety: force crossfade after 45 s (covers Numba JIT cold-start)
@@ -491,9 +497,8 @@ class FlowCytometryPanel(PluginBase):
 
             # Stash payload and defer load_workflow by one tick so the loader message
             # has a chance to render before we freeze on reload_fcs_data I/O.
-            _payload = self._deferred_workflow_payload  # type: ignore
-            _filename = getattr(self, "_deferred_workflow_filename", None)
-            _metadata = getattr(self, "_deferred_workflow_metadata", None)
+            _filename = self._deferred_workflow_filename
+            _metadata = self._deferred_workflow_metadata
             self._deferred_workflow_payload = None
             self._deferred_workflow_filename = None
             self._deferred_workflow_metadata = None
@@ -508,7 +513,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _emit_data_ready_once(self) -> None:
         """Emit data_ready exactly once regardless of how many callers invoke this."""
-        if not getattr(self, "_data_ready_emitted", False):
+        if not self._data_ready_emitted:
             self.logger.info("--> [FlowCytometryPanel] Emitting data_ready signal NOW!")
             self._data_ready_emitted = True
             self.data_ready.emit()
@@ -523,7 +528,7 @@ class FlowCytometryPanel(PluginBase):
         than silently crossfading into a workspace with missing samples and
         gates showing 0 events, warn the user before doing so.
         """
-        if getattr(self, "_awaiting_data_ready", False):
+        if self._awaiting_data_ready:
             self.logger.error(
                 "FCS reload did not complete within 45s — forcing UI to show anyway. "
                 "Samples/gates may display as empty or 0 events until the load finishes."
@@ -578,7 +583,7 @@ class FlowCytometryPanel(PluginBase):
                     )
                     return
                 # Check if the loaded workflow's hash matches the prerequisite
-                current_wf = getattr(self, "_current_workflow_filename", None)
+                current_wf = self._current_workflow_filename
                 if not current_wf:
                     show_error(
                         self,
@@ -617,7 +622,7 @@ class FlowCytometryPanel(PluginBase):
             Colors.ACCENT_PRIMARY,
             Colors.BORDER,
         )
-        if palette == getattr(self, "_themed_palette", None):
+        if palette == self._themed_palette:
             return
         self._themed_palette = palette
         # 1. Base Panel
@@ -838,7 +843,7 @@ class FlowCytometryPanel(PluginBase):
         scope: str
         group_id: str | None
         if force_silent:
-            scope = "group" if getattr(self, "_propagation_active", True) else "sample"
+            scope = "group" if self._propagation_active else "sample"
             group_id = getattr(self.state.view, "active_group_filter", "__all__")
             if group_id != "__all__" and sample.group_ids and group_id not in sample.group_ids:
                 group_id = sample.group_ids[0]
@@ -1192,14 +1197,6 @@ class FlowCytometryPanel(PluginBase):
         except (KeyError, ValueError, AttributeError) as e:
             self.logger.warning(f"Failed to unsubscribe from event bus: {e}")
 
-        # Cancel the startup stats subscription if it was never consumed
-        if hasattr(self, "_startup_stats_cb"):
-            try:
-                _CentralEventBus.unsubscribe(events.ALL_STATS_UPDATED, self._startup_stats_cb)
-            except Exception:
-                pass
-            del self._startup_stats_cb
-
         # 1. Stop background timers/workers via Coordinator
         self.services.gate_coordinator.cleanup()
 
@@ -1249,7 +1246,7 @@ class FlowCytometryPanel(PluginBase):
     def _undo_blocked_reason(self) -> str | None:
         if self._workflow_loading:
             return "a workflow is loading"
-        if getattr(self, "_loading", False):
+        if self._loading:
             return "the workspace is being saved"
         return None
 
@@ -1270,7 +1267,7 @@ class FlowCytometryPanel(PluginBase):
             self._graph_manager.cancel_active_drawing()
         # A step still waiting for the end of this event-loop turn, or a
         # change nothing announced, must be its own step before we move.
-        if getattr(self, "_history_recorder", None) is not None:
+        if self._history_recorder is not None:
             self._history_recorder.flush()
         self.services.store.record_unannounced_changes()
 
@@ -1297,7 +1294,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _begin_save(self) -> Any:
         """Call right before a save starts; hand the token to ``_finish_save``."""
-        if getattr(self, "_history_recorder", None) is not None:
+        if self._history_recorder is not None:
             self._history_recorder.flush()
         return self.services.store.begin_save()
 
@@ -1329,7 +1326,7 @@ class FlowCytometryPanel(PluginBase):
         save is cancelled or fails, the next close asks again.
         """
         if self._close_after_save:
-            if getattr(self, "_loading", False):
+            if self._loading:
                 return False  # the save-then-close is still writing
             self._close_after_save = False  # it was cancelled or failed
         academy_decision = self._academy.confirm_close()
@@ -1347,11 +1344,11 @@ class FlowCytometryPanel(PluginBase):
             return True
         if choice == Btn.Save:
             self._close_after_save = True
-            if getattr(self, "_current_workflow_filename", None):
+            if self._current_workflow_filename:
                 self._handle_update()
             else:
                 self._handle_save()
-            if not getattr(self, "_loading", False):
+            if not self._loading:
                 self._close_after_save = False  # no save started (dialog cancelled)
         return False
 
@@ -1486,7 +1483,7 @@ class FlowCytometryPanel(PluginBase):
                 self.status_message.emit("Workflow loaded successfully.")
 
             # 3. Workspace state and canvas paint events ready — emit data_ready
-            if getattr(self, "_awaiting_data_ready", False):
+            if self._awaiting_data_ready:
                 self._awaiting_data_ready = False
                 self.logger.info("--> [_on_fcs_done] Scheduling data_ready.emit in 300ms...")
                 QTimer.singleShot(300, self._emit_data_ready_once)
@@ -1508,7 +1505,7 @@ class FlowCytometryPanel(PluginBase):
         # Flush first: a step still pending from before the load must land
         # in the old history (which the load then discards), not be dropped
         # by the pause below and then misattributed later.
-        if getattr(self, "_history_recorder", None) is not None:
+        if self._history_recorder is not None:
             self._history_recorder.flush()
         if not self._workflow_loading:
             self._workflow_loading = True

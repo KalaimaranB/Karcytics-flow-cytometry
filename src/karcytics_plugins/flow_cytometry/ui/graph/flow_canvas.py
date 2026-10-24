@@ -150,6 +150,13 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._fig = Figure(figsize=(6, 5), dpi=100)
         self._fig.set_facecolor(_PLOT_BG)
         super().__init__(self._fig, crash_reporter=crash_reporter, plugin_id="flow_cytometry")
+        # First, so a resize or status message during the rest of __init__ has somewhere to go.
+        from .canvas.overlay_manager import OverlayManager
+
+        self._overlay_manager = OverlayManager(self)
+        self._batch_update = False  # set_batch_update: hold redraws until the batch ends
+        self._current_tutorial_step: Any | None = None
+        self._guide_patches: list[Any] = []  # the tutorial step's guide shapes
         self.setObjectName("FlowCanvas")
         self.setStyleSheet(f"background-color: {_PLOT_BG};")
 
@@ -189,7 +196,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._guide_poly_patch: Any | None = None
 
         # ── Service instances (SOLID: Separation of concerns) ────────────
-        # These services decouple rendering, drawing, and gate creation logic
         self._coordinate_mapper = CoordinateMapper(self._x_scale, self._y_scale)
         self._gate_factory = GateFactory(
             self._x_param,
@@ -202,8 +208,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._gate_editor = GateEditor(self._coordinate_mapper)
 
         # ── Cached background bitmap ──────────────────────────────────
-        # The expensive scatter data is rendered once and cached.
-        # Gate overlays are drawn on top without re-rendering scatter.
+        # The scatter is rendered once; gate overlays are blitted over it.
         self._canvas_bitmap_cache = None  # Matplotlib canvas background bitmap for fast redraw
         self._gate_overlay_artists: dict = {}  # gate_id → OverlayArtists
         self._gate_artists: list = []  # matplotlib patches/lines for all gates
@@ -211,7 +216,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # ── Gate drawing state machine ────────────────────────────────
         self._drawing_mode = GateDrawingMode.NONE
 
-        # Gate Drawing FSM (Manages state, previews, and instructions)
         from .gate_drawing_fsm import GateDrawingFSM
 
         self._fsm = GateDrawingFSM(self)
@@ -233,10 +237,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
         from ...analysis import events
 
-        # Stored as bound attributes (not inline lambdas) so _cleanup_events
-        # can unsubscribe the exact same callable later — CentralEventBus
-        # matches subscribers by identity, so an anonymous lambda passed
-        # straight to subscribe() can never be removed again.
+        # Bound attributes, not lambdas: CentralEventBus unsubscribes by identity,
+        # so _cleanup_events must pass the very same callable.
         self._cb_gate_modified = lambda p: self._on_controller_geometry_changed(
             p.get("sample_id", ""), p.get("gate_id", "")
         )
@@ -274,13 +276,10 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._cid_draw = self.mpl_connect("draw_event", self._on_draw)
 
         # ── Decomposed components ─────────────────────────────────────
-        from .canvas.overlay_manager import OverlayManager
         from .canvas.zoom_handler import ZoomHandler
 
-        self._overlay_manager = OverlayManager(self)
         self._zoom_handler = ZoomHandler(self)
 
-        # ── Decomposed components ─────────────────────────────────────
         self.set_compute_stage(FlowDataComputeStage())
         self.set_rasterize_stage(FlowDataRasterizeStage(self))
         self.data_layer_finished.connect(self._on_data_layer_finished)
@@ -295,8 +294,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh canvas when theme changes."""
-        if hasattr(self, "draw_idle"):
-            self.draw_idle()
+        self.draw_idle()
 
     def mouseDoubleClickEvent(self, event) -> None:
         """Intercept double clicks to prevent macOS fullscreen tearing.
@@ -308,11 +306,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """
         super().mouseDoubleClickEvent(event)
         event.accept()
-
-    def showEvent(self, event) -> None:  # noqa: N802
-        super().showEvent(event)
-        if getattr(self, "_dirty", False):
-            self.redraw()
 
     def set_guide_polygon(self, vertices: list[tuple[float, float]] | None) -> None:
         """Draws a faint dark purple dotted polygon to guide tutorial users."""
@@ -343,9 +336,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def set_tutorial_guide(self, step: Any | None) -> None:
         """Sets the active tutorial step, applies transforms to data bounds, and draws guides."""
         self._current_tutorial_step = step
-
-        if not hasattr(self, "_guide_patches"):
-            self._guide_patches: list[Any] = []
 
         # Clean up old patches
         for patch in self._guide_patches:
@@ -511,8 +501,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Keep the loading overlay centered over the canvas."""
         super().resizeEvent(event)
         logger.info(f"FlowCanvas resized: {self.width()}x{self.height()}")
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.resize_loading(self.width(), self.height())
+        self._overlay_manager.resize_loading(self.width(), self.height())
 
     # ── coordinate mapping ────────────────────────────────────────────
 
@@ -724,7 +713,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def redraw(self) -> None:
         """Full redraw: render data layer (expensive) + gate layer (cheap)."""
-        if getattr(self, "_batch_update", False):
+        if self._batch_update:
             return
 
         # If the canvas is 0x0, defer the redraw until it has a size.
@@ -735,7 +724,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             return
 
         # Removed isVisible guard to ensure rendering even if Qt state is delayed
-        self._dirty = False
         logger.info(
             "Canvas redraw triggered: data_size=%s, x=%s, y=%s, size=(%d, %d)",
             len(self._current_data) if self._current_data is not None else "None",
@@ -782,7 +770,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._hide_loading()
         self._gate_renderer.render()
         # Re-apply tutorial guides if they exist, because ax.clear() wiped them out
-        step = getattr(self, "_current_tutorial_step", None)
+        step = self._current_tutorial_step
         if step is not None:
             # Re-draw the shapes without calling set_tutorial_guide again to avoid infinite recursion
             # or we can just call self._draw_tutorial_shapes but we need the kwargs.
@@ -808,9 +796,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def set_loading_text(self, text: str) -> None:
         """What the pill over the plot says while it renders ("Rendering…")."""
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.show_loading(text)
-            self._overlay_manager.hide_loading()
+        self._overlay_manager.show_loading(text)
+        self._overlay_manager.hide_loading()
 
     def set_loading(self, on: bool) -> None:
         """Show or hide the loading pill, e.g. while a resize waits its turn."""
@@ -818,13 +805,11 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _show_loading(self) -> None:
         """Show the loading overlay, keeping it on top."""
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.show_loading()
+        self._overlay_manager.show_loading()
 
     def _hide_loading(self) -> None:
         """Hide the loading overlay."""
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.hide_loading()
+        self._overlay_manager.hide_loading()
 
     def _render_data_layer(self) -> None:
         """Trigger an (async) render of the expensive scatter/histogram data.
@@ -852,12 +837,17 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         if getattr(event, "key", None) in ("f", "F"):
             self._auto_range_axes()
 
+    @property
+    def has_blit_background(self) -> bool:
+        """A cached plot background is ready to blit previews over."""
+        return self._use_cache and self._canvas_bitmap_cache is not None
+
     def _on_draw(self, event) -> None:
         """Called by Matplotlib when a full draw is completed."""
-        if getattr(self, "_use_cache", False):
+        if self._use_cache:
             # Only cache if there are no gate artists on the axes. Otherwise, gates get baked in
             # and drawn repeatedly during fast UI updates (stacked rendering).
-            if not getattr(self, "_gate_artists", []):
+            if not self._gate_artists:
                 self._canvas_bitmap_cache = self._fig.canvas.copy_from_bbox(self._ax.bbox)  # type: ignore
         # After the cache capture, so the preview is never baked into it.
         self._fsm.paint_preview()
@@ -1170,26 +1160,21 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         AxisFormatter(self).apply_formatting()
 
     def _show_instruction(self, mode: GateDrawingMode) -> None:
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.show_instruction(mode)
+        self._overlay_manager.show_instruction(mode)
 
     def _update_instruction(self, text: str) -> None:
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.update_instruction(text)
+        self._overlay_manager.update_instruction(text)
 
     def _hide_instruction(self) -> None:
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.hide_instruction()
+        self._overlay_manager.hide_instruction()
 
     # ── Internal helpers ──────────────────────────────────────────────
 
     def _show_empty(self) -> None:
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.show_empty()
+        self._overlay_manager.show_empty()
 
     def _show_error(self, msg: str) -> None:
-        if hasattr(self, "_overlay_manager"):
-            self._overlay_manager.show_error(msg)
+        self._overlay_manager.show_error(msg)
 
     # ── Context Menu ──────────────────────────────────────────────────
 

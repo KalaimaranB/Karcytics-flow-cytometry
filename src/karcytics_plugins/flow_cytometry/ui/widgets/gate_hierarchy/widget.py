@@ -68,6 +68,7 @@ class GateHierarchy(QWidget):
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._popup: AllSamplesPopup | None = None
         self.setObjectName("GatingHierarchyView")
         self._state = state
         self._active_sample_id: str | None = None
@@ -326,7 +327,7 @@ class GateHierarchy(QWidget):
         # stay open while the rest of the app is used) — re-clicking the
         # trigger while one is already open must close it explicitly instead
         # of leaving an orphaned instance behind.
-        existing = getattr(self, "_popup", None)
+        existing = self._popup
         if existing is not None:
             existing.hide()
             existing.deleteLater()
@@ -335,7 +336,8 @@ class GateHierarchy(QWidget):
         self._popup.show_near(self._btn_all_samples, self._state, sid)
 
     def _on_popup_sample_selected(self, sample_id: str) -> None:
-        self._popup.hide()
+        if self._popup is not None:
+            self._popup.hide()
         self.set_active_sample(sample_id)
 
     def _on_node_clicked(self, node_id: str) -> None:

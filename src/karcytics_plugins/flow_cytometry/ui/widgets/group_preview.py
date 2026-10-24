@@ -414,14 +414,14 @@ class PreviewThumbnail(QFrame):
 
     def _on_global_task_finished(self, tid: str, results: dict) -> None:
         try:
-            if str(tid) == str(getattr(self, "_current_task_id", None)):
+            if str(tid) == str(self._current_task_id):
                 self._on_render_done(results)
         except RuntimeError:
             pass
 
     def _on_global_task_error(self, tid: str, error_msg: str) -> None:
         try:
-            if str(tid) == str(getattr(self, "_current_task_id", None)):
+            if str(tid) == str(self._current_task_id):
                 logger.warning(f"Render error for {self._sample_id}: {error_msg}")
         except RuntimeError:
             pass
