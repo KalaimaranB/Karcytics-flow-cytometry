@@ -423,3 +423,15 @@ def delete_umap_run(
     runs.pop(run_index)
     announce("Delete UMAP Run", publish=publish)
     return True
+
+
+def exported_run(state: FlowState, sample_id: str, node_id: str) -> tuple[str | None, int] | None:
+    """The (gate id, run index) of the run whose clusters were exported as `node_id`."""
+    for key, runs in state.data.umap_results.items():
+        run_sample, _, gate_id = key.partition("::")
+        if run_sample != sample_id:
+            continue
+        for index, run in enumerate(runs):
+            if run.get("exported_node_id") == node_id:
+                return (None if gate_id == "root" else gate_id), index
+    return None

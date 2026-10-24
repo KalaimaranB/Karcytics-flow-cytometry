@@ -379,6 +379,14 @@ class GateHierarchy(QWidget):
 
     # ── Helpers ───────────────────────────────────────────────────────
 
+    @property
+    def active_sample_id(self) -> str | None:
+        return self._active_sample_id
+
+    def show_empty(self) -> None:
+        """Shows the "no sample" placeholder instead of a tree."""
+        self._show_empty(True)
+
     def _show_empty(self, empty: bool) -> None:
         self._scroll.setVisible(not empty)
         self._empty_label.setVisible(empty)

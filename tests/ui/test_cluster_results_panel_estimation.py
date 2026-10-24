@@ -99,6 +99,8 @@ def test_subsampled_run_marks_exported_populations_as_estimated(fake_scheduler, 
     # The container itself is not a reported population — left untouched.
     assert umap_parent.is_estimated is False
     assert umap_parent.scale_factor == 1.0
+    # The run remembers its export, so double-clicking the node reopens it.
+    assert results["exported_node_id"] == umap_parent.node_id
 
 
 @pytest.mark.ui

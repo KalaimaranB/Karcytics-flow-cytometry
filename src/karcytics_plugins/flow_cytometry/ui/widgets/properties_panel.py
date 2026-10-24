@@ -188,7 +188,7 @@ class PropertiesPanel(QWidget):
         layout.addWidget(self._splitter)
 
         # Initial state
-        self._show_empty()
+        self.show_empty()
 
     def _build_view_toggle(self) -> QWidget:
         """The Properties | Histogram switch for the top pane."""
@@ -295,7 +295,7 @@ class PropertiesPanel(QWidget):
 
         sample = self._state.data.experiment.samples.get(sample_id)
         if sample is None:
-            self._show_empty()
+            self.show_empty()
             return
 
         if gate_id:
@@ -312,7 +312,7 @@ class PropertiesPanel(QWidget):
         elif self._current_sample_id:
             self.show_sample_properties(self._current_sample_id, None)
         else:
-            self._show_empty()
+            self.show_empty()
 
     def refresh_gate_stats(self, sample_id: str, node_id: str) -> None:
         """Live-refresh if the currently displayed gate was updated.
@@ -361,7 +361,7 @@ class PropertiesPanel(QWidget):
                 if w:
                     w.deleteLater()
 
-    def _show_empty(self) -> None:
+    def show_empty(self) -> None:
         """Show empty/default state."""
         self._clear_content()
         self._header.setText("Properties")
@@ -594,7 +594,7 @@ class PropertiesPanel(QWidget):
         # correctable" vs. "not" (see dag_evaluator._propagate_estimation)
         # matters most to a scientist reading this panel.
         if node is None or (node.gate is None and not node.is_logic_node):
-            self._show_empty()
+            self.show_empty()
             return
 
         gate = node.gate

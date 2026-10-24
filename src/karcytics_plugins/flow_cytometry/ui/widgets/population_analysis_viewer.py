@@ -835,6 +835,24 @@ class PopulationAnalysisViewer(QWidget):
         if self._state and hasattr(self._state.data, "umap_results"):
             _purify(self._state.data.umap_results)
 
+    def show_run(self, sample_id: str, gate_id: str | None, run_index: int) -> None:
+        """Shows a stored run: picks its sample, gate and history entry, then displays it."""
+
+        def pick(combo, value) -> int:
+            combo.blockSignals(True)
+            index = combo.findData(value)
+            if index >= 0:
+                combo.setCurrentIndex(index)
+            combo.blockSignals(False)
+            return index
+
+        pick(self._sample_combo, sample_id)
+        self._refresh_gates()
+        pick(self._gate_combo, gate_id)
+        self.refresh_history()
+        if (index := pick(self._history_combo, run_index)) >= 0:
+            self._on_history_changed(index)
+
     def refresh_history(self) -> None:
         """Populate the history combo with past runs for current sample and gate."""
         self._purify_state()

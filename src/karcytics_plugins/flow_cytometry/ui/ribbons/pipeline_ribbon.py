@@ -131,6 +131,18 @@ class PipelineRibbon(ThemedToolbarContainer):
             self.logic_node_requested.emit(sample_id, operator)
 
     @property
+    def current_sample_id(self) -> str | None:
+        return self._sample_combo.currentData()
+
+    def select_sample(self, sample_id: str) -> bool:
+        """Picks `sample_id` (its canvas follows); False when it is already shown or absent."""
+        index = self._sample_combo.findData(sample_id)
+        if index < 0 or index == self._sample_combo.currentIndex():
+            return False
+        self._sample_combo.setCurrentIndex(index)
+        return True
+
+    @property
     def orientation_label(self) -> str:
         return self._orientation_combo.currentText()
 

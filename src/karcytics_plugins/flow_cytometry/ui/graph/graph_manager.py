@@ -257,6 +257,10 @@ class GraphManager(QWidget):
             f"Opened graph for {sample.display_name} (population={node_id}), tab_count={self._tabs.count()}"
         )
 
+    def graphs_of(self, sample_id: str) -> list[GraphWindow]:
+        """The open graphs showing `sample_id`."""
+        return [g for g in self._graphs.values() if g.sample_id == sample_id]
+
     def get_open_graph(self, sample_id: str, node_id: str | None = None) -> GraphWindow | None:
         """Return the open :class:`GraphWindow` for a sample/gate, if any.
 

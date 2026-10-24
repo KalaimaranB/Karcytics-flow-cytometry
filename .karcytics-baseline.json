@@ -168,7 +168,7 @@
       "KS302:MainPanelController.wire": 279,
       "KS310": 5,
       "KS341": 1,
-      "KS342": 85
+      "KS342": 62
     },
     "src/karcytics_plugins/flow_cytometry/ui/dialogs/bulk_role_dialog.py": {
       "KS210": 1
@@ -326,14 +326,14 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
-      "KS220": 3,
+      "KS220": 2,
       "KS242": 6,
-      "KS300": 1578,
-      "KS301:FlowCytometryPanel": 75,
+      "KS300": 1192,
+      "KS301:FlowCytometryPanel": 55,
       "KS302:FlowCytometryPanel.load_workflow": 103,
-      "KS310": 3,
-      "KS342": 27,
-      "KS343": 12
+      "KS310": 1,
+      "KS342": 3,
+      "KS343": 11
     },
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/pipeline_ribbon.py": {
       "KS210": 1,
@@ -567,8 +567,8 @@
       "KS210": 1,
       "KS242": 26,
       "KS250": 1,
-      "KS300": 1458,
-      "KS301:PopulationAnalysisViewer": 35,
+      "KS300": 1476,
+      "KS301:PopulationAnalysisViewer": 36,
       "KS302:PopulationAnalysisViewer._apply_theme_styles": 84,
       "KS302:PopulationAnalysisViewer._on_analysis_done": 88,
       "KS302:PopulationAnalysisViewer._setup_ui": 480,

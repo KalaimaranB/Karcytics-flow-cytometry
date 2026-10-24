@@ -15,7 +15,7 @@ own modules under ``ui/widgets/``, ``ui/graph/``, and ``ui/ribbons/``.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
 from karcytics_sdk.plugin.dialogs import show_error, show_warning
@@ -31,7 +31,6 @@ from karcytics_sdk.plugin.workflow import WorkflowContext
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
-    QDialog,
     QInputDialog,
     QMessageBox,
     QSizePolicy,
@@ -47,6 +46,9 @@ from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
 
 from ..analysis.workspace_document import apply_workspace
+
+if TYPE_CHECKING:
+    from .controllers.gating_controller import GatingController
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -150,7 +152,7 @@ class FlowCytometryPanel(PluginBase):
 
         # ── State ─────────────────────────────────────────────────────
         self.state = FlowState()
-        self._propagation_active = True  # matches PropagationToggle default (ON)
+        self._gating: GatingController | None = None  # MainPanelController.wire, Phase 2
         # The open workflow document (WorkspaceIOHandler and the Academy write these).
         self._current_workflow_filename: str | None = None
         self._current_workflow_metadata: dict[str, Any] | None = None
@@ -329,16 +331,9 @@ class FlowCytometryPanel(PluginBase):
 
         if tab is MainTab.PIPELINE:
             # Auto-select the currently active sample if possible
-            if self.state.view.current_sample_id:
-                idx = self._pipeline_ribbon._sample_combo.findData(
-                    self.state.view.current_sample_id
-                )
-                if idx >= 0 and self._pipeline_ribbon._sample_combo.currentIndex() != idx:
-                    # This will trigger _on_combo_changed which calls set_sample implicitly
-                    self._pipeline_ribbon._sample_combo.setCurrentIndex(idx)
-                else:
-                    self._refresh_node_canvas()
-            else:
+            sample_id = self.state.view.current_sample_id
+            # Selecting a sample on the ribbon shows it on the canvas too.
+            if not (sample_id and self._pipeline_ribbon.select_sample(sample_id)):
                 self._refresh_node_canvas()
         elif tab is MainTab.STATISTICS:
             self._statistics_explorer.refresh_samples()
@@ -546,9 +541,31 @@ class FlowCytometryPanel(PluginBase):
     def _wire_signals(self) -> None:
         """Connect internal widget signals to each other and to the Karcytics interface signals."""
         # karcytics: allow KS360 - off the Phase 1 path
+        from ..ui.controllers.gating_controller import GatingController, GatingViews
+
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.controllers.main_panel_controller import MainPanelController
 
-        MainPanelController.wire(self)
+        views = GatingViews(
+            tab_bar=self._tab_bar,
+            graph_manager=self._graph_manager,
+            gate_hierarchy=self._gate_hierarchy,
+            properties_panel=self._properties_panel,
+            sample_list=self._sample_list,
+            node_canvas=self._node_canvas,
+            gating_ribbon=self._gating_ribbon,
+            pipeline_ribbon=self._pipeline_ribbon,
+            population_analysis_viewer=self._population_analysis_viewer,
+        )
+        self._gating = GatingController(
+            self.state,
+            self.services.gate_coordinator,
+            views,
+            dialog_parent=self,
+            status=self.status_message.emit,
+            changed=self.state_changed.emit,
+        )
+        MainPanelController.wire(self, self._gating)
 
         try:
             event_bus.subscribe(KarcyticsEvent.ACADEMY_COURSE_COMPLETED, self._on_course_completed)
@@ -688,420 +705,16 @@ class FlowCytometryPanel(PluginBase):
         except (AttributeError, NameError) as e:
             self.logger.error(f"Failed to clear tutorial state: {e}")
 
-    def _refresh_node_canvas(self, *args, **kwargs) -> None:
-        """Helper to refresh the node canvas if it's currently visible.
+    def _refresh_node_canvas(self) -> None:
+        if self._gating is not None:
+            self._gating.refresh_node_canvas()
 
-        Guards against being called before Phase 2 completes: the CentralEventBus
-        subscriptions are set up in ``_wire_signals`` (Phase 2), but if an event
-        fires in the brief window between Phase 1 and Phase 2 the attribute won't
-        exist yet.  The guard makes this a safe no-op in that case.
-        """
-        if not hasattr(self, "_node_canvas"):
-            return  # Phase 2 not yet complete
-        if self._tab_bar.currentIndex() == MainTab.PIPELINE:
-            sid = self._pipeline_ribbon._sample_combo.currentData()
-            if sid:
-                self._node_canvas.set_sample(sid)
-
-    # ── Gate lifecycle callbacks ──────────────────────────────────────
-
-    def _on_gate_drawn(self, gate, sample_id: str, parent_node_id) -> None:
-        """Handle a gate drawn on the canvas → add to model."""
-        # Get a placeholder name for this gate (e.g., "Gate 1")
-        default_name = self.services.gate_coordinator.unique_name(sample_id)
-
-        if not gate.takes_population_name:
-            # A quadrant gate names its own four leaves; prompting would be
-            # meaningless, and canceling the prompt would lose the gate.
-            name = default_name
-        else:
-            # Prompt the user for the name, pausing the event loop here
-            typed_name, ok = QInputDialog.getText(
-                self, "New Gate", "Enter name for the new gate:", text=default_name
-            )
-
-            if not ok or not typed_name.strip():
-                # Cancelled or blank: no gate, but keep the drawing tool, so a
-                # redraw still draws (resetting it silently made later clicks
-                # select instead, and Academy steps looked stuck).
-                return
-            name = typed_name.strip()
-
-        node_id = self.services.gate_coordinator.add_gate(
-            gate, sample_id, name=name, parent_node_id=parent_node_id
-        )
-        if node_id:
-            # Switch back to select mode after drawing
-            self._gating_ribbon.reset_to_select()
-
-            # AUTO-SELECT the new node so properties are shown immediately
-            self._on_gate_selected(node_id)
-
-            # Navigate into the new gate automatically so the user can keep gating
-            # We defer this via QTimer (150ms) to ensure the double-click event loop finishes
-            # processing first. Otherwise, macOS Native Window handler might misinterpret
-            # the orphaned double-click event and force the app out of full screen.
-            QTimer.singleShot(
-                150,
-                lambda: self._graph_manager.open_graph_for_sample(sample_id, node_id),
-            )
-
-            if self._propagation_active:
-                self.status_message.emit("⟳ Propagating gate to other samples…")
-
-    def _on_gate_added(self, sample_id: str, node_id: str) -> None:
-        """Gate added to model → refresh tree and canvas overlays."""
-        self._refresh_gate_overlays(sample_id)
-        self.state_changed.emit()
-
-        # Ensure the new node is selected
-        self._on_gate_selected(node_id)
-
-    def _on_gates_added(self, sample_id: str, node_ids: list[str]) -> None:
-        """Several gates added in one action (e.g. quadrant gate) → a single
-        refresh/selection instead of one per node.
-        """
-        self._refresh_gate_overlays(sample_id)
-        self.state_changed.emit()
-
-        if node_ids:
-            self._on_gate_selected(node_ids[0])
-
-    def _on_gate_removed(self, sample_id: str, node_id: str) -> None:
-        """Gate removed → refresh tree and canvas."""
-        if node_id == self.state.view.current_gate_id:
-            self.state.view.current_gate_id = None
-            self._properties_panel.refresh()
-        self._refresh_gate_overlays(sample_id)
-        self.state_changed.emit()
-
-    def _on_gate_stats_updated(self, sample_id: str, node_id: str) -> None:
-        """Gate stats changed → update tree badges and properties."""
-        self._gate_hierarchy.update_gate_stats(sample_id, node_id)
-        # Update properties if this node is selected
-        if node_id == self.state.view.current_gate_id:
-            self._properties_panel.refresh()
-        self._refresh_gate_overlays(sample_id)
-
-    def _on_all_stats_updated(self, sample_id: str) -> None:
-        """All stats for a sample updated → bulk refresh."""
-        self._sample_list.update_all_sample_stats(sample_id)
-        self._gate_hierarchy.update_all_sample_stats(sample_id)
-
-    def _on_propagated_sample_updated(self, sample_id: str, stats: dict, new_tree: object) -> None:
-        """A single sample finished propagation → update its tree."""
-        self._sample_list.update_all_sample_stats(sample_id)
-        self._gate_hierarchy.update_all_sample_stats(sample_id)
-        self._refresh_gate_overlays(sample_id)
-
-    def _on_propagation_complete(self, payload: dict | None = None) -> None:
-        """All samples finished propagation.
-
-        `payload` (from GatePropagator, see events.PROPAGATION_COMPLETE) carries
-        succeeded/failed counts — a chain-broken sample (e.g. missing the
-        gated channel) no longer fails silently into a log line only.
-        """
-        payload = payload or {}
-        total = payload.get("total", len(self.state.data.experiment.samples))
-        failed = payload.get("failed", 0)
-        succeeded = payload.get("succeeded", total)
-        if failed:
-            self.status_message.emit(
-                f"⚠ Gate propagated to {succeeded}/{total} samples ({failed} failed)."
-            )
-        else:
-            self.status_message.emit(f"✓ Gate propagation complete ({total} samples updated).")
-        # Refresh the properties panel and preview to show the new propagated gates/stats
-        self._properties_panel.refresh()
-
-    def _on_delete_selected_gate(self, force_silent: bool = False) -> None:
-        """Delete the gate currently selected in the hierarchy."""
-        graph = self._graph_manager.get_active_graph()
-        if graph is None:
-            return
-
-        node_id = self.state.view.current_gate_id
-        if not node_id:
-            self.status_message.emit("No gate selected in hierarchy to delete.")
-            return
-
-        self.delete_gate_with_dialog(graph.sample_id, node_id, force_silent=force_silent)
-
-    def delete_gate_with_dialog(  # noqa: PLR0915
+    def delete_gate_with_dialog(
         self, sample_id: str, node_id: str, force_silent: bool = False
     ) -> None:
-        """Prompt the user and delete a gate and its children."""
-        sample = self.state.data.experiment.samples.get(sample_id)
-        if not sample:
-            return
-
-        selected_node = sample.gate_tree.find_node_by_id(node_id)
-        if not selected_node or not selected_node.gate:
-            self.status_message.emit("Selected node has no gate to delete.")
-            return
-
-        scope: str
-        group_id: str | None
-        if force_silent:
-            scope = "group" if self._propagation_active else "sample"
-            group_id = getattr(self.state.view, "active_group_filter", "__all__")
-            if group_id != "__all__" and sample.group_ids and group_id not in sample.group_ids:
-                group_id = sample.group_ids[0]
-            elif group_id == "__all__" and not sample.group_ids:
-                group_id = "all"
-        else:
-            # Prepare groups for the dialog
-            group_choices = [("all", "All Samples")]
-            for gid in sample.group_ids:
-                grp = self.state.data.experiment.groups.get(gid)
-                if grp:
-                    group_choices.append((gid, grp.name))
-
-            # karcytics: allow KS360 - off the Phase 1 path
-            from .widgets.scope_selection_dialog import ScopeSelectionDialog
-
-            dialog = ScopeSelectionDialog(
-                f"Are you sure you want to delete the gate '<b>{selected_node.name}</b>'?",
-                sample.display_name,
-                group_choices,
-                self,
-                title="Confirm Gate Deletion",
-            )
-            if dialog.exec() != QDialog.DialogCode.Accepted:
-                return
-
-            scope_raw, group_id = dialog.get_scope()
-            scope = scope_raw or "sample"
-
-        physical_gate_id = selected_node.gate.gate_id
-
-        # karcytics: allow KS360 - off the Phase 1 path
-        from ..analysis.scope_resolution import resolve_target_samples
-
-        target_samples = resolve_target_samples(
-            scope, group_id, sample_id, self.state.data.experiment
-        )
-
-        deleted_nodes_by_sample = self.services.gate_coordinator.populations_under_gate(
-            physical_gate_id, target_samples
-        )
-
-        # If the active graph is viewing one of the deleted nodes,
-        # open the parent graph (if any) first.
-        active_graph = self._graph_manager.get_active_graph()
-        if active_graph and active_graph.sample_id in deleted_nodes_by_sample:
-            if active_graph.node_id in deleted_nodes_by_sample[active_graph.sample_id]:
-                parent_node_id = None
-                if selected_node.parents and not selected_node.parents[0].is_root:
-                    parent_node_id = selected_node.parents[0].node_id
-                self._graph_manager.open_graph_for_sample(active_graph.sample_id, parent_node_id)
-
-        removed = self.services.gate_coordinator.delete_gate(physical_gate_id, target_samples)
-
-        if hasattr(self._graph_manager, "close_graphs_for_nodes"):
-            self._graph_manager.close_graphs_for_nodes(removed)
-
-        scope_msg = "this sample" if scope == "sample" else "the group"
-        self.status_message.emit(f"Gate deleted for {scope_msg}.")
-
-    def _on_propagation_mode_changed(self, enabled: bool) -> None:
-        """Handle AUTO-PROPAGATE toggle flip from GateHierarchy."""
-        self._propagation_active = enabled
-        # Actually gate the propagation in the model layer
-        self.services.gate_coordinator.set_propagation_enabled(enabled)
-        if enabled:
-            self.status_message.emit("Auto-propagation ON — gates will propagate on every change.")
-        else:
-            self.status_message.emit(
-                "Auto-propagation OFF — gates stay local until manually applied."
-            )
-
-    def _on_copy_gates(self, sample_id: str) -> None:
-        """Copy gates from a sample to all others in its group."""
-        count = self.services.gate_coordinator.copy_gates_to_group(sample_id)
-        self._gate_hierarchy.refresh()
-        self.state_changed.emit()
-        self.status_message.emit(f"Gates copied to {count} sample{'s' if count != 1 else ''}.")
-
-    def _on_copy_gates_from_active(self) -> None:
-        """Copy gates from the active graph's sample."""
-        graph = self._graph_manager.get_active_graph()
-        if graph:
-            self._on_copy_gates(graph.sample_id)
-
-    def _on_gate_selected_on_canvas(self, gate_id: str | None) -> None:
-        """Gate clicked on canvas → update selection state."""
-        graph = self._graph_manager.get_active_graph()
-        if graph is None:
-            return
-
-        if gate_id:
-            sample = self.state.data.experiment.samples.get(graph.sample_id)
-            if sample:
-                # Map gate_id back to a primary node_id
-                nodes = sample.gate_tree.find_nodes_by_gate(gate_id)
-                if nodes:
-                    self._on_gate_selected(nodes[0].node_id)
-        else:
-            self._on_gate_selected(None)
-
-    def _on_active_graph_changed(self, sample_id: str | None, node_id: str | None) -> None:
-        """When the user switches tabs in the GraphManager."""
-        self.state.view.current_sample_id = sample_id or None
-        self._properties_panel.set_displayed_population(sample_id or None, node_id)
-
-        if sample_id:
-            # Keep the global selected-gate state in sync with whatever tab is actually
-            # visible. Without this, navigating via the parent/child breadcrumb buttons
-            # (which switch tabs without going through GateCoordinator.select_gate) leaves
-            # current_gate_id pointing at a stale population — so a later legitimate
-            # select_gate() call for that same node_id gets silently swallowed by its
-            # dedup guard, and GroupPreviewPanel never learns the population changed.
-            self.services.gate_coordinator.select_gate(sample_id, node_id)
-            self._gate_hierarchy.set_active_sample(sample_id)
-            self._properties_panel.show_sample_properties(sample_id, node_id)
-
-            self._sample_list.blockSignals(True)
-            self._sample_list.select_sample(sample_id)
-            self._sample_list.blockSignals(False)
-        else:
-            self._gate_hierarchy._show_empty(True)
-            self._properties_panel._show_empty()
-            self._sample_list.select_sample(None)
-
-    def _on_sample_selection_changed(self, sample_id: str) -> None:
-        """Sample selection changed in list."""
-        self._gate_hierarchy.set_active_sample(sample_id)
-
-    def _on_gate_selection_changed(self, node_id: str) -> None:
-        """Gate selection changed in tree → update canvas and properties."""
-        self._on_gate_selected(node_id)
-
-    def _on_gate_double_clicked(self, node_id: str) -> None:  # noqa: PLR0912, PLR0915
-        """Gate double clicked → open new graph viewing this population."""
-        sample_id = None
-        if self._tab_bar.currentIndex() == MainTab.PIPELINE:
-            sample_id = self._node_canvas.current_sample_id
-
-        if not sample_id:
-            sample_id = self._gate_hierarchy._active_sample_id or self.state.view.current_sample_id
-
-        if sample_id:
-            sample = self.state.data.experiment.samples.get(sample_id)
-            if sample and sample.gate_tree:
-                node = sample.gate_tree.find_node_by_id(node_id)
-                if node and getattr(node, "is_umap_parent", False):
-                    # Find the run in history
-                    run_idx = None
-                    target_gate_id = None
-                    for k, runs in self.state.data.umap_results.items():
-                        if k.startswith(f"{sample_id}::"):
-                            for i, r in enumerate(runs):
-                                if r.get("exported_node_id") == node.node_id:
-                                    run_idx = i
-                                    target_gate_id = k.split("::")[1]
-                                    if target_gate_id == "root":
-                                        target_gate_id = None
-                                    break
-                            if run_idx is not None:
-                                break
-
-                    if run_idx is not None:
-                        self._tab_bar.setCurrentIndex(MainTab.POPULATION_ANALYSIS)
-                        viewer = self._population_analysis_viewer
-
-                        viewer._sample_combo.blockSignals(True)
-                        idx = viewer._sample_combo.findData(sample_id)
-                        if idx >= 0:
-                            viewer._sample_combo.setCurrentIndex(idx)
-                        viewer._sample_combo.blockSignals(False)
-
-                        viewer._refresh_gates()
-
-                        viewer._gate_combo.blockSignals(True)
-                        idx = viewer._gate_combo.findData(target_gate_id)
-                        if idx >= 0:
-                            viewer._gate_combo.setCurrentIndex(idx)
-                        viewer._gate_combo.blockSignals(False)
-
-                        viewer.refresh_history()
-
-                        viewer._history_combo.blockSignals(True)
-                        idx = viewer._history_combo.findData(run_idx)
-                        if idx >= 0:
-                            viewer._history_combo.setCurrentIndex(idx)
-                        viewer._history_combo.blockSignals(False)
-
-                        if idx >= 0:
-                            viewer._on_history_changed(idx)
-                    return
-
-            # If we are in Pipeline view, switch back to Gating view automatically
-            if self._tab_bar.currentIndex() == MainTab.PIPELINE:
-                self._tab_bar.setCurrentIndex(MainTab.GATING)
-                if self._gate_hierarchy._active_sample_id != sample_id:
-                    self.state.view.current_sample_id = sample_id
-                    self._gate_hierarchy.set_active_sample(sample_id)
-
-            self._graph_manager.open_graph_for_sample(sample_id, node_id)
-
-            # Also select the gate so the properties panel and group preview
-            # update their context to this node. Without this, GroupPreviewPanel
-            # never receives the correct node_id and renders thumbnails with no gates.
-            self.services.gate_coordinator.select_gate(sample_id, node_id)
-
-    def _on_gate_selected(self, node_id: str | None) -> None:
-        """Central selection handler for populations across all UI components."""
-        sample_id = None
-        if self._tab_bar.currentIndex() == MainTab.PIPELINE:
-            sample_id = self._node_canvas.current_sample_id
-
-        if not sample_id:
-            graph = self._graph_manager.get_active_graph()
-            sample_id = graph.sample_id if graph else self._gate_hierarchy._active_sample_id
-
-        if sample_id:
-            self.services.gate_coordinator.select_gate(sample_id, node_id)
-
-    def _on_gate_selected_from_controller(self, sample_id: str, node_id: str | None) -> None:
-        """Global selection update from the model layer."""
-        # Sync tree selection
-        self._gate_hierarchy.refresh()
-
-        # Nothing selected (e.g. a click on empty plot): describe the population the
-        # active plot shows, not All Events, so the properties and Group Preview
-        # still match the main plot.
-        if node_id is None:
-            graph = self._graph_manager.get_active_graph()
-            if graph is not None and graph.sample_id == sample_id:
-                node_id = graph.node_id
-
-        # Update properties panel
-        self._properties_panel.show_sample_properties(sample_id, node_id)
-
-        node_name = "None"
-        if sample_id and node_id:
-            sample = self.state.data.experiment.samples.get(sample_id)
-            if sample and sample.gate_tree:
-                node = sample.gate_tree.find_node_by_id(node_id)
-                if node:
-                    node_name = node.name or node_id
-
-        self.status_message.emit(f"Population selected: {node_name}")
-
-    # ── Helper: refresh gate overlays on canvas ───────────────────────
-
-    def _refresh_gate_overlays(self, sample_id: str) -> None:
-        """Refresh gate overlays on all open graphs for a sample."""
-        # Determine which parent gate each open graph is viewing
-        for graph in self._graph_manager._graphs.values():
-            if graph.sample_id != sample_id:
-                continue
-
-            gates, nodes = self.services.gate_coordinator.get_gates_for_display(
-                sample_id, graph.node_id
-            )
-            graph.refresh_gates(gates, nodes)
+        """Prompt for scope and delete a gate and its children (the Academy calls this)."""
+        if self._gating is not None:
+            self._gating.delete_gate_with_dialog(sample_id, node_id, force_silent)
 
     # ── Existing callbacks ────────────────────────────────────────────
 
@@ -1564,7 +1177,8 @@ class FlowCytometryPanel(PluginBase):
             self.logger.info(
                 f"MainPanel: Restoring gate selection: {self.state.view.current_gate_id}"
             )
-            self._on_gate_selected(self.state.view.current_gate_id)
+            if self._gating is not None:
+                self._gating.select_population(self.state.view.current_gate_id)
 
         # 4. Final refresh for properties and graph
         self._properties_panel.refresh()

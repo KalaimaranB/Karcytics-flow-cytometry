@@ -1211,8 +1211,8 @@ class ClusterResultsPanel(QWidget):
             gate=SubsetGate(indices=[int(x) for x in indices_arr]),
             name=self._method.export_parent,
         )
-        # Flag that this is a UMAP container — pipeline view will skip thumbnail
-        umap_parent.is_umap_parent = True
+        umap_parent.is_umap_parent = True  # a container: the pipeline skips its thumbnail
+        self._results["exported_node_id"] = umap_parent.node_id  # double-click reopens the run
 
         # UMAP only ever clustered a random subsample of the parent population,
         # so every exported cluster population's raw count reads proportionally

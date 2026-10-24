@@ -36,7 +36,7 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
     panel = Mock()
     panel.services.store = FlowStore(state, lambda *_: None)
     panel.services.store.reset()
-    MainPanelController.wire(panel)
+    MainPanelController.wire(panel, Mock())
 
     recorder = panel._history_recorder
     handlers = [h for topic, h in recorder._subscriptions if topic == events.GATE_MODIFIED]

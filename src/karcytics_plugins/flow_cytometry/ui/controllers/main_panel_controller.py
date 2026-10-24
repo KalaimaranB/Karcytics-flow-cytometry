@@ -15,13 +15,14 @@ from ...tutorials.validators.gating import GateShapeValidator
 
 if TYPE_CHECKING:
     from ...ui.main_panel import FlowCytometryPanel
+    from .gating_controller import GatingController
 
 
 class MainPanelController:
     """Manages the signal routing and event bus subscriptions for the Flow Cytometry workspace."""
 
     @staticmethod
-    def wire(panel: FlowCytometryPanel) -> None:  # noqa: PLR0915
+    def wire(panel: FlowCytometryPanel, gating: GatingController) -> None:  # noqa: PLR0915
         """Connect internal widget signals and CentralEventBus subscriptions."""
         panel._subscriptions = []  # type: ignore[attr-defined]
         coordinator = panel.services.gate_coordinator
@@ -45,7 +46,7 @@ class MainPanelController:
 
         # ── Structural change → Node Canvas ───────────────────────────
         def _on_structural_change(_payload):
-            panel._refresh_node_canvas()
+            gating.refresh_node_canvas()
 
         _subscribe(events.GATE_CREATED, _on_structural_change)
         _subscribe(events.LOGIC_NODE_CREATED, _on_structural_change)
@@ -85,7 +86,7 @@ class MainPanelController:
         panel._pipeline_ribbon.sample_selected.connect(panel._node_canvas.set_sample)
         panel._pipeline_ribbon.logic_node_requested.connect(coordinator.add_logic_node)
         panel._pipeline_ribbon.orientation_changed.connect(panel._node_canvas.set_orientation)
-        panel._node_canvas.node_double_clicked.connect(panel._on_gate_double_clicked)
+        panel._node_canvas.node_double_clicked.connect(gating.on_gate_double_clicked)
         panel._node_canvas.node_removed.connect(
             lambda node_id: (
                 coordinator.remove_population(panel._node_canvas.current_sample_id, node_id)
@@ -115,16 +116,16 @@ class MainPanelController:
 
         # ── Gating ribbon → drawing tool selection ────────────────────
         panel._gating_ribbon.tool_selected.connect(panel._graph_manager.set_drawing_mode)
-        panel._gating_ribbon.delete_gate_requested.connect(panel._on_delete_selected_gate)
-        panel._gating_ribbon.copy_gates_requested.connect(panel._on_copy_gates_from_active)
+        panel._gating_ribbon.delete_gate_requested.connect(gating.on_delete_selected_gate)
+        panel._gating_ribbon.copy_gates_requested.connect(gating.on_copy_gates_from_active)
         editor = panel.services.derived_editor
         panel._gating_ribbon.derived_params_requested.connect(lambda: editor.open())
         panel._graph_manager.derived_editor_requested.connect(editor.open_for_axis)
 
         # ── Graph manager → gate controller ───────────────────────────
-        panel._graph_manager.gate_drawn.connect(panel._on_gate_drawn)
-        panel._graph_manager.gate_selection_changed.connect(panel._on_gate_selected_on_canvas)
-        panel._graph_manager.active_graph_changed.connect(panel._on_active_graph_changed)
+        panel._graph_manager.gate_drawn.connect(gating.on_gate_drawn)
+        panel._graph_manager.gate_selection_changed.connect(gating.on_gate_selected_on_canvas)
+        panel._graph_manager.active_graph_changed.connect(gating.on_active_graph_changed)
         panel._graph_manager.tool_change_requested.connect(panel._gating_ribbon.select_tool)
 
         # ── Gate controller → UI updates ──────────────────────────────
@@ -177,7 +178,7 @@ class MainPanelController:
                 _show_invalid_gate_flash()
                 return
 
-            panel._on_gate_added(sample_id, node_id)
+            gating.on_gate_added(sample_id, node_id)
             panel.gate_added_to_tree.emit()
 
         def _handle_gates_created(payload):
@@ -209,7 +210,7 @@ class MainPanelController:
                 _show_invalid_gate_flash()
 
             if valid_node_ids:
-                panel._on_gates_added(sample_id, valid_node_ids)
+                gating.on_gates_added(sample_id, valid_node_ids)
                 # _handle_gate_created (the single-node path) emits this after
                 # _on_gate_added — a quadrant gate always creates 4 nodes at
                 # once via this batched path instead, so without emitting it
@@ -223,32 +224,32 @@ class MainPanelController:
         _subscribe(events.GATES_CREATED, _handle_gates_created)
         _subscribe(
             events.GATE_DELETED,
-            lambda p: panel._on_gate_removed(p.get("sample_id"), p.get("node_id")),
+            lambda p: gating.on_gate_removed(p.get("sample_id"), p.get("node_id")),
         )
         _subscribe(
             events.GATE_SELECTED,
-            lambda p: panel._on_gate_selected_from_controller(p.get("sample_id"), p.get("node_id")),
+            lambda p: gating.on_gate_selected_from_controller(p.get("sample_id"), p.get("node_id")),
         )
 
         def _on_stats_updated(payload):
             sid = payload.get("sample_id")
             nid = payload.get("node_id")
-            panel._on_gate_stats_updated(sid, nid)
-            panel._refresh_node_canvas()
+            gating.on_gate_stats_updated(sid, nid)
+            gating.refresh_node_canvas()
 
         _subscribe(events.GATE_STATS_UPDATED, _on_stats_updated)
 
         def _on_all_stats(payload):
             sid = payload.get("sample_id")
-            panel._on_all_stats_updated(sid)
-            panel._refresh_node_canvas()
+            gating.on_all_stats_updated(sid)
+            gating.refresh_node_canvas()
 
         _subscribe(events.ALL_STATS_UPDATED, _on_all_stats)
 
         # ── Propagator → live UI updates ──────────────────────────────
         _subscribe(
             events.SAMPLE_UPDATED,
-            lambda p: panel._on_propagated_sample_updated(
+            lambda p: gating.on_propagated_sample_updated(
                 p.get("sample_id"), p.get("stats"), p.get("new_tree")
             ),
         )
@@ -272,8 +273,8 @@ class MainPanelController:
                     f"Gate propagation failed for {payload['failed']} sample"
                     f"{'s' if payload['failed'] != 1 else ''}: {shown}"
                 )
-            panel._on_propagation_complete(payload)
-            panel._refresh_node_canvas()
+            gating.on_propagation_complete(payload)
+            gating.refresh_node_canvas()
 
         _subscribe(events.PROPAGATION_COMPLETE, _on_prop_complete)
 
@@ -287,15 +288,15 @@ class MainPanelController:
         panel._sample_list.selection_changed.connect(
             lambda sid: panel._properties_panel.show_sample_properties(sid, None)
         )
-        panel._sample_list.selection_changed.connect(panel._on_sample_selection_changed)
+        panel._sample_list.selection_changed.connect(gating.on_sample_selection_changed)
 
         # ── Gate Hierarchy → graph + properties ───────────────────────
-        panel._gate_hierarchy.gate_double_clicked.connect(panel._on_gate_double_clicked)
-        panel._gate_hierarchy.selection_changed.connect(panel._on_gate_selection_changed)
+        panel._gate_hierarchy.gate_double_clicked.connect(gating.on_gate_double_clicked)
+        panel._gate_hierarchy.selection_changed.connect(gating.on_gate_selection_changed)
         panel._gate_hierarchy.gate_rename_requested.connect(coordinator.rename_population)
-        panel._gate_hierarchy.gate_delete_requested.connect(panel.delete_gate_with_dialog)
-        panel._gate_hierarchy.copy_gates_requested.connect(panel._on_copy_gates)
-        panel._gate_hierarchy.propagation_mode_changed.connect(panel._on_propagation_mode_changed)
+        panel._gate_hierarchy.gate_delete_requested.connect(gating.delete_gate_with_dialog)
+        panel._gate_hierarchy.copy_gates_requested.connect(gating.on_copy_gates)
+        panel._gate_hierarchy.propagation_mode_changed.connect(gating.on_propagation_mode_changed)
         panel._gate_hierarchy.propagate_requested.connect(coordinator.propagate_to_all_groups)
 
         # ── Groups panel selection → filter sample list ───────────────
