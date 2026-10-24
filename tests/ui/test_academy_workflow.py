@@ -80,7 +80,7 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
     p.manager = manager
 
     pm = SimpleNamespace(project_dir=tmp_path)
-    monkeypatch.setattr(p, "_get_project_manager", lambda: pm)
+    monkeypatch.setattr(p.services.document, "project_manager", lambda: pm)
 
     p.saves = []
 
@@ -88,7 +88,7 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
         p.saves.append((filename, copy.deepcopy(metadata)))
         on_success(filename or "flow_academy.json")
 
-    monkeypatch.setattr(p.services.workspace_io_handler, "_run_save_to_pm", _fake_save)
+    monkeypatch.setattr(p.services.workspace_io_handler, "save_to_project", _fake_save)
     p.overlay_calls = []
     monkeypatch.setattr(
         p._academy, "_show_overlay", lambda pausable: p.overlay_calls.append(pausable)
@@ -96,13 +96,15 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
     monkeypatch.setattr(p._academy, "_hide_overlay", lambda: p.overlay_calls.append("hide"))
     monkeypatch.setattr(academy_workflow, "ask_yes_no", lambda *_a, **_k: True)
     p.closed = []
-    monkeypatch.setattr(p, "_close_window_when_idle", lambda: p.closed.append(True))
+    monkeypatch.setattr(
+        p.services.document, "close_window_when_idle", lambda: p.closed.append(True)
+    )
     yield p
     p._academy.dispose()
 
 
 def block(panel) -> dict:
-    return panel._current_workflow_metadata[ACADEMY_KEY]
+    return panel.services.document.metadata[ACADEMY_KEY]
 
 
 def start_in_academy(panel, course_id: str = COURSE_1) -> None:
@@ -133,7 +135,7 @@ def test_not_now_leaves_the_workflow_ordinary(panel):
     panel._academy._card.secondary_button.click()
 
     assert not panel._academy.is_locked
-    assert ACADEMY_KEY not in (getattr(panel, "_current_workflow_metadata", None) or {})
+    assert ACADEMY_KEY not in (panel.services.document.metadata or {})
     assert panel.saves == []
 
 
@@ -143,8 +145,8 @@ def test_agreeing_converts_saves_and_starts_a_pausable_course(panel):
     assert panel.manager.active_course.id == COURSE_1
     assert panel.overlay_calls == [True]
     assert block(panel)["state"] == RUNNING
-    assert panel._current_workflow_metadata["name"] == "My Academy"
-    assert panel._current_workflow_filename == "flow_academy.json"
+    assert panel.services.document.metadata["name"] == "My Academy"
+    assert panel.services.document.filename == "flow_academy.json"
     saved_filename, saved = panel.saves[-1]
     assert saved_filename is None  # a new workflow
     assert saved[ACADEMY_KEY]["course_id"] == COURSE_1
@@ -269,7 +271,7 @@ def _answer_close(panel, monkeypatch, answer):
         asked.append(text)
         return answer
 
-    monkeypatch.setattr(panel, "_ask_unsaved_changes", _ask)
+    monkeypatch.setattr(panel.services.document, "ask_unsaved_changes", _ask)
     return asked
 
 
@@ -284,7 +286,7 @@ def test_closing_mid_course_asks_and_save_pauses_then_closes(panel, monkeypatch)
     assert asked and "Course 1" in asked[0]
     _filename, saved = panel.saves[-1]
     assert saved[ACADEMY_KEY]["state"] == PAUSED
-    assert panel._close_after_save
+    assert panel.services.document.close_after_save
     assert panel.manager.get_in_progress(COURSE_1)["step_number"] == 2
 
 
@@ -352,7 +354,7 @@ def test_starting_the_next_course_continues_in_the_same_workflow(panel):
     panel._academy._card.primary_button.click()
 
     assert panel.manager.active_course.id == COURSE_2
-    assert panel._current_workflow_filename == "flow_academy.json"
+    assert panel.services.document.filename == "flow_academy.json"
     assert block(panel)["state"] == RUNNING
     assert block(panel)["completed_courses"] == [COURSE_1]
 
@@ -363,7 +365,7 @@ def test_leaving_the_academy_keeps_an_ordinary_workflow(panel):
 
     panel._academy._card.secondary_button.click()
 
-    assert ACADEMY_KEY not in panel._current_workflow_metadata
+    assert ACADEMY_KEY not in panel.services.document.metadata
     assert not panel._academy.is_locked
     _filename, saved = panel.saves[-1]
     assert ACADEMY_KEY not in saved
@@ -377,7 +379,7 @@ def test_leaving_a_paused_course_forgets_the_attempt(panel):
 
     panel._academy._card.secondary_button.click()
 
-    assert ACADEMY_KEY not in panel._current_workflow_metadata
+    assert ACADEMY_KEY not in panel.services.document.metadata
     assert panel.manager.get_in_progress(COURSE_1) is None
 
 
@@ -391,7 +393,7 @@ def test_the_last_course_graduates_and_unlocks(panel):
 
 
 def test_without_a_project_the_course_runs_unpausable(panel, monkeypatch):
-    monkeypatch.setattr(panel, "_get_project_manager", lambda: None)
+    monkeypatch.setattr(panel.services.document, "project_manager", lambda: None)
 
     panel.start_academy_course(COURSE_1)
 
@@ -485,14 +487,14 @@ def test_a_step_moved_to_another_course_resumes_on_the_latest_step_left(shown):
 
 
 def test_a_saved_workflow_converts_without_asking_for_a_name(panel):
-    panel._current_workflow_filename = "mine.json"
-    panel._current_workflow_metadata = {"name": "Mine", "tags": []}
+    panel.services.document.filename = "mine.json"
+    panel.services.document.metadata = {"name": "Mine", "tags": []}
 
     panel.start_academy_course(COURSE_1)
     assert panel._academy._card.input_field.isHidden()
     panel._academy._card.primary_button.click()
 
-    assert panel._current_workflow_metadata["name"] == "Mine"
+    assert panel.services.document.metadata["name"] == "Mine"
     assert panel.saves[-1][0] == "mine.json"
 
 
@@ -501,7 +503,7 @@ def test_a_blank_name_falls_back_to_the_default(panel):
     panel._academy._card.input_field.setText("   ")
     panel._academy._card.primary_button.click()
 
-    assert panel._current_workflow_metadata["name"] == "Flow Academy"
+    assert panel.services.document.metadata["name"] == "Flow Academy"
 
 
 def test_the_real_leave_confirmation_answers_over_the_locked_panel(panel, monkeypatch):
@@ -532,5 +534,5 @@ def test_the_real_leave_confirmation_answers_over_the_locked_panel(panel, monkey
     panel._academy._card.secondary_button.click()
 
     assert seen == [True]
-    assert ACADEMY_KEY not in panel._current_workflow_metadata
+    assert ACADEMY_KEY not in panel.services.document.metadata
     assert not panel._academy.is_locked

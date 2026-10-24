@@ -35,13 +35,13 @@ class MainPanelController:
         # HistoryRecorder (analysis/history_recorder.py) is the one table of
         # which events are undo steps; the store behind it decides dirtiness.
 
-        panel._history_recorder = HistoryRecorder(  # type: ignore[attr-defined]
+        recorder = panel.services.document.recorder = HistoryRecorder(
             panel.services.store,
             CentralEventBus.subscribe,
             CentralEventBus.unsubscribe,
             defer=lambda fn: QTimer.singleShot(0, fn),
         )
-        panel._history_recorder.start()  # type: ignore[attr-defined]
+        recorder.start()
         _subscribe(events.STATE_RESTORED, panel._on_state_restored)
 
         # ── Structural change → Node Canvas ───────────────────────────
@@ -309,6 +309,5 @@ class MainPanelController:
             for topic, cb in panel._subscriptions:
                 CentralEventBus.unsubscribe(topic, cb)
             panel._subscriptions.clear()
-        recorder = getattr(panel, "_history_recorder", None)
-        if recorder is not None:
+        if (recorder := panel.services.document.recorder) is not None:
             recorder.stop()

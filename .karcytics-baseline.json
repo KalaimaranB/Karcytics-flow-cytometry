@@ -152,9 +152,9 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/academy_workflow.py": {
       "KS250": 1,
-      "KS300": 658,
+      "KS300": 655,
       "KS301:AcademyWorkflowController": 37,
-      "KS342": 22
+      "KS342": 4
     },
     "src/karcytics_plugins/flow_cytometry/ui/builders/workspace_builder.py": {
       "KS242": 2,
@@ -166,9 +166,9 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/controllers/main_panel_controller.py": {
       "KS302:MainPanelController.wire": 279,
-      "KS310": 5,
+      "KS310": 3,
       "KS341": 1,
-      "KS342": 62
+      "KS342": 59
     },
     "src/karcytics_plugins/flow_cytometry/ui/dialogs/bulk_role_dialog.py": {
       "KS210": 1
@@ -326,10 +326,10 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
-      "KS220": 2,
+      "KS220": 1,
       "KS242": 6,
-      "KS300": 1192,
-      "KS301:FlowCytometryPanel": 55,
+      "KS300": 1109,
+      "KS301:FlowCytometryPanel": 46,
       "KS302:FlowCytometryPanel.load_workflow": 103,
       "KS310": 1,
       "KS342": 3,
@@ -342,26 +342,11 @@
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/workspace_ribbon.py": {
       "KS302:WorkspaceRibbon._on_add_samples": 120,
       "KS310": 1,
-      "KS320": 1,
       "KS342": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/services/workflow_service.py": {
       "KS310": 1,
       "KS342": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/services/workspace_io_handler.py": {
-      "KS302:WorkspaceIOHandler.handle_load": 102,
-      "KS302:WorkspaceIOHandler.handle_save": 122,
-      "KS310": 2,
-      "KS320": 1,
-      "KS342": 39,
-      "KS360": 6
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/services/workspace_save_service.py": {
-      "KS341": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/services/zip_export_service.py": {
-      "KS341": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/checkbox_style.py": {
       "KS320": 1

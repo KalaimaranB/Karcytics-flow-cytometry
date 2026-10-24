@@ -70,7 +70,7 @@ def test_watchdog_stays_silent_when_load_already_finished(panel, monkeypatch):
 
 def test_load_workflow_warns_when_some_samples_fail_to_reload(panel, monkeypatch):
     """A completed reload with per-sample failures must name the failed samples."""
-    monkeypatch.setattr(panel, "_get_project_manager", lambda: None)
+    monkeypatch.setattr(panel.services.document, "project_manager", lambda: None)
     # _refresh_all() touches Phase-2 widgets this minimal panel never built;
     # irrelevant to the warning logic under test here.
     monkeypatch.setattr(panel, "_refresh_all", lambda: None)
@@ -99,7 +99,7 @@ def test_load_workflow_warns_when_some_samples_fail_to_reload(panel, monkeypatch
 
 
 def test_load_workflow_does_not_warn_when_all_samples_load(panel, monkeypatch):
-    monkeypatch.setattr(panel, "_get_project_manager", lambda: None)
+    monkeypatch.setattr(panel.services.document, "project_manager", lambda: None)
     monkeypatch.setattr(panel, "_refresh_all", lambda: None)
 
     def fake_service_load_workflow(payload, context=None, project_dir=None, on_complete=None):

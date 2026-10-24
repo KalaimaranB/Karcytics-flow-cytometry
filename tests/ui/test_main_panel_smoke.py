@@ -38,7 +38,7 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
     panel.services.store.reset()
     MainPanelController.wire(panel, Mock())
 
-    recorder = panel._history_recorder
+    recorder = panel.services.document.recorder
     handlers = [h for topic, h in recorder._subscriptions if topic == events.GATE_MODIFIED]
     assert len(handlers) == 1, "GATE_MODIFIED must be recorded exactly once"
 

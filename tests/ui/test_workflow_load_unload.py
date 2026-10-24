@@ -72,12 +72,14 @@ def panel(qapp, qtbot, monkeypatch):
     set_real_view_defaults(p.state)
     p.services.store.reset()
     p.services.workflow_service._data_loader = FakeLoader()
-    monkeypatch.setattr(p, "_get_project_manager", lambda: None)
+    monkeypatch.setattr(p.services.document, "project_manager", lambda: None)
     # _refresh_all() touches Phase-2 widgets this minimal panel never built.
     monkeypatch.setattr(p, "_refresh_all", lambda: None)
     monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: QMessageBox.StandardButton.Ok)
     # Loading over unsaved edits asks first; these tests mean "load anyway".
-    monkeypatch.setattr(p, "_ask_unsaved_changes", lambda *_a: QMessageBox.StandardButton.Discard)
+    monkeypatch.setattr(
+        p.services.document, "ask_unsaved_changes", lambda *_a: QMessageBox.StandardButton.Discard
+    )
     return p
 
 
@@ -132,7 +134,7 @@ def test_load_reproduces_the_saved_workspace_exactly(panel):
 
 def test_loaded_workflow_is_a_clean_baseline(panel):
     panel.load_workflow(_saved(build_rich_state()))
-    assert not panel._workflow_loading
+    assert not panel.services.document.loading
     assert not panel.services.store.is_dirty
     assert not panel.can_undo()
     assert panel.services.store.record_unannounced_changes() is False
@@ -152,7 +154,7 @@ def test_project_relative_sample_paths_resolve_against_the_new_project(panel, tm
 
     monkeypatch_pm = MagicMock(project_dir=tmp_path)
     monkeypatch_pm.workflows.load_attachments.return_value = []
-    panel._get_project_manager = lambda: monkeypatch_pm
+    panel.services.document.project_manager = lambda: monkeypatch_pm
     panel.load_workflow(payload)
 
     requested = dict(panel.services.workflow_service._data_loader.requested[-1])
@@ -197,13 +199,13 @@ def test_edits_before_a_load_can_never_undo_into_the_new_workspace(panel):
 
 def test_a_step_pending_at_load_time_does_not_leak_into_the_new_history(panel):
     bus, defer = FakeBus(), ManualDefer()
-    panel._history_recorder = HistoryRecorder(
+    panel.services.document.recorder = HistoryRecorder(
         panel.services.store, bus.subscribe, bus.unsubscribe, defer
     )
     panel.load_workflow(_saved(build_rich_state()))
 
     panel.state.data.experiment.samples["s0"].display_name = "pending edit"
-    panel._history_recorder.request_commit("Rename Sample")  # end of turn not reached
+    panel.services.document.recorder.request_commit("Rename Sample")  # end of turn not reached
     panel.load_workflow(_saved(_one_sample_state()))
     defer.run()
 
@@ -238,7 +240,7 @@ def test_a_failed_load_leaves_an_unsaved_but_working_workspace(panel, monkeypatc
     panel.load_workflow(broken)
 
     assert errors, "the user must be told the load failed"
-    assert not panel._workflow_loading
+    assert not panel.services.document.loading
     assert panel.services.store.is_recording
     assert panel.services.store.is_dirty  # whatever is on screen was never saved
     _edit(panel)
@@ -256,7 +258,7 @@ def test_undo_is_refused_while_a_load_is_still_reloading_data(panel):
     panel.services.workflow_service._data_loader = stuck
     panel.load_workflow(_saved(_one_sample_state()))
 
-    assert panel._workflow_loading
+    assert panel.services.document.loading
     assert panel.undo() is False
     assert any("loading" in m for m in messages)
     assert panel.services.store.commit("ignored") is False
@@ -265,7 +267,7 @@ def test_undo_is_refused_while_a_load_is_still_reloading_data(panel):
 def test_a_late_load_completion_cannot_wipe_newer_history(panel):
     panel.load_workflow(_saved(build_rich_state()))
     _edit(panel)
-    panel._finish_workflow_load(clean=True)  # e.g. a stray duplicate callback
+    panel.services.document.finish_load(clean=True)  # e.g. a stray duplicate callback
     assert panel.can_undo()
     assert panel.services.store.is_dirty
 
@@ -279,7 +281,7 @@ def test_raw_fcs_injection_starts_unsaved(panel, monkeypatch):
     loader.load_samples_async.side_effect = _load_samples_async
     monkeypatch.setattr(panel, "services", replace(panel.services, data_loader_service=loader))
     panel.load_workflow({}, filename="/tmp/raw.fcs")
-    assert not panel._workflow_loading
+    assert not panel.services.document.loading
     assert panel.services.store.is_dirty
     assert not panel.can_undo()
 

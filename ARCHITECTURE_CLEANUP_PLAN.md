@@ -313,6 +313,12 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       workflow load/save/close → `WorkspaceIOHandler`; async startup → a startup sequencer;
       Academy hooks → `AcademyWorkflowController`, which then takes that workflow-document
       interface instead of the whole panel and is built in the composition root (from B8).
+      Done so far: `GatingController` owns gate events, selection and delete (8664dd5);
+      `WorkflowDocument` (in `FlowServices`) owns the open workflow's name, metadata and
+      save/load state and the unsaved-changes prompts, so `WorkspaceIOHandler` and
+      `AcademyWorkflowController` take it instead of panel privates. The dead
+      `handle_load` / `load_from_pm` / `load_standalone` paths went with it. SDK gap: no
+      three-way Save/Discard/Cancel dialog, so that prompt keeps a raw `QMessageBox` (KS220 allow).
 - [ ] `population_analysis_viewer.py` (1,527).
 - [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
       its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the

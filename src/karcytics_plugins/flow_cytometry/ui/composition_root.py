@@ -26,6 +26,7 @@ from .services.data_loader_service import DataLoaderService
 from .services.flow_daemon import call_flow_daemon
 from .services.gate_propagator import GatePropagator
 from .services.umap_service import UmapService
+from .services.workflow_document import WorkflowDocument
 from .services.workflow_service import WorkflowService
 from .services.workspace_io_handler import WorkspaceIOHandler
 
@@ -52,6 +53,7 @@ class FlowServices:
     workflow_service: WorkflowService
     umap_service: UmapService
     workspace_io_handler: WorkspaceIOHandler
+    document: WorkflowDocument
     store: FlowStore
     derived_editor: DerivedEditorController
 
@@ -76,11 +78,10 @@ def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices:
     umap_service = UmapService(state, task_scheduler, call_flow_daemon)
 
     logger.debug("[phase1] build_services: constructing WorkspaceIOHandler")
-    workspace_io_handler = WorkspaceIOHandler(
-        workflow_service=workflow_service, parent_widget=parent_widget
-    )
     # The store snapshots `state` itself (never a copy) into an SDK UndoHistory.
     store = FlowStore(state, CentralEventBus.publish)
+    document = WorkflowDocument(store, gate_propagator, parent_widget)
+    workspace_io_handler = WorkspaceIOHandler(workflow_service, document, parent_widget)
     derived_editor = DerivedEditorController(
         state,
         derived_parameter_service,
@@ -100,6 +101,7 @@ def build_services(state: FlowState, parent_widget: QWidget) -> FlowServices:
         workflow_service=workflow_service,
         umap_service=umap_service,
         workspace_io_handler=workspace_io_handler,
+        document=document,
         store=store,
         derived_editor=derived_editor,
     )

@@ -102,6 +102,7 @@ class AcademyWorkflowController(QObject):
             manager = manager or tutorial_manager
             event_bus = event_bus or academy_event_bus
         self._panel = panel
+        self._document = panel.services.document
         self._manager = manager
         self._bus = event_bus
         self._card: AcademyLockCard | None = None
@@ -123,7 +124,7 @@ class AcademyWorkflowController(QObject):
 
     @property
     def block(self) -> dict[str, Any] | None:
-        return academy_block(getattr(self._panel, "_current_workflow_metadata", None))
+        return academy_block(self._document.metadata)
 
     @property
     def is_locked(self) -> bool:
@@ -140,7 +141,7 @@ class AcademyWorkflowController(QObject):
         )
 
     def _project_manager(self) -> Any:
-        return self._panel._get_project_manager()
+        return self._document.project_manager()
 
     # ── Entry points ───────────────────────────────────────────────────
 
@@ -188,10 +189,8 @@ class AcademyWorkflowController(QObject):
 
     def _needs_name(self) -> bool:
         """Whether converting must name the workflow (it was never saved)."""
-        metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
-        return not getattr(self._panel, "_current_workflow_filename", None) or not metadata.get(
-            "name"
-        )
+        metadata = self._document.metadata or {}
+        return not self._document.filename or not metadata.get("name")
 
     def resume_from_catalog(self, course_id: str, attempt: dict[str, Any]) -> None:
         """The catalog's "Resume Course": open the attempt's workflow, or resume it here."""
@@ -208,7 +207,7 @@ class AcademyWorkflowController(QObject):
             return
 
         filename = attempt.get("workflow")
-        if filename and filename == getattr(self._panel, "_current_workflow_filename", None):
+        if filename and filename == self._document.filename:
             block = self.block
             if block and block.get("state") == PAUSED and block.get("course_id") == course_id:
                 self.resume()
@@ -354,7 +353,7 @@ class AcademyWorkflowController(QObject):
             return None
         Btn = QMessageBox.StandardButton
         number = self._course_number((self.block or {}).get("course_id"))
-        choice = self._panel._ask_unsaved_changes(
+        choice = self._document.ask_unsaved_changes(
             f"Save your work and your place in Course {number} before closing?\n\n"
             "Don't Save closes without saving anything; next time the course "
             "continues from your last save.",
@@ -365,7 +364,7 @@ class AcademyWorkflowController(QObject):
         if choice != Btn.Save:
             return False
         self._pause_into_block()
-        self._panel._close_after_save = True
+        self._document.close_after_save = True
         self._save()
         return False
 
@@ -455,7 +454,7 @@ class AcademyWorkflowController(QObject):
     # ── Lifecycle ──────────────────────────────────────────────────────
 
     def _convert_and_begin(self, course_id: str) -> None:
-        metadata = dict(getattr(self._panel, "_current_workflow_metadata", None) or {})
+        metadata = dict(self._document.metadata or {})
         if self._needs_name():
             name = self._card.input_text() if self._card is not None else ""
             metadata.update(
@@ -467,7 +466,7 @@ class AcademyWorkflowController(QObject):
                 }
             )
         metadata[ACADEMY_KEY] = {"state": RUNNING, "completed_courses": []}
-        self._panel._current_workflow_metadata = metadata
+        self._document.metadata = metadata
         self._pending_course_id = None
         if self._card is not None:
             self._card.unlock()
@@ -500,7 +499,7 @@ class AcademyWorkflowController(QObject):
         if self._manager.active_course is not None:
             self._manager.pause()
             self._hide_overlay()
-        metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
+        metadata = self._document.metadata or {}
         metadata.pop(ACADEMY_KEY, None)
         if self._card is not None:
             self._card.unlock()
@@ -592,11 +591,11 @@ class AcademyWorkflowController(QObject):
 
     def _record_attempt(self, block: dict[str, Any]) -> None:
         pm = self._project_manager()
-        metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
+        metadata = self._document.metadata or {}
         self._manager.record_in_progress(
             block["course_id"],
             {
-                "workflow": getattr(self._panel, "_current_workflow_filename", None),
+                "workflow": self._document.filename,
                 "workflow_name": metadata.get("name"),
                 "project_dir": str(pm.project_dir) if pm is not None else None,
                 "step_number": block.get("step_number", 0),
@@ -616,35 +615,33 @@ class AcademyWorkflowController(QObject):
             self._record_attempt(block)
 
     def _forget_attempt(self, course_id: str) -> None:
-        self._manager.forget_in_progress(
-            course_id, workflow=getattr(self._panel, "_current_workflow_filename", None)
-        )
+        self._manager.forget_in_progress(course_id, workflow=self._document.filename)
 
     def _save(self) -> None:
         """Saves the workflow with its block, quietly (no "Saved" dialog)."""
         pm = self._project_manager()
         if pm is None:
             return
-        filename = getattr(self._panel, "_current_workflow_filename", None)
-        metadata = getattr(self._panel, "_current_workflow_metadata", None) or {}
+        filename = self._document.filename
+        metadata = self._document.metadata or {}
         if self.block is not None:
             self._stamp_numbers(self.block)
 
         def _on_success(new_filename: str) -> None:
             if new_filename and new_filename != filename:
-                self._panel._current_workflow_filename = new_filename
+                self._document.filename = new_filename
             self._on_workflow_saved()
 
         def _on_error(err: str) -> None:
             logger.error(f"Academy: saving the workflow failed: {err}")
-            self._panel._close_after_save = False
+            self._document.close_after_save = False
             show_warning(
                 self._panel,
                 "Karcytics Academy",
                 f"Your place in the course couldn't be saved:\n{err}",
             )
 
-        self._panel.services.workspace_io_handler._run_save_to_pm(
+        self._panel.services.workspace_io_handler.save_to_project(
             pm, filename, metadata, _on_success, _on_error
         )
 

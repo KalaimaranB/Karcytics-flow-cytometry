@@ -60,7 +60,7 @@ def _fake_submit(task, _state):
 
 @pytest.fixture
 def fake_task_scheduler():
-    """Both `handle_autosave`/`handle_update`/`_run_save_to_pm` import
+    """Both `handle_autosave`/`handle_update`/`save_to_project` import
     `task_scheduler` from `karcytics_sdk.plugin.runtime_services`, which
     tests/conftest.py already replaces with a MagicMock for the whole
     session — configure its `.submit` to actually run tasks synchronously.
@@ -73,21 +73,27 @@ def fake_task_scheduler():
 @pytest.fixture
 def parent_widget():
     widget = MagicMock()
-    widget._current_workflow_filename = "wf_123.json"
-    widget._current_workflow_metadata = {"name": "Test Workflow"}
-    widget.window.return_value.project_manager = MagicMock()
     widget.window.return_value.current_module_id = "flow_cytometry"
     return widget
 
 
 @pytest.fixture
-def handler(parent_widget):
-    return WorkspaceIOHandler(workflow_service=MagicMock(), parent_widget=parent_widget)
+def document():
+    """The open workflow: already saved once, in a project."""
+    doc = MagicMock()
+    doc.filename = "wf_123.json"
+    doc.metadata = {"name": "Test Workflow"}
+    return doc
+
+
+@pytest.fixture
+def handler(document, parent_widget):
+    return WorkspaceIOHandler(MagicMock(), document, parent_widget)
 
 
 class TestHandleAutosave:
     def test_never_shows_a_blocking_dialog_on_success(
-        self, handler, parent_widget, fake_task_scheduler
+        self, handler, document, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
@@ -105,7 +111,7 @@ class TestHandleAutosave:
         assert results == [True]
 
     def test_on_success_marks_what_the_save_started_with_as_saved(
-        self, handler, parent_widget, fake_task_scheduler
+        self, handler, document, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
@@ -119,11 +125,11 @@ class TestHandleAutosave:
 
         # The token is taken when the save *starts*, so edits made while it
         # runs in the background stay dirty (see FlowStore.finish_save).
-        token = parent_widget._begin_save.return_value
-        parent_widget._finish_save.assert_called_once_with(token)
+        token = document.begin_save.return_value
+        document.finish_save.assert_called_once_with(token)
 
     def test_never_shows_a_blocking_dialog_on_failure(
-        self, handler, parent_widget, fake_task_scheduler
+        self, handler, document, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
@@ -139,12 +145,12 @@ class TestHandleAutosave:
         mock_info.assert_not_called()
         mock_error.assert_not_called()
         assert results == [False]
-        parent_widget._finish_save.assert_not_called()
+        document.finish_save.assert_not_called()
 
     def test_reports_failure_without_saving_when_nothing_saved_yet(
-        self, handler, parent_widget, fake_task_scheduler
+        self, handler, document, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
-        parent_widget._current_workflow_filename = None
+        document.filename = None
         results = []
 
         handler.handle_autosave(results.append)
@@ -153,9 +159,9 @@ class TestHandleAutosave:
         fake_task_scheduler.submit.assert_not_called()
 
     def test_reports_failure_without_saving_when_no_project_manager(
-        self, handler, parent_widget, fake_task_scheduler
+        self, handler, document, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
-        parent_widget.window.return_value.project_manager = None
+        document.project_manager.return_value = None
         results = []
 
         handler.handle_autosave(results.append)
@@ -165,12 +171,12 @@ class TestHandleAutosave:
 
 
 class TestHandleUpdateStillShowsDialogs:
-    """handle_update() shares _run_save_to_pm with handle_autosave() now —
+    """handle_update() shares save_to_project with handle_autosave() now —
     confirm the refactor didn't silently drop its user-facing feedback.
     """
 
     def test_shows_the_updated_info_dialog_on_success(
-        self, handler, parent_widget, fake_task_scheduler
+        self, handler, document, parent_widget, fake_task_scheduler
     ):  # noqa: ARG002
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",

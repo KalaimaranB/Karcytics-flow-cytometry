@@ -45,10 +45,12 @@ def panel(qapp, qtbot, monkeypatch):
     p.services.store.reset()
     monkeypatch.setattr(p, "_refresh_all", lambda: None)
     p.answers = Answers()
-    monkeypatch.setattr(p, "_ask_unsaved_changes", p.answers)
+    monkeypatch.setattr(p.services.document, "ask_unsaved_changes", p.answers)
     p.saves = []
     p.closed = []
-    monkeypatch.setattr(p, "_close_window_when_idle", lambda: p.closed.append(True))
+    monkeypatch.setattr(
+        p.services.document, "close_window_when_idle", lambda: p.closed.append(True)
+    )
     return p
 
 
@@ -64,7 +66,7 @@ def _fake_save(panel, *, starts: bool):
     def _save():
         panel.saves.append(True)
         if starts:
-            panel._loading = True  # what WorkspaceIOHandler does when a save starts
+            panel.services.document.saving = True  # what WorkspaceIOHandler does when a save starts
 
     return _save
 
@@ -92,7 +94,7 @@ def test_discard_closes(panel):
 
 def test_save_closes_only_once_the_save_succeeds(panel, monkeypatch):
     _dirty(panel)
-    panel._current_workflow_filename = "wf.json"
+    panel.services.document.filename = "wf.json"
     monkeypatch.setattr(panel, "_handle_update", _fake_save(panel, starts=True))
     panel.answers.queue = [Btn.Save]
 
@@ -102,8 +104,8 @@ def test_save_closes_only_once_the_save_succeeds(panel, monkeypatch):
     assert panel.confirm_close() is False  # still writing: no second prompt
     assert len(panel.answers.asked) == 1
 
-    panel._loading = False
-    panel._finish_save(token)
+    panel.services.document.saving = False
+    panel.services.document.finish_save(token)
     assert panel.closed == [True]
     assert not panel.services.store.is_dirty
 
@@ -121,7 +123,7 @@ def test_cancelling_the_save_dialog_does_not_close_later(panel, monkeypatch):
     monkeypatch.setattr(panel, "_handle_save", _fake_save(panel, starts=False))
     panel.answers.queue = [Btn.Save, Btn.Cancel]
     assert panel.confirm_close() is False
-    assert panel._close_after_save is False
+    assert panel.services.document.close_after_save is False
     assert panel.confirm_close() is False  # asks again
     assert len(panel.answers.asked) == 2
 
@@ -131,7 +133,7 @@ def test_a_failed_save_asks_again_on_the_next_close(panel, monkeypatch):
     monkeypatch.setattr(panel, "_handle_save", _fake_save(panel, starts=True))
     panel.answers.queue = [Btn.Save, Btn.Discard]
     assert panel.confirm_close() is False
-    panel._loading = False  # the save errored out
+    panel.services.document.saving = False  # the save errored out
     assert panel.confirm_close() is True
     assert len(panel.answers.asked) == 2
     assert panel.closed == []
@@ -149,7 +151,7 @@ def test_cancelling_a_load_over_unsaved_edits_keeps_everything(panel, monkeypatc
     panel.load_workflow({"experiment": {}})
 
     service_load.assert_not_called()
-    assert not panel._workflow_loading
+    assert not panel.services.document.loading
     assert panel.services.store.is_dirty
     assert "s0" in panel.state.data.experiment.samples
     assert panel.can_undo()

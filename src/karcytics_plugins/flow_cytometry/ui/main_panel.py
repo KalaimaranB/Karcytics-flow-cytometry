@@ -30,7 +30,6 @@ from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from karcytics_sdk.plugin.workflow import WorkflowContext
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
-    QApplication,
     QInputDialog,
     QMessageBox,
     QSizePolicy,
@@ -153,11 +152,6 @@ class FlowCytometryPanel(PluginBase):
         # ── State ─────────────────────────────────────────────────────
         self.state = FlowState()
         self._gating: GatingController | None = None  # MainPanelController.wire, Phase 2
-        # The open workflow document (WorkspaceIOHandler and the Academy write these).
-        self._current_workflow_filename: str | None = None
-        self._current_workflow_metadata: dict[str, Any] | None = None
-        self._current_workflow_path: str | None = None
-        self._loading = False  # a save or load is running
         # Startup: a workflow PluginLoaderManager hands over before Phase 2 finishes.
         self._deferred_workflow_payload: dict[str, Any] | None = None
         self._deferred_workflow_filename: str | None = None
@@ -165,7 +159,6 @@ class FlowCytometryPanel(PluginBase):
         self._data_ready_emitted = False
         self._awaiting_data_ready = False
         self._themed_palette: Any = None
-        self._history_recorder: Any = None  # MainPanelController.wire builds it
         self._workflow_autosave_controller: Any = None  # end of _setup_services
 
         # ── Services ──────────────────────────────────────────────────
@@ -212,8 +205,6 @@ class FlowCytometryPanel(PluginBase):
         self.services.store.add_commit_listener(lambda _label: self.state_changed.emit())
         self.services.store.reset()
         self.bind_undo_history(self.services.store.history, self.services.store.restore)
-        self._workflow_loading = False
-        self._close_after_save = False
 
         # Shared SDK loop (PluginBase.setup_workflow_autosave): every 15
         # minutes, silently re-saves a workflow that's already been saved
@@ -221,7 +212,7 @@ class FlowCytometryPanel(PluginBase):
         # it's unsaved otherwise. Also contributes this panel's "Workspace"
         # preferences page automatically (see PluginBase.populate_preferences).
         self._workflow_autosave_controller = self.setup_workflow_autosave(
-            has_saved_once=lambda: bool(self._current_workflow_filename),
+            has_saved_once=lambda: bool(self.services.document.filename),
             save=self.services.workspace_io_handler.handle_autosave,
             has_unsaved_changes=lambda: self.services.store.is_dirty,
         )
@@ -282,7 +273,7 @@ class FlowCytometryPanel(PluginBase):
         ``FlowStore.is_dirty``); also safe to call to re-sync the button.
         """
         if hasattr(self, "_btn_smart_save"):
-            has_wf = bool(self._current_workflow_filename or self._current_workflow_path)
+            has_wf = bool(self.services.document.filename or self.services.document.path)
             self._btn_smart_save.set_workflow_active(has_wf)
             self._btn_smart_save.set_dirty(dirty)
         # Every point that clears the dirty flag is a point the workspace is
@@ -341,9 +332,6 @@ class FlowCytometryPanel(PluginBase):
             self._population_analysis_viewer.refresh_samples()
         elif tab is MainTab.COMPARISONS:
             self._comparisons_viewer.refresh_samples()
-
-    def _get_project_manager(self):
-        return self.services.workspace_io_handler._get_project_manager()
 
     def _handle_save(self) -> None:
         """Handle save workspace request."""
@@ -600,7 +588,7 @@ class FlowCytometryPanel(PluginBase):
                     )
                     return
                 # Check if the loaded workflow's hash matches the prerequisite
-                current_wf = self._current_workflow_filename
+                current_wf = self.services.document.filename
                 if not current_wf:
                     show_error(
                         self,
@@ -856,13 +844,6 @@ class FlowCytometryPanel(PluginBase):
 
     # ── Undo / redo ───────────────────────────────────────────────────
 
-    def _undo_blocked_reason(self) -> str | None:
-        if self._workflow_loading:
-            return "a workflow is loading"
-        if self._loading:
-            return "the workspace is being saved"
-        return None
-
     def undo(self) -> bool:
         """Edit → Undo (Cmd/Ctrl+Z)."""
         return self._step_history("undo")
@@ -872,7 +853,7 @@ class FlowCytometryPanel(PluginBase):
         return self._step_history("redo")
 
     def _step_history(self, direction: str) -> bool:
-        reason = self._undo_blocked_reason()
+        reason = self.services.document.undo_blocked_reason()
         if reason is not None:
             self.status_message.emit(f"Can't {direction} while {reason}.")
             return False
@@ -880,8 +861,7 @@ class FlowCytometryPanel(PluginBase):
             self._graph_manager.cancel_active_drawing()
         # A step still waiting for the end of this event-loop turn, or a
         # change nothing announced, must be its own step before we move.
-        if self._history_recorder is not None:
-            self._history_recorder.flush()
+        self.services.document.flush_history()
         self.services.store.record_unannounced_changes()
 
         history = self.services.store.history
@@ -905,31 +885,7 @@ class FlowCytometryPanel(PluginBase):
 
     # ── Saving ────────────────────────────────────────────────────────
 
-    def _begin_save(self) -> Any:
-        """Call right before a save starts; hand the token to ``_finish_save``."""
-        if self._history_recorder is not None:
-            self._history_recorder.flush()
-        return self.services.store.begin_save()
-
-    def _finish_save(self, token: Any) -> None:
-        """A save that started with `token` succeeded."""
-        self.services.store.finish_save(token)
-        if self._close_after_save:
-            self._close_after_save = False
-            self._close_window_when_idle()
-
     # ── Unsaved-changes prompts ───────────────────────────────────────
-
-    def _ask_unsaved_changes(
-        self, text: str, buttons: QMessageBox.StandardButton
-    ) -> QMessageBox.StandardButton:
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Warning)
-        box.setWindowTitle("Unsaved Changes")
-        box.setText(text)
-        box.setStandardButtons(buttons)
-        box.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        return QMessageBox.StandardButton(box.exec())
 
     def confirm_close(self) -> bool:
         """Asked by the isolated window before a user closes it.
@@ -938,10 +894,10 @@ class FlowCytometryPanel(PluginBase):
         (background) save and closes the window once it succeeds; if that
         save is cancelled or fails, the next close asks again.
         """
-        if self._close_after_save:
-            if self._loading:
+        if self.services.document.close_after_save:
+            if self.services.document.saving:
                 return False  # the save-then-close is still writing
-            self._close_after_save = False  # it was cancelled or failed
+            self.services.document.close_after_save = False  # it was cancelled or failed
         academy_decision = self._academy.confirm_close()
         if academy_decision is not None:
             return academy_decision
@@ -949,42 +905,23 @@ class FlowCytometryPanel(PluginBase):
             return True
 
         Btn = QMessageBox.StandardButton
-        choice = self._ask_unsaved_changes(
+        choice = self.services.document.ask_unsaved_changes(
             "Save changes to this workspace before closing?",
             Btn.Save | Btn.Discard | Btn.Cancel,
         )
         if choice == Btn.Discard:
             return True
         if choice == Btn.Save:
-            self._close_after_save = True
-            if self._current_workflow_filename:
+            self.services.document.close_after_save = True
+            if self.services.document.filename:
                 self._handle_update()
             else:
                 self._handle_save()
-            if not self._loading:
-                self._close_after_save = False  # no save started (dialog cancelled)
+            if not self.services.document.saving:
+                self.services.document.close_after_save = (
+                    False  # no save started (dialog cancelled)
+                )
         return False
-
-    def _close_window_when_idle(self) -> None:
-        """Close the hosting window once no modal dialog (e.g. "Saved") is up."""
-        if QApplication.activeModalWidget() is not None:
-            QTimer.singleShot(200, self._close_window_when_idle)
-            return
-        window = self.window()
-        if window is not None:
-            window.close()
-
-    def _confirm_discard_before_load(self) -> bool:
-        """A workflow is about to replace a workspace with unsaved changes."""
-        if not self.services.store.is_dirty:
-            return True
-        Btn = QMessageBox.StandardButton
-        choice = self._ask_unsaved_changes(
-            "Loading a workflow will discard your unsaved changes to this workspace.\n\n"
-            "Choose Cancel to keep working and save first.",
-            Btn.Discard | Btn.Cancel,
-        )
-        return choice == Btn.Discard
 
     # ── Academy (called by the SDK's open_academy / build_academy_overlay) ──
 
@@ -1006,7 +943,7 @@ class FlowCytometryPanel(PluginBase):
 
     def export_workflow(self) -> dict:
         """Serialize the workspace for saving to disk."""
-        pm = self._get_project_manager()
+        pm = self.services.document.project_manager()
         project_dir = pm.project_dir if pm else None
         return self.services.workflow_service.export_workflow(project_dir=project_dir)
 
@@ -1014,14 +951,14 @@ class FlowCytometryPanel(PluginBase):
         self, payload: dict, filename: str | None = None, metadata: dict | None = None
     ) -> None:
         """Restore the workspace from a saved file."""
-        if not self._confirm_discard_before_load():
+        if not self.services.document.confirm_discard_before_load():
             self.status_message.emit("Workflow load cancelled — your workspace is unchanged.")
             return
 
         # Nothing records while the workspace is being replaced; the history
         # restarts from the loaded state once it's complete
         # (_finish_workflow_load). Undo/redo are refused until then.
-        self._begin_workflow_load()
+        self.services.document.begin_load()
 
         # Support raw data injection for CI/CD smoke tests
         if filename and str(filename).lower().endswith(".fcs"):
@@ -1030,13 +967,13 @@ class FlowCytometryPanel(PluginBase):
             def _on_done(results: dict):
                 self.logger.info(f"Raw FCS injection complete. Processed {len(results)} samples.")
                 # Raw data was never saved as a workflow — starts unsaved.
-                self._finish_workflow_load(clean=False)
+                self.services.document.finish_load(clean=False)
                 self._refresh_all()
                 self._emit_data_ready_once()
 
             def _on_error(err: str):
                 self.logger.error(f"FCS injection failed: {err}")
-                self._finish_workflow_load(clean=False)
+                self.services.document.finish_load(clean=False)
                 self._emit_data_ready_once()
 
             self.services.data_loader_service.load_samples_async(
@@ -1047,11 +984,11 @@ class FlowCytometryPanel(PluginBase):
             )
             return
         if filename:
-            self._current_workflow_filename = filename
+            self.services.document.filename = filename
         if metadata:
-            self._current_workflow_metadata = metadata
+            self.services.document.metadata = metadata
 
-        pm = self._get_project_manager()
+        pm = self.services.document.project_manager()
         context = None
         if pm and filename:
             try:
@@ -1073,7 +1010,7 @@ class FlowCytometryPanel(PluginBase):
                         self.services.gate_coordinator.recompute_all_stats(sid)
 
             # 2. The loaded workspace is the new, saved baseline.
-            self._finish_workflow_load(clean=True)
+            self.services.document.finish_load(clean=True)
             self._academy.on_workflow_loaded()
 
             # 3. Refresh sample list, gate hierarchy, and active graph canvas
@@ -1109,30 +1046,10 @@ class FlowCytometryPanel(PluginBase):
             payload, context=context, project_dir=project_dir, on_complete=_on_fcs_done
         ):
             # Whatever was partially replaced is unsaved, not a clean workflow.
-            self._finish_workflow_load(clean=False)
+            self.services.document.finish_load(clean=False)
             # Try to grab the last exception if we stored it
             error_msg = self.services.workflow_service.last_error
             show_error(self, "Load Error", f"Failed to restore workflow. {error_msg}")
-
-    def _begin_workflow_load(self) -> None:
-        # Flush first: a step still pending from before the load must land
-        # in the old history (which the load then discards), not be dropped
-        # by the pause below and then misattributed later.
-        if self._history_recorder is not None:
-            self._history_recorder.flush()
-        if not self._workflow_loading:
-            self._workflow_loading = True
-            self.services.store.pause()
-        self.services.gate_propagator.cancel_pending()
-
-    def _finish_workflow_load(self, clean: bool) -> None:
-        # Only the load that's actually in progress may restart the history —
-        # never a stray late callback, which would wipe edits made since.
-        if not self._workflow_loading:
-            return
-        self._workflow_loading = False
-        self.services.store.resume()
-        self.services.store.reset(clean=clean)
 
     # ── Internal helpers ──────────────────────────────────────────────
 

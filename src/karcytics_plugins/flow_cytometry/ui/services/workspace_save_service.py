@@ -19,11 +19,11 @@ class WorkspaceSaveService:
     def save_to_pm(
         pm: Any,
         workflow_service: Any,
-        filename: str,
+        filename: str | None,
         metadata: dict[str, Any],
         module_id: str,
     ) -> str:
-        """Save a new or existing workflow to the ProjectManager."""
+        """Save a new (`filename` None) or existing workflow to the ProjectManager."""
         context = WorkflowContext()
         payload = workflow_service.export_workflow(context=context, project_dir=pm.project_dir)
 
@@ -68,27 +68,3 @@ class WorkspaceSaveService:
             attachments=attachments,
         )
         return new_filename
-
-    @staticmethod
-    def load_from_pm(pm: Any, workflow_service: Any, filename: str) -> tuple[bool, dict[str, Any]]:
-        """Load a workflow from the ProjectManager.
-
-        Returns:
-            Tuple of (success_bool, metadata_dict).
-        """
-        payload = pm.load_workflow_payload(filename)
-        atts = pm.workflows.load_attachments(filename)
-        context = WorkflowContext.from_attachment_dicts(atts, pm.project_dir)
-
-        # We need to extract metadata from the payload or PM itself.
-        # However, metadata is usually in the PM record.
-        # The original code loaded it from the JSON directly if it existed,
-        # but PM.load_workflow_payload already gets the payload.
-        # We'll just return the metadata from the payload if present,
-        # otherwise rely on the caller reading it beforehand.
-        metadata = payload.get("metadata", {})
-
-        success = workflow_service.load_workflow(
-            payload, context=context, project_dir=pm.project_dir
-        )
-        return success, metadata

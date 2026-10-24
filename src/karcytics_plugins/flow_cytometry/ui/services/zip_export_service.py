@@ -56,21 +56,3 @@ class ZipExportService:
             with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for item in tmp_path.iterdir():
                     zf.write(item, arcname=item.name)
-
-    @staticmethod
-    def load_standalone(workflow_service: Any, path: str) -> bool:
-        """Load workflow from a standalone zip file."""
-        # Extract to permanent location so memory-mapped arrays can be read
-        extract_dir = Path.home() / ".karcytics" / "workflows" / Path(path).stem
-        extract_dir.mkdir(parents=True, exist_ok=True)
-
-        with zipfile.ZipFile(path, "r") as zf:
-            zf.extractall(extract_dir)
-
-        with open(extract_dir / "workflow.json") as f:
-            payload = json.load(f)
-
-        atts = payload.get("_attachments", [])
-        context = WorkflowContext.from_attachment_dicts(atts, extract_dir)
-
-        return workflow_service.load_workflow(payload, context=context)
