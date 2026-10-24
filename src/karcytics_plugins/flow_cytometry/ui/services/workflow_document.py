@@ -7,6 +7,7 @@ loading over unsaved work.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QTimer
@@ -133,3 +134,35 @@ class WorkflowDocument:
             Btn.Discard | Btn.Cancel,
         )
         return choice == Btn.Discard
+
+    def confirm_close(
+        self, academy_decision: Callable[[], bool | None], save: Callable[[], None]
+    ) -> bool:
+        """Whether the window may close now.
+
+        Unsaved changes offer Save / Discard / Cancel. Save starts the usual
+        (background) `save` and closes the window once it succeeds; if that
+        save is cancelled or fails, the next close asks again. The Academy
+        decides first for a workflow it has locked (None: no opinion).
+        """
+        if self.close_after_save:
+            if self.saving:
+                return False  # the save-then-close is still writing
+            self.close_after_save = False  # it was cancelled or failed
+        decision = academy_decision()
+        if decision is not None:
+            return decision
+        if not self.is_dirty:
+            return True
+        Btn = QMessageBox.StandardButton
+        choice = self.ask_unsaved_changes(
+            "Save changes to this workspace before closing?", Btn.Save | Btn.Discard | Btn.Cancel
+        )
+        if choice == Btn.Discard:
+            return True
+        if choice == Btn.Save:
+            self.close_after_save = True
+            save()
+            if not self.saving:
+                self.close_after_save = False  # no save started (its dialog was cancelled)
+        return False

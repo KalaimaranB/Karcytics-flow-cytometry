@@ -309,7 +309,7 @@ each file pays its share when B7 splits it.
 
 Comes after B5/B6, which empty out much of each file. Sizes today:
 
-- [ ] `ui/main_panel.py` (1,623). Target ≤ 600: gate events and delete → a `GatingController`;
+- [x] `ui/main_panel.py` (1,623 → 587). Target ≤ 600: gate events and delete → a `GatingController`;
       workflow load/save/close → `WorkspaceIOHandler`; async startup → a startup sequencer;
       Academy hooks → `AcademyWorkflowController`, which then takes that workflow-document
       interface instead of the whole panel and is built in the composition root (from B8).
@@ -324,6 +324,11 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       Hub never emits them) and are gone; `AcademyWorkflowController` takes the document and
       IO handler and uses the panel's public `current_tab` / `show_tab`. It stays built by the
       panel, not `build_services()`, to keep it off the Phase 1 import path.
+      Then (5dba1ca) one `WorkspaceViews` of the built widgets replaces `GatingViews`;
+      `MainPanelController` is an instance over it and `WorkspaceRefresher` takes the
+      refresh handlers. Last, `services/workflow_loader.py` takes `load_workflow`,
+      `WorkflowDocument.confirm_close` the close prompt, and `workspace_theme.py` the
+      skeleton styles (the panel's splitter QSS was dead: `BioSplitter` restyled over it).
 - [ ] `population_analysis_viewer.py` (1,527).
 - [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
       its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the

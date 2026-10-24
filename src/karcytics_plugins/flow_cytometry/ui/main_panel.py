@@ -1,16 +1,11 @@
-"""Flow cytometry workspace — the root panel injected by Karcytics.
+"""Flow cytometry workspace — the root panel the Hub's plugin runtime shows.
 
-This is the main entry point UI class.  It sets up the workspace
-layout (toolbar ribbon, left sidebar, center canvas, right properties)
-and exposes the Karcytics-required interface: signals, export_workflow,
-load_workflow, and undo/redo (backed by ``analysis.store.FlowStore``).
-
-It also instantiates and wires the ``GateController`` and
-``GatePropagator`` which coordinate gate lifecycle, statistics
-computation, and cross-sample gate propagation.
-
-This file is intentionally thin — all complex widgets live in their
-own modules under ``ui/widgets/``, ``ui/graph/``, and ``ui/ribbons/``.
+Holds the plugin interface (signals, export/load_workflow, undo/redo,
+confirm_close, the Academy entry points) and the tab switching. Everything
+else is delegated: services come from `composition_root.build_services`, the
+widgets from `builders/workspace_builder.py` (in two phases, see
+`startup_sequencer.py`), and the controllers in `controllers/` take the built
+widgets as a `WorkspaceViews`.
 """
 
 from __future__ import annotations
@@ -19,14 +14,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
-from karcytics_sdk.plugin.dialogs import show_error, show_warning
-from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
-from karcytics_sdk.plugin.workflow import WorkflowContext
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QMessageBox,
     QSizePolicy,
-    QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
@@ -35,7 +26,14 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
+from karcytics_plugins.flow_cytometry.ui.services.workflow_loader import WorkflowLoader
 from karcytics_plugins.flow_cytometry.ui.startup_sequencer import StartupSequencer
+from karcytics_plugins.flow_cytometry.ui.workspace_theme import (
+    palette_key,
+    restyle_children,
+    ribbon_stack_qss,
+    tab_bar_qss,
+)
 from karcytics_plugins.flow_cytometry.ui.workspace_views import WorkspaceViews
 
 from ..analysis.workspace_document import apply_workspace
@@ -65,29 +63,9 @@ _TAB_VIEWS: dict[MainTab, tuple[str, str | None]] = {
 class FlowCytometryPanel(PluginBase):
     """Root widget for the Flow Cytometry workspace.
 
-    Injected by Karcytics's ``ModuleManager`` as the central workspace
-    widget.  Provides the full Karcytics plugin interface.
-
-    Layout::
-
-        ┌────────────────────────────────────────────────────┐
-        │  Tab Bar: Workspace | Gating | Compensation | ...  │
-        │  ┌──────────────────────────────────────────────┐  │
-        │  │            Toolbar Ribbon (stacked)          │  │
-        │  └──────────────────────────────────────────────┘  │
-        ├───────────┬────────────────────────┬───────────────┤
-        │ Groups    │                        │ Properties &  │
-        │ Panel     │   Graph Canvas Area    │ Statistics    │
-        │───────────│   (tabbed graphs)      │               │
-        │ Sample    │                        │               │
-        │ Tree      │                        │               │
-        └───────────┴────────────────────────┴───────────────┘
-
-    Signals:
-        state_changed:  Emitted on any structural edit (Karcytics hooks
-                        this to ``HistoryManager`` for undo/redo).
-        status_message: Piped to the core status bar.
-        results_ready:  Emitted when analysis results are available.
+    Layout: tab bar and stacked ribbon on top; groups / samples / gate tree
+    on the left, the tab's view in the centre, properties on the right (the
+    sidebars only on the Workspace and Gating tabs).
     """
 
     # Dynamically injected UI components from WorkspaceBuilder
@@ -121,15 +99,10 @@ class FlowCytometryPanel(PluginBase):
     _statistics_explorer: Any
     _comparisons_viewer: Any
     _sample_lens: Any
-    _subscriptions: list[Any]
 
-    # ── Karcytics-required signals ───────────────────────────────────────
-    # state_changed and status_message are now provided by PluginBase
-    results_ready = Signal(object)
-
-    # ── Ready Gate protocol (Proposal A) ──────────────────────────
-    # panel_ready: heavy widgets built — PluginLoaderManager updates loader message.
-    # data_ready:  data loaded + graphs rendered — PluginLoaderManager cross-fades.
+    # state_changed and status_message come from PluginBase. The Ready Gate
+    # (startup_sequencer.py): panel_ready once the widgets are built, data_ready
+    # once the data is in. Academy gate steps wait on gate_added_to_tree.
     panel_ready = Signal()
     data_ready = Signal()
     gate_added_to_tree = Signal()
@@ -218,6 +191,15 @@ class FlowCytometryPanel(PluginBase):
 
         self._academy = AcademyWorkflowController(
             self, self.services.document, self.services.workspace_io_handler
+        )
+        self._loader = WorkflowLoader(
+            self.state,
+            self.services,
+            self,
+            status=self.status_message.emit,
+            refresh=self._refresh_all,
+            on_loaded=self._academy.on_workflow_loaded,
+            data_loaded=self._startup.data_loaded,
         )
 
     def _setup_footer_events(self) -> None:
@@ -451,72 +433,22 @@ class FlowCytometryPanel(PluginBase):
         self._wiring.wire()
 
     def _apply_theme_styles(self) -> None:
-        """Dynamically refresh all UI colors based on the current theme.
+        """Restyles the skeleton and every child for the current theme.
 
         Skips a palette it has already applied: the isolated runtime both
         emits ``theme_changed`` (connected here) and calls this directly, and
         each pass restyles every widget and redraws every plot.
         """
-        palette = (
-            Colors.BG_DARKEST,
-            Colors.BG_DARK,
-            Colors.BG_MEDIUM,
-            Colors.FG_PRIMARY,
-            Colors.FG_SECONDARY,
-            Colors.ACCENT_PRIMARY,
-            Colors.BORDER,
-        )
+        palette = palette_key()
         if palette == self._themed_palette:
             return
         self._themed_palette = palette
-        # 1. Base Panel
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-
-        # 2. Tab Bar
-        self._tab_bar.setStyleSheet(
-            f"QTabBar {{ background: {Colors.BG_DARKEST}; border: none; }}"
-            f"QTabBar::tab {{ background: {Colors.BG_DARK}; color: {Colors.FG_SECONDARY}; padding: 10px 20px; border: none; border-bottom: 2px solid transparent; font-size: {Fonts.SIZE_SMALL}px; font-weight: 600; }}"
-            f"QTabBar::tab:selected {{ color: {Colors.ACCENT_PRIMARY}; border-bottom: 2px solid {Colors.ACCENT_PRIMARY}; background: {Colors.BG_DARKEST}; }}"
-            f"QTabBar::tab:hover {{ color: {Colors.FG_PRIMARY}; background: {Colors.BG_MEDIUM}; }}"
-        )
-
-        # 3. Ribbon Stack
-        self._ribbon_stack.setStyleSheet(
-            f"background: {Colors.BG_DARK}; border-bottom: 1px solid {Colors.BORDER};"
-        )
-
-        # 4. Splitters
-        splitter_qss = (
-            f"QSplitter {{ border: none; background: transparent; }}"
-            f"QSplitter::handle {{ background-color: {Colors.BORDER}; background: {Colors.BORDER}; width: 1px; height: 1px; }}"
-            f"QSplitter::handle:horizontal {{ width: 1px; background-color: {Colors.BORDER}; background: {Colors.BORDER}; }}"
-            f"QSplitter::handle:vertical {{ height: 1px; background-color: {Colors.BORDER}; background: {Colors.BORDER}; }}"
-        )
-        if hasattr(self, "_main_splitter"):
-            self._main_splitter.setStyleSheet(splitter_qss)
-        if hasattr(self, "_left_splitter"):
-            self._left_splitter.setStyleSheet(splitter_qss)
-
-        # 5. Sidebars and Separators
+        self._tab_bar.setStyleSheet(tab_bar_qss())
+        self._ribbon_stack.setStyleSheet(ribbon_stack_qss())
         self._left_sidebar.setStyleSheet(f"background: {Colors.BG_DARKEST};")
-        if hasattr(self, "_left_sep"):
-            self._left_sep.setStyleSheet(f"background: {Colors.BORDER};")
-
-        # 6. Deep recursion for sub-widgets
-        for child in self.findChildren(QWidget):
-            if hasattr(child, "_apply_theme_styles") and child is not self:
-                child._apply_theme_styles()
-            elif hasattr(child, "refresh_styles"):
-                child.refresh_styles()
-            elif child.styleSheet() and child not in [
-                self._tab_bar,
-                self._ribbon_stack,
-                self._main_splitter,
-                self._left_splitter,
-            ]:
-                # Force refresh of any local QSS that might be using old hex codes
-                child.setStyleSheet(child.styleSheet())
-            child.update()
+        self._left_sep.setStyleSheet(f"background: {Colors.BORDER};")
+        restyle_children(self, keep=(self._tab_bar, self._ribbon_stack))
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -604,45 +536,19 @@ class FlowCytometryPanel(PluginBase):
             self.status_message.emit(f"{verb} {label}." if label else f"{verb} last change.")
         return stepped
 
-    # ── Saving ────────────────────────────────────────────────────────
-
     # ── Unsaved-changes prompts ───────────────────────────────────────
 
     def confirm_close(self) -> bool:
-        """Asked by the isolated window before a user closes it.
+        """Asked by the isolated window before a user closes it."""
+        document = self.services.document
 
-        Unsaved changes offer Save / Discard / Cancel. Save starts the usual
-        (background) save and closes the window once it succeeds; if that
-        save is cancelled or fails, the next close asks again.
-        """
-        if self.services.document.close_after_save:
-            if self.services.document.saving:
-                return False  # the save-then-close is still writing
-            self.services.document.close_after_save = False  # it was cancelled or failed
-        academy_decision = self._academy.confirm_close()
-        if academy_decision is not None:
-            return academy_decision
-        if not self.services.store.is_dirty:
-            return True
-
-        Btn = QMessageBox.StandardButton
-        choice = self.services.document.ask_unsaved_changes(
-            "Save changes to this workspace before closing?",
-            Btn.Save | Btn.Discard | Btn.Cancel,
-        )
-        if choice == Btn.Discard:
-            return True
-        if choice == Btn.Save:
-            self.services.document.close_after_save = True
-            if self.services.document.filename:
+        def _save() -> None:
+            if document.filename:
                 self._handle_update()
             else:
                 self._handle_save()
-            if not self.services.document.saving:
-                self.services.document.close_after_save = (
-                    False  # no save started (dialog cancelled)
-                )
-        return False
+
+        return document.confirm_close(self._academy.confirm_close, _save)
 
     # ── Academy (called by the SDK's open_academy / build_academy_overlay) ──
 
@@ -668,102 +574,11 @@ class FlowCytometryPanel(PluginBase):
         project_dir = pm.project_dir if pm else None
         return self.services.workflow_service.export_workflow(project_dir=project_dir)
 
-    def load_workflow(  # noqa: PLR0912, PLR0915
+    def load_workflow(
         self, payload: dict, filename: str | None = None, metadata: dict | None = None
     ) -> None:
-        """Restore the workspace from a saved file."""
-        if not self.services.document.confirm_discard_before_load():
-            self.status_message.emit("Workflow load cancelled — your workspace is unchanged.")
-            return
-
-        # Nothing records while the workspace is being replaced; the history
-        # restarts from the loaded state once it's complete
-        # (_finish_workflow_load). Undo/redo are refused until then.
-        self.services.document.begin_load()
-
-        # Support raw data injection for CI/CD smoke tests
-        if filename and str(filename).lower().endswith(".fcs"):
-            self.logger.info(f"Direct raw FCS injection detected: {filename}")
-
-            def _on_done(results: dict):
-                self.logger.info(f"Raw FCS injection complete. Processed {len(results)} samples.")
-                # Raw data was never saved as a workflow — starts unsaved.
-                self.services.document.finish_load(clean=False)
-                self._refresh_all()
-                self._startup.emit_data_ready_once()
-
-            def _on_error(err: str):
-                self.logger.error(f"FCS injection failed: {err}")
-                self.services.document.finish_load(clean=False)
-                self._startup.emit_data_ready_once()
-
-            self.services.data_loader_service.load_samples_async(
-                [filename],
-                self.state,
-                on_done=_on_done,
-                on_error_cb=_on_error,
-            )
-            return
-        if filename:
-            self.services.document.filename = filename
-        if metadata:
-            self.services.document.metadata = metadata
-
-        pm = self.services.document.project_manager()
-        context = None
-        if pm and filename:
-            try:
-                atts = pm.workflows.load_attachments(filename)
-                # Filter out any corrupt legacy attachments
-                valid_atts = [a for a in atts if "relative_path" in a]
-                context = WorkflowContext.from_attachment_dicts(valid_atts, pm.project_dir)
-            except (OSError, KeyError, ValueError) as e:
-                self.logger.warning(f"Failed to load attachments: {e}")
-
-        def _on_fcs_done(reload_result: dict[str, list[str]] | None = None):
-            self.logger.info(
-                "--> [_on_fcs_done] Background FCS reload completed! Refreshing workspace..."
-            )
-            # 1. Recompute stats for samples with gate trees
-            for sid, sample in self.state.data.experiment.samples.items():
-                if sample.fcs_data is not None and sample.gate_tree is not None:
-                    if len(sample.gate_tree.children) > 0:
-                        self.services.gate_coordinator.recompute_all_stats(sid)
-
-            # 2. The loaded workspace is the new, saved baseline.
-            self.services.document.finish_load(clean=True)
-            self._academy.on_workflow_loaded()
-
-            # 3. Refresh sample list, gate hierarchy, and active graph canvas
-            self._refresh_all()
-
-            failed = (reload_result or {}).get("failed") or []
-            if failed:
-                self.logger.error(f"FCS reload failed for {len(failed)} sample(s): {failed}")
-                show_warning(
-                    self,
-                    "Some Samples Failed to Load",
-                    f"{len(failed)} sample(s) could not be reloaded and will show 0 events:\n\n"
-                    + "\n".join(f"  • {name}" for name in failed)
-                    + "\n\nCheck the logs for details (e.g. a moved or corrupt FCS file).",
-                )
-                self.status_message.emit(
-                    f"Workflow loaded with {len(failed)} sample(s) failed to reload."
-                )
-            else:
-                self.status_message.emit("Workflow loaded successfully.")
-
-            self._startup.data_loaded()
-
-        project_dir = pm.project_dir if pm else None
-        if not self.services.workflow_service.load_workflow(
-            payload, context=context, project_dir=project_dir, on_complete=_on_fcs_done
-        ):
-            # Whatever was partially replaced is unsaved, not a clean workflow.
-            self.services.document.finish_load(clean=False)
-            # Try to grab the last exception if we stored it
-            error_msg = self.services.workflow_service.last_error
-            show_error(self, "Load Error", f"Failed to restore workflow. {error_msg}")
+        """Restore the workspace from a saved file (see services/workflow_loader.py)."""
+        self._loader.load(payload, filename, metadata)
 
     # ── Internal helpers ──────────────────────────────────────────────
 

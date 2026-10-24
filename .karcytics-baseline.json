@@ -324,13 +324,9 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
-      "KS242": 6,
-      "KS300": 772,
+      "KS242": 4,
       "KS301:FlowCytometryPanel": 37,
-      "KS302:FlowCytometryPanel.load_workflow": 96,
-      "KS310": 1,
-      "KS342": 1,
-      "KS343": 5
+      "KS343": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/pipeline_ribbon.py": {
       "KS210": 1,

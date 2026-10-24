@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -231,7 +230,7 @@ def test_undo_after_load_and_edits_returns_exactly_to_the_loaded_state(panel):
 def test_a_failed_load_leaves_an_unsaved_but_working_workspace(panel, monkeypatch):
     errors = []
     monkeypatch.setattr(
-        "karcytics_plugins.flow_cytometry.ui.main_panel.show_error",
+        "karcytics_plugins.flow_cytometry.ui.services.workflow_loader.show_error",
         lambda *a, **k: errors.append(a),
     )
     panel.load_workflow(_saved(build_rich_state()))
@@ -273,13 +272,12 @@ def test_a_late_load_completion_cannot_wipe_newer_history(panel):
 
 
 def test_raw_fcs_injection_starts_unsaved(panel, monkeypatch):
-    loader = MagicMock()
-
     def _load_samples_async(paths, state, on_done, on_error_cb):
         on_done({"x": object()})
 
-    loader.load_samples_async.side_effect = _load_samples_async
-    monkeypatch.setattr(panel, "services", replace(panel.services, data_loader_service=loader))
+    monkeypatch.setattr(
+        panel.services.data_loader_service, "load_samples_async", _load_samples_async
+    )
     panel.load_workflow({}, filename="/tmp/raw.fcs")
     assert not panel.services.document.loading
     assert panel.services.store.is_dirty
