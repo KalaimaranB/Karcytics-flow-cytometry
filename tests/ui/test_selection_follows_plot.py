@@ -3,17 +3,15 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from karcytics_plugins.flow_cytometry.ui.controllers.gating_controller import (
-    GatingController,
-    GatingViews,
-)
+from karcytics_plugins.flow_cytometry.ui.controllers.gating_controller import GatingController
+from karcytics_plugins.flow_cytometry.ui.workspace_views import WorkspaceViews
 from tests.fixtures.workspace import build_rich_state
 
 
 def _controller(active_graph):
-    views = {name: MagicMock() for name in GatingViews.__dataclass_fields__}
+    views = {name: MagicMock() for name in WorkspaceViews.__dataclass_fields__}
     views["graph_manager"] = SimpleNamespace(get_active_graph=lambda: active_graph)
-    gating_views = GatingViews(**views)
+    gating_views = WorkspaceViews(**views)
     controller = GatingController(
         build_rich_state(), MagicMock(), gating_views, MagicMock(), MagicMock(), MagicMock()
     )
@@ -55,7 +53,7 @@ def test_double_clicking_an_exported_clustering_reopens_its_run():
         {"name": "first"},
         {"name": "exported", "exported_node_id": umap_node.node_id},
     ]
-    views = GatingViews(**{name: MagicMock() for name in GatingViews.__dataclass_fields__})
+    views = WorkspaceViews(**{name: MagicMock() for name in WorkspaceViews.__dataclass_fields__})
     views.gate_hierarchy.active_sample_id = sample_id
     controller = GatingController(state, MagicMock(), views, MagicMock(), MagicMock(), MagicMock())
 

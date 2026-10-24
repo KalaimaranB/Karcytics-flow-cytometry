@@ -1,18 +1,17 @@
 """Gate lifecycle, selection, deletion and copying across the workspace's views.
 
-Built once Phase 2 has created every view (MainPanelController.wire), so each
-view it touches is a constructor argument rather than a panel attribute.
+Built once Phase 2 has created every view (the panel's `_wire_signals`), so the
+views it touches come in a `WorkspaceViews` rather than as panel attributes.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.dialogs import get_text
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QDialog, QTabBar, QWidget
+from PySide6.QtWidgets import QDialog, QWidget
 
 from ...analysis.services.experiment_edits import exported_run
 from ...main_tabs import MainTab
@@ -20,29 +19,7 @@ from ...main_tabs import MainTab
 if TYPE_CHECKING:
     from ...analysis.gate_coordinator import GateCoordinator
     from ...analysis.state import FlowState
-    from ..graph.graph_manager import GraphManager
-    from ..ribbons.gating_ribbon import GatingRibbon
-    from ..ribbons.pipeline_ribbon import PipelineRibbon
-    from ..widgets.gate_hierarchy.widget import GateHierarchy
-    from ..widgets.node_canvas.canvas_view import NodeCanvas
-    from ..widgets.population_analysis_viewer import PopulationAnalysisViewer
-    from ..widgets.properties_panel import PropertiesPanel
-    from ..widgets.sample_list import SampleList
-
-
-@dataclass(frozen=True)
-class GatingViews:
-    """The views a gate change has to keep in step."""
-
-    tab_bar: QTabBar
-    graph_manager: GraphManager
-    gate_hierarchy: GateHierarchy
-    properties_panel: PropertiesPanel
-    sample_list: SampleList
-    node_canvas: NodeCanvas
-    gating_ribbon: GatingRibbon
-    pipeline_ribbon: PipelineRibbon
-    population_analysis_viewer: PopulationAnalysisViewer
+    from ..workspace_views import WorkspaceViews
 
 
 class GatingController:
@@ -52,7 +29,7 @@ class GatingController:
         self,
         state: FlowState,
         coordinator: GateCoordinator,
-        views: GatingViews,
+        views: WorkspaceViews,
         dialog_parent: QWidget,
         status: Callable[[str], None],
         changed: Callable[[], None],

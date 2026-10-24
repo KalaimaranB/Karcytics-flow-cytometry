@@ -24,25 +24,26 @@ from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from karcytics_sdk.plugin.workflow import WorkflowContext
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QInputDialog,
     QMessageBox,
     QSizePolicy,
     QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
-from karcytics_plugins.flow_cytometry.analysis.compensation import extract_spill_from_fcs
 from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
 from karcytics_plugins.flow_cytometry.ui.startup_sequencer import StartupSequencer
+from karcytics_plugins.flow_cytometry.ui.workspace_views import WorkspaceViews
 
 from ..analysis.workspace_document import apply_workspace
 
 if TYPE_CHECKING:
     from .controllers.gating_controller import GatingController
+    from .controllers.main_panel_controller import MainPanelController
+    from .controllers.workspace_refresher import WorkspaceRefresher
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -146,7 +147,11 @@ class FlowCytometryPanel(PluginBase):
 
         # ── State ─────────────────────────────────────────────────────
         self.state = FlowState()
-        self._gating: GatingController | None = None  # MainPanelController.wire, Phase 2
+        # Built by _wire_signals once Phase 2 has created the views.
+        self._views: WorkspaceViews | None = None
+        self._gating: GatingController | None = None
+        self._refresher: WorkspaceRefresher | None = None
+        self._wiring: MainPanelController | None = None
         # Startup: a workflow PluginLoaderManager hands over before Phase 2 finishes.
         self._deferred_workflow_payload: dict[str, Any] | None = None
         self._deferred_workflow_filename: str | None = None
@@ -407,33 +412,43 @@ class FlowCytometryPanel(PluginBase):
         return lambda: self.load_workflow(payload, filename=filename, metadata=metadata)
 
     def _wire_signals(self) -> None:
-        """Connect internal widget signals to each other and to the Karcytics interface signals."""
+        """Builds the controllers over the finished views and connects them."""
         # karcytics: allow KS360 - off the Phase 1 path
-        from ..ui.controllers.gating_controller import GatingController, GatingViews
+        from ..ui.controllers.gating_controller import GatingController
 
         # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.controllers.main_panel_controller import MainPanelController
 
-        views = GatingViews(
+        # karcytics: allow KS360 - off the Phase 1 path
+        from ..ui.controllers.workspace_refresher import WorkspaceRefresher
+
+        views = self._views = WorkspaceViews(
             tab_bar=self._tab_bar,
-            graph_manager=self._graph_manager,
-            gate_hierarchy=self._gate_hierarchy,
-            properties_panel=self._properties_panel,
-            sample_list=self._sample_list,
-            node_canvas=self._node_canvas,
+            workspace_ribbon=self._workspace_ribbon,
             gating_ribbon=self._gating_ribbon,
             pipeline_ribbon=self._pipeline_ribbon,
+            groups_panel=self._groups_panel,
+            sample_list=self._sample_list,
+            gate_hierarchy=self._gate_hierarchy,
+            properties_panel=self._properties_panel,
+            graph_manager=self._graph_manager,
+            node_canvas=self._node_canvas,
+            compensation_view=self._compensation_view,
             population_analysis_viewer=self._population_analysis_viewer,
+            statistics_explorer=self._statistics_explorer,
+            comparisons_viewer=self._comparisons_viewer,
         )
-        self._gating = GatingController(
-            self.state,
-            self.services.gate_coordinator,
-            views,
-            dialog_parent=self,
-            status=self.status_message.emit,
-            changed=self.state_changed.emit,
+        status, changed = self.status_message.emit, self.state_changed.emit
+        gating = self._gating = GatingController(
+            self.state, self.services.gate_coordinator, views, self, status, changed
         )
-        MainPanelController.wire(self, self._gating)
+        refresher = self._refresher = WorkspaceRefresher(
+            self.state, self.services, views, gating, self, status, changed
+        )
+        self._wiring = MainPanelController(
+            self.state, self.services, views, gating, refresher, self.gate_added_to_tree
+        )
+        self._wiring.wire()
 
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh all UI colors based on the current theme.
@@ -518,105 +533,20 @@ class FlowCytometryPanel(PluginBase):
         if self._gating is not None:
             self._gating.delete_gate_with_dialog(sample_id, node_id, force_silent)
 
-    # ── Existing callbacks ────────────────────────────────────────────
-
-    def _on_samples_loaded(self) -> None:
-        """Callback when new FCS files are loaded via the ribbon."""
-        # ── Auto-extract embedded compensation matrix if none exists ──
-        if self.state.data.compensation is None:
-            for sample in self.state.data.experiment.samples.values():
-                if sample.fcs_data and sample.fcs_data.is_compensated:
-                    try:
-                        comp_matrix = extract_spill_from_fcs(sample.fcs_data)
-                        if comp_matrix:
-                            self.state.data.compensation = comp_matrix
-                            self.logger.info(
-                                f"Auto-Compensation: Extracted and applied embedded compensation matrix from {sample.display_name}."
-                            )
-                            break
-                    except Exception as exc:
-                        self.logger.warning("Failed to extract auto-spill matrix: %s", exc)
-
-        self._groups_panel.refresh()
-        self._sample_list.refresh()
-        self._pipeline_ribbon.refresh_samples()
-        self._population_analysis_viewer.refresh_samples()
-        self._statistics_explorer.refresh_samples()
-        self._comparisons_viewer.refresh_samples()
-        self.state_changed.emit()
-        self.status_message.emit(f"{len(self.state.data.experiment.samples)} samples loaded.")
-
-    def _on_group_requested(self) -> None:
-        """Callback when the user clicks 'Create Group'."""
-        # karcytics: allow KS360 - off the Phase 1 path
-        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-
-        name, ok = QInputDialog.getText(self, "New Group", "Enter name for the new group:")
-
-        group = experiment_edits.create_group(self.state, name) if ok else None
-        if group is not None:
-            self._groups_panel.refresh()
-            self.status_message.emit(f"Group '{group.name}' created.")
-
-    def _on_derived_params_changed(self, payload: dict) -> None:
-        """A derived-parameter definition was created, edited or deleted.
-
-        Columns are already re-synced by DerivedParameterService; open graph
-        windows rebuild their own axis lists (GraphWindow subscribes itself).
-        Here: refresh every other channel picker/label, and recompute stats
-        for samples whose gates sit on an edited parameter.
-        """
-        self._statistics_explorer.refresh_channels()
-        self._comparisons_viewer.refresh_channels()
-        self._gate_hierarchy.refresh()
-        self._properties_panel.refresh()
-        self._refresh_node_canvas()
-
-        if payload.get("action") == "updated":
-            param_id = payload.get("param_id", "")
-            affected = {
-                d.sample_id
-                for d in self.services.derived_parameter_service.find_dependents(param_id)
-            }
-            for sample_id in affected:
-                self.services.gate_coordinator.recompute_all_stats(sample_id)
-
-    def _on_compensation_changed(self) -> None:
-        """Callback when the compensation matrix changes."""
-        self._sample_list.refresh()  # Refresh event counts after comp
-        self._gate_hierarchy.refresh()
-        self._properties_panel.refresh()
-        self.state_changed.emit()
-        src = self.state.data.compensation.source if self.state.data.compensation else "none"
-        self.status_message.emit(f"Compensation updated (source: {src}).")
-
     def cleanup(self) -> None:
         """Resource cleanup on plugin close."""
         self.logger.info("Cleaning up Flow Cytometry workspace...")
 
-        # karcytics: allow KS360 - off the Phase 1 path
-        from ..ui.controllers.main_panel_controller import MainPanelController
-
-        MainPanelController.unwire(self)
+        if self._wiring is not None:
+            self._wiring.unwire()
         self._academy.dispose()
-
-        # 1. Stop background timers/workers via Coordinator
-        self.services.gate_coordinator.cleanup()
-
-        if hasattr(self, "_graph_manager"):
-            self._graph_manager.cleanup()
-
-        if hasattr(self, "_sample_list"):
-            self._sample_list.cleanup()
-
-        # PropertiesPanel registers its own CentralEventBus subscriptions that
-        # MainPanelController.unwire() does not touch — clean those up explicitly.
-        if hasattr(self, "_properties_panel"):
-            self._properties_panel.cleanup()
-
-        if hasattr(self, "_compensation_view"):
-            self._compensation_view.cleanup()
-
+        self.services.gate_coordinator.cleanup()  # its timers and workers
+        # The skeleton's and Phase 2's widgets hold their own bus subscriptions.
+        self._sample_list.cleanup()
+        self._properties_panel.cleanup()
+        if self._views is not None:
+            self._views.graph_manager.cleanup()
+            self._views.compensation_view.cleanup()
         self.services.umap_service.cancel()
 
         super().cleanup()
@@ -659,8 +589,8 @@ class FlowCytometryPanel(PluginBase):
         if reason is not None:
             self.status_message.emit(f"Can't {direction} while {reason}.")
             return False
-        if hasattr(self, "_graph_manager"):
-            self._graph_manager.cancel_active_drawing()
+        if self._views is not None:
+            self._views.graph_manager.cancel_active_drawing()
         # A step still waiting for the end of this event-loop turn, or a
         # change nothing announced, must be its own step before we move.
         self.services.document.flush_history()
@@ -673,17 +603,6 @@ class FlowCytometryPanel(PluginBase):
             verb = "Undid" if direction == "undo" else "Redid"
             self.status_message.emit(f"{verb} {label}." if label else f"{verb} last change.")
         return stepped
-
-    def _on_state_restored(self, _payload: Any = None) -> None:
-        """Undo/redo replaced the model — make every view re-read it by id."""
-        self.services.gate_propagator.cancel_pending()
-        for sid, sample in self.state.data.experiment.samples.items():
-            if sample.fcs_data is not None and sample.gate_tree.children:
-                self.services.gate_coordinator.recompute_all_stats(sid)
-        if hasattr(self, "_graph_manager"):
-            self._graph_manager.reconcile_with_state()
-            self._refresh_all()
-            self._refresh_node_canvas()
 
     # ── Saving ────────────────────────────────────────────────────────
 
@@ -849,56 +768,5 @@ class FlowCytometryPanel(PluginBase):
     # ── Internal helpers ──────────────────────────────────────────────
 
     def _refresh_all(self) -> None:
-        """Rebuild all UI widgets from the current state."""
-        self.logger.info("MainPanel: Performing full UI refresh...")
-
-        # 1. Refresh data-driven widgets first
-        self._groups_panel.refresh()
-        self._sample_list.refresh()
-        self._pipeline_ribbon.refresh_samples()
-        self._population_analysis_viewer.refresh_samples()
-        self._statistics_explorer.refresh_samples()
-        self._comparisons_viewer.refresh_samples()
-
-        # 2. Sync the active sample context
-        sid = self.state.view.current_sample_id
-
-        # If no active sample is selected but samples exist, auto-select the first one
-        if not sid and self.state.data.experiment.samples:
-            sid = list(self.state.data.experiment.samples.keys())[0]
-            self.state.view.current_sample_id = sid
-
-        if sid:
-            self.logger.info(f"MainPanel: Restoring active sample: {sid}")
-            self._sample_list.blockSignals(True)
-            self._sample_list.select_sample(sid)
-            self._sample_list.blockSignals(False)
-            self._gate_hierarchy.set_active_sample(sid)
-
-            # Ensure the main graph is loaded for this sample if the canvas is empty
-            if self._graph_manager._tabs.count() == 0:
-                self._graph_manager.open_graph_for_sample(sid, self.state.view.current_gate_id)
-        else:
-            self._gate_hierarchy._show_empty(True)
-            self._sample_list.blockSignals(True)
-            self._sample_list.select_sample(None)
-            self._sample_list.blockSignals(False)
-
-        # 3. Restore gate selection
-        if self.state.view.current_gate_id:
-            self.logger.info(
-                f"MainPanel: Restoring gate selection: {self.state.view.current_gate_id}"
-            )
-            if self._gating is not None:
-                self._gating.select_population(self.state.view.current_gate_id)
-
-        # 4. Final refresh for properties and graph
-        self._properties_panel.refresh()
-        self._graph_manager.refresh()
-
-        self.logger.info("MainPanel: Full UI refresh complete.")
-
-    def _sample_name(self, sample_id: str) -> str:
-        """Get a sample's display name by ID."""
-        sample = self.state.data.experiment.samples.get(sample_id)
-        return sample.display_name if sample else sample_id
+        if self._refresher is not None:
+            self._refresher.refresh_all()

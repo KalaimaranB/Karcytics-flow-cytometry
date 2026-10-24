@@ -18,10 +18,9 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
     mark the workspace unsaved, same as GATE_CREATED/GATE_DELETED/
     GATE_RENAMED.
 
-    Exercises MainPanelController.wire() directly against a mock panel
-    (real FlowCytometryPanel construction runs `_wire_signals()` only as the
-    last step of an async, PluginLoaderManager-driven Phase 2 build — not
-    worth dragging into a targeted wiring test), with a real FlowStore.
+    Exercises MainPanelController.wire() directly against mock services and
+    views (a real panel wires only at the end of the async Phase 2 build),
+    with a real FlowStore.
     """
     from unittest.mock import Mock
 
@@ -33,12 +32,13 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
     from tests.fixtures.workspace import build_rich_state
 
     state = build_rich_state()
-    panel = Mock()
-    panel.services.store = FlowStore(state, lambda *_: None)
-    panel.services.store.reset()
-    MainPanelController.wire(panel, Mock())
+    services = Mock()
+    services.store = FlowStore(state, lambda *_: None)
+    services.store.reset()
+    wiring = MainPanelController(state, services, Mock(), Mock(), Mock(), Mock())
+    wiring.wire()
 
-    recorder = panel.services.document.recorder
+    recorder = services.document.recorder
     handlers = [h for topic, h in recorder._subscriptions if topic == events.GATE_MODIFIED]
     assert len(handlers) == 1, "GATE_MODIFIED must be recorded exactly once"
 
@@ -47,12 +47,12 @@ def test_gate_modified_records_one_undo_step_and_dirties(qapp, qtbot):
     handlers[0]({"sample_id": "s0", "gate_id": "g1"})  # same turn → same step
     recorder.flush()
 
-    assert panel.services.store.history.undo_label() == "Edit Gate"
-    assert panel.services.store.history.undo() is not None
-    assert panel.services.store.history.undo() is None  # exactly one step
-    assert panel.services.store.is_dirty is False  # back at the baseline
+    assert services.store.history.undo_label() == "Edit Gate"
+    assert services.store.history.undo() is not None
+    assert services.store.history.undo() is None  # exactly one step
+    assert services.store.is_dirty is False  # back at the baseline
 
-    MainPanelController.unwire(panel)
+    wiring.unwire()
     assert recorder._subscriptions == []
 
 

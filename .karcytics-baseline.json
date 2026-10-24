@@ -165,10 +165,8 @@
       "KS360": 9
     },
     "src/karcytics_plugins/flow_cytometry/ui/controllers/main_panel_controller.py": {
-      "KS302:MainPanelController.wire": 279,
-      "KS310": 3,
-      "KS341": 1,
-      "KS342": 59
+      "KS302:MainPanelController.wire": 274,
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/dialogs/bulk_role_dialog.py": {
       "KS210": 1
@@ -326,14 +324,13 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
-      "KS220": 1,
       "KS242": 6,
-      "KS300": 904,
-      "KS301:FlowCytometryPanel": 43,
+      "KS300": 772,
+      "KS301:FlowCytometryPanel": 37,
       "KS302:FlowCytometryPanel.load_workflow": 96,
       "KS310": 1,
-      "KS342": 3,
-      "KS343": 11
+      "KS342": 1,
+      "KS343": 5
     },
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/pipeline_ribbon.py": {
       "KS210": 1,

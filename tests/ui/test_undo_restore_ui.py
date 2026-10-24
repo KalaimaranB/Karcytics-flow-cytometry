@@ -96,6 +96,9 @@ def test_undo_cancels_a_half_finished_gate_drag(env):
 
 
 def test_panel_restore_handler_recomputes_stats_and_cancels_propagation(qapp, qtbot, monkeypatch):
+    from karcytics_plugins.flow_cytometry.ui.controllers.workspace_refresher import (
+        WorkspaceRefresher,
+    )
     from karcytics_plugins.flow_cytometry.ui.main_panel import FlowCytometryPanel
 
     panel = FlowCytometryPanel(plugin_id="flow_restore_test")
@@ -107,7 +110,10 @@ def test_panel_restore_handler_recomputes_stats_and_cancels_propagation(qapp, qt
     monkeypatch.setattr(panel.services.gate_coordinator, "recompute_all_stats", recompute)
     monkeypatch.setattr(panel.services.gate_propagator, "cancel_pending", cancel)
 
-    panel._on_state_restored({})
+    refresher = WorkspaceRefresher(
+        panel.state, panel.services, MagicMock(), MagicMock(), panel, MagicMock(), MagicMock()
+    )
+    refresher.on_state_restored({})
 
     cancel.assert_called_once()
     assert sorted(c.args[0] for c in recompute.call_args_list) == ["s0", "s1", "s2"]

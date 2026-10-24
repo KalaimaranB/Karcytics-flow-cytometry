@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import traceback
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import CentralEventBus
@@ -14,35 +15,57 @@ from karcytics_plugins.flow_cytometry.analysis.history_recorder import HistoryRe
 from ...tutorials.validators.gating import GateShapeValidator
 
 if TYPE_CHECKING:
-    from ...ui.main_panel import FlowCytometryPanel
+    from PySide6.QtCore import SignalInstance
+
+    from ...analysis.state import FlowState
+    from ..composition_root import FlowServices
+    from ..workspace_views import WorkspaceViews
     from .gating_controller import GatingController
+    from .workspace_refresher import WorkspaceRefresher
 
 
 class MainPanelController:
-    """Manages the signal routing and event bus subscriptions for the Flow Cytometry workspace."""
+    """Routes the workspace views' signals and the CentralEventBus events to the controllers."""
 
-    @staticmethod
-    def wire(panel: FlowCytometryPanel, gating: GatingController) -> None:  # noqa: PLR0915
-        """Connect internal widget signals and CentralEventBus subscriptions."""
-        panel._subscriptions = []  # type: ignore[attr-defined]
-        coordinator = panel.services.gate_coordinator
+    def __init__(
+        self,
+        state: FlowState,
+        services: FlowServices,
+        views: WorkspaceViews,
+        gating: GatingController,
+        refresher: WorkspaceRefresher,
+        gate_added_to_tree: SignalInstance,
+    ) -> None:
+        self._state = state
+        self._services = services
+        self._views = views
+        self._gating = gating
+        self._refresher = refresher
+        self._gate_added_to_tree = gate_added_to_tree  # Academy steps wait on it
+        self._subscriptions: list[tuple[str, Callable]] = []
 
-        def _subscribe(topic, cb):
-            CentralEventBus.subscribe(topic, cb)
-            panel._subscriptions.append((topic, cb))  # type: ignore[attr-defined]
+    def _subscribe(self, topic: str, cb: Callable) -> None:
+        CentralEventBus.subscribe(topic, cb)
+        self._subscriptions.append((topic, cb))
+
+    def wire(self) -> None:  # noqa: PLR0915
+        """Connect the views' signals and the CentralEventBus subscriptions."""
+        state, services, views = self._state, self._services, self._views
+        gating, refresher, _subscribe = self._gating, self._refresher, self._subscribe
+        coordinator = services.gate_coordinator
 
         # ── Undo history & unsaved changes ────────────────────────────
         # HistoryRecorder (analysis/history_recorder.py) is the one table of
         # which events are undo steps; the store behind it decides dirtiness.
 
-        recorder = panel.services.document.recorder = HistoryRecorder(
-            panel.services.store,
+        recorder = services.document.recorder = HistoryRecorder(
+            services.store,
             CentralEventBus.subscribe,
             CentralEventBus.unsubscribe,
             defer=lambda fn: QTimer.singleShot(0, fn),
         )
         recorder.start()
-        _subscribe(events.STATE_RESTORED, panel._on_state_restored)
+        _subscribe(events.STATE_RESTORED, refresher.on_state_restored)
 
         # ── Structural change → Node Canvas ───────────────────────────
         def _on_structural_change(_payload):
@@ -63,8 +86,8 @@ class MainPanelController:
             # Renaming changes no stats/geometry — only refresh the properties
             # panel, and only if it's currently showing the renamed node.
             node_id = payload.get("node_id")
-            if node_id == panel.state.view.current_gate_id:
-                panel._properties_panel.refresh()
+            if node_id == state.view.current_gate_id:
+                views.properties_panel.refresh()
 
         _subscribe(events.GATE_RENAMED, _on_gate_renamed_ui)
 
@@ -74,59 +97,59 @@ class MainPanelController:
         # CanvasManager._on_connection_pending); the HistoryRecorder still
         # records them as steps.
 
-        _subscribe(events.DERIVED_PARAMS_CHANGED, panel._on_derived_params_changed)
+        _subscribe(events.DERIVED_PARAMS_CHANGED, refresher.on_derived_params_changed)
 
         # ── Workspace ribbon: samples loaded → refresh tree + groups ──
         # Note: Event subscription for UI refresh is handled in the components themselves
 
-        panel._workspace_ribbon.samples_loaded.connect(panel._on_samples_loaded)
-        panel._workspace_ribbon.group_requested.connect(panel._on_group_requested)
+        views.workspace_ribbon.samples_loaded.connect(refresher.on_samples_loaded)
+        views.workspace_ribbon.group_requested.connect(refresher.on_group_requested)
 
         # ── Pipeline Ribbon & Node Canvas ─────────────────────────────
-        panel._pipeline_ribbon.sample_selected.connect(panel._node_canvas.set_sample)
-        panel._pipeline_ribbon.logic_node_requested.connect(coordinator.add_logic_node)
-        panel._pipeline_ribbon.orientation_changed.connect(panel._node_canvas.set_orientation)
-        panel._node_canvas.node_double_clicked.connect(gating.on_gate_double_clicked)
-        panel._node_canvas.node_removed.connect(
+        views.pipeline_ribbon.sample_selected.connect(views.node_canvas.set_sample)
+        views.pipeline_ribbon.logic_node_requested.connect(coordinator.add_logic_node)
+        views.pipeline_ribbon.orientation_changed.connect(views.node_canvas.set_orientation)
+        views.node_canvas.node_double_clicked.connect(gating.on_gate_double_clicked)
+        views.node_canvas.node_removed.connect(
             lambda node_id: (
-                coordinator.remove_population(panel._node_canvas.current_sample_id, node_id)
-                if panel._node_canvas.current_sample_id
+                coordinator.remove_population(views.node_canvas.current_sample_id, node_id)
+                if views.node_canvas.current_sample_id
                 else None
             )
         )
-        panel._node_canvas.connection_requested.connect(coordinator.add_connection)
-        panel._node_canvas.connection_removed.connect(coordinator.remove_connection)
-        panel._node_canvas.rename_requested.connect(
+        views.node_canvas.connection_requested.connect(coordinator.add_connection)
+        views.node_canvas.connection_removed.connect(coordinator.remove_connection)
+        views.node_canvas.rename_requested.connect(
             lambda node_id, new_name, target_ids: (
                 coordinator.rename_population(
-                    panel._node_canvas.current_sample_id, node_id, new_name, target_ids
+                    views.node_canvas.current_sample_id, node_id, new_name, target_ids
                 )
-                if panel._node_canvas.current_sample_id
+                if views.node_canvas.current_sample_id
                 else None
             )
         )
-        panel._node_canvas.link_delete_requested.connect(
+        views.node_canvas.link_delete_requested.connect(
             lambda src, tgt, target_ids: coordinator.remove_connection_for_samples(
                 src, tgt, target_ids
             )
         )
 
         # ── Compensation view: matrix changed → refresh ───────────────
-        panel._compensation_view.compensation_changed.connect(panel._on_compensation_changed)
+        views.compensation_view.compensation_changed.connect(refresher.on_compensation_changed)
 
         # ── Gating ribbon → drawing tool selection ────────────────────
-        panel._gating_ribbon.tool_selected.connect(panel._graph_manager.set_drawing_mode)
-        panel._gating_ribbon.delete_gate_requested.connect(gating.on_delete_selected_gate)
-        panel._gating_ribbon.copy_gates_requested.connect(gating.on_copy_gates_from_active)
-        editor = panel.services.derived_editor
-        panel._gating_ribbon.derived_params_requested.connect(lambda: editor.open())
-        panel._graph_manager.derived_editor_requested.connect(editor.open_for_axis)
+        views.gating_ribbon.tool_selected.connect(views.graph_manager.set_drawing_mode)
+        views.gating_ribbon.delete_gate_requested.connect(gating.on_delete_selected_gate)
+        views.gating_ribbon.copy_gates_requested.connect(gating.on_copy_gates_from_active)
+        editor = services.derived_editor
+        views.gating_ribbon.derived_params_requested.connect(lambda: editor.open())
+        views.graph_manager.derived_editor_requested.connect(editor.open_for_axis)
 
         # ── Graph manager → gate controller ───────────────────────────
-        panel._graph_manager.gate_drawn.connect(gating.on_gate_drawn)
-        panel._graph_manager.gate_selection_changed.connect(gating.on_gate_selected_on_canvas)
-        panel._graph_manager.active_graph_changed.connect(gating.on_active_graph_changed)
-        panel._graph_manager.tool_change_requested.connect(panel._gating_ribbon.select_tool)
+        views.graph_manager.gate_drawn.connect(gating.on_gate_drawn)
+        views.graph_manager.gate_selection_changed.connect(gating.on_gate_selected_on_canvas)
+        views.graph_manager.active_graph_changed.connect(gating.on_active_graph_changed)
+        views.graph_manager.tool_change_requested.connect(views.gating_ribbon.select_tool)
 
         # ── Gate controller → UI updates ──────────────────────────────
         def _show_flash_message(text: str, *, is_error: bool = True) -> None:
@@ -137,7 +160,7 @@ class MainPanelController:
             routine status bar for something the user should notice.
             """
             bg = "rgba(220, 50, 50, 0.9)" if is_error else "rgba(40, 40, 40, 0.9)"
-            label = QLabel(text, panel._graph_manager)
+            label = QLabel(text, views.graph_manager)
             label.setStyleSheet(
                 f"background: {bg}; color: white; padding: 12px; border-radius: 6px; "
                 "font-weight: bold; font-size: 14px;"
@@ -145,7 +168,7 @@ class MainPanelController:
             label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             label.resize(label.sizeHint())
             # Center it near the top of the graph manager
-            label.move((panel._graph_manager.width() - label.width()) // 2, 40)
+            label.move((views.graph_manager.width() - label.width()) // 2, 40)
             label.show()
             QTimer.singleShot(2500, label.deleteLater)
 
@@ -179,7 +202,7 @@ class MainPanelController:
                 return
 
             gating.on_gate_added(sample_id, node_id)
-            panel.gate_added_to_tree.emit()
+            self._gate_added_to_tree.emit()
 
         def _handle_gates_created(payload):
             """Batched counterpart of _handle_gate_created for gates that create
@@ -218,7 +241,7 @@ class MainPanelController:
                 # "gate_added_to_tree" (e.g. course2.py's c3_s37_draw_quadrant)
                 # never advances: the tutorial waits forever even after a
                 # correctly-drawn quadrant.
-                panel.gate_added_to_tree.emit()
+                self._gate_added_to_tree.emit()
 
         _subscribe(events.GATE_CREATED, _handle_gate_created)
         _subscribe(events.GATES_CREATED, _handle_gates_created)
@@ -255,7 +278,7 @@ class MainPanelController:
         )
 
         # Refresh GroupsPanel when sample memberships might have changed
-        _subscribe(events.SAMPLE_UPDATED, lambda p: panel._groups_panel.refresh())
+        _subscribe(events.SAMPLE_UPDATED, lambda p: views.groups_panel.refresh())
 
         def _on_prop_complete(payload):
             payload = payload or {}
@@ -263,7 +286,7 @@ class MainPanelController:
                 names = []
                 errors = payload.get("errors", {})
                 for sid in errors:
-                    sample = panel.state.data.experiment.samples.get(sid)
+                    sample = state.data.experiment.samples.get(sid)
                     names.append(sample.display_name if sample else sid)
                 max_names_shown = 3
                 shown = ", ".join(names[:max_names_shown]) + (
@@ -279,35 +302,31 @@ class MainPanelController:
         _subscribe(events.PROPAGATION_COMPLETE, _on_prop_complete)
 
         # ── Sample list → graph + properties ──────────────────────────
-        panel._sample_list.sample_double_clicked.connect(
-            panel._graph_manager.open_graph_with_context
+        views.sample_list.sample_double_clicked.connect(views.graph_manager.open_graph_with_context)
+        views.sample_list.population_open_requested.connect(
+            views.graph_manager.open_graph_for_sample
         )
-        panel._sample_list.population_open_requested.connect(
-            panel._graph_manager.open_graph_for_sample
+        views.sample_list.selection_changed.connect(
+            lambda sid: views.properties_panel.show_sample_properties(sid, None)
         )
-        panel._sample_list.selection_changed.connect(
-            lambda sid: panel._properties_panel.show_sample_properties(sid, None)
-        )
-        panel._sample_list.selection_changed.connect(gating.on_sample_selection_changed)
+        views.sample_list.selection_changed.connect(gating.on_sample_selection_changed)
 
         # ── Gate Hierarchy → graph + properties ───────────────────────
-        panel._gate_hierarchy.gate_double_clicked.connect(gating.on_gate_double_clicked)
-        panel._gate_hierarchy.selection_changed.connect(gating.on_gate_selection_changed)
-        panel._gate_hierarchy.gate_rename_requested.connect(coordinator.rename_population)
-        panel._gate_hierarchy.gate_delete_requested.connect(gating.delete_gate_with_dialog)
-        panel._gate_hierarchy.copy_gates_requested.connect(gating.on_copy_gates)
-        panel._gate_hierarchy.propagation_mode_changed.connect(gating.on_propagation_mode_changed)
-        panel._gate_hierarchy.propagate_requested.connect(coordinator.propagate_to_all_groups)
+        views.gate_hierarchy.gate_double_clicked.connect(gating.on_gate_double_clicked)
+        views.gate_hierarchy.selection_changed.connect(gating.on_gate_selection_changed)
+        views.gate_hierarchy.gate_rename_requested.connect(coordinator.rename_population)
+        views.gate_hierarchy.gate_delete_requested.connect(gating.delete_gate_with_dialog)
+        views.gate_hierarchy.copy_gates_requested.connect(gating.on_copy_gates)
+        views.gate_hierarchy.propagation_mode_changed.connect(gating.on_propagation_mode_changed)
+        views.gate_hierarchy.propagate_requested.connect(coordinator.propagate_to_all_groups)
 
         # ── Groups panel selection → filter sample list ───────────────
-        panel._groups_panel.group_selected.connect(panel._sample_list.filter_by_group)
+        views.groups_panel.group_selected.connect(views.sample_list.filter_by_group)
 
-    @staticmethod
-    def unwire(panel: FlowCytometryPanel) -> None:
-        """Unsubscribe from CentralEventBus to prevent memory leaks or calling dead UI."""
-        if hasattr(panel, "_subscriptions"):
-            for topic, cb in panel._subscriptions:
-                CentralEventBus.unsubscribe(topic, cb)
-            panel._subscriptions.clear()
-        if (recorder := panel.services.document.recorder) is not None:
+    def unwire(self) -> None:
+        """Unsubscribe from CentralEventBus so nothing calls into dead views."""
+        for topic, cb in self._subscriptions:
+            CentralEventBus.unsubscribe(topic, cb)
+        self._subscriptions.clear()
+        if (recorder := self._services.document.recorder) is not None:
             recorder.stop()
