@@ -21,6 +21,13 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
     apply_transform,
 )
 
+from ...analysis._utils import BiexponentialParameters
+from ...analysis.axis_manager import AxisManager
+from ...analysis.population_service import PopulationService
+from ...analysis.scaling import log_transform_kwargs
+from .flow_services import CoordinateMapper, GateOverlayRenderer
+from .renderers.factory import RenderStrategyFactory
+
 logger = get_logger(__name__, "flow_cytometry")
 
 # _MPL_LOCK: Shared with DataLayerRenderer — both must hold this lock around all
@@ -90,11 +97,12 @@ class RenderTask(AnalysisBase):
 
     def run(self, state: typing.Any | None = None) -> dict:  # noqa: PLR0912, PLR0915
         """Execute the render — called by TaskScheduler."""
-        import matplotlib
+        import matplotlib  # karcytics: allow KS360 - heavy library
 
         matplotlib.use("Agg")
+        # karcytics: allow KS360 - heavy library
         from matplotlib.backends.backend_agg import FigureCanvasAgg
-        from matplotlib.figure import Figure
+        from matplotlib.figure import Figure  # karcytics: allow KS360 - heavy library
 
         c = self.config
         if not c:
@@ -105,9 +113,6 @@ class RenderTask(AnalysisBase):
             x_range = c["x_range"]
             y_range = c["y_range"]
         else:
-            from ...analysis.axis_manager import AxisManager
-            from ...analysis.population_service import PopulationService
-
             flow_state = typing.cast(typing.Any, state)
 
             pop_svc = PopulationService(flow_state)
@@ -143,9 +148,6 @@ class RenderTask(AnalysisBase):
 
         # 2. Transform raw data to display coordinates
         def _get_xform_params(scale):
-            from ...analysis._utils import BiexponentialParameters
-            from ...analysis.scaling import log_transform_kwargs
-
             return (
                 BiexponentialParameters(scale).to_dict()
                 if scale.transform_type == TransformType.BIEXPONENTIAL
@@ -209,7 +211,6 @@ class RenderTask(AnalysisBase):
         # compute() is pure numpy/scipy — it runs *outside* _MPL_LOCK so the
         # expensive density/KDE work isn't serialized against other renders;
         # only draw() (the actual Agg rasterization) needs the lock below.
-        from .renderers.factory import RenderStrategyFactory
 
         # Map plot_type string to strategy name
         strategy_name = "Pseudocolor" if c["plot_type"] == "pseudocolor" else c["plot_type"]
@@ -259,8 +260,6 @@ class RenderTask(AnalysisBase):
 
             # 6. Render gate overlays (Identical to main FlowCanvas)
             if c.get("gates"):
-                from .flow_services import CoordinateMapper, GateOverlayRenderer
-
                 mapper = CoordinateMapper(c["x_scale"], c["y_scale"])
                 # Thinner lines for subplots (0.6 instead of 2.5)
                 show_gate_labels = c.get("show_gate_labels", True)

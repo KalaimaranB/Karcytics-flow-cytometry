@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 
@@ -54,8 +55,7 @@ class HeatmapRenderer(IPlotRenderer):
             display = (display - col_min) / rng
 
         try:
-            import pandas as pd
-            import seaborn as sns
+            import seaborn as sns  # karcytics: allow KS360 - heavy library
 
             df_heat = pd.DataFrame(display, index=row_labels, columns=col_labels)
             annot_data = matrix if annotate else None  # annotate with raw values

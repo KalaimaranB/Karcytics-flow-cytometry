@@ -82,7 +82,7 @@ class UmapAnimationDataPrep:
 
         # 3. Compute 3D High-Dimensional proxy (PCA)
         try:
-            from sklearn.decomposition import PCA
+            from sklearn.decomposition import PCA  # karcytics: allow KS360 - heavy library
 
             pca = PCA(n_components=3, random_state=self.random_seed)
             self.high_dim_3d = pca.fit_transform(x_mat)
@@ -102,7 +102,7 @@ class UmapAnimationDataPrep:
 
         # 4. Compute KNN Graph (Fuzzy Simplicial Complex proxy)
         try:
-            from sklearn.neighbors import NearestNeighbors
+            from sklearn.neighbors import NearestNeighbors  # karcytics: allow KS360 - heavy library
 
             nn = NearestNeighbors(n_neighbors=self.n_neighbors + 1)  # +1 because point finds itself
             nn.fit(x_mat)
@@ -132,7 +132,7 @@ class UmapAnimationDataPrep:
         # This runs BEFORE the background full-UMAP starts (sequential, not concurrent),
         # so there is no numba threading conflict. The animation is honest.
         try:
-            import umap as umap_lib
+            import umap as umap_lib  # karcytics: allow KS360 - heavy library
 
             reducer = umap_lib.UMAP(
                 n_neighbors=self.n_neighbors,

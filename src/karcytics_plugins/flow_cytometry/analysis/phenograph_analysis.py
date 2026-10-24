@@ -19,6 +19,7 @@ from .clustering import PHENOGRAPH
 from .clustering.phenograph import graph_embedding
 from .clustering.run_input import cluster_tables, prepare_run_input
 from .daemon_port import decode_array, encode_array
+from .state import FlowState
 
 if TYPE_CHECKING:
     from .daemon_port import DaemonCall
@@ -95,7 +96,6 @@ class PhenographAnalysis(AnalysisBase):
     def run(self, state: PluginState | None = None) -> dict[str, Any]:
         if state is None:
             return {"error": "No state provided"}
-        from .state import FlowState
 
         flow_state = typing.cast(FlowState, state)
         self.signals.analysis_progress.emit(5)

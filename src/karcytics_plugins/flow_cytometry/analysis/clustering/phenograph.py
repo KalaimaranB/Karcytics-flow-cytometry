@@ -114,7 +114,7 @@ def build_graph(  # noqa: PLR0913
     cancelled: Callable[[], bool] | None = None,
 ) -> PhenographGraph | None:
     """The shared-neighbour graph (on up to GRAPH_MAX events); None if cancelled."""
-    from pynndescent import NNDescent
+    from pynndescent import NNDescent  # karcytics: allow KS360 - heavy library
 
     x = np.asarray(x, dtype=np.float32)
     n = len(x)
@@ -147,7 +147,7 @@ def recluster(
     base: PhenographGraph, resolution: float, *, seed: int = 42, min_size: int = 10
 ) -> PhenographResult:
     """Leiden at ``resolution`` on a built graph, plus the cluster graph."""
-    from sknetwork.clustering import Leiden
+    from sknetwork.clustering import Leiden  # karcytics: allow KS360 - heavy library
 
     with _RAND_LOCK:
         _seed_c_rand(seed)

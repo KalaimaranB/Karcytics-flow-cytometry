@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import typing
 from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
@@ -10,6 +11,7 @@ from .clustering.methods import UMAP_HDBSCAN
 from .clustering.run_input import cluster_tables, prepare_run_input
 from .constants import UMAP_MIN_EVENTS
 from .daemon_port import decode_array, encode_array
+from .state import FlowState
 
 if TYPE_CHECKING:
     from .daemon_port import DaemonCall
@@ -65,10 +67,6 @@ class UmapAnalysis(AnalysisBase):
         """Transforms FCS data with Logicle, subsamples, runs UMAP."""
         if state is None:
             return {"error": "No state provided"}
-
-        import typing
-
-        from .state import FlowState
 
         flow_state = typing.cast(FlowState, state)
 

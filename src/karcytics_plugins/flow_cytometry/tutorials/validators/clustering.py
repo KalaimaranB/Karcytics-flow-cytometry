@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from ...analysis.clustering.describe import HI
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
 from .base import FlowUIValidator, FlowValidator
@@ -262,7 +263,6 @@ class FlowsomKValidator(FlowUIValidator):
 
 def clusters_positive_for(view: ClusterMapView, marker: str) -> list[str]:
     """Tags of a cluster map's clusters that are + for ``marker`` ("M0", "C3", ...), largest first."""
-    from ...analysis.clustering.describe import HI
 
     snap = view.academy_snapshot()
     return [

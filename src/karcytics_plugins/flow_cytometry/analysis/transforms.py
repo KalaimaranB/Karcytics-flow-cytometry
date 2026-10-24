@@ -14,13 +14,16 @@ Reference:
 
 from __future__ import annotations
 
+import os
 import threading
 from collections.abc import Callable
 from enum import Enum
+from functools import lru_cache
 from typing import Any
 
 import numpy as np
 from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.runtime_services import diagnostics
 
 from .constants import (
     LOGICLE_A_DEFAULT,
@@ -152,10 +155,9 @@ def patch_bokeh_template_env() -> None:
             return
 
         try:
-            import os
-            from functools import lru_cache
+            import bokeh.core.templates as bokeh_templates  # karcytics: allow KS360 - heavy library
 
-            import bokeh.core.templates as bokeh_templates
+            # karcytics: allow KS360 - heavy library
             from jinja2 import Environment, FileSystemLoader
 
             templates_path = os.path.join(os.path.dirname(bokeh_templates.__file__), "_templates")
@@ -191,8 +193,6 @@ def _report_flowkit_failure(e: Exception) -> None:
         _flowkit_logicle_warning_issued = True
     else:
         logger.debug("FlowKit LogicleTransform unavailable (repeated): %s", e)
-
-    from karcytics_sdk.plugin.runtime_services import diagnostics
 
     diagnostics.report_error(
         "The biexponential (Logicle) transform is unavailable — FlowKit failed to "
@@ -298,7 +298,7 @@ def biexponential_transform(  # noqa: PLR0913
     # with 'from flowkit.transforms import LogicleTransform'. Access via fk.transforms.
     try:
         patch_bokeh_template_env()
-        import flowkit as fk
+        import flowkit as fk  # karcytics: allow KS360 - heavy library
 
         transform_obj = _get_logicle_transform(fk, top, width, positive, negative)
         # np.ascontiguousarray ensures a C-contiguous, owned float64 buffer —
@@ -408,7 +408,7 @@ def invert_biexponential_transform(
     # NOTE: flowkit.transforms is a namespace package — access via fk.transforms.
     try:
         patch_bokeh_template_env()
-        import flowkit as fk
+        import flowkit as fk  # karcytics: allow KS360 - heavy library
 
         transform_obj = _get_logicle_transform(fk, top, width, positive, negative)
         flat_data = np.asarray(data, dtype=np.float64).ravel()

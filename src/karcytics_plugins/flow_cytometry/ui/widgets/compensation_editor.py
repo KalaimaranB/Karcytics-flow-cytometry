@@ -20,6 +20,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
+
 if typing.TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -167,8 +169,6 @@ class CompensationEditor(QWidget):
         if self._state.axis_manager is not None:
             self._axis_manager = self._state.axis_manager
         else:
-            from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
-
             self._axis_manager = AxisManager(self._state)
 
         self._setup_ui()

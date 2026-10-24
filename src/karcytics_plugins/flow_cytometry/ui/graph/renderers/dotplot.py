@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
 
+from ....analysis.rendering import stable_subsample_mask
 from .base import DisplayStrategy
 
 
@@ -36,8 +37,6 @@ class DotPlotStrategy(DisplayStrategy):
             # population differing by a handful of events between two
             # otherwise-identical renders must not resample ~50% of the
             # plotted points as a result (see its docstring).
-            from ....analysis.rendering import stable_subsample_mask
-
             mask = stable_subsample_mask(n, max_events)
             x, y = x[mask], y[mask]  # type: ignore[index]
 

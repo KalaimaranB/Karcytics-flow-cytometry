@@ -16,6 +16,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 from karcytics_sdk.plugin import AnalysisBase
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
+from karcytics_sdk.plugin.theme_fallback import Colors
 
 from .cluster_scatter_draw import draw_cluster_scatter
 
@@ -57,12 +58,12 @@ class ClusterPlotRenderTask(AnalysisBase):
 
     def run(self, state: Any | None = None) -> dict:
         """Execute the render — called by TaskScheduler on a background thread."""
-        import matplotlib
+        import matplotlib  # karcytics: allow KS360 - heavy library
 
         matplotlib.use("Agg")
-        from karcytics_sdk.plugin.theme_fallback import Colors
+        # karcytics: allow KS360 - heavy library
         from matplotlib.backends.backend_agg import FigureCanvasAgg
-        from matplotlib.figure import Figure
+        from matplotlib.figure import Figure  # karcytics: allow KS360 - heavy library
 
         c = self.config
         if not c:

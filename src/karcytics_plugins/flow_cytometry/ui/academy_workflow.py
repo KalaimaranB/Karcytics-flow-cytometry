@@ -33,13 +33,17 @@ from karcytics_sdk.plugin.academy import (
     ACADEMY_STEP_CHANGED,
     AcademyManager,
 )
+from karcytics_sdk.plugin.academy_driver import show_academy_overlay
 from karcytics_sdk.plugin.academy_lock_card import AcademyLockCard, LockCardContent
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_info, show_warning
+from karcytics_sdk.plugin.io import load_json
+from karcytics_sdk.plugin.runtime_services import academy_event_bus, tutorial_manager
 from PySide6.QtCore import QObject, QTimer
 from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 
 from ..analysis import events
 from ..main_tabs import MainTab
+from ..tutorials.courses import COURSES
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +75,6 @@ _SNAPSHOT_KEYS = (
 
 def course_order() -> list[str]:
     """The flow courses' ids, in the order a learner takes them."""
-    from ..tutorials.courses import COURSES
-
     return [c.id for c in COURSES]
 
 
@@ -97,8 +99,6 @@ class AcademyWorkflowController(QObject):
     ) -> None:
         super().__init__(panel)
         if manager is None or event_bus is None:
-            from karcytics_sdk.plugin.runtime_services import academy_event_bus, tutorial_manager
-
             manager = manager or tutorial_manager
             event_bus = event_bus or academy_event_bus
         self._panel = panel
@@ -224,7 +224,6 @@ class AcademyWorkflowController(QObject):
             self._manager.forget_in_progress(course_id, workflow=filename)
             show_info(self._panel, "Resume Course", f"The workflow “{where}” no longer exists.")
             return
-        from karcytics_sdk.plugin.io import load_json
 
         data = load_json(str(path))
         # Opens locked on the paused card — one click resumes.
@@ -650,8 +649,6 @@ class AcademyWorkflowController(QObject):
         )
 
     def _show_overlay(self, pausable: bool) -> None:
-        from karcytics_sdk.plugin.academy_driver import show_academy_overlay
-
         overlay = show_academy_overlay(self._panel.window(), self._panel)
         overlay.set_pausable(pausable)
 

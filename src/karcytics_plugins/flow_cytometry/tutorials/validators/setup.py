@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from karcytics_sdk.plugin import CentralEventBus
+from karcytics_sdk.plugin import CentralEventBus, get_logger
 
 from ...analysis import events
+from ...analysis.compensation import extract_spill_from_fcs
+from ...analysis.experiment import SampleRole
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
+from ..tutorial_assets import MAX_PROVISION_ATTEMPTS, get_status, provisioning_has_stalled
 from .base import FlowUIValidator, FlowValidator
 
 
@@ -31,8 +34,6 @@ class TutorialFilesProvisionedValidator(FlowValidator):
         self._on_progress = on_progress
 
     def validate_flow(self, _app_state: FlowState) -> bool:
-        from ..tutorial_assets import MAX_PROVISION_ATTEMPTS, get_status, provisioning_has_stalled
-
         status = get_status()
         stalled = provisioning_has_stalled()
 
@@ -130,8 +131,6 @@ class UnstainedRoleValidator(FlowValidator):
     """Verifies an unstained control is assigned."""
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from ...analysis.experiment import SampleRole
-
         for s in app_state.data.experiment.samples.values():
             if s.role == SampleRole.UNSTAINED:
                 name = s.display_name.lower()
@@ -146,8 +145,6 @@ class SingleStainRoleValidator(FlowValidator):
     """Verifies a single stain control (PI) is assigned."""
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from ...analysis.experiment import SampleRole
-
         for s in app_state.data.experiment.samples.values():
             if s.role == SampleRole.SINGLE_STAIN and "pi" in s.display_name.lower():
                 return True
@@ -158,8 +155,6 @@ class FmoRoleValidator(FlowValidator):
     """Verifies that 5 FMO controls are assigned."""
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from ...analysis.experiment import SampleRole
-
         fmo_count = 0
         for s in app_state.data.experiment.samples.values():
             if s.role == SampleRole.FMO_CONTROL and "fmo" in s.display_name.lower():
@@ -198,8 +193,6 @@ class RoleAssignmentValidator(FlowValidator):
     """
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from ...analysis.experiment import SampleRole
-
         samples = list(app_state.data.experiment.samples.values())
         roles = {s.role for s in samples}
 
@@ -230,10 +223,6 @@ class CompensationAppliedValidator(FlowValidator):
 
     def validate_flow(self, app_state: FlowState) -> bool:
         if app_state.data.compensation is None:
-            from karcytics_sdk.plugin import get_logger
-
-            from ...analysis.compensation import extract_spill_from_fcs
-
             inner_logger = get_logger(__name__, "flow_cytometry")
             inner_logger.info(
                 "CompensationAppliedValidator: Starting to search for $SPILL in %d samples",
@@ -280,7 +269,6 @@ class SampleOpenValidator(FlowValidator):
         sample_id = getattr(app_state.view, "current_sample_id", None)
         if not sample_id:
             return self.log_failure("No active sample ID in view.")
-        from ...analysis.experiment import SampleRole
 
         sample = app_state.data.experiment.samples.get(sample_id)
         if not sample:
@@ -303,7 +291,6 @@ class SpecificSampleOpenValidator(FlowValidator):
         sample_id = getattr(app_state.view, "current_sample_id", None)
         if not sample_id:
             return self.log_failure("No active sample ID in view.")
-        from ...analysis.experiment import SampleRole
 
         sample = app_state.data.experiment.samples.get(sample_id)
         if sample is None:

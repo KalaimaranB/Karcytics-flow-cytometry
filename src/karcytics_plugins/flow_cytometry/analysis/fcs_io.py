@@ -26,7 +26,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin import get_logger, validate_file_exists
+from karcytics_sdk.plugin.runtime_services import diagnostics
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -219,7 +220,6 @@ def load_fcs(path: str | Path, daemon: DaemonCall) -> FCSData:
     The worker process (`daemon`) parses it; the local fcsparser reader is the fallback.
     """
     path = Path(path)
-    from karcytics_sdk.plugin import validate_file_exists
 
     exists, msg = validate_file_exists(str(path))
     if not exists:
@@ -280,8 +280,6 @@ def _split_existing_paths(
     Missing paths are pre-populated into the result map as ``FileNotFoundError``
     so they never get sent to the daemon.
     """
-    from karcytics_sdk.plugin import validate_file_exists
-
     valid: list[Path] = []
     out: dict[Path, FCSData | Exception] = {}
     for path in paths:
@@ -471,7 +469,7 @@ def _auto_apply_spill(filename: str, events_df: pd.DataFrame, metadata: dict) ->
         # import already triggered that (e.g. the host app's own numpy usage
         # before this plugin loads), they're a no-op, so force it explicitly
         # here at the actual call site instead of relying on process state.
-        import threadpoolctl
+        import threadpoolctl  # karcytics: allow KS360 - heavy library
 
         with threadpoolctl.threadpool_limits(1):
             sub_inv = np.linalg.inv(sub_spill)
@@ -509,7 +507,7 @@ def _load_with_fcsparser(path: Path) -> FCSData:  # noqa: C901, PLR0915, PLR0912
     metadata header offsets and load as many *complete* events as the file
     actually contains.
     """
-    import fcsparser
+    import fcsparser  # karcytics: allow KS360 - heavy library
 
     logger.debug(
         "fcsparser loaded from %s, version=%s",
@@ -685,7 +683,6 @@ def _load_with_fcsparser(path: Path) -> FCSData:  # noqa: C901, PLR0915, PLR0912
                 f"{pct:.1f}% of events were discarded during import. Results from this sample may be unreliable."
             )
             logger.warning(msg)
-            from karcytics_sdk.plugin.runtime_services import diagnostics
 
             diagnostics.report_error(msg, fatal=False)
 

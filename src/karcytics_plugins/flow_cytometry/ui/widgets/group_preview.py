@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from typing import Any, cast
 
+import numpy as np
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors
@@ -30,6 +31,9 @@ from karcytics_plugins.flow_cytometry.analysis.constants import (
 from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.graph.flow_services import CoordinateMapper
+
+from ...analysis.constants import PREVIEW_THROTTLE_MS
+from ..graph.render_task import RenderTask
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -181,8 +185,6 @@ class PreviewThumbnail(QFrame):
         mapper = CoordinateMapper(x_scale, y_scale)
 
         try:
-            import numpy as np
-
             x_min_disp = mapper.transform_x(np.array([self._x_range[0]]))[0]
             x_max_disp = mapper.transform_x(np.array([self._x_range[1]]))[0]
             x_disp_span = x_max_disp - x_min_disp
@@ -363,7 +365,6 @@ class PreviewThumbnail(QFrame):
             return
 
         # Configure and submit RenderTask
-        from ..graph.render_task import RenderTask
 
         task = RenderTask()
         w, h = PREVIEW_THUMBNAIL_SIZE[0] * 2, PREVIEW_THUMBNAIL_SIZE[1] * 2
@@ -490,7 +491,6 @@ class GroupPreviewPanel(QWidget):
         self._setup_events()
 
         # Throttle timer for real-time gate previews
-        from ...analysis.constants import PREVIEW_THROTTLE_MS
 
         self._preview_timer = QTimer(self)
         self._preview_timer.setSingleShot(True)

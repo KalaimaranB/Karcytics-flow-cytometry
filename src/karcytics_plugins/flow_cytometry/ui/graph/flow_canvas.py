@@ -18,6 +18,8 @@ state machine that manages drawing, selection, and editing modes.
 
 from __future__ import annotations
 
+import io
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -29,8 +31,10 @@ from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.rendering.mpl_canvas import LayeredMatplotlibCanvas
 from matplotlib.figure import Figure
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QSizePolicy
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt as _Qt
+from PySide6.QtGui import QAction, QImage
+from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSizePolicy
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
@@ -138,7 +142,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         crash_reporter: ICrashReporter | None = None,
     ) -> None:
         # Apply Karcytics theme
-        import matplotlib
+        import matplotlib  # karcytics: allow KS360 - heavy library
 
         for key, val in _MPL_STYLE.items():
             matplotlib.rcParams[key] = val  # type: ignore
@@ -226,7 +230,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._use_cache: bool = True  # ENABLED for blitting
 
         # ── Signals ───────────────────────────────────────────────────
-        from karcytics_sdk.plugin import CentralEventBus
 
         from ...analysis import events
 
@@ -321,7 +324,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             self._guide_poly_patch = None
 
         if vertices:
-            from matplotlib.patches import Polygon
+            from matplotlib.patches import Polygon  # karcytics: allow KS360 - heavy library
 
             self._guide_poly_patch = Polygon(
                 vertices,
@@ -390,8 +393,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self, step: Any, x_kwargs: dict[str, Any], y_kwargs: dict[str, Any], style: dict[str, Any]
     ) -> None:
         """Draw metadata-driven tutorial shapes."""
-        import numpy as np
-        from matplotlib.patches import Polygon, Rectangle
+        from matplotlib.patches import Polygon, Rectangle  # karcytics: allow KS360 - heavy library
 
         from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
 
@@ -459,6 +461,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         wired to crash_reporter — deliberately, see LayeredMatplotlibCanvas's
         own paintEvent()/draw() docstrings (Qt lifecycle noise vs render bugs).
         """
+        # karcytics: allow KS360 - heavy library
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 
         self.raster_lock.try_run(
@@ -480,6 +483,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self.raster_lock.try_run(self._draw_agg, self._retry_draw)
 
     def _draw_agg(self) -> None:
+        # karcytics: allow KS360 - heavy library
         from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 
         try:
@@ -605,8 +609,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._cancel_drawing()
         self._drawing_mode = mode
 
-        from PySide6.QtCore import Qt as _Qt
-
         if mode == GateDrawingMode.NONE:
             self.setCursor(_Qt.CursorShape.ArrowCursor)
             self._hide_instruction()
@@ -728,7 +730,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # If the canvas is 0x0, defer the redraw until it has a size.
         if self.width() <= 0 or self.height() <= 0:
             logger.warning("Canvas redraw deferred: size is 0x0. Setting timer for retry.")
-            from PySide6.QtCore import QTimer
 
             QTimer.singleShot(200, self.redraw)
             return
@@ -1091,8 +1092,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         been deleted".
         """
         try:
-            from karcytics_sdk.plugin import CentralEventBus
-
             from ...analysis import events
 
             CentralEventBus.unsubscribe(events.GATE_MODIFIED, self._cb_gate_modified)
@@ -1196,9 +1195,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _on_context_menu(self, pos) -> None:
         """Show context menu on right click."""
-        from PySide6.QtGui import QAction
-        from PySide6.QtWidgets import QMenu
-
         menu = QMenu(self)
 
         # Copy to clipboard
@@ -1220,11 +1216,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _copy_to_clipboard(self) -> None:
         """Render figure to PNG in memory and copy to system clipboard."""
-        import io
-
-        from PySide6.QtGui import QImage
-        from PySide6.QtWidgets import QApplication
-
         try:
             buf = io.BytesIO()
             # savefig() triggers a full Agg rasterization pass — must hold
@@ -1245,10 +1236,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _on_download_plot(self, fmt: str) -> None:
         """Download plot in specified format (png, pdf, or svg)."""
-        from datetime import datetime
-
-        from PySide6.QtWidgets import QFileDialog
-
         # Generate default filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         default_name = f"flow_plot_{timestamp}.{fmt}"

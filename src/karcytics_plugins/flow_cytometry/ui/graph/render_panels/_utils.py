@@ -6,6 +6,7 @@ from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
+    QColorDialog,
     QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
@@ -47,8 +48,6 @@ class ColorPickerButton(QPushButton):
         )
 
     def _open_picker(self) -> None:
-        from PySide6.QtWidgets import QColorDialog
-
         dlg = QColorDialog(QColor(self._color), self)
         if dlg.exec():
             new_color = dlg.selectedColor().name()

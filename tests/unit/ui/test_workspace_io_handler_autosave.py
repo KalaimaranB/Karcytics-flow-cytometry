@@ -44,6 +44,9 @@ class _FakeWorker:
         self.error = _FakeSignal(self, "error")
 
 
+HANDLER = "karcytics_plugins.flow_cytometry.ui.services.workspace_io_handler"
+
+
 def _fake_submit(task, _state):
     """Runs `task.run()` synchronously — mirrors real dispatch closely
     enough (same success/exception -> finished/error split) without needing
@@ -91,8 +94,8 @@ class TestHandleAutosave:
             return_value="wf_123.json",
         ):
             with (
-                patch("karcytics_sdk.plugin.dialogs.show_info") as mock_info,
-                patch("karcytics_sdk.plugin.dialogs.show_error") as mock_error,
+                patch(f"{HANDLER}.show_info") as mock_info,
+                patch(f"{HANDLER}.show_error") as mock_error,
             ):
                 results = []
                 handler.handle_autosave(results.append)
@@ -109,8 +112,8 @@ class TestHandleAutosave:
             return_value="wf_123.json",
         ):
             with (
-                patch("karcytics_sdk.plugin.dialogs.show_info"),
-                patch("karcytics_sdk.plugin.dialogs.show_error"),
+                patch(f"{HANDLER}.show_info"),
+                patch(f"{HANDLER}.show_error"),
             ):
                 handler.handle_autosave(lambda success: None)
 
@@ -127,8 +130,8 @@ class TestHandleAutosave:
             side_effect=RuntimeError("disk full"),
         ):
             with (
-                patch("karcytics_sdk.plugin.dialogs.show_info") as mock_info,
-                patch("karcytics_sdk.plugin.dialogs.show_error") as mock_error,
+                patch(f"{HANDLER}.show_info") as mock_info,
+                patch(f"{HANDLER}.show_error") as mock_error,
             ):
                 results = []
                 handler.handle_autosave(results.append)
@@ -173,7 +176,7 @@ class TestHandleUpdateStillShowsDialogs:
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
             return_value="wf_123.json",
         ):
-            with patch("karcytics_sdk.plugin.dialogs.show_info") as mock_info:
+            with patch(f"{HANDLER}.show_info") as mock_info:
                 handler.handle_update()
 
         mock_info.assert_called_once()

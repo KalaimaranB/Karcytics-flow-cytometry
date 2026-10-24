@@ -3,6 +3,7 @@
 A scientist-centric flow cytometry analysis environment with workspace-based
 navigation, FMO-guided gating, adaptive gates, and reusable workflow templates.
 """
+# karcytics: allow-file KS360 - plugin startup runs its imports in phases
 
 import os
 from typing import Any

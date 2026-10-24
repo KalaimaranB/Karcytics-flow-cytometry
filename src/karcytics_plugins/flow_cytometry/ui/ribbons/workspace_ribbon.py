@@ -16,6 +16,7 @@ from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.components import BioProgressDialog, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import ask_yes_no, show_error, show_warning
 from karcytics_sdk.plugin.ribbon import ThemedToolbarContainer
+from karcytics_sdk.plugin.runtime_services import tutorial_manager as global_tutorial_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -28,6 +29,8 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import (
     SampleRole,
 )
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+
+from ...ui.dialogs.bulk_role_dialog import BulkRoleDialog
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -184,10 +187,6 @@ class WorkspaceRibbon(ThemedToolbarContainer):
 
                 # --- FALLBACK FOR TUTORIAL ADVANCEMENT ---
                 try:
-                    from karcytics_sdk.plugin.runtime_services import (
-                        tutorial_manager as global_tutorial_manager,
-                    )
-
                     if (
                         global_tutorial_manager.current_step
                         and global_tutorial_manager.current_step.id == "c1_s2_import"
@@ -212,8 +211,6 @@ class WorkspaceRibbon(ThemedToolbarContainer):
 
     def _on_bulk_assign_roles(self) -> None:
         """Open the bulk role assignment dialog."""
-        from ...ui.dialogs.bulk_role_dialog import BulkRoleDialog
-
         dialog = BulkRoleDialog(self._state, parent=self)
         if dialog.exec():
             # Refresh UI after bulk assigning roles (the dialog announced the

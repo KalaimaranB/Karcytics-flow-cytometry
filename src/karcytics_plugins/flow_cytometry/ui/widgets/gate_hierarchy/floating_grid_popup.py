@@ -22,7 +22,15 @@ from collections.abc import Callable
 
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import QEvent, QPoint, QRect, Qt, QTimer
-from PySide6.QtGui import QFont, QFontMetrics, QKeyEvent, QMouseEvent, QResizeEvent
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontMetrics,
+    QKeyEvent,
+    QMouseEvent,
+    QPainter,
+    QResizeEvent,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
@@ -76,7 +84,6 @@ class BranchLabel(QWidget):
             super().mousePressEvent(event)
 
     def paintEvent(self, _event) -> None:  # noqa: N802
-        from PySide6.QtGui import QColor, QPainter
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)

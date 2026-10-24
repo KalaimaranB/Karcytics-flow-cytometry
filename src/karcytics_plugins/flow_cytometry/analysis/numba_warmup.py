@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import threading
 
+import numpy as np
+
 _warmup_done = False
 _warmup_lock = threading.Lock()
 
@@ -31,8 +33,9 @@ def warmup_numba_jit() -> None:
 def _do_warmup() -> None:
     """Runs a tiny UMAP on random dummy data to trigger JIT compilation."""
     try:
-        import numpy as np
-        import umap as umap_lib
+        import umap as umap_lib  # karcytics: allow KS360 - heavy library
+
+        # karcytics: allow KS360 - heavy library
         from tqdm import tqdm  # type: ignore
 
         # UMAP's epoch loop always instantiates a tqdm progress bar

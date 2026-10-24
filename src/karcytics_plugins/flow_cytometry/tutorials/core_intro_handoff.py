@@ -25,10 +25,13 @@ at its graduation phase (see `karcytics/core/plugins/loader.py`).
 
 from __future__ import annotations
 
+import ssl
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Any
 
+from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.tutorial_models import (
     ActionStep,
     ConsentStep,
@@ -37,6 +40,7 @@ from karcytics_sdk.plugin.tutorial_models import (
     InteractionStep,
     VerificationStep,
 )
+from PySide6.QtCore import QStandardPaths
 
 from .validators.base import PopupClosedValidator, PreferencesPageValidator, WorkflowSavedValidator
 
@@ -67,11 +71,6 @@ def _copy_demo_file(_panel: Any) -> None:
     - Writes `demo_tutorial.fcs` to both `~/Downloads` and Qt's `QStandardPaths` location.
     - Logs explicit diagnostic messages on success or failure.
     """
-    import ssl
-    import urllib.request
-
-    from karcytics_sdk.plugin import get_logger
-    from PySide6.QtCore import QStandardPaths
 
     logger = get_logger(__name__, "flow_cytometry")
     filename = "demo_tutorial.fcs"

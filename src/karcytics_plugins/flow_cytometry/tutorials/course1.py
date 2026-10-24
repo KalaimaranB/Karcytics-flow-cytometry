@@ -12,6 +12,7 @@ Spotlight convention:
   target_widget_names — list of objectNames for multi-target InfoStep spotlights.
 """
 
+from karcytics_sdk.plugin import CentralEventBus
 from karcytics_sdk.plugin.tutorial_models import (
     QUESTION_PREDICT,
     ActionStep,
@@ -27,10 +28,12 @@ from karcytics_sdk.plugin.tutorial_models import (
     VerificationStep,
 )
 
+from karcytics_plugins.flow_cytometry.analysis import events
+
 from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
 from ..main_tabs import MainTab
 from .constants import PREVIEW_ALL_SAMPLES, PREVIEW_VIEW_BOTH
-from .tutorial_assets import start_provisioning
+from .tutorial_assets import describe_files_location, start_provisioning
 from .validators.base import PropertiesViewValidator, TabActiveValidator, WorkflowSavedValidator
 from .validators.compensation import PreviewShowsValidator
 from .validators.gating import GateShapeValidator
@@ -74,10 +77,6 @@ def route_import_failure(
     )
 
     if validator.incorrect_sample_ids:
-        from karcytics_sdk.plugin import CentralEventBus
-
-        from karcytics_plugins.flow_cytometry.analysis import events
-
         changed = False
         for sid in validator.incorrect_sample_ids:
             if sid in panel.state.data.experiment.samples:
@@ -168,7 +167,6 @@ def _set_import_step_text(_panel) -> None:  # noqa: ANN001
     location the tutorial files were found/downloaded to, resolved by the
     preceding provisioning step (see `tutorial_assets.ensure_tutorial_files`).
     """
-    from .tutorial_assets import describe_files_location
 
     _import_step.text = (
         "Let's get your files in. Click **➕ Add Samples** (highlighted) "

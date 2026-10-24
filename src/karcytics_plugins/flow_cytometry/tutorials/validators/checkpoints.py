@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ...analysis.experiment import SampleRole
 from ...analysis.state import FlowState
 from .base import FlowValidator
 from .gating import GateExistsOnAllValidator, GateExistsValidator
@@ -100,8 +101,6 @@ class PopulationAnalysisCompleteValidator(FlowValidator):
     def validate_flow(self, app_state: FlowState) -> bool:
         if not self._umap_bcells.validate_flow(app_state):
             return False
-
-        from ...analysis.experiment import SampleRole
 
         samples = list(app_state.data.experiment.samples.values())
         full_panel = [s for s in samples if s.role == SampleRole.FULL_PANEL] or samples

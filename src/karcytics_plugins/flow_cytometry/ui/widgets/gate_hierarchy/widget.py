@@ -15,7 +15,9 @@ from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QLineEdit,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -352,8 +354,6 @@ class GateHierarchy(QWidget):
             return
         node = sample.gate_tree.find_node_by_id(node_id)
         current_name = node.name if node else ""
-
-        from PySide6.QtWidgets import QInputDialog, QLineEdit
 
         new_name, ok = QInputDialog.getText(
             self,

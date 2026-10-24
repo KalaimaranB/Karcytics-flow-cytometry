@@ -12,6 +12,7 @@ from typing import Any
 
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.managed_task import FunctionalTask
+from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QImage, QPixmap
@@ -46,8 +47,6 @@ class CompensationPreviewGrid(QScrollArea):
     def __init__(self, scheduler: Any | None = None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         if scheduler is None:
-            from karcytics_sdk.plugin.runtime_services import task_scheduler
-
             scheduler = task_scheduler
         self._scheduler = scheduler
         self._rows: dict[str, QLabel] = {}  # by sample id

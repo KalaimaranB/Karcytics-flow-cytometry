@@ -6,6 +6,7 @@ Adheres to SOLID principles:
 """
 
 import json
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -92,7 +93,6 @@ class FluorophoreService:
         sorted_names = sorted(dyes_index.keys(), key=len)
 
         # 2. Exact word match (e.g., 'fitc' matching 'fluorescein (fitc)')
-        import re
 
         for d_name in sorted_names:
             words = set(re.split(r"\W+", d_name))

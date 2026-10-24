@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from karcytics_sdk.plugin.components import SecondaryButton
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QPen
@@ -313,8 +314,6 @@ class PopulationSelectionPopup(FloatingGridPopup):
     # ── UI ───────────────────────────────────────────────────────────
 
     def _build_toolbar(self) -> QWidget | None:
-        from karcytics_sdk.plugin.components import SecondaryButton
-
         container = QWidget()
         self._toolbar = container
         theme_manager.apply_style(

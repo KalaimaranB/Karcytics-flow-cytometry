@@ -14,13 +14,17 @@ risking the cross-thread Qt crashes this plugin has hit before.
 
 from __future__ import annotations
 
+import ssl
 import threading
 import time
+import urllib.error
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from karcytics_sdk.plugin import get_logger
+from PySide6.QtCore import QStandardPaths
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -71,7 +75,6 @@ def resolve_downloads_folder() -> Path:
     background download thread entirely — resolved once here and threaded
     through as a plain Path from then on.
     """
-    from PySide6.QtCore import QStandardPaths
 
     download_loc = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
     base = Path(download_loc) if download_loc else Path.home() / "Downloads"
@@ -97,9 +100,6 @@ def find_ready_folder(project_assets_dir: Path | None, downloads_folder: Path) -
 
 
 def _download_single_file(name: str, dest: Path, ssl_context: Any) -> None:
-    import urllib.error
-    import urllib.request
-
     url = _GITHUB_RAW_BASE + urllib.parse.quote(name)
     tmp_dest = dest.with_suffix(dest.suffix + ".part")
     last_exc: Exception | None = None
@@ -160,7 +160,6 @@ def download_tutorial_files(
     ~107MB. Each file gets up to ``_MAX_ATTEMPTS_PER_FILE`` attempts before
     the error propagates.
     """
-    import ssl
 
     ssl_context = ssl.create_default_context()
     try:

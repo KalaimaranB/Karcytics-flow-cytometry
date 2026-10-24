@@ -18,6 +18,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import BioSectionLabel
+from karcytics_sdk.plugin.components import BioHelpButton, SecondaryButton
+from karcytics_sdk.plugin.theme_fallback import Colors
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
@@ -28,8 +30,6 @@ if TYPE_CHECKING:
 
 
 def _get_theme_tokens():
-    from karcytics_sdk.plugin.theme_fallback import Colors
-
     return Colors
 
 
@@ -61,8 +61,6 @@ class SampleAndPopulationSelector(QWidget):
     ) -> None:
         super().__init__(parent)
         self._samples: dict[str, Sample] = {}
-
-        from karcytics_sdk.plugin.components import BioHelpButton, SecondaryButton
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

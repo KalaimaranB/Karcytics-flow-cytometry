@@ -7,8 +7,10 @@ from typing import Any
 
 import numpy as np
 
+from ...analysis.compensation import CELL_EDITED, extract_spill_from_fcs
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
+from ...ui.widgets.method_illustration import STEP_REMOVED
 from .base import FlowUIValidator, FlowValidator
 
 _SAME_MATRIX_TOLERANCE = 5e-5  # the files store the matrix to four decimals
@@ -69,8 +71,6 @@ class IllustrationPlayedValidator(_CompensationTabValidator):
     """The step-by-step picture has been taken to its last step."""
 
     def problem(self, view: Any, _app_state: FlowState) -> str | None:
-        from ...ui.widgets.method_illustration import STEP_REMOVED
-
         if view.illustration_step != STEP_REMOVED:
             return f"The picture is on step {view.illustration_step}, not the last one."
         return None
@@ -95,8 +95,6 @@ class EditorMatrixValidator(_CompensationTabValidator):
         self.tolerance = tolerance
 
     def problem(self, view: Any, _app_state: FlowState) -> str | None:
-        from ...analysis.compensation import CELL_EDITED
-
         matrix = view.editor.matrix
         if matrix is None:
             return "No matrix in the editor."
@@ -187,8 +185,6 @@ class EmbeddedMatrixInUseValidator(_CompensationTabValidator):
     """
 
     def problem(self, view: Any, app_state: FlowState) -> str | None:
-        from ...analysis.compensation import extract_spill_from_fcs
-
         in_use = app_state.data.compensation
         if in_use is None:
             return "No compensation matrix is in use."

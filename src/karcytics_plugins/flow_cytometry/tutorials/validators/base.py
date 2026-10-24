@@ -8,8 +8,10 @@ from collections.abc import Callable
 from dataclasses import fields
 from typing import Any
 
+import shiboken6
 from karcytics_sdk.plugin import CentralEventBus, get_logger
 from karcytics_sdk.plugin.tutorial_models import IValidator
+from PySide6.QtWidgets import QApplication
 
 from ...analysis import events
 from ...analysis.state import FlowState
@@ -148,14 +150,10 @@ class PopupClosedValidator(FlowValidator):
         self._name = popup_object_name
 
     def validate_flow(self, _app_state: FlowState) -> bool:
-        from PySide6.QtWidgets import QApplication
-
         for w in QApplication.topLevelWidgets():
             if w.objectName() != self._name:
                 continue
             try:
-                import shiboken6
-
                 if not shiboken6.isValid(w):
                     return True
                 if w.isVisible():
@@ -178,8 +176,6 @@ class PreferencesPageValidator(FlowValidator):
         self._page_title = page_title
 
     def validate_flow(self, _app_state: FlowState) -> bool:
-        from PySide6.QtWidgets import QApplication
-
         for w in QApplication.topLevelWidgets():
             if w.objectName() != "PreferencesDialog" or not w.isVisible():
                 continue

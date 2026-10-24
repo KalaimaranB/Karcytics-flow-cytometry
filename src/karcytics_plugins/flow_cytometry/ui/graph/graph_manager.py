@@ -416,7 +416,6 @@ class GraphManager(QWidget):
             return
 
         widget = self._tabs.widget(idx)
-        from .graph_window import GraphWindow
 
         if not isinstance(widget, GraphWindow):
             return

@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
+from PySide6.QtCore import QTimer
 
 if TYPE_CHECKING:
     from ..flow_canvas import FlowCanvas
@@ -21,11 +23,8 @@ class GateLayerRenderer:
     def render(self) -> None:
         """Draw gate overlays on top of the cached data layer."""
         canvas = self.canvas
-        from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 
         if not MPL_RASTER_LOCK.acquire(blocking=False):
-            from PySide6.QtCore import QTimer
-
             QTimer.singleShot(50, self.render)
             return
 

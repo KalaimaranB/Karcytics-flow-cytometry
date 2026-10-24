@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
+from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -92,8 +93,6 @@ class BulkRoleDialog(QDialog):
                 "Please select at least one sample to assign a role.",
             )
             return
-
-        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
         target_role = self.role_combo.currentData()
         assigned_count = experiment_edits.set_sample_roles(

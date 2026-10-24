@@ -7,7 +7,10 @@ from typing import Any
 import matplotlib as mpl
 import matplotlib.colors as mcolors
 import numpy as np
+import pandas as pd
 from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.components import BioComboBox, BioLineEdit, PrimaryButton, SecondaryButton
+from karcytics_sdk.plugin.dialogs import show_info
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
@@ -16,14 +19,18 @@ from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QAction, QColor, QImage, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QMenu,
     QScrollArea,
     QSizePolicy,
+    QSplitter,
+    QStackedWidget,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -35,8 +42,13 @@ from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
 
+from ...analysis import events
 from ...analysis.clustering import FLOWSOM, PHENOGRAPH, method_of
+from ...analysis.fcs_io import get_channel_marker_label
 from ...analysis.flowsom_analysis import recut_run
+from ...analysis.gating.subset import SubsetGate
+from ...analysis.phenograph_analysis import apply_clusters
+from ...analysis.services import experiment_edits
 from ..academy_context import ClusterResultsSnapshot
 from .cluster_plot_render_task import ClusterPlotRenderTask
 from .cluster_scatter_draw import draw_cluster_scatter
@@ -292,8 +304,6 @@ class ClusterResultsPanel(QWidget):
 
     def apply_recluster(self, arrays: dict[str, Any]) -> None:
         """Show a finished PhenoGraph re-cluster (or say why it failed)."""
-        from ...analysis.phenograph_analysis import apply_clusters
-
         if self._graph_view is None:
             return
         self._graph_view.set_busy("")
@@ -460,8 +470,6 @@ class ClusterResultsPanel(QWidget):
             else None
         )
 
-        from ...analysis.fcs_io import get_channel_marker_label
-
         for i, ch in enumerate(channels):
             if col >= max_cols:
                 col = 0
@@ -557,9 +565,7 @@ class ClusterResultsPanel(QWidget):
         self._gallery_grid.addWidget(CopyablePixmapLabel(pixmap, display_size), row, col)
 
     def _build_interactive_map_tab(self) -> None:
-        import scipy.spatial
-        from karcytics_sdk.plugin.components import BioComboBox, SecondaryButton
-        from PySide6.QtWidgets import QLabel, QStackedWidget
+        import scipy.spatial  # karcytics: allow KS360 - heavy library
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -645,7 +651,7 @@ class ClusterResultsPanel(QWidget):
             )
 
         ax = canvas.figure.axes[0]
-        from matplotlib.patches import Polygon
+        from matplotlib.patches import Polygon  # karcytics: allow KS360 - heavy library
 
         if "custom_clusters" in self._results:
             for custom_data in self._results["custom_clusters"]:
@@ -745,16 +751,6 @@ class ClusterResultsPanel(QWidget):
     def _build_unified_statistics_tab(self) -> None:  # noqa: PLR0912, PLR0915
         self._custom_cluster_masks = []
         self._cluster_ui_elements: dict = {}
-        from karcytics_sdk.plugin.components import BioLineEdit, PrimaryButton, SecondaryButton
-        from PySide6.QtWidgets import (
-            QCheckBox,
-            QHBoxLayout,
-            QLabel,
-            QScrollArea,
-            QSplitter,
-            QVBoxLayout,
-            QWidget,
-        )
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
@@ -774,8 +770,6 @@ class ClusterResultsPanel(QWidget):
                 f"color: {Colors.FG_PRIMARY}; font-weight: bold; font-size: 14px;"
             )
             left_layout.addWidget(stats_lbl)
-
-            import pandas as pd
 
             if stats_data is not None:
                 if isinstance(stats_data, dict):
@@ -1205,14 +1199,10 @@ class ClusterResultsPanel(QWidget):
         if len(indices) == 0:
             return
 
-        import numpy as np
-
         if isinstance(indices, list):
             indices_arr = np.array(indices)
         else:
             indices_arr = indices
-
-        from ...analysis.gating.subset import SubsetGate
 
         # Create UMAP parent node — mark it as a subset node, not a geometric gate node
         umap_parent = target_node.add_child(
@@ -1268,16 +1258,11 @@ class ClusterResultsPanel(QWidget):
         if self._gate_coordinator:
             self._gate_coordinator.recompute_all_stats(sample_id)
 
-        from ...analysis import events
-        from ...analysis.services import experiment_edits
-
         # One undo step named for the export; GATE_CREATED still drives the
         # usual refreshes (and joins the same step — same event-loop turn).
         experiment_edits.announce(
             f"Export {self._method.name} Clusters", (events.GATE_CREATED, {"sample_id": sample_id})
         )
-
-        from karcytics_sdk.plugin.dialogs import show_info
 
         show_info(
             self,
@@ -1289,11 +1274,9 @@ class ClusterResultsPanel(QWidget):
         if not hasattr(self, "_interactive_canvas") or not self._interactive_canvas:
             return
 
-        from matplotlib.widgets import PolygonSelector
+        from matplotlib.widgets import PolygonSelector  # karcytics: allow KS360 - heavy library
 
         ax = self._interactive_canvas.figure.axes[0]
-
-        from karcytics_sdk.plugin.dialogs import show_info
 
         show_info(
             self,
@@ -1309,9 +1292,7 @@ class ClusterResultsPanel(QWidget):
         )
 
     def _on_polygon_drawn(self, verts) -> None:
-        import numpy as np
-        from matplotlib.path import Path
-        from PySide6.QtWidgets import QInputDialog
+        from matplotlib.path import Path  # karcytics: allow KS360 - heavy library
 
         if self._poly_selector:
             self._poly_selector.disconnect_events()
@@ -1359,7 +1340,6 @@ class ClusterResultsPanel(QWidget):
             self._results["clusters"] = clusters
 
             # Recompute stats
-            import pandas as pd
 
             df_cluster = pd.DataFrame(
                 self._results["intensities"], columns=self._results["channels"]
@@ -1383,7 +1363,7 @@ class ClusterResultsPanel(QWidget):
             self._results["marker_heatmap"] = heatmap_df.to_dict(orient="split")
 
         ax = self._interactive_canvas.figure.axes[0]
-        from matplotlib.patches import Polygon
+        from matplotlib.patches import Polygon  # karcytics: allow KS360 - heavy library
 
         poly = Polygon(
             verts,

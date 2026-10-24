@@ -17,11 +17,12 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.components import BioComboBox
+from karcytics_sdk.plugin.components import BioComboBox, BioHelpButton
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QComboBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -406,8 +407,6 @@ class PropertiesPanel(QWidget):
             f"color: {Colors.FG_PRIMARY}; font-size: {Fonts.SIZE_SMALL}px; background: transparent;"
         )
 
-        from karcytics_sdk.plugin.components import BioHelpButton
-
         def _create_label(label_text: str, help_text: str | None = None) -> QWidget:
             w = QWidget()
             lay = QHBoxLayout(w)
@@ -431,8 +430,6 @@ class PropertiesPanel(QWidget):
             val.setWordWrap(True)
             val.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             form.addRow(_create_label(label_text, help_text), val)
-
-        from PySide6.QtWidgets import QComboBox
 
         from ...analysis.experiment import SampleRole
 

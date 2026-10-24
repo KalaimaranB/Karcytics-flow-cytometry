@@ -357,8 +357,16 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
     would hold a pool thread, and Qt waits for the pool at quit. `GateCoordinator` still
     submits its statistics jobs to `task_scheduler` itself (the rule does not count that); it
     goes when B7 splits the coordinator's callers.
-- [ ] Hoist the in-function imports that only broke cycles (KS360: 406). Mark deliberate
-      startup ones `# karcytics: allow KS360 - <reason>`.
+- [x] Hoist the in-function imports that only broke cycles (KS360: 406). Mark deliberate
+      startup ones `# karcytics: allow KS360 - <reason>`. KS360 went 370 → 60. About 330 were
+      hoisted. Each hoist had to pass two checks: every module still imports when it is the
+      first one loaded, and importing the panel (the Phase 1 path) pulls in no new modules;
+      main_panel's imports were tried one at a time. The deliberate ones carry a reason: the plugin's
+      phased startup (one file-level allow each in `__init__.py` and `ui_daemon.py`), Phase 2 modules kept off Phase 1 (main_panel,
+      the derived-editor dialog) and heavy libraries loaded on first use (matplotlib, scipy,
+      numba…). The 60 left are real cycles, so they stay counted, not hidden: gates ↔
+      `GateNode` (`analysis/gating`), `analysis/state` ↔ `workspace_document`, and the graph
+      window / canvas layers ↔ the workspace builder. They go with B7's splits.
 - [ ] Initialise in `__init__` the attributes behind the 142 `getattr`/`hasattr(self, …)` reads
       (KS343: 136).
 

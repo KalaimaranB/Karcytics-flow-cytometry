@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
@@ -332,7 +333,6 @@ class UmapAnimatorWidget(QWidget):
     def _on_poll(self) -> None:
         """Only emit finished when update() has actually drawn near the last frame."""
         total = len(self._frames)
-        import logging
 
         logger = logging.getLogger(__name__)
         logger.debug(f"[ANIM-POLL] total={total}, rendered={self._rendered_frame}")

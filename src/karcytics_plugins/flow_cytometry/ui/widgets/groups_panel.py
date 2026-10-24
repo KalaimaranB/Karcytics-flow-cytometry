@@ -10,16 +10,21 @@ control, test), and a color indicator.
 from __future__ import annotations
 
 from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.dialogs import ask_yes_no
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
+    QMenu,
+    QTreeWidget,
     QVBoxLayout,
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -170,11 +175,8 @@ class GroupsPanel(QWidget):
             # Extract sample_ids from tree widget items
             # The mime data encodes tree widget items. We just need the source widget
             source = event.source()
-            from PySide6.QtWidgets import QTreeWidget
 
             if isinstance(source, QTreeWidget):
-                from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
-
                 sample_ids = [
                     s_item.data(0, Qt.ItemDataRole.UserRole) for s_item in source.selectedItems()
                 ]
@@ -201,17 +203,12 @@ class GroupsPanel(QWidget):
         if not group_id or group_id == "__all__":
             return
 
-        from karcytics_sdk.plugin.dialogs import ask_yes_no
-        from PySide6.QtWidgets import QInputDialog, QMenu
-
         menu = QMenu(self)
 
         rename_action = menu.addAction("Rename Group")
         delete_action = menu.addAction("Delete Group")
 
         action = menu.exec(self._list.mapToGlobal(pos))
-
-        from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
         if action == rename_action:
             group = self._state.data.experiment.groups.get(group_id)

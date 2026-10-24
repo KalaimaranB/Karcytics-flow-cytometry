@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin.components import BioMenu
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-from PySide6.QtCore import QPoint, QRectF, Qt, Signal
+from PySide6.QtCore import QPoint, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QColor,
     QFont,
@@ -20,7 +20,7 @@ from PySide6.QtGui import (
     QPen,
     QWheelEvent,
 )
-from PySide6.QtWidgets import QSizePolicy, QWidget
+from PySide6.QtWidgets import QScrollArea, QSizePolicy, QWidget
 
 from .hover_card import HoverCard
 from .node_tree_engine import TreeNodeRect
@@ -330,7 +330,6 @@ class SampleViewWidget(QWidget):
             scroll_area = self.parentWidget()
             if scroll_area and scroll_area.parentWidget():
                 scroll_area = scroll_area.parentWidget()
-                from PySide6.QtWidgets import QScrollArea
 
                 if isinstance(scroll_area, QScrollArea):
                     hs = scroll_area.horizontalScrollBar()
@@ -453,7 +452,6 @@ class SampleViewWidget(QWidget):
         # Defer signal emissions so the context menu is fully torn down by Qt
         # before any follow-up dialog (e.g. QInputDialog for rename) is shown.
         # Without this the menu briefly re-appears after the dialog closes.
-        from PySide6.QtCore import QTimer
 
         node_id = hit.node_id  # capture before any closure captures `hit`
         if action == action_rename:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from karcytics_sdk.plugin.components import BioComboBox, repopulate_combo
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
 
 from ..flow_canvas import DisplayMode
 
@@ -50,8 +50,6 @@ class AxisControlPanel(QWidget):
         self._y_label = self._make_label("Y:")
         self._y_label.setObjectName("AxisLabelY")
         layout.addWidget(self._y_label)
-
-        from PySide6.QtWidgets import QStackedWidget
 
         self._y_stack = QStackedWidget()
         layout.addWidget(self._y_stack)

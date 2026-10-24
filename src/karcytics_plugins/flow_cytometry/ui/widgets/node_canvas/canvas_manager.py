@@ -1,5 +1,6 @@
 """Manager to bridge GateTree model with the Canvas View."""
 
+from collections import deque
 from typing import Any
 
 from karcytics_sdk.plugin import CentralEventBus, get_logger, safe_disconnect
@@ -16,6 +17,8 @@ from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_node import GateNode
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
+from ....analysis.scaling import AxisScale
+from ...graph.render_task import RenderTask
 from .items.edge_item import EdgeItem
 from .items.node_item import NodeItem
 from .layout_engine import LayoutEngine
@@ -266,8 +269,6 @@ class CanvasManager(QObject):
         """Build NodeItems via BFS so each node is created exactly once,
         even if it has multiple parents (DAG structure).
         """
-        from collections import deque
-
         current = (
             self.state.data.experiment.samples.get(self._current_sample_id)
             if self._current_sample_id
@@ -476,7 +477,6 @@ class CanvasManager(QObject):
             if cache_key in _ThumbnailCache:
                 item.set_plot_image(_ThumbnailCache[cache_key])
                 return
-            from ...graph.render_task import RenderTask
 
             task = RenderTask()
             assert self.state.axis_manager is not None
@@ -602,8 +602,6 @@ class CanvasManager(QObject):
                 child_gates.append(child.gate)
 
         if node.creation_view and node.creation_view.get("x_scale") is not None:
-            from ....analysis.scaling import AxisScale
-
             x_scale = AxisScale.from_dict(node.creation_view["x_scale"])
         else:
             assert self.state.axis_manager is not None
@@ -612,12 +610,8 @@ class CanvasManager(QObject):
         # y_scale: prefer creation_view's saved y_scale, then view_y_scale (for range
         # gates recovered onto a pseudocolor), then compute from y_param.
         if node.creation_view and node.creation_view.get("y_scale") is not None:
-            from ....analysis.scaling import AxisScale
-
             y_scale = AxisScale.from_dict(node.creation_view["y_scale"])
         elif node.creation_view and node.creation_view.get("view_y_scale") is not None:
-            from ....analysis.scaling import AxisScale
-
             y_scale = AxisScale.from_dict(node.creation_view["view_y_scale"])
         elif y_param is not None:
             assert self.state.axis_manager is not None
@@ -639,8 +633,6 @@ class CanvasManager(QObject):
         # If we recovered y_param from view_y_param, keep the original pseudocolor mode.
         if y_param is None:
             plot_type = "Histogram"
-
-        from ...graph.render_task import RenderTask
 
         task = RenderTask()
 

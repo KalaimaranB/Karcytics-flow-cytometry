@@ -32,6 +32,7 @@ from karcytics_sdk.plugin.components import (
     repopulate_combo,
 )
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
+from karcytics_sdk.plugin.runtime_services import diagnostics
 from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color, theme_manager
 from karcytics_sdk.plugin.worker_thread import OneShotWorkerThread
 from matplotlib.colors import LinearSegmentedColormap, to_hex
@@ -1129,7 +1130,6 @@ class StatisticsExplorer(QWidget):
             except Exception as e:  # noqa: BLE001 — report as a diagnostic, not a crash.
                 logger.exception("Statistics plot export failed")
                 self._status_lbl.setText(f"❌ Export failed: {e}")
-                from karcytics_sdk.plugin.runtime_services import diagnostics
 
                 diagnostics.report_error("Statistics plot export failed", exception=e, fatal=False)
 
@@ -1213,7 +1213,6 @@ class StatisticsExplorer(QWidget):
             # crash out of this handler.
             logger.exception("Statistics CSV export failed")
             self._status_lbl.setText(f"❌ Export failed: {exc}")
-            from karcytics_sdk.plugin.runtime_services import diagnostics
 
             diagnostics.report_error("Statistics CSV export failed", exception=exc, fatal=False)
 

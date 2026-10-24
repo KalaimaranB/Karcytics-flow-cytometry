@@ -5,6 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 from karcytics_sdk.plugin import get_logger
 
+from ....analysis.constants import PSEUDOCOLOR_MAX_EVENTS
+from ....analysis.rendering import compute_pseudocolor_points, stable_subsample_mask
 from .base import DisplayStrategy
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -30,8 +32,6 @@ class PseudocolorStrategy(DisplayStrategy):
     ) -> PseudocolorRenderData | None:
         """Compute density-colored scatter points using unified robust math."""
         # Fix import path (rendering is in a sibling of ui, not a child)
-        from ....analysis.constants import PSEUDOCOLOR_MAX_EVENTS
-        from ....analysis.rendering import compute_pseudocolor_points, stable_subsample_mask
 
         # Subsample for UI performance if extremely large
         max_events = kwargs.get("max_events", PSEUDOCOLOR_MAX_EVENTS)

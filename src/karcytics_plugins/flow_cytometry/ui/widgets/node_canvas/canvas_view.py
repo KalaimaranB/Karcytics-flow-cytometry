@@ -9,17 +9,24 @@ from karcytics_sdk.plugin.rendering.graphics_scene import (
     DirtyTrackingGraphicsView,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors
-from PySide6.QtCore import QPointF, QRect, QRectF, Qt, Signal
+from PySide6.QtCore import QPointF, QRect, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QKeyEvent, QMouseEvent, QPainter, QPen, QPolygonF, QWheelEvent
 from PySide6.QtWidgets import (
+    QDialog,
     QGraphicsView,
+    QInputDialog,
+    QLineEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
+from ....analysis.scope_resolution import resolve_target_samples
+from ..scope_selection_dialog import ScopeSelectionDialog
 from .canvas_manager import CanvasManager
+from .items.edge_item import EdgeItem
+from .items.node_item import NodeItem
 
 
 class _CanvasGraphicsView(DirtyTrackingGraphicsView):
@@ -208,8 +215,6 @@ class NodeCanvas(QWidget):
 
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh colors when theme changes."""
-        from PySide6.QtGui import QColor
-
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         if hasattr(self, "_view"):
             self._view.setBackgroundBrush(QColor(Colors.BG_DARKEST))
@@ -223,16 +228,12 @@ class NodeCanvas(QWidget):
 
     def set_sample(self, sample_id: str) -> None:
         """Switch the canvas to display a specific sample."""
-        from PySide6.QtCore import QTimer
-
         self.current_sample_id = sample_id
         self._manager.load_sample(sample_id)
         QTimer.singleShot(50, self.center_on_nodes)
 
     def set_orientation(self, orientation: str) -> None:
         """Update the canvas orientation (horizontal/vertical)."""
-        from PySide6.QtCore import QTimer
-
         self._manager.set_orientation(orientation)
         QTimer.singleShot(50, self.center_on_nodes)
 
@@ -351,18 +352,11 @@ class NodeCanvas(QWidget):
 
         dialog_title = "Rename Node" if node.is_logic_node else "Rename Population"
 
-        from PySide6.QtWidgets import QInputDialog, QLineEdit
-
         new_name, ok = QInputDialog.getText(
             self, dialog_title, "Enter new name:", QLineEdit.EchoMode.Normal, node.name
         )
         if not ok or not new_name or new_name == node.name:
             return
-
-        from PySide6.QtWidgets import QDialog
-
-        from ....analysis.scope_resolution import resolve_target_samples
-        from ..scope_selection_dialog import ScopeSelectionDialog
 
         experiment = self.state.data.experiment
         dialog = ScopeSelectionDialog(
@@ -403,11 +397,6 @@ class NodeCanvas(QWidget):
         if not source or not target:
             return
 
-        from PySide6.QtWidgets import QDialog
-
-        from ....analysis.scope_resolution import resolve_target_samples
-        from ..scope_selection_dialog import ScopeSelectionDialog
-
         experiment = self.state.data.experiment
         dialog = ScopeSelectionDialog(
             f"Delete the connection from '<b>{source.name}</b>' to '<b>{target.name}</b>'?",
@@ -441,9 +430,6 @@ class NodeCanvas(QWidget):
             self.center_on_nodes()
             event.accept()
         elif event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
-            from .items.edge_item import EdgeItem
-            from .items.node_item import NodeItem
-
             for item in self._scene.selectedItems():
                 if isinstance(item, EdgeItem):
                     if not getattr(item, "is_logic_edge", False):

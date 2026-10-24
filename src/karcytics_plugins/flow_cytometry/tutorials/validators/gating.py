@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.tutorial_models import ValidationFailure
 
+from ...analysis.axis_manager import AxisManager
+from ...analysis.experiment import SampleRole
 from ...analysis.gating import QuadrantSubGate
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
@@ -22,8 +25,6 @@ class GateExistsValidator(FlowValidator):
         self._target = target_gate_name.lower()
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from ...analysis.experiment import SampleRole
-
         samples = list(app_state.data.experiment.samples.values())
         full_panel = [s for s in samples if s.role == SampleRole.FULL_PANEL] or samples
         if not any(self._gate_found(s.gate_tree) for s in full_panel):
@@ -64,8 +65,6 @@ class AxisOutlierValidator(FlowValidator):
             return self.log_failure("No active X channel parameter.")
 
         try:
-            from ...analysis.axis_manager import AxisManager
-
             manager = AxisManager(app_state)
             scale = manager.get_scale(x_param, sample_id)
             # Use a small epsilon for float comparison
@@ -82,8 +81,6 @@ class GateExistsOnAllValidator(GateExistsValidator):
     """Verifies that a gate with the given name exists on ALL Full Panel samples."""
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        from ...analysis.experiment import SampleRole
-
         samples = list(app_state.data.experiment.samples.values())
         full_panel = [s for s in samples if s.role == SampleRole.FULL_PANEL]
         if not full_panel:
@@ -313,8 +310,7 @@ class GateShapeValidator(FlowValidator):
 
         # Exact shape matching for Polygons via rasterization
         if gate_type == "PolygonGate" and self.target_poly:
-            import numpy as np
-            from matplotlib.path import Path
+            from matplotlib.path import Path  # karcytics: allow KS360 - heavy library
 
             gate_path = Path(gate.vertices)
             target_path = Path(self.target_poly)

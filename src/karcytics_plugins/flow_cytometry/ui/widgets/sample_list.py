@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from karcytics_sdk.plugin import CentralEventBus
+from karcytics_sdk.plugin.components import BioMenu
+from karcytics_sdk.plugin.dialogs import ask_yes_no
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QHeaderView,
+    QInputDialog,
     QLabel,
     QTreeWidget,
     QTreeWidgetItem,
@@ -291,8 +294,6 @@ class SampleList(QWidget):
         if not items:
             return
 
-        from karcytics_sdk.plugin.components import BioMenu
-
         menu = BioMenu(self)
 
         experiment = self._state.data.experiment
@@ -382,8 +383,6 @@ class SampleList(QWidget):
         if not sample:
             return
 
-        from PySide6.QtWidgets import QInputDialog
-
         new_name, ok = QInputDialog.getText(
             self, "Rename Sample", "New name:", text=sample.display_name
         )
@@ -392,8 +391,6 @@ class SampleList(QWidget):
 
     def _delete_samples(self, items: list[QTreeWidgetItem]) -> None:
         """Remove the selected samples from the workspace."""
-        from karcytics_sdk.plugin.dialogs import ask_yes_no
-
         count = len(items)
         msg = f"Are you sure you want to remove the selected sample{'s' if count > 1 else ''} from the workspace?\n\nThis will not delete any files from your disk."
         confirmed = ask_yes_no(self, "Remove Sample", msg)

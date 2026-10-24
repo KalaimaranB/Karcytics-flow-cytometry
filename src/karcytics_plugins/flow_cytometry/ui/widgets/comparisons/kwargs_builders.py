@@ -22,8 +22,22 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from karcytics_plugins.flow_cytometry.analysis.config import PseudocolorConfig
 from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
+from karcytics_plugins.flow_cytometry.analysis.rendering import compute_pseudocolor_base_density
+from karcytics_plugins.flow_cytometry.analysis.scaling import (
+    AxisScale,
+    compute_axis_limits,
+    get_transform_kwargs,
+)
 from karcytics_plugins.flow_cytometry.analysis.statistics import StatType
+from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
+from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.renderers.pseudocolor_overlay_renderer import (
+    DEFAULT_BG,
+    DEFAULT_BORDER,
+    DEFAULT_FG,
+    JET_SAFE_OVERLAY_PALETTE,
+)
 
 if TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -196,8 +210,6 @@ def _extract_overlay_layers(  # noqa: PLR0913
     x_tf_kwargs: dict,
     y_tf_kwargs: dict,
 ) -> list[dict]:
-    from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
-
     layers = []
     for sid, nid, plabel in pop_pairs:
         if sid != active_sid or nid is None:
@@ -238,12 +250,6 @@ def build_pseudocolor_overlay_kwargs(
     # compute_axis_limits() functions the main gating canvas uses, so a
     # channel looks the same whether viewed here or there. See
     # PseudocolorOverlayOptionsPanel's embedded AxisTransformPanels.
-    from karcytics_plugins.flow_cytometry.analysis.scaling import (
-        AxisScale,
-        compute_axis_limits,
-        get_transform_kwargs,
-    )
-    from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
 
     x_scale = AxisScale.from_dict(config.get("x_scale", {}))
     y_scale = AxisScale.from_dict(config.get("y_scale", {}))
@@ -283,8 +289,6 @@ def build_pseudocolor_overlay_kwargs(
     # pure-numpy data prep, and holding it for the whole duration of this
     # computation (which can take seconds on a real gated population)
     # needlessly starves the main canvas's paintEvent retries the whole time.
-    from karcytics_plugins.flow_cytometry.analysis.config import PseudocolorConfig
-    from karcytics_plugins.flow_cytometry.analysis.rendering import compute_pseudocolor_base_density
 
     # Shared with the workspace tab's Pseudocolor render mode — see
     # PseudocolorOverlayOptionsPanel's embedded PseudocolorSettingsPanel.
@@ -322,12 +326,6 @@ def build_pseudocolor_overlay_kwargs(
     # here (rather than left to ComparisonsViewer's generic theme injection)
     # because this is the one Comparisons plot type drawn over a colormap
     # instead of flat themed chrome. See pseudocolor_overlay_renderer.py.
-    from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.renderers.pseudocolor_overlay_renderer import (
-        DEFAULT_BG,
-        DEFAULT_BORDER,
-        DEFAULT_FG,
-        JET_SAFE_OVERLAY_PALETTE,
-    )
 
     kwargs["bg_color"] = DEFAULT_BG
     kwargs["fg_color"] = DEFAULT_FG

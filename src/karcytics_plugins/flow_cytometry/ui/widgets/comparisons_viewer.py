@@ -28,9 +28,11 @@ from karcytics_sdk.plugin.components import (
     SecondaryButton,
 )
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
+from karcytics_sdk.plugin.runtime_services import diagnostics
 from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -45,6 +47,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
+    derived_labels_of,
+    get_channel_marker_label,
+    get_fluorescence_channels,
+)
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
@@ -568,7 +575,6 @@ class ComparisonsViewer(QWidget):
             except Exception as exc:  # noqa: BLE001 — report as a diagnostic, not a crash.
                 logger.exception("Comparisons plot export failed")
                 self._status_lbl.setText(f"❌ Export failed: {exc}")
-                from karcytics_sdk.plugin.runtime_services import diagnostics
 
                 diagnostics.report_error(
                     "Comparisons plot export failed", exception=exc, fatal=False
@@ -670,12 +676,6 @@ class ComparisonsViewer(QWidget):
         channels = []
         sample = self._state.data.experiment.samples.get(sample_ids[0])
         if sample and sample.fcs_data:
-            from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
-                derived_labels_of,
-                get_channel_marker_label,
-                get_fluorescence_channels,
-            )
-
             fluo_channels = get_fluorescence_channels(sample.fcs_data)
             if spec.channel_mode == ChannelMode.SINGLE:
                 # Derived parameters (ratios etc.) make sense on their own
@@ -688,7 +688,6 @@ class ComparisonsViewer(QWidget):
         for label, key in channels:
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, key)
-            from PySide6.QtGui import QColor
 
             item.setForeground(QColor(Colors.FG_PRIMARY))
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
@@ -755,8 +754,6 @@ class ComparisonsViewer(QWidget):
             self._plot_type_combo, "_apply_theme_styles"
         ):
             self._plot_type_combo._apply_theme_styles()
-
-        from PySide6.QtGui import QColor
 
         fg_color = QColor(Colors.FG_PRIMARY)
 

@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import re
 from abc import abstractmethod
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from ...analysis.clustering import method_of
+from ...analysis.clustering.describe import short_marker
+from ...analysis.fcs_io import get_channel_marker_label
+from ...analysis.population_matching import PATH_SEP, populations
+from ...analysis.sample_lens.scope import is_cluster_population
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
 from .base import FlowUIValidator
@@ -48,8 +54,6 @@ class LensRunMethodValidator(_LensValidator):
         self._key = method_key
 
     def validate_lens(self, lens: SampleLensTab) -> bool:
-        from ...analysis.clustering import method_of
-
         run = lens.model.run
         if run is None or method_of(run).key != self._key:
             return self.log_failure(f"The lens's run isn't a '{self._key}' run.")
@@ -138,7 +142,6 @@ class LensPopulationSelectedValidator(_LensValidator):
 
 def _lens_findings(lens: SampleLensTab, kind: Any, gate: str | None) -> list[Any]:
     """The lens's findings of ``kind``, naming the population ``gate`` if given."""
-    from ...analysis.population_matching import PATH_SEP
 
     return [
         f
@@ -271,8 +274,6 @@ class LensProposalValidator(_LensValidator):
 
 def proposal_axes(lens: SampleLensTab) -> list[str]:
     """Each proposed gate's markers, in order: ["B220 vs CD3", "CD4 vs CD8"]."""
-    from ...analysis.clustering.describe import short_marker
-    from ...analysis.fcs_io import get_channel_marker_label
 
     sample, proposal = lens.model.sample, lens.proposal
     fcs = sample.fcs_data if sample is not None else None
@@ -293,10 +294,6 @@ class LensProposalAddedValidator(_LensValidator):
     """
 
     def validate_lens(self, lens: SampleLensTab) -> bool:
-        import re
-
-        from ...analysis.population_matching import populations
-        from ...analysis.sample_lens.scope import is_cluster_population
 
         sample = lens.model.sample
         names = [

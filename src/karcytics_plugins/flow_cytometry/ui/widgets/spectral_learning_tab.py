@@ -18,6 +18,7 @@ from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib import patches
 from matplotlib.figure import Figure
+from PySide6.QtCore import Qt as _Qt
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
@@ -883,7 +884,6 @@ class SpectralLearningTab(QWidget):
 
     def _add_slider(self, on_release):
         self._slider = QSlider()
-        from PySide6.QtCore import Qt as _Qt
 
         self._slider.setOrientation(_Qt.Orientation.Horizontal)
         self._slider.setRange(0, 100)

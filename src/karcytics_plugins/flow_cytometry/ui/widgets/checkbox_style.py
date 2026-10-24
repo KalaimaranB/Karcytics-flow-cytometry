@@ -12,10 +12,10 @@ and behave identically — no custom paint delegate needed.
 
 from __future__ import annotations
 
+from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
+
 
 def _get_theme_tokens():
-    from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
-
     return Colors, Fonts
 
 

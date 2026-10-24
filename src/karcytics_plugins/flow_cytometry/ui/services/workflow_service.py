@@ -6,6 +6,11 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin.managed_task import FunctionalTask
+
+from ...analysis.workspace_document import apply_workspace, serialize_workspace
+
 if TYPE_CHECKING:
     from ...analysis.state import FlowState
 
@@ -19,7 +24,6 @@ class WorkflowService(QObject):
 
     def __init__(self, state: FlowState, data_loader_service, attachment_manager, parent=None):
         super().__init__(parent)
-        from karcytics_sdk.plugin import get_logger
 
         self.logger = get_logger("flow.workflow_service", "flow_cytometry")
 
@@ -70,8 +74,6 @@ class WorkflowService(QObject):
                         pass
                 sample_paths[sid] = str(file_path)
 
-        from ...analysis.workspace_document import serialize_workspace
-
         payload = serialize_workspace(self._state)
         payload["sample_paths"] = sample_paths
 
@@ -99,8 +101,6 @@ class WorkflowService(QObject):
                 machine/OS to find its data after the whole project directory
                 is copied to another.
         """
-        from ...analysis.workspace_document import apply_workspace
-
         if not payload:
             self.logger.warning("Empty workflow payload.")
             return False
@@ -186,8 +186,6 @@ class WorkflowService(QObject):
             on_complete: Called with a ``{"loaded": [...], "failed": [...]}``
                 dict of sample display names once the reload finishes.
         """
-        from karcytics_sdk.plugin.managed_task import FunctionalTask
-
         t_submitted = time.monotonic()
 
         def _bg_reload() -> dict[str, list[str]]:

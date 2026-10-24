@@ -22,7 +22,7 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin import CentralEventBus, get_logger
 
 from .. import events
 from ..compensation import CompensationMatrix, SavedMatrix, apply_compensation
@@ -40,7 +40,6 @@ Publish = Callable[[str, Any], None]
 def _bus(publish: Publish | None) -> Publish:
     if publish is not None:
         return publish
-    from karcytics_sdk.plugin import CentralEventBus
 
     return CentralEventBus.publish
 

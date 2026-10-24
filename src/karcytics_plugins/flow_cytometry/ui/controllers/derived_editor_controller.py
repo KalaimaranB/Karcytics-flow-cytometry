@@ -41,6 +41,7 @@ class DerivedEditorController:
     @property
     def dialog(self) -> DerivedParameterDialog:
         if self._dialog is None:
+            # karcytics: allow KS360 - off the Phase 1 path
             from karcytics_plugins.flow_cytometry.ui.dialogs.derived_parameter_dialog import (
                 DerivedParameterDialog,
             )

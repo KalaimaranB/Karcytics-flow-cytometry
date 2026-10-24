@@ -10,11 +10,14 @@ from __future__ import annotations
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
-from karcytics_sdk.plugin import get_logger
+from karcytics_sdk.plugin import CentralEventBus, get_logger
 from matplotlib.patches import Ellipse as MplEllipse
 from matplotlib.patches import Rectangle as MplRectangle
+from PySide6.QtCore import QTimer
 
+from ...analysis import events
 from ...analysis.constants import GATE_DRAWING_COLOR
+from .gate_editor import MOVE_HANDLE
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -75,8 +78,6 @@ class GateDrawingFSM:
 
             body_gate = self.canvas._try_hit_selected_gate_body(x, y)
             if body_gate is not None:
-                from .gate_editor import MOVE_HANDLE
-
                 self._start_edit(body_gate, MOVE_HANDLE, x, y)
                 return
 
@@ -233,7 +234,6 @@ class GateDrawingFSM:
             self._pending_edit_args = (x, y)
             if not getattr(self, "_edit_timer_active", False):
                 self._edit_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._edit_timer_active = False
@@ -295,10 +295,6 @@ class GateDrawingFSM:
                 canvas.draw_idle()
 
             try:
-                from karcytics_sdk.plugin import CentralEventBus
-
-                from ...analysis import events
-
                 CentralEventBus.publish(events.GATE_PREVIEW, {"gate": self._edit_target})
             except Exception as e:
                 logger.debug(f"Failed to publish edit preview: {e}")
@@ -315,7 +311,6 @@ class GateDrawingFSM:
             self._pending_rubber_args = (x0, y0, x1, y1, mode)
             if not getattr(self, "_rubber_timer_active", False):
                 self._rubber_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._rubber_timer_active = False
@@ -414,10 +409,6 @@ class GateDrawingFSM:
 
             # Publish temporary gate for subplots
             try:
-                from karcytics_sdk.plugin import CentralEventBus
-
-                from ...analysis import events
-
                 temp_gate = None
                 if mode == "rectangle":
                     temp_gate = self.canvas._gate_factory.create_rectangle(x0, y0, x1, y1)
@@ -437,7 +428,6 @@ class GateDrawingFSM:
         def _on_busy() -> None:
             if not getattr(self, "_clear_rubber_timer_active", False):
                 self._clear_rubber_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._clear_rubber_timer_active = False
@@ -482,7 +472,6 @@ class GateDrawingFSM:
             self._pending_crosshair_args = (x, y)
             if not getattr(self, "_crosshair_timer_active", False):
                 self._crosshair_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._crosshair_timer_active = False
@@ -557,10 +546,6 @@ class GateDrawingFSM:
 
             # Publish temporary quadrant for subplots
             try:
-                from karcytics_sdk.plugin import CentralEventBus
-
-                from ...analysis import events
-
                 temp_gate = self.canvas._gate_factory.create_quadrant(x, y)
                 if temp_gate:
                     CentralEventBus.publish(events.GATE_PREVIEW, {"gate": temp_gate})
@@ -573,7 +558,6 @@ class GateDrawingFSM:
         def _on_busy() -> None:
             if not getattr(self, "_clear_crosshair_timer_active", False):
                 self._clear_crosshair_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._clear_crosshair_timer_active = False
@@ -625,7 +609,6 @@ class GateDrawingFSM:
             self._pending_polygon_mouse = current_mouse
             if not getattr(self, "_polygon_timer_active", False):
                 self._polygon_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._polygon_timer_active = False
@@ -713,10 +696,6 @@ class GateDrawingFSM:
 
             # Publish temporary polygon for subplots
             try:
-                from karcytics_sdk.plugin import CentralEventBus
-
-                from ...analysis import events
-
                 temp_gate = self.canvas._gate_factory.create_polygon(pts)
                 CentralEventBus.publish(events.GATE_PREVIEW, {"gate": temp_gate})
             except Exception as e:
@@ -728,7 +707,6 @@ class GateDrawingFSM:
         def _on_busy() -> None:
             if not getattr(self, "_clear_polygon_timer_active", False):
                 self._clear_polygon_timer_active = True
-                from PySide6.QtCore import QTimer
 
                 def _retry() -> None:
                     self._clear_polygon_timer_active = False

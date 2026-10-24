@@ -21,6 +21,7 @@ own code used to make has been migrated to import the real thing from
 `karcytics_sdk.plugin` directly, since this plugin's standalone `.venv`
 never had the Hub's `karcytics` package to begin with.
 """
+# karcytics: allow-file KS360 - plugin startup runs its imports in phases
 
 from __future__ import annotations
 

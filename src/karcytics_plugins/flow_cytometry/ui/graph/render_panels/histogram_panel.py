@@ -7,6 +7,7 @@ from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QDoubleSpinBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -138,8 +139,6 @@ class HistogramSettingsPanel(QWidget):
         self._fmo_check.setStyleSheet(f"color: {Colors.FG_SECONDARY};")
         self._fmo_check.stateChanged.connect(self._on_fmo_threshold_toggled)
         fmo_form.addRow(QLabel(), self._fmo_check)
-
-        from PySide6.QtWidgets import QDoubleSpinBox
 
         self._spin_percentile = QDoubleSpinBox()
         self._spin_percentile.setRange(0.0, 100.0)

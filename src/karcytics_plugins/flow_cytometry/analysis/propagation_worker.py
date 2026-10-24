@@ -2,6 +2,7 @@ from typing import Any
 
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
+from .compute import dag_evaluator
 from .experiment import Sample
 from .gating import GateNode
 
@@ -85,8 +86,6 @@ class _PropagationWorker(AnalysisBase):
         except (KeyError, TypeError, ValueError) as e:
             logger.error("Failed to deserialize DAG: %s", e)
             return {}, GateNode()
-
-        from .compute import dag_evaluator
 
         all_stats = dag_evaluator.evaluate(new_tree, events)
 

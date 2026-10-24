@@ -26,7 +26,11 @@ from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import FixedFormatter, FixedLocator
 
-from karcytics_plugins.flow_cytometry.analysis.rendering import stable_subsample_mask
+from karcytics_plugins.flow_cytometry.analysis.constants import PSEUDOCOLOR_MAX_EVENTS
+from karcytics_plugins.flow_cytometry.analysis.rendering import (
+    compute_pseudocolor_base_density,
+    stable_subsample_mask,
+)
 from karcytics_plugins.flow_cytometry.analysis.transforms import (
     TransformType,
     compute_bio_tick_positions,
@@ -174,11 +178,6 @@ class PseudocolorOverlayRenderer(IPlotRenderer):
         """Fallback for standalone/test use only — production callers should
         pass a pre-computed ``base_density`` kwarg (see class docstring).
         """
-        from karcytics_plugins.flow_cytometry.analysis.constants import PSEUDOCOLOR_MAX_EVENTS
-        from karcytics_plugins.flow_cytometry.analysis.rendering import (
-            compute_pseudocolor_base_density,
-        )
-
         return compute_pseudocolor_base_density(
             base_x, base_y, PSEUDOCOLOR_MAX_EVENTS, enabled=show_density_base
         )

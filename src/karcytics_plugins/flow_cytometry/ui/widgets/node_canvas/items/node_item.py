@@ -1,8 +1,10 @@
 """Graphical representation of a Gate population on the canvas."""
 
+import math
 from collections.abc import Callable
 from typing import Any
 
+from karcytics_sdk.plugin.components import BioMenu
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QFont, QImage, QPainter, QPainterPath, QPen, QPixmap
@@ -103,8 +105,6 @@ class NodeItem(QGraphicsObject):
 
     def set_plot_image(self, qimg: QImage) -> None:
         """Set the rendered plot image."""
-        from PySide6.QtGui import QPixmap
-
         self._plot_pixmap = QPixmap.fromImage(qimg)
         self._mark_dirty()
 
@@ -356,7 +356,6 @@ class NodeItem(QGraphicsObject):
             painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
             # Helper to create isometric points (30-degree projection)
-            import math
 
             angle = math.radians(30)
             cos_a = math.cos(angle)
@@ -571,8 +570,6 @@ class NodeItem(QGraphicsObject):
         if self.name == "All Events":
             event.accept()
             return
-
-        from karcytics_sdk.plugin.components import BioMenu
 
         menu = BioMenu()
         rename_action = menu.addAction(

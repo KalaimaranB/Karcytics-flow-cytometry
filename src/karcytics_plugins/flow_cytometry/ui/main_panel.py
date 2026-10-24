@@ -17,7 +17,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from karcytics_sdk.plugin import PluginBase, get_logger
+from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
+from karcytics_sdk.plugin import CentralEventBus as _CentralEventBus
 from karcytics_sdk.plugin.dialogs import show_error, show_warning
 from karcytics_sdk.plugin.runtime_services import (
     KarcyticsEvent,
@@ -27,20 +28,26 @@ from karcytics_sdk.plugin.runtime_services import (
     tutorial_manager as global_tutorial_manager,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
+from karcytics_sdk.plugin.workflow import WorkflowContext
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QApplication,
+    QDialog,
+    QInputDialog,
     QMessageBox,
     QSizePolicy,
     QWidget,
 )
 
 from karcytics_plugins.flow_cytometry.analysis import events
+from karcytics_plugins.flow_cytometry.analysis.compensation import extract_spill_from_fcs
 from karcytics_plugins.flow_cytometry.analysis.derived import sync_experiment
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
+
+from ..analysis.workspace_document import apply_workspace
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -206,13 +213,13 @@ class FlowCytometryPanel(PluginBase):
 
         # Academy courses run inside Academy workflows: pausable, saved as
         # they go, locked while paused (see ui/academy_workflow.py).
+        # karcytics: allow KS360 - off the Phase 1 path
         from .academy_workflow import AcademyWorkflowController
 
         self._academy = AcademyWorkflowController(self)
 
     def _setup_footer_events(self) -> None:
         """Subscribe to events to update the footer message."""
-        from karcytics_sdk.plugin import CentralEventBus
 
         def update_footer(msg: str) -> None:
             if hasattr(self, "_footer"):
@@ -235,8 +242,6 @@ class FlowCytometryPanel(PluginBase):
     def closeEvent(self, event) -> None:
         """Shutdown plugin daemon on panel close."""
         try:
-            from karcytics_sdk.plugin import PluginDaemon
-
             PluginDaemon.stop_instance("flow_cytometry")
         except Exception:
             pass
@@ -245,8 +250,6 @@ class FlowCytometryPanel(PluginBase):
     def shutdown(self) -> None:
         """Module shutdown hook."""
         try:
-            from karcytics_sdk.plugin import PluginDaemon
-
             PluginDaemon.stop_instance("flow_cytometry")
         except Exception:
             pass
@@ -354,6 +357,7 @@ class FlowCytometryPanel(PluginBase):
         after the GalacticLoader has signalled its warp peak.
         """
         logger.debug("[phase1] _setup_ui: importing workspace_builder")
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
         logger.debug("[phase1] _setup_ui: workspace_builder imported, calling build_skeleton()")
@@ -386,6 +390,7 @@ class FlowCytometryPanel(PluginBase):
         machine, unbounded. Waiting for ``panel_ready`` means the warmup
         only ever competes with genuinely idle time, not startup.
         """
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..analysis.numba_warmup import warmup_numba_jit
 
         warmup_numba_jit()
@@ -398,6 +403,7 @@ class FlowCytometryPanel(PluginBase):
         exactly one heavy widget then yields via ``QTimer.singleShot(0)`` so the
         GalacticLoader QML animation gets a render frame between each construction.
         """
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
         # Best-effort, non-blocking: runs on a background thread and only
@@ -452,6 +458,7 @@ class FlowCytometryPanel(PluginBase):
         4. Emits ``panel_ready`` — ``PluginLoaderManager`` then switches the
            loader message to "Loading data…" and waits for ``data_ready``.
         """
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.builders.workspace_builder import WorkspaceBuilder
 
         logger.debug("[phase2] finalize: finalize_center_stack")
@@ -533,6 +540,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _wire_signals(self) -> None:
         """Connect internal widget signals to each other and to the Karcytics interface signals."""
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.controllers.main_panel_controller import MainPanelController
 
         MainPanelController.wire(self)
@@ -549,9 +557,6 @@ class FlowCytometryPanel(PluginBase):
     def _on_course_prepare_project(self, course_id: str) -> None:
         """Handles a request to start a course by ensuring a fresh project is used."""
         pm = getattr(self.window(), "project_manager", None)
-        from karcytics_sdk.plugin.runtime_services import (
-            tutorial_manager as global_tutorial_manager,
-        )
 
         course = None
         for courses in global_tutorial_manager.courses_by_module.values():
@@ -561,8 +566,6 @@ class FlowCytometryPanel(PluginBase):
                     break
 
         if pm:
-            from karcytics_sdk.plugin.dialogs import show_error
-
             # If the course has prerequisites, they must be currently loaded!
             if course and course.prerequisite_course_ids:
                 workflows = pm.workflows.list_all()
@@ -707,8 +710,6 @@ class FlowCytometryPanel(PluginBase):
             # meaningless, and canceling the prompt would lose the gate.
             name = default_name
         else:
-            from PySide6.QtWidgets import QInputDialog
-
             # Prompt the user for the name, pausing the event loop here
             typed_name, ok = QInputDialog.getText(
                 self, "New Gate", "Enter name for the new gate:", text=default_name
@@ -851,8 +852,7 @@ class FlowCytometryPanel(PluginBase):
                 if grp:
                     group_choices.append((gid, grp.name))
 
-            from PySide6.QtWidgets import QDialog
-
+            # karcytics: allow KS360 - off the Phase 1 path
             from .widgets.scope_selection_dialog import ScopeSelectionDialog
 
             dialog = ScopeSelectionDialog(
@@ -870,6 +870,7 @@ class FlowCytometryPanel(PluginBase):
 
         physical_gate_id = selected_node.gate.gate_id
 
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..analysis.scope_resolution import resolve_target_samples
 
         target_samples = resolve_target_samples(
@@ -1103,10 +1104,6 @@ class FlowCytometryPanel(PluginBase):
         """Callback when new FCS files are loaded via the ribbon."""
         # ── Auto-extract embedded compensation matrix if none exists ──
         if self.state.data.compensation is None:
-            from karcytics_plugins.flow_cytometry.analysis.compensation import (
-                extract_spill_from_fcs,
-            )
-
             for sample in self.state.data.experiment.samples.values():
                 if sample.fcs_data and sample.fcs_data.is_compensated:
                     try:
@@ -1131,8 +1128,7 @@ class FlowCytometryPanel(PluginBase):
 
     def _on_group_requested(self) -> None:
         """Callback when the user clicks 'Create Group'."""
-        from PySide6.QtWidgets import QInputDialog
-
+        # karcytics: allow KS360 - off the Phase 1 path
         from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 
         name, ok = QInputDialog.getText(self, "New Group", "Enter name for the new group:")
@@ -1178,6 +1174,7 @@ class FlowCytometryPanel(PluginBase):
         """Resource cleanup on plugin close."""
         self.logger.info("Cleaning up Flow Cytometry workspace...")
 
+        # karcytics: allow KS360 - off the Phase 1 path
         from ..ui.controllers.main_panel_controller import MainPanelController
 
         MainPanelController.unwire(self)
@@ -1198,8 +1195,6 @@ class FlowCytometryPanel(PluginBase):
         # Cancel the startup stats subscription if it was never consumed
         if hasattr(self, "_startup_stats_cb"):
             try:
-                from karcytics_sdk.plugin import CentralEventBus as _CentralEventBus
-
                 _CentralEventBus.unsubscribe(events.ALL_STATS_UPDATED, self._startup_stats_cb)
             except Exception:
                 pass
@@ -1243,7 +1238,6 @@ class FlowCytometryPanel(PluginBase):
         """
         if not state:
             return
-        from ..analysis.workspace_document import apply_workspace
 
         apply_workspace(self.state, state.to_dict())
         sync_experiment(self.state.data.experiment)
@@ -1450,8 +1444,6 @@ class FlowCytometryPanel(PluginBase):
         pm = self._get_project_manager()
         context = None
         if pm and filename:
-            from karcytics_sdk.plugin.workflow import WorkflowContext
-
             try:
                 atts = pm.workflows.load_attachments(filename)
                 # Filter out any corrupt legacy attachments

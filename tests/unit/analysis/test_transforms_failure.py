@@ -11,7 +11,6 @@ fatal diagnostic and (b) propagate the exception, not return a silently-wrong ar
 
 from __future__ import annotations
 
-import importlib
 import sys
 from unittest.mock import MagicMock
 
@@ -22,24 +21,9 @@ from karcytics_plugins.flow_cytometry.analysis import transforms
 
 
 def _seed_fake_diagnostics(monkeypatch) -> MagicMock:
-    """Replace the real `karcytics_sdk.plugin.runtime_services.diagnostics`
-    singleton so the plugin's lazy `from karcytics_sdk.plugin.runtime_services
-    import diagnostics` import resolves to a mock instead of forwarding to the
-    (nonexistent, in a unit test) Hub process.
-
-    `tests/conftest.py` replaces `sys.modules["karcytics_sdk.plugin"]` with a
-    `MagicMock` for unrelated reasons (lightweight UI component stand-ins),
-    leaving `sys.modules["karcytics_sdk.plugin.runtime_services"]` as an
-    orphaned *real* entry from an earlier import. `importlib.import_module`
-    resolves via that same flat `sys.modules` cache, matching exactly what
-    `transforms.py`'s own `from karcytics_sdk.plugin.runtime_services import
-    diagnostics` sees — unlike `monkeypatch.setattr("dotted.string", ...)` or
-    `import a.b.c as x`, which both chase attributes through the *mocked*
-    parent package instead and would silently patch a disconnected mock.
-    """
+    """Stands in for the Hub's diagnostics where `transforms` uses it."""
     mock_diagnostics = MagicMock()
-    real_module = importlib.import_module("karcytics_sdk.plugin.runtime_services")
-    monkeypatch.setattr(real_module, "diagnostics", mock_diagnostics)
+    monkeypatch.setattr(transforms, "diagnostics", mock_diagnostics)
     return mock_diagnostics
 
 

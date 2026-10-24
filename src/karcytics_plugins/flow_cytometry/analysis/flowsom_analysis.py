@@ -10,6 +10,7 @@ from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger
 
 from .clustering import FLOWSOM, fit_flowsom, recut, tree_embedding
 from .clustering.run_input import cluster_tables, prepare_run_input
+from .state import FlowState
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -50,7 +51,6 @@ class FlowsomAnalysis(AnalysisBase):
     def run(self, state: PluginState | None = None) -> dict[str, Any]:
         if state is None:
             return {"error": "No state provided"}
-        from .state import FlowState
 
         flow_state = typing.cast(FlowState, state)
         self.signals.analysis_progress.emit(5)

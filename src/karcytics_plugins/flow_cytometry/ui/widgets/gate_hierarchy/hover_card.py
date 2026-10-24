@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
     QLabel,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -120,8 +121,6 @@ class HoverCard(QFrame):
             }
         """,
         )
-
-        from PySide6.QtWidgets import QVBoxLayout
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, 10, 12, 10)

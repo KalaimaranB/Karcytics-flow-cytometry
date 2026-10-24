@@ -28,6 +28,7 @@ from karcytics_plugins.flow_cytometry.analysis.gating import (
 )
 
 from .flow_services import CoordinateMapper
+from .gate_registry import GateRegistry
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -58,8 +59,6 @@ class GateEditor:
         resolves to its parent, mirroring GateOverlayRenderer.render_gate's
         dispatch shape exactly.
         """
-        from .gate_registry import GateRegistry
-
         if isinstance(gate, QuadrantSubGate):
             return self.get_handles_quadrant(gate.parent)
 
@@ -99,7 +98,6 @@ class GateEditor:
         position.
         """
         target = gate.parent if isinstance(gate, QuadrantSubGate) else gate
-        from .gate_registry import GateRegistry
 
         type_key = type(target).__name__.lower().replace("gate", "")
         handler = GateRegistry.get_edit_handler(type_key)

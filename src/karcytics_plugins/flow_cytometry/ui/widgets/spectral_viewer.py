@@ -31,6 +31,7 @@ from karcytics_sdk.plugin.runtime_services import (
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
@@ -377,8 +378,6 @@ class SpectralViewer(QWidget):
             if cycle == 0:
                 result["color"] = base_hex
             else:
-                from PySide6.QtGui import QColor
-
                 c = QColor(base_hex)
                 if cycle % 2 == 1:
                     factor = 100 + ((cycle + 1) // 2) * 30
@@ -526,8 +525,6 @@ class SpectralViewer(QWidget):
         if cycle == 0:
             result["color"] = base_hex
         else:
-            from PySide6.QtGui import QColor
-
             c = QColor(base_hex)
             if cycle % 2 == 1:
                 factor = 100 + ((cycle + 1) // 2) * 30

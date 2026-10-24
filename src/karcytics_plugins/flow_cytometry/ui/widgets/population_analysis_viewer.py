@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import scipy.spatial
+import shiboken6
 from karcytics_sdk.plugin import BioSectionLabel
 from karcytics_sdk.plugin.components import (
     BioComboBox,
@@ -18,9 +20,11 @@ from karcytics_sdk.plugin.components import (
     SecondaryButton,
     repopulate_combo,
 )
+from karcytics_sdk.plugin.managed_task import FunctionalTask
+from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIntValidator
+from PySide6.QtGui import QColor, QIntValidator
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -55,6 +59,8 @@ from karcytics_plugins.flow_cytometry.ui.services.umap_service import (
     UmapService,
 )
 
+from ...analysis.fcs_io import get_channel_marker_label, get_fluorescence_channels
+from ...analysis.services import experiment_edits
 from ..academy_context import PopulationAnalysisSnapshot
 from .checkbox_style import checkbox_qss
 from .cluster_results_panel import ClusterResultsPanel
@@ -605,8 +611,6 @@ class PopulationAnalysisViewer(QWidget):
             if combo and hasattr(combo, "_apply_theme_styles"):
                 combo._apply_theme_styles()
 
-        from PySide6.QtGui import QColor
-
         fg_color = QColor(Colors.FG_PRIMARY)
 
         if hasattr(self, "_channel_list"):
@@ -929,11 +933,6 @@ class PopulationAnalysisViewer(QWidget):
         if not sample or sample.fcs_data is None:
             return
 
-        from ...analysis.fcs_io import (
-            get_channel_marker_label,
-            get_fluorescence_channels,
-        )
-
         fluo_channels = get_fluorescence_channels(sample.fcs_data)
 
         for ch in fluo_channels:
@@ -1060,8 +1059,6 @@ class PopulationAnalysisViewer(QWidget):
     def _on_results_modified(self) -> None:
         # Cluster names / custom clusters live inside the run's result dict,
         # which undo snapshots only reference by id: saved, not undoable.
-        from ...analysis.services import experiment_edits
-
         experiment_edits.announce_unsaved_change()
         self._history_combo.blockSignals(True)  # a re-cut k shows in the run's label
         self.refresh_history()
@@ -1080,7 +1077,6 @@ class PopulationAnalysisViewer(QWidget):
 
             # An ordinary undoable edit now — it marks the workspace unsaved
             # like any other, instead of silently overwriting the saved file.
-            from ...analysis.services import experiment_edits
 
             experiment_edits.delete_umap_run(self._state, key, run_idx)
 
@@ -1154,8 +1150,6 @@ class PopulationAnalysisViewer(QWidget):
 
         sample = self._state.data.experiment.samples.get(sample_id)
         if sample and sample.fcs_data is not None:
-            from ...analysis.fcs_io import get_fluorescence_channels
-
             fluo_channels = get_fluorescence_channels(sample.fcs_data)
 
             gate_node = sample.gate_tree.find_node_by_id(node_id) if node_id else None
@@ -1192,8 +1186,6 @@ class PopulationAnalysisViewer(QWidget):
 
             def _on_prep_done(results: dict):
                 try:
-                    import shiboken6
-
                     if shiboken6.isValid(worker):
                         worker.finished.disconnect(_on_prep_done)
                         worker.error.disconnect(_on_prep_error)
@@ -1236,8 +1228,6 @@ class PopulationAnalysisViewer(QWidget):
 
             def _on_prep_error(err: str):
                 try:
-                    import shiboken6
-
                     if shiboken6.isValid(worker):
                         worker.finished.disconnect(_on_prep_done)
                         worker.error.disconnect(_on_prep_error)
@@ -1245,9 +1235,6 @@ class PopulationAnalysisViewer(QWidget):
                     pass
                 self._display_stack.setCurrentIndex(0)
                 self._on_analysis_error(f"Animation prep failed: {err}")
-
-            from karcytics_sdk.plugin.managed_task import FunctionalTask
-            from karcytics_sdk.plugin.runtime_services import task_scheduler
 
             task = FunctionalTask(_prep_task, name="UMAP Prep")
             worker = task_scheduler.submit(task, None)
@@ -1374,8 +1361,6 @@ class PopulationAnalysisViewer(QWidget):
 
         embedding = results.get("embedding")
         if embedding is not None and method_of(results) is UMAP_HDBSCAN:
-            import numpy as np
-
             if isinstance(embedding, list):
                 embedding = np.array(embedding)
 
@@ -1384,7 +1369,7 @@ class PopulationAnalysisViewer(QWidget):
                 and self._last_prep_data
                 and self._last_prep_data.final_2d is not None
             ):
-                import scipy.linalg
+                import scipy.linalg  # karcytics: allow KS360 - heavy library
 
                 n_sub = len(self._last_prep_data.final_2d)
                 if len(embedding) >= n_sub:
@@ -1428,8 +1413,6 @@ class PopulationAnalysisViewer(QWidget):
         # Keep numeric arrays in numpy format to avoid PySide6 / Qt C++ QVariant list console dumping.
         for key in ["intensities", "indices", "clusters", "embedding"]:
             if key in results and isinstance(results[key], list):
-                import numpy as np
-
                 results[key] = np.array(results[key])
 
         if params:
@@ -1444,8 +1427,6 @@ class PopulationAnalysisViewer(QWidget):
             results["hdbscan_space"] = params.hdbscan_space
 
         self._last_results = results
-
-        from ...analysis.services import experiment_edits
 
         experiment_edits.add_umap_run(self._state, results)
 
