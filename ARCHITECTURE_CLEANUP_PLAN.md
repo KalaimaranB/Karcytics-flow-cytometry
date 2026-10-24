@@ -329,7 +329,13 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       refresh handlers. Last, `services/workflow_loader.py` takes `load_workflow`,
       `WorkflowDocument.confirm_close` the close prompt, and `workspace_theme.py` the
       skeleton styles (the panel's splitter QSS was dead: `BioSplitter` restyled over it).
-- [ ] `population_analysis_viewer.py` (1,527).
+- [x] `population_analysis_viewer.py` (1,527 → 633): the run's setup form is `ClusteringSetup`
+      (`clustering_setup.py`, builds the run's params); UMAP's settings are a `UmapParamsPanel`
+      beside FlowSOM's and PhenoGraph's in `method_params.py` (was `flowsom_params.py`), with
+      one shared `param_group` row; the embedding's Procrustes alignment is
+      `analysis/animation/alignment.py`; `experiment_edits.runs_key` replaces four copies of the
+      key format. Fixed on the way: a refused run (no name/channels) stayed "running", and
+      `ClusterResultsPanel.academy_snapshot()` crashed on a UMAP run without HDBSCAN.
 - [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
       its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the
       Interactive Map tab onto the SDK canvas.

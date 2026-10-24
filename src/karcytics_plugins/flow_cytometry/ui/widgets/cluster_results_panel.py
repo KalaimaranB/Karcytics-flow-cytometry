@@ -219,9 +219,9 @@ class ClusterResultsPanel(QWidget):
         self._gate_coordinator = gate_coordinator
         self._poly_selector: Any | None = None
         self._custom_cluster_masks: list = []  # List of tuples (mask, row_widget_references)
-        # Plot Gallery tiles render off the UI thread via ClusterPlotRenderTask;
-        # maps in-flight task_id -> (grid_row, grid_col) so results can be
-        # matched back to their placeholder once task_scheduler reports done.
+        self._cluster_ui_elements: dict = {}  # cluster id -> (checkbox, name edit)
+        # Gallery tiles render off the UI thread (ClusterPlotRenderTask): each
+        # in-flight task_id -> its tile's (row, col) in the grid.
         self._pending_gallery_tiles: dict[str, tuple[int, int]] = {}
         task_scheduler.task_finished.connect(self._on_global_task_finished)
         task_scheduler.task_error.connect(self._on_global_task_error)
@@ -752,7 +752,7 @@ class ClusterResultsPanel(QWidget):
 
     def _build_unified_statistics_tab(self) -> None:  # noqa: PLR0912, PLR0915
         self._custom_cluster_masks = []
-        self._cluster_ui_elements: dict = {}
+        self._cluster_ui_elements = {}
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 

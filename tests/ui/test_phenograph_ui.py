@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from PySide6.QtWidgets import QSlider
 
 from karcytics_plugins.flow_cytometry.analysis.phenograph_analysis import (
     PhenographAnalysis,
@@ -50,29 +51,29 @@ def viewer(qtbot, monkeypatch):
 
 
 def choose_phenograph(viewer):
-    viewer._algo_combo.setCurrentIndex(viewer._algo_combo.findData("phenograph"))
+    viewer._setup._algo_combo.setCurrentIndex(viewer._setup._algo_combo.findData("phenograph"))
 
 
 def run_phenograph(viewer, resolution=0.1):
     choose_phenograph(viewer)
-    viewer._phenograph_params._spins["resolution"].setValue(resolution)
-    for i in range(viewer._channel_list.count()):
-        item = viewer._channel_list.item(i)
+    viewer._setup._phenograph_params._spins["resolution"].setValue(resolution)
+    for i in range(viewer._setup._channel_list.count()):
+        item = viewer._setup._channel_list.item(i)
         item.setCheckState(
             item.checkState().Checked if item.text() in MARKERS else item.checkState().Unchecked
         )
-    viewer._run_name_input.setText("Third opinion")
+    viewer._setup._run_name_input.setText("Third opinion")
     viewer.start_analysis()
 
 
 @pytest.mark.ui
 def test_choosing_phenograph_shows_its_settings_and_uses_every_event(viewer):
     choose_phenograph(viewer)
-    assert viewer._phenograph_params.isVisibleTo(viewer)
-    assert not viewer._umap_params.isVisibleTo(viewer)
-    assert not viewer._flowsom_params.isVisibleTo(viewer)
-    assert viewer._n_events_slider.value() == 100  # noqa: PLR2004
-    values = viewer._phenograph_params.values()
+    assert viewer._setup._phenograph_params.isVisibleTo(viewer)
+    assert not viewer._setup._umap_params.isVisibleTo(viewer)
+    assert not viewer._setup._flowsom_params.isVisibleTo(viewer)
+    assert viewer._setup._n_events_slider.value() == 100  # noqa: PLR2004
+    values = viewer._setup._phenograph_params.values()
     assert values == {"n_neighbors": 30, "resolution": 1.0, "min_cluster_size": 10}
 
 
@@ -128,10 +129,11 @@ def test_a_failed_recluster_says_so_and_keeps_the_run(viewer):
 @pytest.mark.ui
 def test_past_phenograph_runs_show_their_own_settings_not_umaps(viewer):
     run_phenograph(viewer)
-    umap_neighbours = viewer._n_neigh_slider.value()
+    neighbours = viewer.findChild(QSlider, "UmapNeighborsSlider")
+    umap_neighbours = neighbours.value()
     viewer._history_combo.setCurrentIndex(1)
-    assert viewer._phenograph_params._spins["resolution"].value() == 0.1  # noqa: PLR2004
-    assert viewer._n_neigh_slider.value() == umap_neighbours  # PhenoGraph's 30 isn't UMAP's
+    assert viewer._setup._phenograph_params._spins["resolution"].value() == 0.1  # noqa: PLR2004
+    assert neighbours.value() == umap_neighbours  # PhenoGraph's 30 isn't UMAP's
 
 
 @pytest.mark.ui

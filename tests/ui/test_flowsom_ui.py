@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from PySide6.QtWidgets import QCheckBox
 
 from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAnalysis
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -44,38 +45,38 @@ def viewer(qtbot, monkeypatch):
 
 
 def choose_flowsom(viewer):
-    viewer._algo_combo.setCurrentIndex(viewer._algo_combo.findData("flowsom"))
+    viewer._setup._algo_combo.setCurrentIndex(viewer._setup._algo_combo.findData("flowsom"))
 
 
 def run_flowsom(viewer, k=5):
     choose_flowsom(viewer)
-    viewer._flowsom_params._spins["k"].setValue(k)
-    for i in range(viewer._channel_list.count()):
-        item = viewer._channel_list.item(i)
+    viewer._setup._flowsom_params._spins["k"].setValue(k)
+    for i in range(viewer._setup._channel_list.count()):
+        item = viewer._setup._channel_list.item(i)
         item.setCheckState(
             item.checkState().Checked if item.text() in MARKERS else item.checkState().Unchecked
         )
-    viewer._run_name_input.setText("Second opinion")
+    viewer._setup._run_name_input.setText("Second opinion")
     viewer.start_analysis()
 
 
 @pytest.mark.ui
 def test_choosing_flowsom_shows_its_settings_and_uses_every_event(viewer):
     choose_flowsom(viewer)
-    assert viewer._flowsom_params.isVisibleTo(viewer)
-    assert not viewer._umap_params.isVisibleTo(viewer)
-    assert viewer._n_events_slider.value() == 100  # noqa: PLR2004
-    assert "3,000 events" in viewer._n_events_title_lbl.text()
+    assert viewer._setup._flowsom_params.isVisibleTo(viewer)
+    assert not viewer._setup._umap_params.isVisibleTo(viewer)
+    assert viewer._setup._n_events_slider.value() == 100  # noqa: PLR2004
+    assert "3,000 events" in viewer._setup._n_events_title_lbl.text()
 
-    viewer._algo_combo.setCurrentIndex(viewer._algo_combo.findData("umap_hdbscan"))
-    assert viewer._umap_params.isVisibleTo(viewer)
-    assert viewer._n_events_slider.value() == 10  # noqa: PLR2004
+    viewer._setup._algo_combo.setCurrentIndex(viewer._setup._algo_combo.findData("umap_hdbscan"))
+    assert viewer._setup._umap_params.isVisibleTo(viewer)
+    assert viewer._setup._n_events_slider.value() == 10  # noqa: PLR2004
 
 
 @pytest.mark.ui
 def test_the_slider_can_lower_the_events_to_compare_with_umap(viewer):
     choose_flowsom(viewer)
-    viewer._n_events_slider.setValue(25)
+    viewer._setup._n_events_slider.setValue(25)
     run_flowsom(viewer)
     assert viewer._umap_service.params.n_events == 750  # noqa: PLR2004
 
@@ -119,13 +120,13 @@ def test_changing_k_recuts_the_tree_and_the_statistics(viewer):
 def test_reopening_a_run_from_history_shows_flowsom_and_its_settings(viewer):
     run_flowsom(viewer, k=7)
     viewer._history_combo.setCurrentIndex(0)  # [ New Run ]
-    viewer._algo_combo.setCurrentIndex(viewer._algo_combo.findData("umap_hdbscan"))
+    viewer._setup._algo_combo.setCurrentIndex(viewer._setup._algo_combo.findData("umap_hdbscan"))
 
     viewer._history_combo.setCurrentIndex(1)
 
-    assert viewer._algo_combo.currentData() == "flowsom"
-    assert viewer._flowsom_params.values()["k"] == 7  # noqa: PLR2004
-    assert not viewer._flowsom_params._spins["k"].isEnabled()
+    assert viewer._setup._algo_combo.currentData() == "flowsom"
+    assert viewer._setup._flowsom_params.values()["k"] == 7  # noqa: PLR2004
+    assert not viewer._setup._flowsom_params._spins["k"].isEnabled()
 
 
 @pytest.mark.ui
@@ -190,9 +191,11 @@ def test_course_3_checks_read_the_sidebar_and_the_results(viewer):
     assert not UmapResultsReadyValidator().check(state, ui)
     assert not ClusterResultsTabActiveValidator("flowsom tree").check(state, ui)
 
-    viewer._channel_list.item(3).setCheckState(viewer._channel_list.item(3).checkState().Unchecked)
+    viewer._setup._channel_list.item(3).setCheckState(
+        viewer._setup._channel_list.item(3).checkState().Unchecked
+    )
     assert UmapChannelExcludedValidator("CD56").check(state, ui)
-    viewer._run_hdbscan_cb.setChecked(True)
+    viewer.findChild(QCheckBox, "UmapHdbscanCheckbox").setChecked(True)
     assert UmapHdbscanEnabledValidator().check(state, ui)
 
     run_flowsom(viewer, k=3)

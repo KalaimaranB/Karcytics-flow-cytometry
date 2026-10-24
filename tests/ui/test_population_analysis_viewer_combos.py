@@ -29,8 +29,8 @@ def viewer(qtbot):
 
 @pytest.mark.ui
 def test_refresh_gates_always_has_all_events_first(viewer):
-    assert viewer._gate_combo.itemText(0) == "⬡  All Events (no gate)"
-    assert viewer._gate_combo.itemData(0) is None
+    assert viewer._setup._gate_combo.itemText(0) == "⬡  All Events (no gate)"
+    assert viewer._setup._gate_combo.itemData(0) is None
 
 
 @pytest.mark.ui
@@ -38,10 +38,10 @@ def test_refresh_gates_lists_named_nodes_in_the_selected_samples_tree(viewer):
     sample = viewer._state.data.experiment.samples["s1"]
     node = sample.gate_tree.add_child(None, name="Lymphocytes")
 
-    viewer._refresh_gates()
+    viewer._setup.refresh_gates()
 
-    assert viewer._gate_combo.count() == 2
-    assert viewer._gate_combo.itemData(1) == node.node_id
+    assert viewer._setup._gate_combo.count() == 2
+    assert viewer._setup._gate_combo.itemData(1) == node.node_id
 
 
 @pytest.mark.ui
@@ -52,7 +52,7 @@ def test_refresh_history_always_has_new_run_first(viewer):
 
 @pytest.mark.ui
 def test_refresh_history_lists_runs_for_the_current_sample_and_gate(viewer):
-    sample_id = viewer._sample_combo.currentData()
+    sample_id = viewer._setup._sample_combo.currentData()
     key = f"{sample_id}::root"
     viewer._state.data.umap_results[key] = [{"name": "First run"}]
 

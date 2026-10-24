@@ -406,9 +406,14 @@ def toggle_compensation(
 # ── UMAP runs ─────────────────────────────────────────────────────────
 
 
+def runs_key(sample_id: str, node_id: str | None) -> str:
+    """Where a population's clustering runs are kept in ``umap_results``."""
+    return f"{sample_id}::{node_id or 'root'}"
+
+
 def add_umap_run(state: FlowState, results: dict[str, Any], publish: Publish | None = None) -> str:
     """Store a finished UMAP run; returns its ``sample::node`` key."""
-    key = f"{results['sample_id']}::{results.get('node_id') or 'root'}"
+    key = runs_key(results["sample_id"], results.get("node_id"))
     state.data.umap_results.setdefault(key, []).append(results)
     _bus(publish)(events.UMAP_COMPLETED, {})
     return key
