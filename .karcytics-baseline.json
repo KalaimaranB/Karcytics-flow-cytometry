@@ -152,9 +152,9 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/academy_workflow.py": {
       "KS250": 1,
-      "KS300": 655,
-      "KS301:AcademyWorkflowController": 37,
-      "KS342": 4
+      "KS300": 653,
+      "KS301:AcademyWorkflowController": 36,
+      "KS342": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/builders/workspace_builder.py": {
       "KS242": 2,
@@ -328,7 +328,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
       "KS220": 1,
       "KS242": 6,
-      "KS300": 980,
+      "KS300": 904,
       "KS301:FlowCytometryPanel": 43,
       "KS302:FlowCytometryPanel.load_workflow": 96,
       "KS310": 1,

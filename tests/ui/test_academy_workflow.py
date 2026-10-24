@@ -76,7 +76,13 @@ def panel(qapp, qtbot, monkeypatch, tmp_path):
     manager = AcademyManager(event_bus=FakeBus(), persistence_dir=tmp_path / "academy")
     register_courses(manager)
     p._academy.dispose()
-    p._academy = AcademyWorkflowController(p, manager=manager, event_bus=manager._event_bus)
+    p._academy = AcademyWorkflowController(
+        p,
+        p.services.document,
+        p.services.workspace_io_handler,
+        manager=manager,
+        event_bus=manager._event_bus,
+    )
     p.manager = manager
 
     pm = SimpleNamespace(project_dir=tmp_path)

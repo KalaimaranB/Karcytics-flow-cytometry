@@ -20,13 +20,6 @@ from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
 from karcytics_sdk.plugin.dialogs import show_error, show_warning
-from karcytics_sdk.plugin.runtime_services import (
-    KarcyticsEvent,
-    event_bus,
-)
-from karcytics_sdk.plugin.runtime_services import (
-    tutorial_manager as global_tutorial_manager,
-)
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from karcytics_sdk.plugin.workflow import WorkflowContext
 from PySide6.QtCore import Qt, Signal
@@ -218,7 +211,9 @@ class FlowCytometryPanel(PluginBase):
         # karcytics: allow KS360 - off the Phase 1 path
         from .academy_workflow import AcademyWorkflowController
 
-        self._academy = AcademyWorkflowController(self)
+        self._academy = AcademyWorkflowController(
+            self, self.services.document, self.services.workspace_io_handler
+        )
 
     def _setup_footer_events(self) -> None:
         """Subscribe to events to update the footer message."""
@@ -280,6 +275,13 @@ class FlowCytometryPanel(PluginBase):
             self._workflow_autosave_controller.notify_saved()
 
     # ── UI Construction ───────────────────────────────────────────────
+
+    def current_tab(self) -> MainTab | None:
+        index = self._tab_bar.currentIndex()
+        return MainTab(index) if 0 <= index < len(MainTab) else None
+
+    def show_tab(self, tab: MainTab) -> None:
+        self._tab_bar.setCurrentIndex(tab)
 
     def _on_tab_changed(self, index: int) -> None:
         """Handle main tab changes to update ribbon and central view."""
@@ -433,62 +435,6 @@ class FlowCytometryPanel(PluginBase):
         )
         MainPanelController.wire(self, self._gating)
 
-        try:
-            event_bus.subscribe(KarcyticsEvent.ACADEMY_COURSE_COMPLETED, self._on_course_completed)
-            event_bus.subscribe(
-                KarcyticsEvent.ACADEMY_COURSE_PREPARE_PROJECT,
-                self._on_course_prepare_project,
-            )
-        except NameError:
-            pass
-
-    def _on_course_prepare_project(self, course_id: str) -> None:
-        """Handles a request to start a course by ensuring a fresh project is used."""
-        pm = getattr(self.window(), "project_manager", None)
-
-        course = None
-        for courses in global_tutorial_manager.courses_by_module.values():
-            for c in courses:
-                if c.id == course_id:
-                    course = c
-                    break
-
-        if pm:
-            # If the course has prerequisites, they must be currently loaded!
-            if course and course.prerequisite_course_ids:
-                workflows = pm.workflows.list_all()
-                if not workflows:
-                    show_error(
-                        self,
-                        "Prerequisite Required",
-                        "This course continues from the workflow you saved in the course before it.\n\n"
-                        "Please open the project where you completed that course, or load the workflow.",
-                    )
-                    return
-                # Check if the loaded workflow's hash matches the prerequisite
-                current_wf = self.services.document.filename
-                if not current_wf:
-                    show_error(
-                        self,
-                        "No Workflow Loaded",
-                        "Please load the workflow you saved at the end of the previous course.",
-                    )
-                    return
-
-                # We no longer check the strict workflow hash here because it is brittle
-                # and fails when the user auto-saves or restarts. Instead, we rely on the
-                # state validator each later course opens with.
-                pass
-
-            # No prerequisites (e.g. Course 1).
-            # We no longer strictly require an empty workspace.
-            # Convert an empty project to an academy project
-            elif not pm.data.get("is_academy"):
-                pm.data["is_academy"] = True
-                pm.save()
-
-        global_tutorial_manager.start_course_confirmed(course_id)
-
     def _apply_theme_styles(self) -> None:
         """Dynamically refresh all UI colors based on the current theme.
 
@@ -560,16 +506,6 @@ class FlowCytometryPanel(PluginBase):
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self.logger.info(f"FlowCytometryPanel resized: {self.width()}x{self.height()}")
-
-    def _on_course_completed(self, course_id: str, badge_reward: str) -> None:
-        """Handle course completion by clearing tutorial state."""
-        # 1. Clear the tutorial manager state so the core popover disappears
-        try:
-            global_tutorial_manager.active_course = None
-            global_tutorial_manager.current_step = None
-            global_tutorial_manager._emit_step_changed()
-        except (AttributeError, NameError) as e:
-            self.logger.error(f"Failed to clear tutorial state: {e}")
 
     def _refresh_node_canvas(self) -> None:
         if self._gating is not None:
@@ -663,18 +599,6 @@ class FlowCytometryPanel(PluginBase):
 
         MainPanelController.unwire(self)
         self._academy.dispose()
-
-        # Unsubscribe from global events to prevent memory leaks and zombie callbacks
-        try:
-            event_bus.unsubscribe(
-                KarcyticsEvent.ACADEMY_COURSE_COMPLETED, self._on_course_completed
-            )
-            event_bus.unsubscribe(
-                KarcyticsEvent.ACADEMY_COURSE_PREPARE_PROJECT,
-                self._on_course_prepare_project,
-            )
-        except (KeyError, ValueError, AttributeError) as e:
-            self.logger.warning(f"Failed to unsubscribe from event bus: {e}")
 
         # 1. Stop background timers/workers via Coordinator
         self.services.gate_coordinator.cleanup()

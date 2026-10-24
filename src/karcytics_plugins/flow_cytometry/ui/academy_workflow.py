@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from karcytics_sdk.plugin import CentralEventBus
 from karcytics_sdk.plugin.academy import (
@@ -44,6 +44,11 @@ from PySide6.QtWidgets import QApplication, QMessageBox, QWidget
 from ..analysis import events
 from ..main_tabs import MainTab
 from ..tutorials.courses import COURSES
+
+if TYPE_CHECKING:
+    from .main_panel import FlowCytometryPanel
+    from .services.workflow_document import WorkflowDocument
+    from .services.workspace_io_handler import WorkspaceIOHandler
 
 logger = logging.getLogger(__name__)
 
@@ -87,13 +92,15 @@ def academy_block(metadata: dict[str, Any] | None) -> dict[str, Any] | None:
 class AcademyWorkflowController(QObject):
     """Runs flow courses inside Academy workflows for one panel.
 
-    `manager` / `event_bus` default to the plugin process's own Academy
-    (`runtime_services`); tests pass their own.
+    Saves `document` through `io`. `manager` / `event_bus` default to the
+    plugin process's own Academy (`runtime_services`); tests pass their own.
     """
 
     def __init__(
         self,
-        panel: Any,
+        panel: FlowCytometryPanel,
+        document: WorkflowDocument,
+        io: WorkspaceIOHandler,
         manager: AcademyManager | None = None,
         event_bus: Any = None,
     ) -> None:
@@ -102,7 +109,8 @@ class AcademyWorkflowController(QObject):
             manager = manager or tutorial_manager
             event_bus = event_bus or academy_event_bus
         self._panel = panel
-        self._document = panel.services.document
+        self._document = document
+        self._io = io
         self._manager = manager
         self._bus = event_bus
         self._card: AcademyLockCard | None = None
@@ -140,9 +148,6 @@ class AcademyWorkflowController(QObject):
             and active.id == block.get("course_id")
         )
 
-    def _project_manager(self) -> Any:
-        return self._document.project_manager()
-
     # ── Entry points ───────────────────────────────────────────────────
 
     def start_course(self, course_id: str) -> None:
@@ -157,7 +162,7 @@ class AcademyWorkflowController(QObject):
                 self._panel, "Karcytics Academy", "Finish or pause the course on screen first."
             )
             return
-        if course_id not in course_order() or self._project_manager() is None:
+        if course_id not in course_order() or self._document.project_manager() is None:
             self._manager.start_course_confirmed(course_id)
             self._show_overlay(pausable=False)
             return
@@ -194,7 +199,7 @@ class AcademyWorkflowController(QObject):
 
     def resume_from_catalog(self, course_id: str, attempt: dict[str, Any]) -> None:
         """The catalog's "Resume Course": open the attempt's workflow, or resume it here."""
-        pm = self._project_manager()
+        pm = self._document.project_manager()
         where = attempt.get("workflow_name") or attempt.get("workflow") or "an Academy workflow"
         if pm is None or str(attempt.get("project_dir")) != str(pm.project_dir):
             show_info(
@@ -245,9 +250,8 @@ class AcademyWorkflowController(QObject):
         if not block:
             return
         tab = MainTab.restore((block.get("ui") or {}).get("tab"))
-        tab_bar = getattr(self._panel, "_tab_bar", None)
-        if tab is not None and tab_bar is not None:
-            tab_bar.setCurrentIndex(tab)
+        if tab is not None:
+            self._panel.show_tab(tab)
         if self._card is not None:
             self._card.unlock()
         if not self._manager.restore_session(self._resume_point(block)):
@@ -349,7 +353,7 @@ class AcademyWorkflowController(QObject):
         last save); Cancel keeps the window open. None when no course is
         running here — the panel's usual unsaved-changes prompt applies.
         """
-        if self._project_manager() is None or not self._course_running_here():
+        if self._document.project_manager() is None or not self._course_running_here():
             return None
         Btn = QMessageBox.StandardButton
         number = self._course_number((self.block or {}).get("course_id"))
@@ -505,9 +509,7 @@ class AcademyWorkflowController(QObject):
             self._card.unlock()
         self._mode = None
         self._save()
-        status = getattr(self._panel, "status_message", None)
-        if status is not None:
-            status.emit("Left the Academy — this is now an ordinary workflow.")
+        self._panel.status_message.emit("Left the Academy — this is now an ordinary workflow.")
 
     def _on_step_changed(self, step: Any) -> None:
         """Keeps the block's place current, so any save records it."""
@@ -569,10 +571,8 @@ class AcademyWorkflowController(QObject):
         return order.index(course_id) + 1 if course_id in order else 0
 
     def _ui_state(self) -> dict[str, Any]:
-        tab_bar = getattr(self._panel, "_tab_bar", None)
-        if tab_bar is None or not 0 <= tab_bar.currentIndex() < len(MainTab):
-            return {}
-        return {"tab": MainTab(tab_bar.currentIndex()).name}
+        tab = self._panel.current_tab()
+        return {} if tab is None else {"tab": tab.name}
 
     def _stamp_numbers(self, block: dict[str, Any]) -> None:
         """Course numbers for readers that don't know the flow courses (the
@@ -590,7 +590,7 @@ class AcademyWorkflowController(QObject):
             block["course_number"] = order.index(current) + 1
 
     def _record_attempt(self, block: dict[str, Any]) -> None:
-        pm = self._project_manager()
+        pm = self._document.project_manager()
         metadata = self._document.metadata or {}
         self._manager.record_in_progress(
             block["course_id"],
@@ -619,7 +619,7 @@ class AcademyWorkflowController(QObject):
 
     def _save(self) -> None:
         """Saves the workflow with its block, quietly (no "Saved" dialog)."""
-        pm = self._project_manager()
+        pm = self._document.project_manager()
         if pm is None:
             return
         filename = self._document.filename
@@ -641,9 +641,7 @@ class AcademyWorkflowController(QObject):
                 f"Your place in the course couldn't be saved:\n{err}",
             )
 
-        self._panel.services.workspace_io_handler.save_to_project(
-            pm, filename, metadata, _on_success, _on_error
-        )
+        self._io.save_to_project(pm, filename, metadata, _on_success, _on_error)
 
     def _show_overlay(self, pausable: bool) -> None:
         overlay = show_academy_overlay(self._panel.window(), self._panel)

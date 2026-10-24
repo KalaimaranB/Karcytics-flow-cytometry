@@ -319,6 +319,11 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       `AcademyWorkflowController` take it instead of panel privates. The dead
       `handle_load` / `load_from_pm` / `load_standalone` paths went with it. SDK gap: no
       three-way Save/Discard/Cancel dialog, so that prompt keeps a raw `QMessageBox` (KS220 allow).
+      `StartupSequencer` runs Phase 2 and the Ready Gate handshake (334f599). The panel's
+      Hub-bus Academy hooks (`ACADEMY_COURSE_PREPARE_PROJECT` / `_COMPLETED`) were dead (the
+      Hub never emits them) and are gone; `AcademyWorkflowController` takes the document and
+      IO handler and uses the panel's public `current_tab` / `show_tab`. It stays built by the
+      panel, not `build_services()`, to keep it off the Phase 1 import path.
 - [ ] `population_analysis_viewer.py` (1,527).
 - [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
       its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the
