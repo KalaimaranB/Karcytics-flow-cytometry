@@ -141,7 +141,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/validators/gating.py": {
       "KS300": 700,
-      "KS302:GateShapeValidator.validate_shape": 104,
+      "KS302:GateShapeValidator.validate_shape": 100,
       "KS310": 4
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/validators/lens.py": {

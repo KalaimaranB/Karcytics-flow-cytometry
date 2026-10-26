@@ -409,6 +409,9 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             tys = apply_transform(
                 np.array([min_y, max_y]), self._y_scale.transform_type, **y_kwargs
             )
+            # Clipped to the plot: an edge past the axis would otherwise not show at all.
+            (x0, x1), (y0, y1) = sorted(self._ax.get_xlim()), sorted(self._ax.get_ylim())
+            txs, tys = np.clip(txs, x0, x1), np.clip(tys, y0, y1)
             rect_patch = Rectangle((txs[0], tys[0]), txs[1] - txs[0], tys[1] - tys[0], **style)
             self._ax.add_patch(rect_patch)
             self._guide_patches.append(rect_patch)
@@ -772,9 +775,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # Re-apply tutorial guides if they exist, because ax.clear() wiped them out
         step = self._current_tutorial_step
         if step is not None:
-            # Re-draw the shapes without calling set_tutorial_guide again to avoid infinite recursion
-            # or we can just call self._draw_tutorial_shapes but we need the kwargs.
-            # Instead, we just re-invoke set_tutorial_guide
             self.set_tutorial_guide(step)
 
         # ax.clear() also dropped any gate preview being drawn right now.

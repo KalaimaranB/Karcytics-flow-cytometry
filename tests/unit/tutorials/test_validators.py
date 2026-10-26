@@ -246,3 +246,22 @@ class TestTCellsBoxMustHoldTheTCells:
 
     def test_a_top_edge_through_the_cd4_t_cells_fails(self):
         assert not self._ok(self._box(3000.0, y_max=2000.0))
+
+    def _ok_on_plot(self, gate, y_range: tuple[float, float]) -> bool:
+        """The same check on a plot whose CD3 axis shows only `y_range`."""
+        from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale, TransformType
+        from karcytics_plugins.flow_cytometry.tutorials.course3 import c3_tcells_validator
+
+        scales = {"y": AxisScale(TransformType.BIEXPONENTIAL, *y_range)}
+        state = _app_state_with_gate(gate)
+        state.axis_manager = SimpleNamespace(
+            get_scale=lambda channel, _sid: scales.get(channel, AxisScale(TransformType.LINEAR))
+        )
+        return bool(c3_tcells_validator.validate_shape(state, node_id="n", sample_id="s1"))
+
+    def test_a_top_edge_at_the_plots_top_passes_when_the_axis_ends_below_the_target(self):
+        # Sample A's CD3 axis ends near 5,870: the box can't reach CD3 6,000.
+        assert self._ok_on_plot(self._box(3000.0, y_max=5800.0), (-806.0, 5872.0))
+
+    def test_a_top_edge_well_below_the_plots_top_still_fails(self):
+        assert not self._ok_on_plot(self._box(3000.0, y_max=4000.0), (-806.0, 5872.0))

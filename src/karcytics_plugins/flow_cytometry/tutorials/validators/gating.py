@@ -127,6 +127,10 @@ class GateShapeValidator(FlowValidator):
     # A quadrant crosshair may land this share of the target window's width
     # outside it, on each side.
     QUADRANT_MARGIN = 0.25
+    # A must_contain edge past the plotted axis range is wanted at the plot's
+    # edge instead (it can't be drawn past it); a drag to the edge lands up to
+    # this share of the axis span inside it.
+    PLOT_EDGE_SLACK = 0.03
 
     def __init__(
         self,
@@ -173,26 +177,11 @@ class GateShapeValidator(FlowValidator):
         self.explicit_failed_node_id = node_id
 
     def validate_flow(self, app_state: FlowState) -> bool:
-        """Checks only the gate the user currently has selected — not every
-        gate on every sample.
+        """Checks only the gate the user has selected.
 
-        Previously this walked the *entire* gate tree of every sample on
-        every ~2s poll tick, hunting for any node whose bounds happened to
-        match the target — expensive (grows with the whole experiment, not
-        with the tutorial), and imprecise (a coincidentally-matching node
-        left over from an earlier step could satisfy it).
-
-        `GateCoordinator.add_gate()` always ends by calling
-        `select_gate()` on the node(s) it just created
-        (see gate_coordinator.py) — so `current_gate_id`/
-        `current_sample_id` on the view already name exactly the gate the
-        user just drew, for free, via the same mechanism every other
-        selection-based validator here already relies on. No separate
-        tracking needed: just read it. For a Quadrant, `select_gate` lands
-        on one of the 4 sibling leaves, which is sufficient — they all
-        share the same parent `QuadrantGate`, so shape validation (which
-        checks the parent's threshold position, not the individual leaf)
-        gives the same answer regardless of which leaf is selected.
+        `GateCoordinator.add_gate()` ends by selecting the node(s) it created, so
+        the view's current gate is the one just drawn (for a quadrant, one of
+        its four leaves, which share the parent's crosshair).
         """
         try:
             self.last_misnamed_node_id = None
@@ -279,24 +268,37 @@ class GateShapeValidator(FlowValidator):
 
         return None
 
-    def _holds_core(self, min_x: float, max_x: float, min_y: float, max_y: float) -> bool:
-        box = (min_x, max_x, min_y, max_y)
-        if self.must_contain is not None and not _holds(box, self.must_contain):
-            return False
+    def _holds_core(
+        self, box: tuple[float, float, float, float], app_state: Any, gate: Any, sample_id: str
+    ) -> bool:
+        if self.must_contain is not None:  # as far as the plot shows: can't draw past it
+            x0, x1 = self._within_plot(app_state, gate.x_param, sample_id, *self.must_contain[:2])
+            y0, y1 = self._within_plot(app_state, gate.y_param, sample_id, *self.must_contain[2:])
+            if not _holds(box, (x0, x1, y0, y1)):
+                return False
         return self.must_stay_within is None or _holds(self.must_stay_within, box)
+
+    def _within_plot(
+        self, app_state: Any, channel: str | None, sample_id: str, low: float, high: float
+    ) -> tuple[float, float]:
+        """`low`..`high` pulled in to the plotted axis range, when it is known."""
+        manager = getattr(app_state, "axis_manager", None)
+        scale = manager.get_scale(channel, sample_id) if manager is not None and channel else None
+        if scale is None or scale.min_val is None or scale.max_val is None:
+            return low, high
+        slack = (scale.max_val - scale.min_val) * self.PLOT_EDGE_SLACK
+        return max(low, scale.min_val + slack), min(high, scale.max_val - slack)
 
     def validate_shape(self, app_state: Any, node_id: str, sample_id: str) -> bool:  # noqa: PLR0911, PLR0912, PLR0915
         """Validates the shape of a specific gate node. Returns True if accurate."""
         if not self.target_bounds and not self.target_poly:
             return True  # No shape checking required
-
         if not hasattr(app_state, "data") or not hasattr(app_state.data, "experiment"):
             return False
 
         sample = app_state.data.experiment.samples.get(sample_id)
         if not sample:
             return False
-
         node = sample.gate_tree.find_node_by_id(node_id)
         if not node or not node.gate:
             return False
@@ -371,18 +373,16 @@ class GateShapeValidator(FlowValidator):
             return True  # skip unknown gate types
 
         if gate_type in {"RangeGate", "RectangleGate"}:
-            # Fractions of a typical flow axis range (262144).
-            axis_range = 262144.0
 
             def edge_ok(drawn: float, target: float) -> bool:
-                tolerance = max(
-                    self.EDGE_AXIS_FRACTION * axis_range, self.EDGE_VALUE_FRACTION * abs(target)
-                )
-                return abs(drawn - target) <= tolerance
+                axis_part = self.EDGE_AXIS_FRACTION * 262144.0  # a typical flow axis range
+                return abs(drawn - target) <= max(axis_part, self.EDGE_VALUE_FRACTION * abs(target))
 
             if not (edge_ok(min_x, t_min_x) and edge_ok(max_x, t_max_x)):
                 return False
-            if gate_type == "RectangleGate" and not self._holds_core(min_x, max_x, min_y, max_y):
+            if gate_type == "RectangleGate" and not self._holds_core(
+                (min_x, max_x, min_y, max_y), app_state, gate, sample_id
+            ):
                 return False
             return gate_type != "RectangleGate" or (
                 edge_ok(min_y, t_min_y) and edge_ok(max_y, t_max_y)
