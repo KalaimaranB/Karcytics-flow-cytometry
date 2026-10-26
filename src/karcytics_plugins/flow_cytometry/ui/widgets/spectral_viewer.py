@@ -13,7 +13,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
-from karcytics_sdk.plugin import BioSectionLabel
+from karcytics_sdk.plugin import BioSectionLabel, get_logger
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioHelpButton,
@@ -54,9 +54,6 @@ if TYPE_CHECKING:
     from ...analysis.state import FlowState
 
 
-# Button style helpers removed (using SDK)
-
-
 # ── Drop canvas ───────────────────────────────────────────────────────────────
 
 
@@ -86,6 +83,8 @@ class DropCanvas(QFrame):
 
 
 # ── Main widget ───────────────────────────────────────────────────────────────
+
+logger = get_logger(__name__, "flow_cytometry")
 
 
 class SpectralViewer(QWidget):
@@ -130,8 +129,7 @@ class SpectralViewer(QWidget):
             help_btn = BioHelpButton(btn)
             help_btn.setHelpText(help_text)
 
-            # The SDK now isolates child styles natively via #BioToggleButton and #BioHelpButton selectors.
-            # We inject left-alignment and sufficient right-padding so the text never overlaps the right-aligned help icon.
+            # Left-aligned, padded so the text never runs under the right-aligned help icon.
             btn.custom_css_overrides = "text-align: left; padding-left: 12px; padding-right: 36px;"
             # Force a style refresh so the override takes effect immediately
             btn._apply_theme_styles()
@@ -283,14 +281,12 @@ class SpectralViewer(QWidget):
 
         main_layout.addWidget(self._tabs)
 
-        # Subscribe to academy events to toggle learning tab visibility
+        # The Learning Compensation tab follows the Academy's active course.
         self._bound_on_academy_step_changed = self._on_academy_step_changed
         academy_event_bus.subscribe(
             KarcyticsEvent.ACADEMY_STEP_CHANGED, self._bound_on_academy_step_changed
         )
         self.destroyed.connect(self._cleanup_events)
-
-        # Initialize tab visibility
         self._on_academy_step_changed(None)
 
     def _cleanup_events(self) -> None:
@@ -304,6 +300,7 @@ class SpectralViewer(QWidget):
             tutorial_manager.active_course is not None
             and tutorial_manager.active_course.id == "flow_course_1_fundamentals"
         )
+        logger.debug("Learning Compensation tab visible: %s", teaches_it)
         self._tabs.setTabVisible(self._learning_tab_index, teaches_it)
 
     def _on_tab_changed(self, index: int):
@@ -401,6 +398,7 @@ class SpectralViewer(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
+        self._on_academy_step_changed(None)  # in case a step event was missed
         self._refresh_sources()
         self._autofill_from_samples()
 

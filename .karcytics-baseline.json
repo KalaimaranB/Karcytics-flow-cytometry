@@ -603,8 +603,8 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_viewer.py": {
       "KS240": 4,
       "KS242": 8,
-      "KS300": 702,
-      "KS302:SpectralViewer._setup_ui": 149,
+      "KS300": 700,
+      "KS302:SpectralViewer._setup_ui": 147,
       "KS310": 5,
       "KS320": 1,
       "KS342": 3
