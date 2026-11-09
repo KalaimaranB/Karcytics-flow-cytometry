@@ -34,7 +34,7 @@ from ....analysis.clustering import method_of
 from ....analysis.clustering.methods import K_SETTING, RESOLUTION_SETTING
 from ....analysis.sample_lens import Finding
 from ..cluster_map_view import RECUT_DELAY_MS
-from ._style import Pill, banner, card, palette_color, section_header
+from ..panel_style import Pill, banner, card, palette_color, section_header
 from .across_samples import AcrossSamples
 from .findings_panel import FindingsPanel
 from .gating_path import GatingPathStrip

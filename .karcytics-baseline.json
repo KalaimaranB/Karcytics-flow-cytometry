@@ -161,8 +161,8 @@
       "KS302:WorkspaceBuilder.build_skeleton": 151,
       "KS310": 1,
       "KS341": 1,
-      "KS342": 132,
-      "KS360": 9
+      "KS342": 134,
+      "KS360": 10
     },
     "src/karcytics_plugins/flow_cytometry/ui/controllers/main_panel_controller.py": {
       "KS302:MainPanelController.wire": 274,
@@ -556,7 +556,7 @@
       "KS310": 4,
       "KS360": 7
     },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/sample_lens/_style.py": {
+    "src/karcytics_plugins/flow_cytometry/ui/widgets/panel_style.py": {
       "KS240": 10
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/sample_lens/gating_path.py": {

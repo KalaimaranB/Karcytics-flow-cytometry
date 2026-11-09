@@ -1,4 +1,4 @@
-"""Small styled building blocks shared by the Sample Lens widgets.
+"""Small styled building blocks shared by full-window tabs (Sample Lens, Auto Gating).
 
 Everything goes through ``theme_manager.apply_style`` so a theme switch
 restyles it, the same way the SDK components restyle themselves.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin.components import BioHelpButton
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QLayout, QSizePolicy, QWidget
 
 # Categorical colours for populations and clusters: readable on both themes.
 PALETTE = (
@@ -98,3 +98,12 @@ def banner(object_name: str, text: str, tone: str = "warning") -> QLabel:
         f" border-radius: 6px; padding: 8px 12px; font-size: {Fonts.SIZE_SMALL}px; }}",
     )
     return label
+
+
+def clear_layout(layout: QLayout) -> None:
+    """Remove and delete everything in ``layout``, so it can be filled again."""
+    while layout.count():
+        item = layout.takeAt(0)
+        widget = item.widget() if item is not None else None
+        if widget is not None:
+            widget.deleteLater()

@@ -44,7 +44,7 @@ from ....analysis.gating import GateNode
 from ....analysis.sample_lens.edges import gate_axes, gate_extent
 from ....analysis.scaling import AxisScale, fit_scale
 from ...graph.flow_canvas import DisplayMode, FlowCanvas
-from ._style import card
+from ..panel_style import card
 
 if TYPE_CHECKING:
     import pandas as pd

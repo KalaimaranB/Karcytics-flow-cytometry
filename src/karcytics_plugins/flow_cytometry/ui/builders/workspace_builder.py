@@ -239,6 +239,7 @@ class WorkspaceBuilder:
     #   5 → ComparisonsViewer      (Comparisons tab)
     #   6 → CompensationView       (Compensation tab)
     #   7 → SampleLensTab          (Sample Lens tab)
+    #   8 → AutoGatingTab          (Auto Gating tab)
 
     @staticmethod
     def build_step_graph_manager(panel: FlowCytometryPanel) -> None:
@@ -340,7 +341,7 @@ class WorkspaceBuilder:
 
     @staticmethod
     def finalize_center_stack(panel: FlowCytometryPanel) -> None:
-        """Replace the skeleton placeholder with all 8 real views at correct indices."""
+        """Replace the skeleton placeholder with all 9 real views at correct indices."""
         # Remove placeholder (only widget currently in the stack at index 0)
         placeholder = panel._center_stack.widget(0)
         panel._center_stack.removeWidget(placeholder)
@@ -368,6 +369,15 @@ class WorkspaceBuilder:
         )
         panel._center_stack.addWidget(panel._sample_lens)  # 7
         panel._academy_widgets.sample_lens = panel._sample_lens
+
+        # Deferred import — see build_step_graph_manager's comment. Not built in
+        # composition_root: its engine pulls in the clustering package (numba).
+        from karcytics_plugins.flow_cytometry.ui.widgets.auto_gating import create_auto_gating_tab
+
+        auto_gating = create_auto_gating_tab(panel.state, parent=panel)
+        auto_gating.open_tab_requested.connect(panel.show_tab)
+        panel._center_stack.addWidget(auto_gating)  # 8
+        panel._auto_gating = auto_gating
 
         panel._center_stack.setCurrentIndex(0)
 

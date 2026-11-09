@@ -14,9 +14,10 @@ class MainTab(IntEnum):
     SPECTRAL = 3
     PIPELINE = 4
     POPULATION_ANALYSIS = 5
-    SAMPLE_LENS = 6
-    STATISTICS = 7
-    COMPARISONS = 8
+    AUTO_GATING = 6
+    SAMPLE_LENS = 7
+    STATISTICS = 8
+    COMPARISONS = 9
 
     @property
     def label(self) -> str:
@@ -24,7 +25,11 @@ class MainTab(IntEnum):
 
     @classmethod
     def restore(cls, saved: object) -> MainTab | None:
-        """A tab saved by name, or by index in the order before Sample Lens moved."""
+        """A tab saved by name, or by index in the order before Sample Lens moved.
+
+        Indices are only ever read in that old order: tabs have been saved by name
+        since, so adding a tab (Auto Gating) never changes what an old save restores.
+        """
         if isinstance(saved, str):
             return cls.__members__.get(saved)
         if isinstance(saved, int) and 0 <= saved < len(_LEGACY_ORDER):

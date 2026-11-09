@@ -26,7 +26,7 @@ from ....analysis.clustering import method_of
 from ....analysis.sample_lens import NOISE, Finding, RunScope
 from ...graph._mpl_compat import LockedFigureCanvas
 from ..cluster_scatter_draw import style_embedding_axes
-from ._style import card, palette_color
+from ..panel_style import card, palette_color
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes

@@ -54,6 +54,7 @@ _TAB_VIEWS: dict[MainTab, tuple[str, str | None]] = {
     MainTab.PIPELINE: ("_node_canvas", "_pipeline_ribbon"),
     MainTab.SPECTRAL: ("_spectral_viewer", None),
     MainTab.POPULATION_ANALYSIS: ("_population_analysis_viewer", None),
+    MainTab.AUTO_GATING: ("_auto_gating", None),
     MainTab.SAMPLE_LENS: ("_sample_lens", None),
     MainTab.STATISTICS: ("_statistics_explorer", None),
     MainTab.COMPARISONS: ("_comparisons_viewer", None),
@@ -99,6 +100,7 @@ class FlowCytometryPanel(PluginBase):
     _statistics_explorer: Any
     _comparisons_viewer: Any
     _sample_lens: Any
+    _auto_gating: Any
 
     # state_changed and status_message come from PluginBase. The Ready Gate
     # (startup_sequencer.py): panel_ready once the widgets are built, data_ready
@@ -315,6 +317,8 @@ class FlowCytometryPanel(PluginBase):
             self._statistics_explorer.refresh_samples()
         elif tab is MainTab.POPULATION_ANALYSIS:
             self._population_analysis_viewer.refresh_samples()
+        elif tab is MainTab.AUTO_GATING:
+            self._auto_gating.refresh_samples()
         elif tab is MainTab.COMPARISONS:
             self._comparisons_viewer.refresh_samples()
 
