@@ -24,7 +24,7 @@ from ..panel_style import Pill, card, clear_layout
 from .bar_list import BarList
 from .proposal_plot import ProposalPlot
 
-VIEW_PANEL_WIDTH = 300
+VIEW_PANEL_MIN_WIDTH, VIEW_PANEL_MAX_WIDTH = 230, 300
 EMPTY_TEXT = "Pick a population and press “Propose next split”."
 
 
@@ -59,7 +59,8 @@ class BuildPage(QWidget):
 
     def _build_view_card(self) -> QWidget:
         view_card = card("AutoGateViewCard")
-        view_card.setFixedWidth(VIEW_PANEL_WIDTH)
+        view_card.setMinimumWidth(VIEW_PANEL_MIN_WIDTH)
+        view_card.setMaximumWidth(VIEW_PANEL_MAX_WIDTH)
         view_layout = QVBoxLayout(view_card)
         view_layout.setContentsMargins(0, 0, 0, 0)
         scroll = BioScrollArea()
@@ -103,8 +104,10 @@ class BuildPage(QWidget):
         actions = QHBoxLayout()
         self._accept = PrimaryButton("Accept")
         self._accept.setObjectName("AutoGateAcceptButton")
-        self._adjust = SecondaryButton("Adjust on the plot")
-        self._next = SecondaryButton("Try the next-best view")
+        self._adjust = SecondaryButton("Adjust")
+        self._adjust.setToolTip("Move the proposed gates on the plot before accepting them.")
+        self._next = SecondaryButton("Next-best view")
+        self._next.setToolTip("Propose the split on the runner-up view instead.")
         self._next.setObjectName("AutoGateNextViewButton")
         self._reject = SecondaryButton("Reject")
         for button, signal in (

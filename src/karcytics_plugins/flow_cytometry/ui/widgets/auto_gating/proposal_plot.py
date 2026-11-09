@@ -25,7 +25,7 @@ class ProposalPlot(QWidget):
         self._plot: PlotData | None = None
         self._dashed = True
         self._empty_text = "No proposal yet"
-        width, height = (160, 140) if compact else (360, 300)
+        width, height = (160, 140) if compact else (280, 240)
         self.setMinimumSize(width, height)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         theme_manager.connect(self.update)

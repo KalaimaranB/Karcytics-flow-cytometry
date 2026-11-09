@@ -107,3 +107,13 @@ def test_the_elsewhere_buttons_ask_for_their_tabs(tab, qtbot):
     ]
     qtbot.mouseClick(buttons[0], Qt.MouseButton.LeftButton)
     assert asked == [MainTab.SAMPLE_LENS]
+
+
+def test_the_tab_never_widens_the_panel(tab):
+    """The centre stack is as wide as its widest page's minimum, hidden or not.
+
+    Without its scroll area this tab demanded ~1550 px, which opened the module
+    in a huge window with squeezed sidebars on every other tab.
+    """
+    assert tab.minimumSizeHint().width() < 300  # noqa: PLR2004
+    assert tab.minimumSizeHint().height() < 300  # noqa: PLR2004

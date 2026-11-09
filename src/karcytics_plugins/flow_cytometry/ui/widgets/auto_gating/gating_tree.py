@@ -17,7 +17,7 @@ from ....analysis.population_matching import ALL_EVENTS_LABEL, PATH_SEP, populat
 from ....main_tabs import MainTab
 from ..panel_style import section_header
 
-PANEL_WIDTH = 290
+PANEL_MIN_WIDTH, PANEL_MAX_WIDTH = 220, 290
 INDENT = " "  # an em space per level
 _PROPOSED = "proposed"
 _NAME_ROLE = Qt.ItemDataRole.UserRole
@@ -40,7 +40,8 @@ class GatingTreePanel(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setFixedWidth(PANEL_WIDTH)
+        self.setMinimumWidth(PANEL_MIN_WIDTH)
+        self.setMaximumWidth(PANEL_MAX_WIDTH)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 16, 16, 16)
         layout.setSpacing(8)
@@ -63,9 +64,11 @@ class GatingTreePanel(QWidget):
 
         layout.addSpacing(6)
         layout.addWidget(section_header("Elsewhere"))
-        lens = SecondaryButton("Check these gates in Sample Lens")
+        lens = SecondaryButton("Check in Sample Lens")
+        lens.setToolTip("Audit these gates against a clustering in the Sample Lens tab.")
         lens.clicked.connect(lambda: self.open_tab_requested.emit(MainTab.SAMPLE_LENS))
-        gating = SecondaryButton("Open on the Gating tab")
+        gating = SecondaryButton("Open in Gating")
+        gating.setToolTip("Show these populations on the Gating tab.")
         gating.clicked.connect(lambda: self.open_tab_requested.emit(MainTab.GATING))
         layout.addWidget(lens)
         layout.addWidget(gating)

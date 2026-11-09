@@ -26,7 +26,7 @@ from ....analysis.autogate import method
 from ..panel_style import section_header
 from .method_picker import MethodPicker
 
-SIDEBAR_WIDTH = 320
+SIDEBAR_WIDTH = 300
 CHANNEL_LIST_HEIGHT = 130
 
 

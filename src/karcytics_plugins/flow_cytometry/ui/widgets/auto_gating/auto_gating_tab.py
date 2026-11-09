@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from karcytics_sdk.plugin.components import HeaderLabel
+from karcytics_sdk.plugin.components import BioScrollArea, HeaderLabel
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QVBoxLayout, QWidget
@@ -72,9 +72,22 @@ class AutoGatingTab(QWidget):
         self._proposal: Proposal | None = None
         self._view_rank = 0
 
-        root = QHBoxLayout(self)
+        # Everything sits in a scroll area. The centre stack is as wide as its
+        # widest page's minimum, even while that page is hidden, so this tab
+        # must not demand more than the others: when the window is narrower
+        # than its content, only this tab scrolls.
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        scroll = BioScrollArea()
+        scroll.setWidgetResizable(True)
+        content = QWidget()
+        content.setObjectName("AutoGatingContent")
+        theme_manager.apply_style(content, "QWidget#AutoGatingContent { background: {BG_DARK}; }")
+        root = QHBoxLayout(content)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
+        scroll.setWidget(content)
+        outer.addWidget(scroll)
         theme_manager.apply_style(self, "QWidget#AutoGatingTab { background: {BG_DARK}; }")
 
         self._sidebar = SetupSidebar()
