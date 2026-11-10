@@ -17,13 +17,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 from matplotlib.path import Path as MplPath
 
+from .._utils import project_to_display
 from ..clustering.describe import short_marker
 from ..gating.from_display import (
     ellipse_from_display,
     polygon_from_display,
     rectangle_from_display,
 )
-from .density import Valley, find_valley
+from ..gating.polygon import PolygonGate
+from .density import Valley, find_valley, on_scale
 from .mixture import RADIUS, Component, axes, envelope, fit_mixture, inside, outline
 
 if TYPE_CHECKING:
@@ -38,6 +40,7 @@ class Piece:
     mask: np.ndarray
     outline: np.ndarray  # (k, 2) display units
     gate: Gate
+    name: str = ""  # set when convention names it (Singlets), else named from its markers
 
 
 @dataclass(frozen=True, eq=False)
@@ -80,7 +83,7 @@ def by_valleys(view: View, min_valley: float, cells: bool = False) -> Split | st
     tallest peak, where debris is.
     """
     axes = (("x", view.x),) if cells else (("x", view.x), ("y", view.y))
-    valleys = {name: find_valley(axis.values, below_tallest=cells) for name, axis in axes}
+    valleys = {name: find_valley(axis.values, side="below" if cells else "") for name, axis in axes}
     cuts = {
         name: v.position for name, v in valleys.items() if v is not None and v.depth >= min_valley
     }
@@ -187,3 +190,68 @@ def by_mixture(view: View, min_valley: float, means_init: np.ndarray | None = No
         "radius": RADIUS,
     }
     return Split(pieces, [], reason, record, mixture.components)
+
+
+SINGLETS, DOUBLETS = "Singlets", "Doublets"
+SPREAD_CUT = 3.0  # robust standard deviations from the main ratio peak, when there is no valley
+OUTLINE_POINTS = 32  # per boundary line, so the gate follows it on any axis scale
+
+
+def by_singlets(view: View, area: np.ndarray, height: np.ndarray, min_valley: float) -> Split | str:
+    """Singlets on forward-scatter area × height: the main peak of log(area / height).
+
+    A doublet is two cells passing together: about twice the area for the same
+    height. The cut above the peak is the valley there, or SPREAD_CUT robust
+    standard deviations when there is none; the same spread bounds it below.
+    """
+    ok = on_scale(area) & on_scale(height) & (area > 0) & (height > 0)
+    if ok.sum() < 2:  # noqa: PLR2004 - a median needs two
+        return "Too few events with forward-scatter area and height for a singlets gate."
+    ratio = np.full(len(area), np.nan)
+    ratio[ok] = np.log(area[ok] / height[ok])
+    centre = float(np.median(ratio[ok]))
+    spread = 1.4826 * float(np.median(np.abs(ratio[ok] - centre)))
+    valley = find_valley(ratio[ok], side="above")
+    if valley is not None and valley.depth >= min_valley:
+        hi, how = valley.position, f"at the valley above the main peak (depth {valley.depth:.2f})"
+    else:
+        hi, how = (
+            centre + SPREAD_CUT * spread,
+            f"{SPREAD_CUT:g} robust SDs above the main peak (no valley)",
+        )
+    lo = centre - SPREAD_CUT * spread
+    a_hi = float(np.max(area[ok])) * 1.05
+    a_lo = max(float(np.quantile(area[ok], 0.001)) * 0.5, 1.0)
+    a = np.linspace(a_lo, a_hi, OUTLINE_POINTS)
+    upper_edge = np.column_stack((a, a / np.exp(lo)))  # the smallest area/height kept
+    lower_edge = np.column_stack((a, a / np.exp(hi)))  # the largest: doublets fall below it
+    keep = np.vstack((lower_edge, upper_edge[::-1]))
+    below = np.vstack((lower_edge, [[a_hi, 0.0], [a_lo, 0.0]]))
+    pieces = []
+    for name, raw, mask in (
+        (SINGLETS, keep, ok & (ratio >= lo) & (ratio <= hi)),
+        (DOUBLETS, below, ok & (ratio > hi)),
+    ):
+        gate = PolygonGate(
+            view.x.key,
+            view.y.key,
+            vertices=[(float(x), float(y)) for x, y in raw],
+            x_scale=view.x.scale.copy(),
+            y_scale=view.y.scale.copy(),
+        )
+        outline = np.column_stack(
+            (
+                project_to_display(raw[:, 0], view.x.scale),
+                project_to_display(raw[:, 1], view.y.scale),
+            )
+        )
+        pieces.append(Piece(mask, outline, gate, name))
+    reason = (
+        f"On {view.name}: a doublet has about twice the area for the same height, so events are "
+        f"kept by their area/height ratio around its main peak; doublets are cut {how}."
+    )
+    record: dict[str, object] = {
+        "ratio_kept": [round(float(np.exp(lo)), 4), round(float(np.exp(hi)), 4)],
+        "doublet_cut": "valley" if valley is not None and valley.depth >= min_valley else "spread",
+    }
+    return Split(pieces, [], reason, record)

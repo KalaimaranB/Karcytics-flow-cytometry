@@ -105,12 +105,13 @@ class SetupSidebar(QWidget):
         self._methods = MethodPicker()
         self._methods.method_changed.connect(self._on_method_changed)
         layout.addWidget(self._methods)
-        self._cells_first = QCheckBox("Cells first (forward × side scatter)")
+        self._cells_first = QCheckBox("Cells and singlets first")
         self._cells_first.setObjectName("AutoGateCellsFirst")
         self._cells_first.setChecked(StepRequest.cells_first)
         self._cells_first.setToolTip(
-            "From All Events, the first split is always the usual cells gate: debris is cut off "
-            "below the valley on forward scatter. Then the method searches the markers."
+            "By convention, before any marker: from All Events the cells gate (debris cut off "
+            "below the forward-scatter valley), then from it the singlets gate (doublets left out "
+            "by forward-scatter area against height). Then the method searches the markers."
         )
         self._cells_first.toggled.connect(lambda _on: self.choices_changed.emit())
         layout.addWidget(self._cells_first)

@@ -78,8 +78,13 @@ def _methods_text(gate: str, record: dict[str, Any]) -> str:
             f"at {record.get('radius', 2):g} standard deviations (Mahalanobis distance) around each "
             "population's merged Gaussian. "
         )
-    if record.get("convention") == "cells first":
+    if record.get("convention") == "cells":
         text += "Following convention, this first split only removed debris below the forward-scatter valley. "
+    elif record.get("convention") == "singlets":
+        text += (
+            "Following convention, doublets were removed by the ratio of forward-scatter area to height "
+            f"(kept between {record.get('ratio_kept', ['?', '?'])[0]} and {record.get('ratio_kept', ['?', '?'])[1]}). "
+        )
     return text + "The same gates were applied unchanged to every sample in the group."
 
 

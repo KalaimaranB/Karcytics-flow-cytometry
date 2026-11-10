@@ -15,8 +15,8 @@ import numpy as np
 
 from .._utils import project_to_display
 from ..clustering.describe import short_marker
-from ..derived.expression import parse_formula
 from ..sample_lens.synthesis import match_scores
+from .assembly import exact, frame_of, plot_of, regions_of, with_pending
 from .density import find_valley
 from .models import (
     DENSITY_VALLEYS,
@@ -43,9 +43,10 @@ from .population import (
     population_events,
     same_population,
     scatter_pair,
+    singlet_pair,
     subsample,
 )
-from .split import Piece, Split, by_mixture, by_valleys, split_axis_record
+from .split import SINGLETS, Split, by_mixture, by_singlets, by_valleys, split_axis_record
 from .story import story_of
 from .views import Axis, View, ViewChoice, choose, loadings_section
 
@@ -57,6 +58,8 @@ if TYPE_CHECKING:
     from ..state import FlowState
 
 CELLS, DEBRIS = "Cells", "Debris"
+CELLS_STEP, SINGLETS_STEP = "cells", "singlets"
+KEPT = {CELLS, SINGLETS}
 MAX_VIEWS_TRIED = 5  # mixture methods move on from views that hold one population
 FLAG_DRIFT = 0.05  # a sample whose own split sits further than this share of an axis needs a look
 
@@ -81,45 +84,55 @@ class GatingEngine:
     def propose(self, request: StepRequest) -> Proposal | str:
         """The next split of the population, or why there isn't one.
 
-        From All Events with "cells first" on, that is the cells split on forward
-        scatter (by convention, whatever the method), unless cells are already
-        gated or forward scatter shows no debris valley.
+        With "cells and singlets first" on, convention comes before the method: from All Events
+        the cells split on forward scatter, then from that cells gate the singlets
+        split, each unless already gated or not found (then the method runs, and
+        says why the step was skipped).
         """
-        cells = self._cells_request(request)
-        if cells is None:
+        due = self._convention_step(request)
+        if due is None:
             return self._propose(request)
-        found = self._propose(cells, cells_step=True)
+        step, conventional = due
+        found = self._propose(conventional, step)
         if isinstance(found, Proposal):
             return found
         why = found.split(" Try other")[0].rstrip(".")
-        skipped = f"Cells first skipped: {why[:1].lower()}{why[1:]}. "
+        skipped = f"{step.capitalize()} step skipped: {why[:1].lower()}{why[1:]}. "
         result = self._propose(request)
         if isinstance(result, Proposal):
             return replace(result, reason=skipped + result.reason)
         return skipped + result
 
-    def _cells_request(self, request: StepRequest) -> StepRequest | None:
-        """The cells split to propose before ``request``, if it is due."""
-        if not request.cells_first or request.node_id is not None:
-            return None
+    def _convention_step(self, request: StepRequest) -> tuple[str, StepRequest] | None:
+        """("cells" or "singlets", the request for it), if one is due before ``request``."""
         sample = self._state.data.experiment.samples.get(request.sample_id)
-        if sample is None or sample.fcs_data is None:
+        if not request.cells_first or sample is None or sample.fcs_data is None:
             return None
-        fsc, ssc = scatter_pair(sample.fcs_data)
-        if fsc is None or ssc is None:
-            return None
-        if any(_on_scatter(child) for child in sample.gate_tree.children):
-            return None  # cells are gated already
-        return replace(
+        root = sample.gate_tree
+        if request.node_id is None:
+            fsc, ssc = scatter_pair(sample.fcs_data)
+            if fsc is None or ssc is None or any(_on_scatter(c) for c in root.children):
+                return None  # no scatter, or cells are gated already
+            axes = (fsc, ssc)
+            step = CELLS_STEP
+        else:
+            node = root.find_node_by_id(request.node_id)
+            pair = singlet_pair(sample.fcs_data)
+            if node is None or node not in root.children or not _on_scatter(node) or pair is None:
+                return None  # singlets come straight after a cells gate
+            if any(_on_channels(c, set(pair)) for c in node.children):
+                return None  # singlets are gated already
+            axes, step = pair, SINGLETS_STEP
+        return step, replace(
             request,
             method_key=DENSITY_VALLEYS.key,
-            channels=(fsc, ssc),
-            x_channel=fsc,
-            y_channel=ssc,
+            channels=axes,
+            x_channel=axes[0],
+            y_channel=axes[1],
             view_rank=0,
         )
 
-    def _propose(self, request: StepRequest, cells_step: bool = False) -> Proposal | str:
+    def _propose(self, request: StepRequest, step: str = "") -> Proposal | str:
         info = method(request.method_key)
         axes = (request.x_channel, request.y_channel) if info.user_picks_axes else ("", "")
         channels = tuple(dict.fromkeys(request.channels + tuple(a for a in axes if a)))
@@ -136,52 +149,35 @@ class GatingEngine:
         choice = choose(data, info.key, request.channels, *axes)
         if isinstance(choice, str):
             return choice
-        found = self._split(info.key, choice, data, request, cells_step)
+        found = self._split(info.key, choice, data, request, step)
         if isinstance(found, str):
             return found
         view, sections, split, rank = found
-        # Each region holds exactly what its gate holds: the gate, not the shape it was
-        # fitted as, is what goes in the tree, so its numbers are the ones shown.
-        on_axes = self._with_pending(data.events, view)
-        pieces = [
-            replace(p, mask=np.asarray(p.gate.contains(on_axes), dtype=bool)) for p in split.pieces
-        ]
-        split = replace(split, pieces=[p for p in pieces if p.mask.any()])
-        frame = Frame.around(view.x.values, view.y.values)
+        split = exact(split, data, view)
+        frame = frame_of(view)
         # Named by the view's own markers; PCA axes mix every channel, so by all of them.
         naming = channels if info.key == PCA.key else (view.x.key, view.y.key)
-        names = (
-            _cells_names(view, split)
-            if cells_step
-            else name_regions(data, naming, [p.mask for p in split.pieces])
-        )
-        regions = sorted(
-            (
-                self._region(name, piece, frame, data, request.min_events)
-                for name, piece in zip(names, split.pieces, strict=True)
-            ),
-            key=lambda r: -r.fraction,
-        )
-        if cells_step:
-            regions = [replace(r, is_main=r.is_main and r.name == CELLS) for r in regions]
+        if step == CELLS_STEP:
+            names = _cells_names(view, split)
+        elif all(p.name for p in split.pieces):
+            names = [p.name for p in split.pieces]
+        else:
+            names = name_regions(data, naming, [p.mask for p in split.pieces])
+        regions = regions_of(names, split, frame, data, request.min_events)
+        if step:  # by convention only the clean population is kept
+            regions = [replace(r, is_main=r.is_main and r.name in KEPT) for r in regions]
         if info.key == PCA.key:
             extra = (
                 loadings_section(choice.notes, view.x.label),
                 loadings_section(choice.notes, view.y.label),
             )
             sections = sections + tuple(s for s in extra if s is not None)
-        rows = data.plot_rows()
-        points = frame.unit(np.column_stack((view.x.values[rows], view.y.values[rows])))
-        cuts = tuple(
-            (axis, float(frame.unit(np.array([[pos, pos]]))[0, 0 if axis == "x" else 1]))
-            for axis, pos in split.cuts
-        )
-        plot = PlotData(view.x.label, view.y.label, points, tuple(regions), cuts=cuts)
+        plot = plot_of(view, frame, data, regions, split)
         reason = self._reason(info.key, rank, view, choice, split, data, regions)
         pending = tuple(a.pending for a in (view.x, view.y) if a.pending is not None)
         provenance = self._record(info.key, data, view, choice.notes, split, request)
-        if cells_step:
-            reason, provenance["convention"] = _cells_reason(split), "cells first"
+        if step:
+            reason, provenance["convention"] = _convention_reason(step, split), step
         return Proposal(
             info.key,
             data.sample.sample_id,
@@ -203,14 +199,18 @@ class GatingEngine:
         choice: ViewChoice,
         data: PopulationData,
         request: StepRequest,
-        cells_step: bool = False,
+        step: str = "",
     ) -> tuple[View, tuple[BarSection, ...], Split, int] | str:
         """The split on the requested view, or for the mixtures the first of the next
         MAX_VIEWS_TRIED views (by score) holding at least two populations to gate.
         """
         if key == DENSITY_VALLEYS.key:
             view, sections = choice.ranked(request.view_rank)
-            split = by_valleys(view, request.min_valley, cells=cells_step)
+            if step == SINGLETS_STEP:
+                area, height = (data.events[a.key].to_numpy(np.float64) for a in (view.x, view.y))
+                split = by_singlets(view, area, height, request.min_valley)
+            else:
+                split = by_valleys(view, request.min_valley, cells=step == CELLS_STEP)
             return split if isinstance(split, str) else (view, sections, split, request.view_rank)
         per_event = data.parent_total / max(len(data.events), 1)
         tried = []
@@ -228,21 +228,6 @@ class GatingEngine:
             f"No clear split in the {len(tried)} best views ({', '.join(tried)}): none holds two "
             f"populations of {request.min_events:,}+ events with a valley of {request.min_valley:.2f} "
             "between them. Try other channels, or lower “Clear valley at least”."
-        )
-
-    @staticmethod
-    def _region(
-        name: str, piece: Piece, frame: Frame, data: PopulationData, min_events: int
-    ) -> Region:
-        outline = frame.unit(piece.outline)
-        fraction = float(piece.mask.mean())
-        return Region(
-            name,
-            fraction,
-            tuple(float(v) for v in outline.ravel()),
-            piece.gate,
-            piece.mask,
-            is_main=fraction * data.parent_total >= min_events,
         )
 
     @staticmethod
@@ -345,7 +330,7 @@ class GatingEngine:
     def _on_sample(
         self, name: str, events: pd.DataFrame, proposal: Proposal, ctx: _Context
     ) -> SampleOutcome:
-        frame_df = self._with_pending(events, ctx.view)
+        frame_df = with_pending(events, ctx.view)
         x = self._values(frame_df, ctx.view.x)
         y = self._values(frame_df, ctx.view.y)
         percents = {}
@@ -370,21 +355,6 @@ class GatingEngine:
             proposal.plot.cuts,
         )
         return SampleOutcome(name, percents, drift, status, flagged, plot)
-
-    @staticmethod
-    def _with_pending(events: pd.DataFrame, view: View) -> pd.DataFrame:
-        """``events`` plus a column for each combined axis, so proposed gates can be tested on them."""
-        out = events
-        for axis in (view.x, view.y):
-            if axis.pending is not None:
-                out = out.assign(
-                    **{
-                        axis.key: parse_formula(axis.pending.formula).evaluate(
-                            events, positive_denominators=False
-                        )
-                    }
-                )
-        return out
 
     @staticmethod
     def _values(events: pd.DataFrame, axis: Axis) -> np.ndarray:
@@ -516,9 +486,19 @@ def _cells_names(view: View, split: Split) -> list[str]:
     return [CELLS if np.median(view.x.values[p.mask]) >= cut else DEBRIS for p in split.pieces]
 
 
-def _cells_reason(split: Split) -> str:
-    return (
-        "Cells first, by convention: debris is cut off at the valley below the main "
-        "forward-scatter peak; side scatter isn't cut, so large, granular cells stay in. "
-        f"{split.reason} Untick “Cells first” to search the markers from All Events."
-    )
+def _convention_reason(step: str, split: Split) -> str:
+    lead = {
+        CELLS_STEP: "Cells first, by convention: debris is cut off at the valley below the main "
+        "forward-scatter peak; side scatter isn't cut, so large, granular cells stay in. ",
+        SINGLETS_STEP: "Singlets next, by convention: doublets (two cells passing together) are "
+        "left out. ",
+    }[step]
+    return f"{lead}{split.reason} Untick “Cells and singlets first” to search the markers instead."
+
+
+def _on_channels(node: GateNode, channels: set[str]) -> bool:
+    """Is ``node`` gated on exactly these channels?"""
+    gate = node.gate
+    if gate is None:
+        return False
+    return {p for p in (gate.x_param, getattr(gate, "y_param", None)) if p} == channels

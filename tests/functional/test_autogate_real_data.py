@@ -83,5 +83,5 @@ def test_no_cells_cut_where_forward_scatter_has_no_debris_valley(fcs_test_data_d
     proposal = engine.propose(_request("pairs", markers, cells_first=True))
 
     assert not isinstance(proposal, str), proposal
-    assert proposal.reason.startswith("Cells first skipped")
+    assert proposal.reason.startswith("Cells step skipped")
     assert "Cells" not in [r.name for r in proposal.gated]

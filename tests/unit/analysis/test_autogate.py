@@ -14,6 +14,7 @@ from karcytics_plugins.flow_cytometry.analysis.autogate import (
     ProposalCommitter,
     StepRequest,
 )
+from karcytics_plugins.flow_cytometry.analysis.autogate.assembly import with_pending
 from karcytics_plugins.flow_cytometry.analysis.autogate.density import (
     find_valley,
     on_scale,
@@ -140,7 +141,7 @@ def test_every_method_finds_cd4_and_cd8_t_cells(lens, info):
 def test_a_proposal_shows_exactly_what_its_gates_will_hold(lens, info):
     state, engine = lens
     proposal = engine.propose(_request(state, info.key))
-    events = engine._with_pending(proposal.context.data.events, proposal.context.view)
+    events = with_pending(proposal.context.data.events, proposal.context.view)
 
     for region in proposal.gated:
         # Not exact: the biexponential display transform varies by ~5e-5 between calls,
@@ -273,7 +274,7 @@ def test_the_cells_split_comes_first_whatever_the_method(lens):
     cells = proposal.gated[0]
     assert cells.fraction == pytest.approx(0.92, abs=0.02)  # the planted debris is 8%
     assert {proposal.gated[0].gate.x_param} == {"FSC-A"}
-    assert proposal.provenance["convention"] == "cells first"
+    assert proposal.provenance["convention"] == "cells"
 
 
 def test_cells_first_can_be_turned_off_and_stops_once_cells_are_gated(lens):
@@ -288,3 +289,51 @@ def test_cells_first_can_be_turned_off_and_stops_once_cells_are_gated(lens):
     )
     after = engine.propose(request)
     assert isinstance(after, str) or not after.reason.startswith("Cells first")
+
+
+def _with_height(state, doublets=0.06, seed=0):
+    """s0 with forward-scatter height: singlets on one area/height ratio, doublets on ~1.7x."""
+    fcs = state.data.experiment.samples["s0"].fcs_data
+    rng = np.random.default_rng(seed)
+    area = fcs.events["FSC-A"].to_numpy()
+    ratio = np.exp(rng.normal(0.1, 0.03, len(area)))
+    double = rng.random(len(area)) < doublets
+    ratio[double] = np.exp(rng.normal(0.65, 0.05, double.sum()))
+    fcs.events = fcs.events.assign(**{"FSC-H": area / ratio})
+    fcs.raw_events = fcs.events
+    fcs.channels = [*fcs.channels, "FSC-H"]
+    fcs.markers = [*fcs.markers, ""]
+    return double
+
+
+def test_singlets_follow_the_cells_gate(lens):
+    state, engine = lens
+    _ungated(state)
+    double = _with_height(state)
+    request = StepRequest("pairs", "s0", None, CHANNELS, min_valley=0.5)
+    committer = ProposalCommitter(TreeController(state), DerivedParameterService(state))
+    (cells_id,) = committer.accept(engine.propose(request))
+
+    proposal = engine.propose(replace(request, node_id=cells_id))
+
+    assert not isinstance(proposal, str), proposal
+    assert proposal.reason.startswith("Singlets next")
+    assert [r.name for r in proposal.gated] == ["Singlets"]
+    singlets = proposal.gated[0]
+    events = proposal.context.data.events
+    rows = (events.index.to_numpy() - 7) // 3  # the fixture labels row i as 3i + 7
+    kept_doublets = double[rows][singlets.mask].mean()
+    assert singlets.fraction == pytest.approx(1 - 0.06, abs=0.03)
+    assert kept_doublets < 0.01  # noqa: PLR2004
+    restored = gate_from_dict(singlets.gate.to_dict())
+    assert restored.provenance == {} and restored.x_param == "FSC-A"
+
+
+def test_no_singlets_step_without_forward_scatter_height(lens):
+    state, engine = lens
+    _ungated(state)
+    request = StepRequest("pairs", "s0", None, CHANNELS, min_valley=0.5)
+    committer = ProposalCommitter(TreeController(state), DerivedParameterService(state))
+    (cells_id,) = committer.accept(engine.propose(request))
+    proposal = engine.propose(replace(request, node_id=cells_id))
+    assert isinstance(proposal, str) or not proposal.reason.startswith("Singlets")

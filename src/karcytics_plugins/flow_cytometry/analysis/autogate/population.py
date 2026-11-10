@@ -156,3 +156,12 @@ def scatter_pair(data: FCSData) -> tuple[str | None, str | None]:
         return next((ch for ch in named if ch.endswith("-A")), named[0] if named else None)
 
     return pick("FSC"), pick("SSC")
+
+
+def singlet_pair(data: FCSData) -> tuple[str, str] | None:
+    """Forward-scatter area and height, the axes doublets show on; None without both."""
+    channels = set(data.channels)
+    for area, height in (("FSC-A", "FSC-H"), ("SSC-A", "SSC-H")):
+        if area in channels and height in channels:
+            return area, height
+    return None
