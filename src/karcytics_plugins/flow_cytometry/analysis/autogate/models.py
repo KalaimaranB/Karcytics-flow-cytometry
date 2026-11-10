@@ -65,9 +65,8 @@ class StepRequest:
     y_channel: str = ""
     view_rank: int = 0  # 0: the best view, 1: the next best, ...
     min_events: int = 500
-    min_valley: float = (
-        0.3  # real populations rarely part more cleanly; one noisy peak stays under 0.2
-    )
+    min_valley: float = 0.3  # real populations rarely part more cleanly; noise stays under 0.2
+    cells_first: bool = True  # from All Events, cut debris off on FSC before anything else
 
 
 @dataclass(frozen=True)

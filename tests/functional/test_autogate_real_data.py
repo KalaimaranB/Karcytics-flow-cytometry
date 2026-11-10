@@ -29,9 +29,16 @@ def _engine(fcs_test_data_dir, name: str) -> tuple[GatingEngine, tuple[str, ...]
     return GatingEngine(state, AxisManager(state)), markers
 
 
-def _request(method_key: str, channels: tuple[str, ...]) -> StepRequest:
+def _request(method_key: str, channels: tuple[str, ...], cells_first: bool = False) -> StepRequest:
     return StepRequest(
-        method_key, "s", None, channels, ("s",), x_channel="FSC-A", y_channel="SSC-A"
+        method_key,
+        "s",
+        None,
+        channels,
+        ("s",),
+        x_channel="FSC-A",
+        y_channel="SSC-A",
+        cells_first=cells_first,
     )
 
 
@@ -59,3 +66,22 @@ def test_an_unstained_tube_has_no_marker_split(fcs_test_data_dir):
     engine, markers = _engine(fcs_test_data_dir, "Blank")
     result = engine.propose(_request("pairs", markers))
     assert isinstance(result, str) and "No clear split" in result
+
+
+def test_cells_come_first_from_all_events(fcs_test_data_dir):
+    engine, markers = _engine(fcs_test_data_dir, "Sample A")
+    proposal = engine.propose(_request("pairs", markers, cells_first=True))
+
+    assert not isinstance(proposal, str), proposal
+    assert [r.name for r in proposal.gated] == ["Cells"]
+    assert 0.8 < proposal.gated[0].fraction < 0.95  # noqa: PLR2004
+
+
+def test_no_cells_cut_where_forward_scatter_has_no_debris_valley(fcs_test_data_dir):
+    """Sample B's only FSC valley lies above its main peak (lymphocytes | larger cells)."""
+    engine, markers = _engine(fcs_test_data_dir, "Sample B")
+    proposal = engine.propose(_request("pairs", markers, cells_first=True))
+
+    assert not isinstance(proposal, str), proposal
+    assert proposal.reason.startswith("Cells first skipped")
+    assert "Cells" not in [r.name for r in proposal.gated]

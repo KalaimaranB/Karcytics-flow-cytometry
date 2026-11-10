@@ -84,8 +84,12 @@ def density(values: np.ndarray) -> Density:
     return Density(lo, hi, smooth / peak if peak > 0 else smooth)
 
 
-def find_valley(values: np.ndarray) -> Valley | None:
-    """The deepest valley between the two tallest well-separated peaks; None if unimodal."""
+def find_valley(values: np.ndarray, below_tallest: bool = False) -> Valley | None:
+    """The deepest valley between two well-separated peaks; None if unimodal.
+
+    ``below_tallest``: only valleys below the tallest peak (debris on forward
+    scatter sits below the cells, never above them).
+    """
     d = density(values)
     h = d.heights
     peaks = [
@@ -93,10 +97,11 @@ def find_valley(values: np.ndarray) -> Valley | None:
         for i in range(1, BINS - 1)
         if h[i] >= h[i - 1] and h[i] > h[i + 1] and h[i] >= MIN_PEAK_SHARE
     ]
+    tallest = int(np.argmax(h))
     best: tuple[float, int] | None = None
     for a_i, a in enumerate(peaks):
         for b in peaks[a_i + 1 :]:
-            if b - a < MIN_PEAK_GAP:
+            if b - a < MIN_PEAK_GAP or (below_tallest and b > tallest):
                 continue
             between = h[a : b + 1]
             floor = between.min()

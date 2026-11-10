@@ -73,15 +73,22 @@ def split_axis_record(view: View) -> dict[str, object]:
     }
 
 
-def by_valleys(view: View, min_valley: float) -> Split | str:
-    valleys = {name: find_valley(axis.values) for name, axis in (("x", view.x), ("y", view.y))}
+def by_valleys(view: View, min_valley: float, cells: bool = False) -> Split | str:
+    """Rectangles between the valleys on each axis.
+
+    ``cells``: the cells split, cut only on x (forward scatter), and only below its
+    tallest peak, where debris is.
+    """
+    axes = (("x", view.x),) if cells else (("x", view.x), ("y", view.y))
+    valleys = {name: find_valley(axis.values, below_tallest=cells) for name, axis in axes}
     cuts = {
         name: v.position for name, v in valleys.items() if v is not None and v.depth >= min_valley
     }
     if not cuts:
         deepest = max((v.depth for v in valleys.values() if v is not None), default=0.0)
+        cut_on = " or ".join(short_marker(a.label) for _n, a in axes)
         return (
-            f"No clear valley on {short_marker(view.x.label)} or {short_marker(view.y.label)} "
+            f"No clear valley on {cut_on} "
             f"(deepest {deepest:.2f}, needs {min_valley:.2f}). Try other axes, or lower "
             "“Clear valley at least”."
         )
@@ -111,7 +118,7 @@ def by_valleys(view: View, min_valley: float) -> Split | str:
             )
             pieces.append(Piece(mask, corners, gate))
     said = []
-    for name, axis in (("x", view.x), ("y", view.y)):
+    for name, axis in axes:
         v = valleys[name]
         marker = short_marker(axis.label)
         if name in cuts and v is not None:

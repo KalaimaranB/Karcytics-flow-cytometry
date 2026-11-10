@@ -13,7 +13,7 @@ import numpy as np
 
 from .._utils import project_to_display
 from ..derived.sync import sync_sample
-from ..fcs_io import get_channel_marker_label
+from ..fcs_io import get_channel_marker_label, get_scatter_channels
 from ..population_matching import label_path_index, populations
 from .density import robust_range
 
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
     from ..axis_manager import AxisManager
     from ..experiment import Sample
+    from ..fcs_io import FCSData
     from ..scaling import AxisScale
     from ..state import FlowState
 
@@ -144,3 +145,14 @@ class Frame:
 
     def span(self, axis: str) -> float:
         return (self.x_hi - self.x_lo) if axis == "x" else (self.y_hi - self.y_lo)
+
+
+def scatter_pair(data: FCSData) -> tuple[str | None, str | None]:
+    """The forward and side scatter channels to plot cells on, area (``-A``) preferred."""
+    scatter = get_scatter_channels(data)
+
+    def pick(prefix: str) -> str | None:
+        named = [ch for ch in scatter if ch.startswith(prefix)]
+        return next((ch for ch in named if ch.endswith("-A")), named[0] if named else None)
+
+    return pick("FSC"), pick("SSC")

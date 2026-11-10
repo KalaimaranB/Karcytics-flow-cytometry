@@ -56,6 +56,7 @@ def test_the_sidebar_fills_from_the_experiment(tab):
     assert sidebar.channels() == ("CD3", "CD4", "CD8", "CD56")  # scatter listed, unticked
     assert sidebar._channels.count() == 6  # noqa: PLR2004 - FSC-A and SSC-A too
     assert sidebar.axes() == ("FSC-A", "SSC-A")  # the usual first split
+    assert sidebar.cells_first() and tab._request().cells_first  # on by default
 
 
 def test_proposing_shows_the_split_its_reason_and_dashed_nodes_in_the_tree(tab):

@@ -256,15 +256,35 @@ def test_a_gate_drawn_by_hand_has_no_story(lens):
     assert engine.story("s0", _t_cells(state).node_id) is None
 
 
-def test_the_cells_split_runs_on_forward_and_side_scatter(lens):
+def _ungated(state):
+    """s0 with no gates yet (the fixture's tree already has a scatter gate)."""
+    state.data.experiment.samples["s0"].gate_tree.children.clear()
+
+
+def test_the_cells_split_comes_first_whatever_the_method(lens):
     state, engine = lens
-    request = StepRequest(
-        "valleys", "s0", None, CHANNELS, x_channel="FSC-A", y_channel="SSC-A", min_valley=0.5
-    )
+    _ungated(state)
+    request = StepRequest("pairs", "s0", None, CHANNELS, min_valley=0.5)
     proposal = engine.propose(request)
 
     assert not isinstance(proposal, str), proposal
-    cells = max(proposal.plot.regions, key=lambda r: r.fraction)
+    assert proposal.reason.startswith("Cells first")
+    assert [r.name for r in proposal.gated] == ["Cells"]  # debris is shown, not gated
+    cells = proposal.gated[0]
     assert cells.fraction == pytest.approx(0.92, abs=0.02)  # the planted debris is 8%
-    assert cells.name.startswith("FSC-Ahi")
-    assert len(proposal.gated) == 1  # the debris is a sliver, not a population to keep
+    assert {proposal.gated[0].gate.x_param} == {"FSC-A"}
+    assert proposal.provenance["convention"] == "cells first"
+
+
+def test_cells_first_can_be_turned_off_and_stops_once_cells_are_gated(lens):
+    state, engine = lens
+    _ungated(state)
+    request = StepRequest("pairs", "s0", None, CHANNELS, min_valley=0.5)
+    off = engine.propose(replace(request, cells_first=False))
+    assert not off.reason.startswith("Cells first")
+
+    ProposalCommitter(TreeController(state), DerivedParameterService(state)).accept(
+        engine.propose(request)
+    )
+    after = engine.propose(request)
+    assert isinstance(after, str) or not after.reason.startswith("Cells first")

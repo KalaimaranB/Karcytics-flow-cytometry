@@ -213,6 +213,7 @@ class AutoGatingTab(QWidget):
             view_rank=self._view_rank,
             min_events=min_events,
             min_valley=min_valley,
+            cells_first=self._sidebar.cells_first(),
         )
 
     def _on_choices_changed(self) -> None:
@@ -279,7 +280,11 @@ class AutoGatingTab(QWidget):
         names = ", ".join(r.name for r in proposal.gated)
         self._proposal = None
         self._sidebar.set_populations(population_items(self._reference_sample()))
-        self._show(None, "Added. Click a population in the tree to split it next.")
+        if len(added) == 1:  # one population kept (e.g. Cells): it is the one to split next
+            self._sidebar.set_population(added[0])
+            self._show(None, f"Added. The next split starts from {names}.")
+        else:
+            self._show(None, "Added. Click a population in the tree to split it next.")
         self._build.show_status(
             f"Added {len(added)} gate{'s' if len(added) != 1 else ''} under {proposal.parent}: {names}. "
             f"They go to every sample in {self._group_name()}, and undo works as usual."

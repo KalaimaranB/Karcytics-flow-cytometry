@@ -20,7 +20,7 @@ from karcytics_sdk.plugin.components import (
 )
 from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFormLayout, QListWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QCheckBox, QFormLayout, QListWidgetItem, QVBoxLayout, QWidget
 
 from ....analysis.autogate import StepRequest, method
 from ..panel_style import section_header
@@ -105,6 +105,15 @@ class SetupSidebar(QWidget):
         self._methods = MethodPicker()
         self._methods.method_changed.connect(self._on_method_changed)
         layout.addWidget(self._methods)
+        self._cells_first = QCheckBox("Cells first (forward × side scatter)")
+        self._cells_first.setObjectName("AutoGateCellsFirst")
+        self._cells_first.setChecked(StepRequest.cells_first)
+        self._cells_first.setToolTip(
+            "From All Events, the first split is always the usual cells gate: debris is cut off "
+            "below the valley on forward scatter. Then the method searches the markers."
+        )
+        self._cells_first.toggled.connect(lambda _on: self.choices_changed.emit())
+        layout.addWidget(self._cells_first)
 
         self._axes = QWidget()
         axes_form = QFormLayout(self._axes)
@@ -255,6 +264,9 @@ class SetupSidebar(QWidget):
     def axes(self) -> tuple[str, str]:
         """The density-valley axes' channel keys."""
         return self._x_axis.currentData() or "", self._y_axis.currentData() or ""
+
+    def cells_first(self) -> bool:
+        return self._cells_first.isChecked()
 
     def stopping_rules(self) -> tuple[int, float]:
         """(smallest population in events, clearest valley needed)."""
