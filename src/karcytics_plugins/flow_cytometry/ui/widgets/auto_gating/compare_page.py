@@ -50,12 +50,14 @@ class ComparePage(QWidget):
         layout.addWidget(scroll, 1)
         self.show_outcomes((), "")
 
-    def show_outcomes(self, outcomes: tuple[MethodOutcome, ...], population: str) -> None:
+    def show_outcomes(
+        self, outcomes: tuple[MethodOutcome, ...], population: str, empty: str = ""
+    ) -> None:
         self._title.setText(f"Compare methods on {population}" if population else "Compare methods")
         clear_layout(self._columns)
         if not outcomes:
             self._columns.addWidget(
-                BioCaptionLabel("Pick a population to compare the methods on it.")
+                BioCaptionLabel(empty or "Pick a population to compare the methods on it.")
             )
             return
         for outcome in outcomes:

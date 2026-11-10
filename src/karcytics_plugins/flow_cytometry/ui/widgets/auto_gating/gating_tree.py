@@ -8,6 +8,7 @@ touching the real tree. Clicking a population picks it.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import ZoomControls
@@ -34,6 +35,17 @@ PANEL_MIN_WIDTH, PREFERRED_WIDTH, PANEL_MAX_WIDTH = 240, 340, 380
 READABLE_SCALE = 0.7  # the tree is fitted to the panel, but never drawn smaller than this
 INDENT = " "  # an em space per level
 PROPOSED_PREFIX = "proposed:"
+
+
+@dataclass(frozen=True)
+class ProposedNode:
+    """A population not in the tree yet, drawn dashed."""
+
+    key: str
+    parent: str | None  # a real node id, another proposed node's key, or None (All Events)
+    name: str
+    fraction: float  # of its parent
+    count: int
 
 
 def population_items(sample: Sample | None) -> list[tuple[str, str | None]]:
@@ -71,6 +83,7 @@ def _mirror(node: GateNode, copies: dict[str, GateNode]) -> GateNode:
 
 class GatingTreePanel(QWidget):
     population_clicked = Signal(object)  # node id (None: All Events)
+    proposed_clicked = Signal(str)  # the proposed node's key
     open_tab_requested = Signal(object)  # MainTab
 
     def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
@@ -138,6 +151,24 @@ class GatingTreePanel(QWidget):
         parent_events: int = 0,
     ) -> None:
         """``sample``'s tree, ``proposed`` populations dashed under ``parent_id``, ``selected_id`` picked."""
+        nodes = [
+            ProposedNode(
+                str(i),
+                parent_id,
+                region.name,
+                region.fraction,
+                round(region.fraction * parent_events),
+            )
+            for i, region in enumerate(proposed)
+        ]
+        self.show_proposed(sample, selected_id, nodes)
+
+    def show_proposed(
+        self, sample: Sample | None, selected_id: str | None, proposed: list[ProposedNode]
+    ) -> None:
+        """``sample``'s tree with ``proposed`` populations dashed, each under its parent:
+        a real node, another proposed one, or (None) All Events.
+        """
         if sample is None:
             self._caption.setText("No sample loaded")
             self._view.clear()
@@ -146,21 +177,24 @@ class GatingTreePanel(QWidget):
         copies: dict[str, GateNode] = {}
         root = _mirror(sample.gate_tree, copies)
         self._root_id = root.node_id
-        parent = copies.get(parent_id) if parent_id else root
         ids = set()
-        for i, region in enumerate(proposed):
+        for p in proposed:
+            node_id = f"{PROPOSED_PREFIX}{p.key}"
+            parent = (
+                (copies.get(f"{PROPOSED_PREFIX}{p.parent}") or copies.get(p.parent))
+                if p.parent
+                else root
+            )
             node = GateNode(
-                node_id=f"{PROPOSED_PREFIX}{i}",
-                name=region.name,
-                statistics={
-                    "pct_parent": 100 * region.fraction,
-                    "count": round(region.fraction * parent_events),
-                },
+                node_id=node_id,
+                name=p.name,
+                statistics={"pct_parent": 100 * p.fraction, "count": p.count},
                 parents=[parent] if parent else [],
             )
             if parent is not None:
                 parent.children.append(node)
-            ids.add(node.node_id)
+            copies[node_id] = node
+            ids.add(node_id)
         total = sample.fcs_data.num_events if sample.fcs_data is not None else 0
         rects = self._engine.compute(root, total, derived_labels_of(sample.fcs_data))
         for r in rects:
@@ -168,8 +202,9 @@ class GatingTreePanel(QWidget):
                 r.gate_type = "Proposed"
         self._view.set_rects(rects)
         self._view.set_proposed(ids)
-        self._view.set_selected(selected_id or root.node_id)
-        self._focus_id = selected_id or root.node_id
+        focus = selected_id if selected_id in copies else root.node_id
+        self._view.set_selected(focus)
+        self._focus_id = focus
         QTimer.singleShot(0, self._fit)
 
     def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
@@ -185,6 +220,7 @@ class GatingTreePanel(QWidget):
 
     def _on_node_clicked(self, node_id: str) -> None:
         if node_id.startswith(PROPOSED_PREFIX):
+            self.proposed_clicked.emit(node_id.removeprefix(PROPOSED_PREFIX))
             return
         self.population_clicked.emit(None if node_id == self._root_id else node_id)
 

@@ -6,13 +6,17 @@ Accepted gates are ordinary gates: they are moved on the Gating tab.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
+    BioComboBox,
     BioScrollArea,
     BioStatusLabel,
     PrimaryButton,
     SecondaryButton,
     SubtitleLabel,
+    repopulate_combo,
 )
 from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Qt, Signal
@@ -24,6 +28,9 @@ from ..panel_style import Pill, card, clear_layout
 from .bar_list import BarList
 from .proposal_plot import ProposalPlot
 
+if TYPE_CHECKING:
+    from ....analysis.autogate.template_runner import TemplatePlan
+
 VIEW_PANEL_MIN_WIDTH, VIEW_PANEL_MAX_WIDTH = 230, 300
 EMPTY_TEXT = "Pick a population and press “Propose next split”."
 
@@ -32,6 +39,7 @@ class BuildPage(QWidget):
     accept_clicked = Signal()
     next_view_clicked = Signal()
     reject_clicked = Signal()
+    step_picked = Signal(int)  # a template step, by its place in the plan
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -47,6 +55,11 @@ class BuildPage(QWidget):
         header.addWidget(self._title)
         header.addWidget(self._method)
         header.addWidget(self._meta, 1)
+        self._steps = BioComboBox()
+        self._steps.setObjectName("AutoGateTemplateSteps")
+        self._steps.setToolTip("Each population in the template: where it was found, or why not.")
+        self._steps.currentIndexChanged.connect(self._on_step_picked)
+        header.addWidget(self._steps)
         layout.addLayout(header)
 
         body = QHBoxLayout()
@@ -120,6 +133,7 @@ class BuildPage(QWidget):
     def show_proposal(self, proposal: Proposal | None, message: str = "") -> None:
         """Show ``proposal``; without one, ``message`` says why (or how to start)."""
         clear_layout(self._sections_layout)
+        self._steps.hide()
         has = proposal is not None
         for button in (self._accept, self._next, self._reject):
             button.setEnabled(has)
@@ -148,6 +162,34 @@ class BuildPage(QWidget):
         for section in proposal.view_sections:
             self._sections_layout.addWidget(BarList(section))
         self._sections_layout.addStretch()
+
+    def show_plan(self, plan: TemplatePlan, index: int) -> None:
+        """Step ``index`` of a template run; Accept adds every population found."""
+        outcome = plan.outcomes[index]
+        self.show_proposal(outcome.proposal, outcome.message)
+        step, proposal = outcome.step, outcome.proposal
+        repopulate_combo(
+            self._steps,
+            [
+                (f"{i + 1}. {o.step.name} · {'found' if o.proposal else 'not found'}", i)
+                for i, o in enumerate(plan.outcomes)
+            ],
+            restore_data=index,
+        )
+        self._steps.show()
+        if proposal is not None:
+            self._title.setText(f"{step.name} in {proposal.parent}")
+        else:
+            self._title.setText(f"{step.name}: not found")
+        n = len(plan.found)
+        self._accept.setText(f"Accept · add {n} gate{'s' if n != 1 else ''}")
+        self._accept.setEnabled(n > 0)
+        self._reject.setEnabled(True)
+        self._next.hide()
+
+    def _on_step_picked(self, index: int) -> None:
+        if index >= 0:
+            self.step_picked.emit(index)
 
     def show_status(self, text: str) -> None:
         self._status.setText(text)

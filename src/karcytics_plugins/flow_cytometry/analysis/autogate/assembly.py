@@ -6,18 +6,22 @@ proposal always shows exactly what its gates will hold.
 
 from __future__ import annotations
 
+import datetime
 from dataclasses import replace
 from typing import TYPE_CHECKING
 
 import numpy as np
 
+from ..clustering.describe import short_marker
 from ..derived.expression import parse_formula
-from .models import PlotData, Region
+from .models import PCA, PlotData, Region
 from .population import Frame
+from .split import split_axis_record
 
 if TYPE_CHECKING:
     import pandas as pd
 
+    from .models import StepRequest
     from .population import PopulationData
     from .split import Split
     from .views import View
@@ -85,3 +89,37 @@ def plot_of(
 
 def frame_of(view: View) -> Frame:
     return Frame.around(view.x.values, view.y.values)
+
+
+def record_of(  # noqa: PLR0913 - everything the record keeps
+    key: str,
+    data: PopulationData,
+    view: View,
+    notes: dict[str, object],
+    split: Split,
+    request: StepRequest,
+) -> dict[str, object]:
+    """What is stored on every accepted gate: the single source for its story."""
+    record: dict[str, object] = {
+        "method": key,
+        "created": datetime.date.today().isoformat(),
+        "reference_sample": data.sample.display_name,
+        "parent": data.parent_name,
+        "events_used": len(data.events),
+        "parent_events": data.parent_total,
+        "channels": [short_marker(data.labels[ch]) for ch in request.channels if ch in data.labels],
+        "view": view.name,
+        "view_score": round(view.score, 3),
+        "x_axis": view.x.label,
+        "y_axis": view.y.label,
+        "axis_formulas": {
+            a.label: a.pending.formula for a in (view.x, view.y) if a.pending is not None
+        },
+        "min_valley": request.min_valley,
+    }
+    record.update(split_axis_record(view))
+    record.update(split.record)
+    if key == PCA.key:
+        record["loadings"] = notes.get("loadings")
+        record["variance"] = notes.get("variance")
+    return record

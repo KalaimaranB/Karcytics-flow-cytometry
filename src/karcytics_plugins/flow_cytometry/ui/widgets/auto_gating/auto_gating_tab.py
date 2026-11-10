@@ -22,6 +22,7 @@ from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QVBoxLayout, QWidget
 
 from ....analysis.autogate import StepRequest, method
+from ....analysis.autogate.models import TEMPLATE
 from ....analysis.fcs_io import (
     get_channel_marker_label,
     get_fluorescence_channels,
@@ -30,7 +31,7 @@ from ....analysis.fcs_io import (
 from .apply_page import ApplyPage
 from .build_page import BuildPage
 from .compare_page import ComparePage
-from .gating_tree import GatingTreePanel, population_items
+from .gating_tree import GatingTreePanel, ProposedNode, population_items
 from .setup_sidebar import SetupSidebar
 from .why_panel import WhyPanel
 
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 
     from ....analysis.autogate import AutoGateEngine, ProposalCommitter
     from ....analysis.autogate.models import MethodOutcome, Proposal
+    from ....analysis.autogate.template_runner import TemplatePlan, TemplateRunner
     from ....analysis.experiment import Sample
     from ....analysis.state import FlowState
 
@@ -80,6 +82,7 @@ class AutoGatingTab(QWidget):
         state: FlowState,
         engine: AutoGateEngine,
         committer: ProposalCommitter,
+        runner: TemplateRunner,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -87,7 +90,10 @@ class AutoGatingTab(QWidget):
         self._state = state
         self._engine = engine
         self._committer = committer
+        self._runner = runner
         self._proposal: Proposal | None = None
+        self._plan: TemplatePlan | None = None  # a template run being reviewed
+        self._plan_step = 0
         self._view_rank = 0
         self._stale_pages: set[int] = set()  # pages to recompute when next shown
 
@@ -114,6 +120,7 @@ class AutoGatingTab(QWidget):
         root.addWidget(self._build_main(), 1)
         self._tree = GatingTreePanel(state)
         self._tree.population_clicked.connect(self._on_population_clicked)
+        self._tree.proposed_clicked.connect(self._on_proposed_clicked)
         self._tree.open_tab_requested.connect(self.open_tab_requested)
         root.addWidget(self._tree)
 
@@ -121,6 +128,8 @@ class AutoGatingTab(QWidget):
         self._sidebar.sample_changed.connect(self._on_sample_changed)
         self._sidebar.choices_changed.connect(self._on_choices_changed)
         self._sidebar.propose_clicked.connect(self._on_propose)
+        self._sidebar.template_editor.changed.connect(self._on_choices_changed)
+        self._sidebar.template_editor.problem.connect(self._build.show_status)
 
     def _build_main(self) -> QWidget:
         main = QWidget()
@@ -138,6 +147,7 @@ class AutoGatingTab(QWidget):
         self._build.accept_clicked.connect(self._on_accept)
         self._build.next_view_clicked.connect(self._on_next_view)
         self._build.reject_clicked.connect(self._on_reject)
+        self._build.step_picked.connect(self._show_step)
         self._why = WhyPanel()
         self._apply = ApplyPage()
         self._compare = ComparePage()
@@ -218,7 +228,7 @@ class AutoGatingTab(QWidget):
 
     def _on_choices_changed(self) -> None:
         self._view_rank = 0
-        if self._proposal is not None:
+        if self._proposal is not None or self._plan is not None:
             self._propose()  # keep showing a proposal for what is now picked
         else:
             self._show(None)
@@ -228,6 +238,9 @@ class AutoGatingTab(QWidget):
         self._propose()
 
     def _propose(self) -> None:
+        if self._sidebar.method_key() == TEMPLATE.key:
+            self._run_template()
+            return
         with _busy():
             result = self._engine.propose(self._request())
         if isinstance(result, str):
@@ -235,7 +248,56 @@ class AutoGatingTab(QWidget):
         else:
             self._show(result)
 
+    def _run_template(self) -> None:
+        template = self._sidebar.template_editor.template()
+        request = self._request()
+        if isinstance(template, str):
+            self._show(None, f"Fix the template first. {template}")
+            return
+        with _busy():
+            plan = self._runner.run(
+                template, request.sample_id, request.node_id, request.min_events, request.min_valley
+            )
+        if isinstance(plan, str):
+            self._show(None, plan)
+            return
+        self._plan = plan
+        first = next((i for i, o in enumerate(plan.outcomes) if o.proposal is not None), 0)
+        self._show_step(first)
+
+    def _show_step(self, index: int) -> None:
+        """Step ``index`` of the template run, with the whole proposed tree dashed."""
+        plan = self._plan
+        if plan is None:
+            return
+        self._plan_step = index
+        self._proposal = plan.outcomes[index].proposal
+        self._build.show_plan(plan, index)
+        nodes = [
+            ProposedNode(
+                o.step.step_id,
+                _drawn_parent(plan, o.step.parent_id) or plan.start_id,
+                o.step.name,
+                o.proposal.gated[0].fraction,
+                round(o.proposal.gated[0].fraction * o.proposal.n_events),
+            )
+            for o in plan.found
+            if o.proposal is not None
+        ]
+        self._tree.show_proposed(self._reference_sample(), plan.start_id, nodes)
+        self._stale_pages = {APPLY, COMPARE}
+        self._refresh_page(self._tabs.currentIndex())
+
+    def _on_proposed_clicked(self, key: str) -> None:
+        if self._plan is not None:
+            index = next(
+                (i for i, o in enumerate(self._plan.outcomes) if o.step.step_id == key), None
+            )
+            if index is not None:
+                self._show_step(index)
+
     def _show(self, proposal: Proposal | None, message: str = "") -> None:
+        self._plan = None
         self._proposal = proposal
         self._build.show_proposal(proposal, message)
         self._show_tree()
@@ -254,6 +316,14 @@ class AutoGatingTab(QWidget):
         if index not in self._stale_pages:
             return
         self._stale_pages.discard(index)
+        if self._plan is not None:
+            note = (
+                "Template gates go to every sample in the group when accepted, like any gate. "
+                "The per-sample check and the method comparison work on single splits."
+            )
+            self._apply.show_preview(None, self._group_name(), note)
+            self._compare.show_outcomes((), "", note)
+            return
         if index == APPLY:
             preview = None
             if self._proposal is not None:
@@ -272,6 +342,9 @@ class AutoGatingTab(QWidget):
     # ── Actions ───────────────────────────────────────────────────────
 
     def _on_accept(self) -> None:
+        if self._plan is not None:
+            self._accept_plan(self._plan)
+            return
         proposal = self._proposal
         if proposal is None:
             return
@@ -288,6 +361,18 @@ class AutoGatingTab(QWidget):
         self._build.show_status(
             f"Added {len(added)} gate{'s' if len(added) != 1 else ''} under {proposal.parent}: {names}. "
             f"They go to every sample in {self._group_name()}, and undo works as usual."
+        )
+
+    def _accept_plan(self, plan: TemplatePlan) -> None:
+        with _busy():
+            created = self._committer.accept_plan(plan)
+        self._sidebar.set_populations(population_items(self._reference_sample()))
+        self._show(None, "Added. Click a population in the tree to see why it is where it is.")
+        missed = len(plan.outcomes) - len(plan.found)
+        self._build.show_status(
+            f"Added {len(created)} gate{'s' if len(created) != 1 else ''} from “{plan.template.name}”"
+            + (f"; {missed} population{'s' if missed != 1 else ''} not found" if missed else "")
+            + f". They go to every sample in {self._group_name()}, and undo works as usual."
         )
 
     def _on_next_view(self) -> None:
@@ -314,3 +399,12 @@ class AutoGatingTab(QWidget):
         self._why.show_story(story, node.name if node is not None else "")
         if self._proposal is None:
             self._show_tree()
+
+
+def _drawn_parent(plan: TemplatePlan, step_id: str | None) -> str | None:
+    """The nearest ancestor step that was found (its gate is drawn), or None."""
+    found = {o.step.step_id for o in plan.found}
+    steps = {s.step_id: s for s in plan.template.steps}
+    while step_id is not None and step_id not in found:
+        step_id = steps[step_id].parent_id
+    return step_id

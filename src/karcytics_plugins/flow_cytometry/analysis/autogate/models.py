@@ -45,11 +45,18 @@ PCA = MethodInfo(
     "Splits on combined axes (principal components), shown with what each is made of.",
     user_picks_axes=False,
 )
-METHODS: tuple[MethodInfo, ...] = (DENSITY_VALLEYS, MARKER_PAIRS, PCA)
+METHODS: tuple[MethodInfo, ...] = (DENSITY_VALLEYS, MARKER_PAIRS, PCA)  # the searches
+TEMPLATE = MethodInfo(
+    "template",
+    "From a template",
+    "You write the gating tree and each population's markers; it finds where each gate goes.",
+    user_picks_axes=False,
+)
+PICKABLE: tuple[MethodInfo, ...] = (*METHODS, TEMPLATE)
 
 
 def method(key: str) -> MethodInfo:
-    return next((m for m in METHODS if m.key == key), PCA)
+    return next((m for m in PICKABLE if m.key == key), PCA)
 
 
 @dataclass(frozen=True)

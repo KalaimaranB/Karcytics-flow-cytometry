@@ -7,16 +7,14 @@ experiment: accepting a proposal is ``commit.py``'s job.
 
 from __future__ import annotations
 
-import datetime
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .._utils import project_to_display
-from ..clustering.describe import short_marker
 from ..sample_lens.synthesis import match_scores
-from .assembly import exact, frame_of, plot_of, regions_of, with_pending
+from .assembly import exact, frame_of, plot_of, record_of, regions_of, with_pending
 from .density import find_valley
 from .models import (
     DENSITY_VALLEYS,
@@ -46,7 +44,15 @@ from .population import (
     singlet_pair,
     subsample,
 )
-from .split import SINGLETS, Split, by_mixture, by_singlets, by_valleys, split_axis_record
+from .split import (
+    CELLS,
+    SINGLETS,
+    Split,
+    by_mixture,
+    by_singlets,
+    by_valleys,
+    cells_names,
+)
 from .story import story_of
 from .views import Axis, View, ViewChoice, choose, loadings_section
 
@@ -57,7 +63,6 @@ if TYPE_CHECKING:
     from ..gating.gate_node import GateNode
     from ..state import FlowState
 
-CELLS, DEBRIS = "Cells", "Debris"
 CELLS_STEP, SINGLETS_STEP = "cells", "singlets"
 KEPT = {CELLS, SINGLETS}
 MAX_VIEWS_TRIED = 5  # mixture methods move on from views that hold one population
@@ -158,7 +163,7 @@ class GatingEngine:
         # Named by the view's own markers; PCA axes mix every channel, so by all of them.
         naming = channels if info.key == PCA.key else (view.x.key, view.y.key)
         if step == CELLS_STEP:
-            names = _cells_names(view, split)
+            names = cells_names(view, split)
         elif all(p.name for p in split.pieces):
             names = [p.name for p in split.pieces]
         else:
@@ -175,7 +180,7 @@ class GatingEngine:
         plot = plot_of(view, frame, data, regions, split)
         reason = self._reason(info.key, rank, view, choice, split, data, regions)
         pending = tuple(a.pending for a in (view.x, view.y) if a.pending is not None)
-        provenance = self._record(info.key, data, view, choice.notes, split, request)
+        provenance = record_of(info.key, data, view, choice.notes, split, request)
         if step:
             reason, provenance["convention"] = _convention_reason(step, split), step
         return Proposal(
@@ -256,41 +261,6 @@ class GatingEngine:
             lead += "Views ranked above it held one population each, or were skipped. "
         named = ", ".join(f"{r.name} ({r.fraction:.0%})" for r in regions if r.is_main)
         return f"{lead}{split.reason} Named from each group's medians: {named}."
-
-    def _record(  # noqa: PLR0913 - everything the record keeps
-        self,
-        key: str,
-        data: PopulationData,
-        view: View,
-        notes: dict[str, object],
-        split: Split,
-        request: StepRequest,
-    ) -> dict[str, object]:
-        record: dict[str, object] = {
-            "method": key,
-            "created": datetime.date.today().isoformat(),
-            "reference_sample": data.sample.display_name,
-            "parent": data.parent_name,
-            "events_used": len(data.events),
-            "parent_events": data.parent_total,
-            "channels": [
-                short_marker(data.labels[ch]) for ch in request.channels if ch in data.labels
-            ],
-            "view": view.name,
-            "view_score": round(view.score, 3),
-            "x_axis": view.x.label,
-            "y_axis": view.y.label,
-            "axis_formulas": {
-                a.label: a.pending.formula for a in (view.x, view.y) if a.pending is not None
-            },
-            "min_valley": request.min_valley,
-        }
-        record.update(split_axis_record(view))
-        record.update(split.record)
-        if key == PCA.key:
-            record["loadings"] = notes.get("loadings")
-            record["variance"] = notes.get("variance")
-        return record
 
     # ── Apply to group ────────────────────────────────────────────────
 
@@ -478,12 +448,6 @@ def _on_scatter(node: GateNode) -> bool:
         return False
     params = [p for p in (gate.x_param, getattr(gate, "y_param", None)) if p]
     return bool(params) and all(p.startswith(("FSC", "SSC")) for p in params)
-
-
-def _cells_names(view: View, split: Split) -> list[str]:
-    """By convention: above the forward-scatter valley is cells, below it debris."""
-    cut = split.cuts[0][1]
-    return [CELLS if np.median(view.x.values[p.mask]) >= cut else DEBRIS for p in split.pieces]
 
 
 def _convention_reason(step: str, split: Split) -> str:

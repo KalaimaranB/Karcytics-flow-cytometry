@@ -35,6 +35,10 @@ if TYPE_CHECKING:
 DENSITY_POINTS = 64  # the density curve kept on each gate's record
 
 
+CELLS, DEBRIS = "Cells", "Debris"
+SINGLETS, DOUBLETS = "Singlets", "Doublets"
+
+
 @dataclass(frozen=True, eq=False)
 class Piece:
     mask: np.ndarray
@@ -76,13 +80,15 @@ def split_axis_record(view: View) -> dict[str, object]:
     }
 
 
-def by_valleys(view: View, min_valley: float, cells: bool = False) -> Split | str:
-    """Rectangles between the valleys on each axis.
+def by_valleys(
+    view: View, min_valley: float, cells: bool = False, x_only: bool = False
+) -> Split | str:
+    """Rectangles between the valleys on each axis (only x when ``x_only``).
 
     ``cells``: the cells split, cut only on x (forward scatter), and only below its
     tallest peak, where debris is.
     """
-    axes = (("x", view.x),) if cells else (("x", view.x), ("y", view.y))
+    axes = (("x", view.x),) if cells or x_only else (("x", view.x), ("y", view.y))
     valleys = {name: find_valley(axis.values, side="below" if cells else "") for name, axis in axes}
     cuts = {
         name: v.position for name, v in valleys.items() if v is not None and v.depth >= min_valley
@@ -192,7 +198,6 @@ def by_mixture(view: View, min_valley: float, means_init: np.ndarray | None = No
     return Split(pieces, [], reason, record, mixture.components)
 
 
-SINGLETS, DOUBLETS = "Singlets", "Doublets"
 SPREAD_CUT = 3.0  # robust standard deviations from the main ratio peak, when there is no valley
 OUTLINE_POINTS = 32  # per boundary line, so the gate follows it on any axis scale
 
@@ -255,3 +260,34 @@ def by_singlets(view: View, area: np.ndarray, height: np.ndarray, min_valley: fl
         "doublet_cut": "valley" if valley is not None and valley.depth >= min_valley else "spread",
     }
     return Split(pieces, [], reason, record)
+
+
+def cells_names(view: View, split: Split) -> list[str]:
+    """By convention: above the forward-scatter valley is cells, below it debris."""
+    if not split.cuts:  # nothing cut off: it is all cells
+        return [CELLS for _p in split.pieces]
+    cut = split.cuts[0][1]
+    return [CELLS if np.median(view.x.values[p.mask]) >= cut else DEBRIS for p in split.pieces]
+
+
+def whole(view: View, why: str) -> Split:
+    """One piece holding the whole population: a rectangle open on every side."""
+    extremes = _extremes(view)
+    corners = np.array(
+        [
+            [extremes[0], extremes[2]],
+            [extremes[1], extremes[2]],
+            [extremes[1], extremes[3]],
+            [extremes[0], extremes[3]],
+        ]
+    )
+    gate = rectangle_from_display(
+        view.x.key,
+        view.y.key,
+        (-np.inf, np.inf, -np.inf, np.inf),
+        view.x.scale,
+        view.y.scale,
+        extremes,
+    )
+    mask = np.ones(len(view.x.values), dtype=bool)
+    return Split([Piece(mask, corners, gate)], [], why, {"whole_population": True})

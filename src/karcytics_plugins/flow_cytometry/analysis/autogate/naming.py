@@ -9,6 +9,7 @@ a dim group split off inside "PI−" is not called "PI+".
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -31,12 +32,14 @@ def _called(marker: str, level: float) -> str:
     return f"{marker}{SCATTER_CALLS[c]}" if marker.startswith(("FSC", "SSC")) else f"{marker}{c}"
 
 
-def name_regions(
-    data: PopulationData, channels: tuple[str, ...], masks: list[np.ndarray]
-) -> list[str]:
-    """One name per mask; masks that share a phenotype are numbered."""
-    if not masks or not channels:
-        return [f"Population {i + 1}" for i in range(len(masks))]
+@dataclass(frozen=True, eq=False)
+class _Scaled:
+    between: MarkerScale  # how far apart the groups are, per channel
+    scale: MarkerScale  # the calls' scale: at least the whole sample's spread
+    levels: dict[int, tuple[float, ...]]  # per group present, its level on each channel
+
+
+def _scaled(data: PopulationData, channels: tuple[str, ...], masks: list[np.ndarray]) -> _Scaled:
     whole = _whole_sample(data, channels)
     columns = []
     for ch in channels:
@@ -48,11 +51,34 @@ def name_regions(
     for i, mask in enumerate(masks):
         groups[mask & (groups == -1)] = i
     present = [i for i in range(len(masks)) if (groups == i).any()]
-    labels = [data.labels[ch] for ch in channels]
-    between = MarkerScale.from_clusters(x, groups, labels)  # how far apart the groups are
+    between = MarkerScale.from_clusters(x, groups, [data.labels[ch] for ch in channels])
     scale = _widened(between, whole, channels)
-    ranked = [int(i) for i in np.argsort(-between.spread) if between.spread[i] >= MIN_SPREAD]
-    levels = {i: scale.level(x[groups == i]) for i in present}
+    return _Scaled(between, scale, {i: scale.level(x[groups == i]) for i in present})
+
+
+def calls_of(
+    data: PopulationData, channels: tuple[str, ...], masks: list[np.ndarray]
+) -> list[dict[str, str]]:
+    """Each mask's +/lo/− call on every channel, as its name would give it."""
+    scaled = _scaled(data, channels, masks)
+    return [
+        {ch: call(scaled.levels[i][j]) for j, ch in enumerate(channels)}
+        if i in scaled.levels
+        else {}
+        for i in range(len(masks))
+    ]
+
+
+def name_regions(
+    data: PopulationData, channels: tuple[str, ...], masks: list[np.ndarray]
+) -> list[str]:
+    """One name per mask; masks that share a phenotype are numbered."""
+    if not masks or not channels:
+        return [f"Population {i + 1}" for i in range(len(masks))]
+    scaled = _scaled(data, channels, masks)
+    scale, levels = scaled.scale, scaled.levels
+    spread = scaled.between.spread
+    ranked = [int(i) for i in np.argsort(-spread) if spread[i] >= MIN_SPREAD]
     names: list[str] = []
     # The fewest markers (most different first, at least two) that tell every population apart.
     for count in range(min(MIN_MARKERS, len(ranked)), min(MAX_MARKERS, len(ranked)) + 1):

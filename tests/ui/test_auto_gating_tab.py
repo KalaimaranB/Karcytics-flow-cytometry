@@ -3,7 +3,11 @@
 import pytest
 from PySide6.QtCore import Qt
 
-from karcytics_plugins.flow_cytometry.analysis.autogate import GatingEngine, ProposalCommitter
+from karcytics_plugins.flow_cytometry.analysis.autogate import (
+    GatingEngine,
+    ProposalCommitter,
+    TemplateRunner,
+)
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
 from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_service import (
@@ -24,7 +28,8 @@ def tab(qtbot):
     state = build_lens_state()
     state.data.experiment.samples["s3"].role = SampleRole.FMO_CONTROL
     committer = ProposalCommitter(TreeController(state), DerivedParameterService(state))
-    widget = AutoGatingTab(state, GatingEngine(state, AxisManager(state)), committer)
+    axes = AxisManager(state)
+    widget = AutoGatingTab(state, GatingEngine(state, axes), committer, TemplateRunner(state, axes))
     qtbot.addWidget(widget)
     widget.resize(1500, 950)
     widget.show()
@@ -146,3 +151,49 @@ def test_the_tab_never_widens_the_panel(tab):
     """
     assert tab.minimumSizeHint().width() < 300  # noqa: PLR2004
     assert tab.minimumSizeHint().height() < 300  # noqa: PLR2004
+
+
+def test_a_template_builds_the_tree_it_describes(tab):
+    from karcytics_plugins.flow_cytometry.analysis.autogate.template import GatingTemplate
+
+    sidebar = tab._sidebar
+    sidebar.set_method("template")
+    assert sidebar._propose.text() == "Build from template"
+    assert sidebar._template_box.isVisibleTo(sidebar) and not sidebar._channels_box.isVisibleTo(
+        sidebar
+    )
+    sidebar.template_editor.set_template(
+        GatingTemplate.from_dict(
+            {
+                "name": "CD4 and CD8",
+                "steps": [
+                    {"id": "4", "name": "CD4 T", "parent": None, "markers": "CD4+ CD8-"},
+                    {"id": "8", "name": "CD8 T", "parent": None, "markers": "CD4- CD8+"},
+                ],
+            }
+        )
+    )
+    sidebar.set_population(_t_cells(tab).node_id)
+    sidebar.propose_clicked.emit()
+
+    build = tab._build
+    assert build._steps.isVisibleTo(build) and build._steps.count() == 2  # noqa: PLR2004
+    assert build._title.text() == "CD4 T in T cells"
+    assert len(tab._tree._view._proposed) == 2  # noqa: PLR2004 - both, dashed
+    tab._tree.proposed_clicked.emit("8")
+    assert build._title.text() == "CD8 T in T cells"
+
+    before = {c.node_id for c in _t_cells(tab).children}
+    build.accept_clicked.emit()
+    added = sorted(c.name for c in _t_cells(tab).children if c.node_id not in before)
+    assert added == ["CD4 T", "CD8 T"]
+    assert build._status.text().startswith("Added 2 gates from “CD4 and CD8”")
+
+
+def test_a_template_that_cannot_be_read_says_what_to_fix(tab):
+    sidebar = tab._sidebar
+    sidebar.set_method("template")
+    tree = sidebar.template_editor._tree
+    tree.topLevelItem(0).setText(1, "CD3")  # no +/−
+    sidebar.propose_clicked.emit()
+    assert "Cells: “CD3” needs + / lo / −" in tab._build._plot._empty_text

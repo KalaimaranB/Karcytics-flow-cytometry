@@ -1,0 +1,104 @@
+"""Gating from a template on planted samples (tests/fixtures/lens.py).
+
+Cells: debris 8%; then CD4 T 40%, CD8 T 22%, NKT 8% (CD3+ CD8+ CD56+), NK 22% (CD3− CD56+).
+"""
+
+import pytest
+
+from karcytics_plugins.flow_cytometry.analysis.autogate import ProposalCommitter, TemplateRunner
+from karcytics_plugins.flow_cytometry.analysis.autogate.models import TEMPLATE
+from karcytics_plugins.flow_cytometry.analysis.autogate.template import (
+    CELLS,
+    MARKERS,
+    Call,
+    GatingTemplate,
+    parse_calls,
+)
+from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
+from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_service import (
+    DerivedParameterService,
+)
+from tests.fixtures.lens import TreeController, build_lens_state
+
+STEPS = [
+    {"id": "c", "name": "Cells", "parent": None, "markers": "scatter"},
+    {"id": "s", "name": "Singlets", "parent": "c", "markers": "singlets"},
+    {"id": "t", "name": "T cells", "parent": "s", "markers": "CD3+"},
+    {"id": "t4", "name": "CD4 T", "parent": "t", "markers": "CD4+ CD8-"},
+    {"id": "t8", "name": "CD8 T", "parent": "t", "markers": "CD4− CD8+"},
+    {"id": "nk", "name": "NK cells", "parent": "s", "markers": "CD3- CD56+"},
+    {"id": "b", "name": "B cells", "parent": "s", "markers": "B220+"},
+]
+
+
+@pytest.fixture
+def lens():
+    state = build_lens_state()
+    state.data.experiment.samples["s0"].gate_tree.children.clear()
+    return state, TemplateRunner(state, AxisManager(state))
+
+
+def _run(state, runner):
+    plan = runner.run(GatingTemplate.from_dict({"name": "T and NK", "steps": STEPS}), "s0", None)
+    assert not isinstance(plan, str), plan
+    return plan, {o.step.name: o for o in plan.outcomes}
+
+
+def test_markers_are_read_as_they_are_said():
+    assert parse_calls("CD4+ CD8−") == (MARKERS, (Call("CD4", "+"), Call("CD8", "−")))
+    assert parse_calls("CD45lo, CD3-") == (MARKERS, (Call("CD45", "lo"), Call("CD3", "−")))
+    assert parse_calls("scatter") == (CELLS, ())
+    assert "needs + / lo / −" in parse_calls("CD3")
+    assert "At most 2" in parse_calls("CD3+ CD4+ CD8+")
+
+
+def test_a_template_round_trips_through_its_file_form():
+    template = GatingTemplate.from_dict({"name": "T and NK", "steps": STEPS})
+    assert GatingTemplate.from_dict(template.to_dict()) == template
+    assert [s.name for s in template.ordered()][:3] == ["Cells", "Singlets", "T cells"]
+
+
+def test_each_population_is_found_where_it_was_planted(lens):
+    state, runner = lens
+    _plan, steps = _run(state, runner)
+
+    assert steps["Cells"].proposal.gated[0].fraction == pytest.approx(0.92, abs=0.02)
+    t_cells = steps["T cells"].proposal.gated[0]
+    assert t_cells.name == "T cells" and t_cells.fraction == pytest.approx(0.70 / 0.92, abs=0.04)
+    cd4 = steps["CD4 T"].proposal.gated[0]
+    assert cd4.fraction == pytest.approx(0.40 / 0.70, abs=0.05)
+    assert steps["CD8 T"].proposal.gated[0].fraction == pytest.approx(0.30 / 0.70, abs=0.05)
+    assert steps["NK cells"].proposal.gated[0].fraction == pytest.approx(0.22 / 0.92, abs=0.04)
+    assert "asked for CD4+ CD8−" in steps["CD4 T"].proposal.reason
+    assert steps["CD4 T"].proposal.method_key == TEMPLATE.key
+
+
+def test_what_this_sample_cant_show_is_said_and_stepped_around(lens):
+    state, runner = lens
+    _plan, steps = _run(state, runner)
+
+    assert steps["Singlets"].proposal is None  # the planted samples have no FSC-H
+    assert "start from Cells" in steps["Singlets"].message
+    assert steps["B cells"].proposal is None
+    assert "No channel measures B220" in steps["B cells"].message
+
+
+def test_accepting_builds_the_tree_as_written(lens):
+    state, runner = lens
+    plan, _steps = _run(state, runner)
+
+    created = ProposalCommitter(TreeController(state), DerivedParameterService(state)).accept_plan(
+        plan
+    )
+
+    root = state.data.experiment.samples["s0"].gate_tree
+    (cells,) = root.children
+    assert cells.name == "Cells" and cells.node_id == created["c"]
+    assert sorted(c.name for c in cells.children) == [
+        "NK cells",
+        "T cells",
+    ]  # Singlets stepped aside
+    t_cells = next(c for c in cells.children if c.name == "T cells")
+    assert sorted(c.name for c in t_cells.children) == ["CD4 T", "CD8 T"]
+    record = t_cells.children[0].gate.provenance
+    assert record["template"] == "T and NK" and record["method"] == TEMPLATE.key

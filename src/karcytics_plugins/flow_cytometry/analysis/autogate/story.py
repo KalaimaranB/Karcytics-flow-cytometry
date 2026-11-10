@@ -10,7 +10,7 @@ from typing import Any
 
 import numpy as np
 
-from .models import PCA, Bar, BarSection, GateStory, method
+from .models import PCA, TEMPLATE, Bar, BarSection, GateStory, method
 
 
 def _loadings(record: dict[str, Any], axis: str) -> BarSection | None:
@@ -63,6 +63,18 @@ def _methods_text(gate: str, record: dict[str, Any]) -> str:
             f"were computed; the population was split on {record.get('view')}, the plane whose density "
             "showed the clearest valley. "
         )
+    elif info.key == TEMPLATE.key:
+        text += (
+            f"It was gated from the template “{record.get('template', '')}”, which asked for "
+            f"{record.get('asked', '')} within {parent}, on {record.get('view')}. "
+        )
+        if record.get("whole_population"):
+            text += f"Nothing split {parent} on these markers, so the gate holds all of it. "
+        elif record.get("cuts"):
+            cuts = ", ".join(record["cuts"])
+            text += (
+                f"Cuts were placed at the lowest point of the density between two peaks on {cuts}. "
+            )
     elif record.get("cuts"):
         cuts = ", ".join(record["cuts"])
         text += f"Cuts were placed at the lowest point of the density between two peaks on {cuts}. "

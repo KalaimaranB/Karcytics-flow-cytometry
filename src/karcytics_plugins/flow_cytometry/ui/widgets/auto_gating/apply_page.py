@@ -68,7 +68,7 @@ class ApplyPage(QWidget):
         layout.addWidget(scroll, 1)
         self.show_preview(None, "")
 
-    def show_preview(self, preview: GroupPreview | None, group_name: str) -> None:
+    def show_preview(self, preview: GroupPreview | None, group_name: str, empty: str = "") -> None:
         self._title.setText(f"Apply to {group_name}" if group_name else "Apply to the group")
         clear_layout(self._grid)
         if preview is None:
@@ -76,7 +76,9 @@ class ApplyPage(QWidget):
             self._table.setRowCount(0)
             self._table.setColumnCount(0)
             self._grid.addWidget(
-                BioCaptionLabel("Propose a split on the Build page to see it on every sample."),
+                BioCaptionLabel(
+                    empty or "Propose a split on the Build page to see it on every sample."
+                ),
                 0,
                 0,
             )

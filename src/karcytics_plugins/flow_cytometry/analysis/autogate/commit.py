@@ -8,6 +8,7 @@ one that already has the same formula.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from ..derived.models import DerivedParameterDraft
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from ..gate_coordinator import GateCoordinator
     from ..services.derived_parameter_service import DerivedParameterService
     from .models import PendingAxis, Proposal
+    from .template_runner import TemplatePlan
 
 
 class ProposalCommitter:
@@ -46,6 +48,28 @@ class ProposalCommitter:
             if node_id is not None:
                 added.append(node_id)
         return added
+
+    def accept_plan(self, plan: TemplatePlan) -> dict[str, str]:
+        """Add every population a template run found, parents first.
+
+        Each goes under the gate just made for its parent step, or, where that
+        step wasn't drawn (no forward-scatter height for Singlets, say), under
+        the nearest one that was. Returns step id → new node id.
+        """
+        steps = {s.step_id: s for s in plan.template.steps}
+        created: dict[str, str] = {}
+        for outcome in plan.found:
+            assert outcome.proposal is not None  # found
+            parent_step, parent_id = outcome.step.parent_id, plan.start_id
+            while parent_step is not None:
+                if parent_step in created:
+                    parent_id = created[parent_step]
+                    break
+                parent_step = steps[parent_step].parent_id
+            added = self.accept(replace(outcome.proposal, parent_id=parent_id))
+            if added:
+                created[outcome.step.step_id] = added[0]
+        return created
 
     def _axis_parameter(self, axis: PendingAxis) -> str:
         """The derived parameter for ``axis``: one with the same formula, or a new one."""

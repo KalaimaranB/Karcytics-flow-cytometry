@@ -23,8 +23,10 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QCheckBox, QFormLayout, QListWidgetItem, QVBoxLayout, QWidget
 
 from ....analysis.autogate import StepRequest, method
+from ....analysis.autogate.models import TEMPLATE
 from ..panel_style import section_header
 from .method_picker import MethodPicker
+from .template_editor import TemplateEditor
 
 SIDEBAR_WIDTH = 300
 CHANNEL_LIST_HEIGHT = 130
@@ -86,12 +88,29 @@ class SetupSidebar(QWidget):
         )
         self._population = self._combo("AutoGatePopulationCombo", self.choices_changed)
         layout.addWidget(self._population)
-        layout.addWidget(section_header("Channels", "The markers the split may use."))
+        self._channels_box = QWidget()
+        channels_layout = QVBoxLayout(self._channels_box)
+        channels_layout.setContentsMargins(0, 0, 0, 0)
+        channels_layout.addWidget(section_header("Channels", "The markers the split may use."))
         self._channels = BioListWidget()
         self._channels.setObjectName("AutoGateChannels")
         self._channels.setFixedHeight(CHANNEL_LIST_HEIGHT)
         self._channels.itemChanged.connect(lambda _item: self.choices_changed.emit())
-        layout.addWidget(self._channels)
+        channels_layout.addWidget(self._channels)
+        layout.addWidget(self._channels_box)
+        self._template_box = QWidget()
+        template_layout = QVBoxLayout(self._template_box)
+        template_layout.setContentsMargins(0, 0, 0, 0)
+        template_layout.addWidget(
+            section_header(
+                "Template",
+                "The gating tree you expect: each population inside its parent, with the markers "
+                "that define it. Each gate is placed where the data shows that population.",
+            )
+        )
+        self.template_editor = TemplateEditor()
+        template_layout.addWidget(self.template_editor)
+        layout.addWidget(self._template_box)
 
     def _add_method(self, layout: QVBoxLayout) -> None:
         layout.addSpacing(8)
@@ -178,7 +197,12 @@ class SetupSidebar(QWidget):
         return combo
 
     def _on_method_changed(self, key: str) -> None:
+        templated = key == TEMPLATE.key
         self._axes.setVisible(method(key).user_picks_axes)
+        self._channels_box.setVisible(not templated)
+        self._template_box.setVisible(templated)
+        self._cells_first.setVisible(not templated)  # a template says where Cells and Singlets go
+        self._propose.setText("Build from template" if templated else "Propose next split")
         self.choices_changed.emit()
 
     # ── Filled by the tab ─────────────────────────────────────────────

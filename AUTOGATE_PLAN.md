@@ -77,5 +77,14 @@ change when the real engine replaces `DemoEngine`.
       own gates (F1 by label path).
 - [x] **Visual gating tree** in the tab (the Gating tab's tree, read-only,
       proposals dashed; click a population to split it or explain it).
+- [x] **Cells and singlets first.** By convention, before any marker: Cells
+      (debris cut at the valley below the main FSC peak) from All Events, then
+      Singlets (FSC area/height ratio) from the cells gate. Skipped, with the
+      reason, when already gated or the file can't show them.
+- [x] **From a template.** A fourth method: you write the gating tree and each
+      population's markers ("CD4+ CD8−"); the runner splits each parent on
+      those markers and keeps the region whose calls match. Steps that aren't
+      there say why; Singlets steps aside without FSC-H. Templates save as
+      JSON. Apply/Compare don't yet cover template runs.
 - [ ] **9. Academy course + user docs** (`docs/user/00_OVERVIEW.md` tab list,
       Sample Lens "sits between" wording, a new `17_AUTO_GATING.md`).

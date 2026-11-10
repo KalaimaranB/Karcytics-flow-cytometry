@@ -1,4 +1,4 @@
-"""The three methods as cards, one chosen at a time. Built from ``METHODS``."""
+"""The methods as cards, one chosen at a time. Built from ``PICKABLE``."""
 
 from __future__ import annotations
 
@@ -7,7 +7,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeyEvent, QMouseEvent
 from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
 
-from ....analysis.autogate import METHODS, MethodInfo
+from ....analysis.autogate import MethodInfo
+from ....analysis.autogate.models import PCA, PICKABLE
 
 _ON = (
     "QFrame#{name} {{ background: {{BG_MEDIUM}}; border: 1px solid {{ACCENT_PRIMARY}};"
@@ -73,12 +74,12 @@ class MethodPicker(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
-        self._cards = [_MethodCard(info) for info in METHODS]
+        self._cards = [_MethodCard(info) for info in PICKABLE]
         for card in self._cards:
             card.clicked.connect(self._on_card_clicked)
             layout.addWidget(card)
         self._key = ""
-        self.set_method(METHODS[-1].key)
+        self.set_method(PCA.key)
 
     def method_key(self) -> str:
         return self._key

@@ -85,3 +85,38 @@ def test_no_cells_cut_where_forward_scatter_has_no_debris_valley(fcs_test_data_d
     assert not isinstance(proposal, str), proposal
     assert proposal.reason.startswith("Cells step skipped")
     assert "Cells" not in [r.name for r in proposal.gated]
+
+
+def _template_plan(fcs_test_data_dir, name: str):
+    from karcytics_plugins.flow_cytometry.analysis.autogate import TemplateRunner
+    from karcytics_plugins.flow_cytometry.analysis.autogate.template import GatingTemplate
+
+    engine, _markers = _engine(fcs_test_data_dir, name)
+    template = GatingTemplate.from_dict(
+        {
+            "name": "Spleen",
+            "steps": [
+                {"id": "c", "name": "Cells", "parent": None, "markers": "scatter"},
+                {"id": "s", "name": "Singlets", "parent": "c", "markers": "singlets"},
+                {"id": "l", "name": "Live", "parent": "s", "markers": "PI-"},
+                {"id": "b", "name": "B cells", "parent": "l", "markers": "B220+"},
+                {"id": "t", "name": "T cells", "parent": "l", "markers": "CD3+"},
+            ],
+        }
+    )
+    plan = TemplateRunner(engine._state, engine._axis_manager).run(template, "s", None)
+    assert not isinstance(plan, str), plan
+    return {o.step.name: o for o in plan.outcomes}
+
+
+def test_a_template_finds_live_b_and_t_cells_in_a_stained_sample(fcs_test_data_dir):
+    steps = _template_plan(fcs_test_data_dir, "Sample C")
+    for name in ("Cells", "Live", "B cells", "T cells"):
+        assert steps[name].proposal is not None, steps[name].message
+    assert 0.5 < steps["B cells"].proposal.gated[0].fraction < 0.9  # noqa: PLR2004
+
+
+def test_a_template_finds_no_stained_populations_in_an_unstained_tube(fcs_test_data_dir):
+    steps = _template_plan(fcs_test_data_dir, "Blank")
+    assert steps["Live"].proposal is None
+    assert steps["B cells"].proposal is None and steps["T cells"].proposal is None

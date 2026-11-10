@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ....analysis.autogate import GatingEngine, ProposalCommitter
+from ....analysis.autogate import GatingEngine, ProposalCommitter, TemplateRunner
 from .auto_gating_tab import AutoGatingTab
 
 if TYPE_CHECKING:
@@ -21,10 +21,11 @@ if TYPE_CHECKING:
 def create_auto_gating_tab(
     state: FlowState, services: FlowServices, parent: QWidget | None = None
 ) -> AutoGatingTab:
-    """The tab with its engine and committer: the one place that picks them."""
+    """The tab with its engine, template runner and committer: the one place that picks them."""
     engine = GatingEngine(state, services.axis_manager)
+    runner = TemplateRunner(state, services.axis_manager)
     committer = ProposalCommitter(services.gate_coordinator, services.derived_parameter_service)
-    return AutoGatingTab(state, engine, committer, parent=parent)
+    return AutoGatingTab(state, engine, committer, runner, parent=parent)
 
 
 __all__ = ["AutoGatingTab", "create_auto_gating_tab"]
