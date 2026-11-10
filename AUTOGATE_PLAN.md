@@ -55,23 +55,27 @@ change when the real engine replaces `DemoEngine`.
 - [x] **1. UI shell.** The tab with Build / Why this gate / Apply to group /
       Compare methods, driven by `DemoEngine` (example output, demo banner,
       Accept changes nothing).
-- [ ] **2. Engine core.** Data types already exist in `models.py`. Still to
-      build: the shared transform helper, the `Splitter` (GMM by BIC plus
-      density valley, with a check for two clear peaks and no GPL `diptest`),
-      the `Namer`, the `GateBuilder` and `gate.provenance` (serialized). Unit
-      tests on synthetic blobs, including a one-blob control.
-- [ ] **3. Density valleys live.** The real engine replaces the demo for this
-      method. Accept writes gates via the gate coordinator; `GatePropagator`
-      copies them to the group.
-- [ ] **4. PCA.** The projection derived parameter (frozen loadings, centre,
-      scale and logicle settings), the PC-plane view chooser, and the loadings
-      and scree panels fed by real numbers.
-- [ ] **5. Marker-pair search.**
-- [ ] **6. Run to the stopping rules + Why panel from real provenance +
-      methods text.**
-- [ ] **7. Apply to group.** Real review table; adaptive mode through
-      `Gate.adapt()`; flag big moves.
-- [ ] **8. Compare methods.** Dry runs; agreement with manual gates via
-      `sample_lens/agreement.py`.
+- [x] **2. Engine core.** `GatingEngine` (one engine, method picked per
+      request), `density.py` (smoothed-histogram valleys), `mixture.py` (GMM,
+      k by BIC over 1–4, kept only while groups overlap < 0.3), `naming.py`,
+      `gating/from_display.py` and serialized `gate.provenance`. The demo
+      engine is gone.
+- [x] **3. Density valleys live.** Rectangle gates on the chosen axes;
+      FSC-A × SSC-A is the default first split (scatter channels are listed
+      but start unticked for the marker methods). Accept goes through
+      `GateCoordinator.add_gate`, so undo and `GatePropagator` apply.
+- [x] **4. PCA.** On arcsinh(x/150), standardized; each PC is written as a
+      derived-parameter formula, created on accept and reused when the same
+      formula already exists. Loadings and variance shown from real numbers.
+- [x] **5. Marker-pair search.**
+- [ ] **6. Run to the stopping rules.** Why panel and methods text from real
+      provenance are done; the Run button is still disabled ("Coming next").
+- [ ] **7. Apply to group.** Review table with a per-sample drift check
+      (dashed ghost of each sample's own split, flagged above 5%, controls
+      skipped) is done; adaptive per-sample gates via `Gate.adapt()` are not.
+- [x] **8. Compare methods.** Dry runs of every method, scored against your
+      own gates (F1 by label path).
+- [x] **Visual gating tree** in the tab (the Gating tab's tree, read-only,
+      proposals dashed; click a population to split it or explain it).
 - [ ] **9. Academy course + user docs** (`docs/user/00_OVERVIEW.md` tab list,
       Sample Lens "sits between" wording, a new `17_AUTO_GATING.md`).

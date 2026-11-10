@@ -53,8 +53,10 @@ class SampleViewWidget(QWidget):
     delete_requested = Signal(str)
     propagate_requested = Signal(str)
 
-    def __init__(self, state, parent: QWidget | None = None) -> None:
+    def __init__(self, state, parent: QWidget | None = None, *, editable: bool = True) -> None:
         super().__init__(parent)
+        self._editable = editable  # False: no rename/delete menu (a read-only view of the tree)
+        self._proposed: set[str] = set()  # nodes drawn dashed: not in the tree yet
         self._tree_width = 0.0  # laid-out tree width, set by each layout
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_context_menu)
@@ -101,6 +103,19 @@ class SampleViewWidget(QWidget):
             int((self._tree_width + 40) * self._scale), int((tree_h + 40) * self._scale)
         )
         self.update()
+
+    def set_proposed(self, node_ids: set[str]) -> None:
+        """Draw these nodes dashed: populations that would be added, not yet in the tree."""
+        self._proposed = set(node_ids)
+        self.update()
+
+    def node_center(self, node_id: str) -> QPoint | None:
+        """Where ``node_id`` is drawn, in this widget's coordinates (None if it isn't)."""
+        r = self._node_map.get(node_id)
+        if r is None:
+            return None
+        x_offset = max(0.0, (self.width() / self._scale - self._tree_width) / 2.0)
+        return QPoint(int((r.x + x_offset) * self._scale), int(r.y * self._scale))
 
     def set_selected(self, node_id: str | None) -> None:
         self._selected_id = node_id
@@ -197,16 +212,20 @@ class SampleViewWidget(QWidget):
             painter.fillPath(rim_path, fill)
             painter.fillRect(QRectF(px_x, px_y + 3, px_w, 3), fill)
 
-            # Outline
-            if r.node_id == self._selected_id:
-                painter.setPen(QPen(QColor(Colors.FG_PRIMARY), 2))
-            else:
-                painter.setPen(QPen(QColor(Colors.BORDER), 1))
+            painter.setPen(self._outline_pen(r.node_id))
             painter.drawPath(path)
 
             self._draw_label(painter, r, rect_f, fill)
 
         painter.end()
+
+    def _outline_pen(self, node_id: str) -> QPen:
+        """Dashed for a proposed node, bright for the selected one, else the border."""
+        if node_id in self._proposed:
+            return QPen(QColor(Colors.ACCENT_WARNING), 2, Qt.PenStyle.DashLine)
+        if node_id == self._selected_id:
+            return QPen(QColor(Colors.FG_PRIMARY), 2)
+        return QPen(QColor(Colors.BORDER), 1)
 
     def _draw_label(
         self, painter: QPainter, r: TreeNodeRect, rect_f: QRectF, fill_color: QColor
@@ -285,7 +304,8 @@ class SampleViewWidget(QWidget):
     def zoom_out(self) -> None:
         self.set_scale(self._scale / 1.15)
 
-    def fit_view(self) -> None:
+    def fit_view(self, min_scale: float = 0.1) -> None:
+        """Fit the tree to the scroll area, but no smaller than ``min_scale``."""
         tree_w = self._tree_width
         tree_h = max((r.y + r.height / 2 for r in self._rects), default=200.0)
 
@@ -300,7 +320,7 @@ class SampleViewWidget(QWidget):
                 scale_x = vw / (tree_w + 40) if tree_w > 0 else 1.0
                 scale_y = vh / (tree_h + 40) if tree_h > 0 else 1.0
 
-                self.set_scale(min(scale_x, scale_y))
+                self.set_scale(max(min(scale_x, scale_y), min_scale))
 
     def wheelEvent(self, event: QWheelEvent | None) -> None:
         if event is None:
@@ -396,7 +416,8 @@ class SampleViewWidget(QWidget):
             )
 
             if is_right_click:
-                self._show_context_menu(event.pos())
+                if self._editable:
+                    self._show_context_menu(event.pos())
                 event.accept()
                 return
             if event.button() == Qt.MouseButton.LeftButton:

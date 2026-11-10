@@ -1,17 +1,20 @@
 """What auto gating proposes, as plain data the Auto Gating tab renders.
 
 The tab never computes anything itself: it builds a :class:`StepRequest`
-from what the user picked, hands it to an engine (see ``engine.py``), and
-draws what comes back. Shapes are in display units, 0-1 on each axis of the
-view they were found in, so a plot can draw them without knowing any scale.
+from what the user picked, hands it to the engine (``engine.py``), and draws
+what comes back. Outlines are in plot units, 0-1 on each axis of the view
+they were found in, so a plot can draw them without knowing any scale.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from typing import TYPE_CHECKING, Any
 
-import numpy as np
+if TYPE_CHECKING:
+    import numpy as np
+
+    from ..gating.base import Gate
 
 
 @dataclass(frozen=True)
@@ -44,6 +47,8 @@ PCA = MethodInfo(
 )
 METHODS: tuple[MethodInfo, ...] = (DENSITY_VALLEYS, MARKER_PAIRS, PCA)
 
+MAIN_SHARE = 0.1  # a region holding less of its parent is a sliver, not a population to gate
+
 
 def method(key: str) -> MethodInfo:
     return next((m for m in METHODS if m.key == key), PCA)
@@ -51,16 +56,18 @@ def method(key: str) -> MethodInfo:
 
 @dataclass(frozen=True)
 class StepRequest:
-    """What the user asked for: split ``population`` of the reference sample."""
+    """Split the population ``node_id`` of sample ``sample_id``."""
 
     method_key: str
-    population: str  # display name of the population to split
-    channels: tuple[str, ...]  # channel labels, "CD4 (PE-A)"
-    samples: tuple[tuple[str, bool], ...] = ()  # the group: (name, is_control)
-    reference: str = ""
+    sample_id: str
+    node_id: str | None  # None: All Events
+    channels: tuple[str, ...]  # channel keys the split may use
+    group: tuple[str, ...] = ()  # sample ids the gates go to
     x_channel: str = ""  # density valleys: the axes the user picked
     y_channel: str = ""
     view_rank: int = 0  # 0: the best view, 1: the next best, ...
+    min_events: int = 500
+    min_valley: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -81,24 +88,15 @@ class BarSection:
     note: str = ""
 
 
-class Shape(Enum):
-    ELLIPSE = "ellipse"  # params: cx, cy, rx, ry, angle in degrees
-    POLYGON = "polygon"  # params: x0, y0, x1, y1, ...
-    QUADRANT = "quadrant"  # params: x cut, y cut, quadrant 0-3 (TL, TR, BL, BR)
-    RANGE = "range"  # params: low, high (x only)
-
-
-MAIN_SHARE = 0.1  # a region holding less of its parent is a sliver, not a population to gate
-
-
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Region:
     """One population a split would create."""
 
     name: str
     fraction: float  # of the parent
-    shape: Shape
-    params: tuple[float, ...]
+    outline: tuple[float, ...]  # polygon in plot units: x0, y0, x1, y1, ...
+    gate: Gate | None = None  # what accepting adds (None: shown only)
+    mask: np.ndarray | None = None  # its events among the ones the split looked at
 
     @property
     def is_main(self) -> bool:
@@ -107,13 +105,14 @@ class Region:
 
 @dataclass(frozen=True, eq=False)
 class PlotData:
-    """Events and regions on one 2-D view, all in display units (0-1)."""
+    """Events and regions on one 2-D view, in plot units (0-1)."""
 
     x_label: str
     y_label: str
     points: np.ndarray  # (n, 2)
     regions: tuple[Region, ...] = ()
-    ghosts: tuple[Region, ...] = ()  # where a region was before it moved
+    ghosts: tuple[Region, ...] = ()  # drawn dashed and grey, for comparison
+    cuts: tuple[tuple[str, float], ...] = ()  # ("x" or "y", position): density-valley cut lines
 
     @property
     def main_names(self) -> tuple[str, ...]:
@@ -121,16 +120,34 @@ class PlotData:
         return tuple(r.name for r in self.regions if r.is_main)
 
 
+@dataclass(frozen=True)
+class PendingAxis:
+    """A combined axis (a principal component) that accepting creates as a derived parameter."""
+
+    key: str  # stands in for the parameter's id in the proposal's gates
+    name: str
+    formula: str
+
+
 @dataclass(frozen=True, eq=False)
 class Proposal:
     """One proposed split, and why."""
 
     method_key: str
-    parent: str
+    sample_id: str
+    parent_id: str | None
+    parent: str  # its name
     n_events: int
     plot: PlotData
     view_sections: tuple[BarSection, ...]  # how the view was chosen
     reason: str  # the plain-language case for this split
+    pending_axes: tuple[PendingAxis, ...] = ()
+    provenance: dict[str, Any] = field(default_factory=dict)  # stored on every accepted gate
+    context: Any = None  # the engine's own: how to redo this split on another sample
+
+    @property
+    def gated(self) -> tuple[Region, ...]:
+        return tuple(r for r in self.plot.regions if r.is_main and r.gate is not None)
 
 
 @dataclass(frozen=True, eq=False)
@@ -139,7 +156,7 @@ class SampleOutcome:
 
     sample: str
     percents: dict[str, float]  # population -> % of parent
-    shift: float  # largest gate move, as a share of the axis (0 when fixed)
+    drift: float  # how far this sample's own split sits from the gates, share of the axis
     status: str
     flagged: bool
     plot: PlotData | None  # None: the sample is skipped
@@ -153,15 +170,15 @@ class GroupPreview:
 
 @dataclass(frozen=True, eq=False)
 class MethodOutcome:
-    """One method's whole strategy from the same starting population."""
+    """One method's split of the same population, or the user's own gates under it."""
 
     label: str  # "Your gates", or a method name
     method_key: str  # "" for the user's own gates
     percents: dict[str, float]
-    agreement: dict[str, float]  # population -> F1 against your gates
-    steps: int
-    axes: str
-    plot: PlotData
+    agreement: dict[str, float]  # population -> F1 against the best-matching gate of yours
+    summary: str  # the view, e.g. "CD4 × CD8"
+    plot: PlotData | None
+    error: str = ""  # why there is no split
 
 
 @dataclass(frozen=True, eq=False)
@@ -176,4 +193,4 @@ class GateStory:
     valley_at: float  # 0-1 along that axis
     split_axis: str
     methods_text: str  # a paragraph for a paper's methods section
-    edits: tuple[str, ...] = field(default=())
+    edits: tuple[str, ...] = ()

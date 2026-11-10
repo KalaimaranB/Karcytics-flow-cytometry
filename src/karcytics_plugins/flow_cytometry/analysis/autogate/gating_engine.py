@@ -1,0 +1,408 @@
+"""The auto-gating engine: population -> view -> split -> named populations.
+
+Synchronous and fast enough to run on a click (a split looks at no more than
+20,000 events; mixtures are fitted on 8,000). Nothing here changes the
+experiment: accepting a proposal is ``commit.py``'s job.
+"""
+
+from __future__ import annotations
+
+import datetime
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING
+
+import numpy as np
+
+from .._utils import project_to_display
+from ..clustering.describe import short_marker
+from ..derived.expression import parse_formula
+from ..sample_lens.synthesis import match_scores
+from .density import find_valley
+from .models import (
+    DENSITY_VALLEYS,
+    MARKER_PAIRS,
+    METHODS,
+    PCA,
+    GateStory,
+    GroupPreview,
+    MethodOutcome,
+    PlotData,
+    Proposal,
+    Region,
+    SampleOutcome,
+    StepRequest,
+    method,
+)
+from .naming import name_regions
+from .population import (
+    Frame,
+    PopulationData,
+    load_population,
+    plot_rows,
+    population_events,
+    same_population,
+    subsample,
+)
+from .split import Piece, Split, by_mixture, by_valleys, split_axis_record
+from .story import story_of
+from .views import Axis, View, choose, loadings_section
+
+if TYPE_CHECKING:
+    import pandas as pd
+
+    from ..axis_manager import AxisManager
+    from ..state import FlowState
+
+FLAG_DRIFT = 0.05  # a sample whose own split sits further than this share of an axis needs a look
+
+
+@dataclass(frozen=True, eq=False)
+class _Context:
+    """What a proposal was made from, to redo it on another sample."""
+
+    view: View
+    split: Split
+    frame: Frame
+    data: PopulationData
+
+
+class GatingEngine:
+    def __init__(self, state: FlowState, axis_manager: AxisManager) -> None:
+        self._state = state
+        self._axis_manager = axis_manager
+
+    # ── Build ─────────────────────────────────────────────────────────
+
+    def propose(self, request: StepRequest) -> Proposal | str:
+        """The next split of the population, or why there isn't one."""
+        info = method(request.method_key)
+        axes = (request.x_channel, request.y_channel) if info.user_picks_axes else ("", "")
+        channels = tuple(dict.fromkeys(request.channels + tuple(a for a in axes if a)))
+        data = load_population(
+            self._state,
+            self._axis_manager,
+            request.sample_id,
+            request.node_id,
+            channels,
+            request.min_events,
+        )
+        if isinstance(data, str):
+            return data
+        choice = choose(data, info.key, request.channels, *axes)
+        if isinstance(choice, str):
+            return choice
+        view, sections = choice.ranked(request.view_rank)
+        if info.key == DENSITY_VALLEYS.key:
+            split = by_valleys(view, request.min_valley)
+        else:
+            split = by_mixture(view, request.min_valley)
+        if isinstance(split, str):
+            return split
+        # Each region holds exactly what its gate holds: the gate, not the shape it was
+        # fitted as, is what goes in the tree, so its numbers are the ones shown.
+        on_axes = self._with_pending(data.events, view)
+        pieces = [
+            replace(p, mask=np.asarray(p.gate.contains(on_axes), dtype=bool)) for p in split.pieces
+        ]
+        split = replace(split, pieces=[p for p in pieces if p.mask.any()])
+        frame = Frame.around(view.x.values, view.y.values)
+        # Named by what was cut: the picked axes for density valleys, else every channel used.
+        naming = tuple(a for a in axes if a) if info.user_picks_axes else channels
+        names = name_regions(data, naming, [p.mask for p in split.pieces])
+        regions = sorted(
+            (
+                self._region(name, piece, frame)
+                for name, piece in zip(names, split.pieces, strict=True)
+            ),
+            key=lambda r: -r.fraction,
+        )
+        if info.key == PCA.key:
+            extra = (
+                loadings_section(choice.notes, view.x.label),
+                loadings_section(choice.notes, view.y.label),
+            )
+            sections = sections + tuple(s for s in extra if s is not None)
+        rows = data.plot_rows()
+        points = frame.unit(np.column_stack((view.x.values[rows], view.y.values[rows])))
+        cuts = tuple(
+            (axis, float(frame.unit(np.array([[pos, pos]]))[0, 0 if axis == "x" else 1]))
+            for axis, pos in split.cuts
+        )
+        plot = PlotData(view.x.label, view.y.label, points, tuple(regions), cuts=cuts)
+        reason = self._reason(info.key, request.view_rank, view, choice, split, data, regions)
+        pending = tuple(a.pending for a in (view.x, view.y) if a.pending is not None)
+        provenance = self._record(info.key, data, view, choice.notes, split, request)
+        return Proposal(
+            info.key,
+            data.sample.sample_id,
+            data.parent_id,
+            data.parent_name,
+            data.parent_total,
+            plot,
+            sections,
+            reason,
+            pending,
+            provenance,
+            _Context(view, split, frame, data),
+        )
+
+    @staticmethod
+    def _region(name: str, piece: Piece, frame: Frame) -> Region:
+        outline = frame.unit(piece.outline)
+        return Region(
+            name,
+            float(piece.mask.mean()),
+            tuple(float(v) for v in outline.ravel()),
+            piece.gate,
+            piece.mask,
+        )
+
+    @staticmethod
+    def _reason(  # noqa: PLR0913 - everything the sentence names
+        key: str,
+        rank: int,
+        view: View,
+        choice: object,
+        split: Split,
+        data: PopulationData,
+        regions: list[Region],
+    ) -> str:
+        n_views = len(getattr(choice, "views", ()))
+        lead = f"Runner-up view {rank % max(n_views, 1) + 1} of {n_views}. " if rank else ""
+        if key == MARKER_PAIRS.key:
+            lead += f"{view.name} is the clearest of the {n_views} marker pairs (score {view.score:.2f}). "
+        elif key == PCA.key:
+            lead += (
+                f"{view.name} separates {data.parent_name} best of {n_views} planes (score {view.score:.2f}). "
+                "Accepting adds the components as derived parameters, so their formulas are kept. "
+            )
+        named = ", ".join(f"{r.name} ({r.fraction:.0%})" for r in regions if r.is_main)
+        return f"{lead}{split.reason} Named from each group's medians: {named}."
+
+    def _record(  # noqa: PLR0913 - everything the record keeps
+        self,
+        key: str,
+        data: PopulationData,
+        view: View,
+        notes: dict[str, object],
+        split: Split,
+        request: StepRequest,
+    ) -> dict[str, object]:
+        record: dict[str, object] = {
+            "method": key,
+            "created": datetime.date.today().isoformat(),
+            "reference_sample": data.sample.display_name,
+            "parent": data.parent_name,
+            "events_used": len(data.events),
+            "parent_events": data.parent_total,
+            "channels": [
+                short_marker(data.labels[ch]) for ch in request.channels if ch in data.labels
+            ],
+            "view": view.name,
+            "view_score": round(view.score, 3),
+            "x_axis": view.x.label,
+            "y_axis": view.y.label,
+            "axis_formulas": {
+                a.label: a.pending.formula for a in (view.x, view.y) if a.pending is not None
+            },
+            "min_valley": request.min_valley,
+        }
+        record.update(split_axis_record(view))
+        record.update(split.record)
+        if key == PCA.key:
+            record["loadings"] = notes.get("loadings")
+            record["variance"] = notes.get("variance")
+        return record
+
+    # ── Apply to group ────────────────────────────────────────────────
+
+    def preview_group(self, proposal: Proposal, request: StepRequest) -> GroupPreview:
+        """The proposal's gates on every sample of the group, and how far each sample's own split sits."""
+        ctx: _Context = proposal.context
+        names = proposal.plot.main_names
+        rows = []
+        for sid in request.group:
+            sample = self._state.data.experiment.samples.get(sid)
+            if sample is None:
+                continue
+            if sample.role.is_control:
+                rows.append(
+                    SampleOutcome(
+                        sample.display_name, {}, 0.0, "Skipped: control sample", False, None
+                    )
+                )
+                continue
+            found, node_id = same_population(ctx.data.sample, proposal.parent_id, sample)
+            if not found:
+                rows.append(
+                    SampleOutcome(
+                        sample.display_name, {}, 0.0, f"No “{proposal.parent}” here", True, None
+                    )
+                )
+                continue
+            events, _ = population_events(sample, node_id)
+            if events is None or len(events) < request.min_events:
+                rows.append(
+                    SampleOutcome(sample.display_name, {}, 0.0, "Too few events", False, None)
+                )
+                continue
+            rows.append(self._on_sample(sample.display_name, subsample(events), proposal, ctx))
+        return GroupPreview(names, tuple(rows))
+
+    def _on_sample(
+        self, name: str, events: pd.DataFrame, proposal: Proposal, ctx: _Context
+    ) -> SampleOutcome:
+        frame_df = self._with_pending(events, ctx.view)
+        x = self._values(frame_df, ctx.view.x)
+        y = self._values(frame_df, ctx.view.y)
+        percents = {}
+        for region in proposal.plot.regions:
+            if region.is_main and region.gate is not None:
+                percents[region.name] = 100.0 * float(np.mean(region.gate.contains(frame_df)))
+        drift, ghosts = self._drift(x, y, ctx)
+        flagged = drift > FLAG_DRIFT
+        status = (
+            f"Review: its own split sits {drift:.0%} away"
+            if flagged
+            else f"Fits (drift {drift:.0%})"
+        )
+        rows = plot_rows(len(x))
+        points = ctx.frame.unit(np.column_stack((x[rows], y[rows])))
+        plot = PlotData(
+            proposal.plot.x_label,
+            proposal.plot.y_label,
+            points,
+            proposal.plot.regions,
+            ghosts,
+            proposal.plot.cuts,
+        )
+        return SampleOutcome(name, percents, drift, status, flagged, plot)
+
+    @staticmethod
+    def _with_pending(events: pd.DataFrame, view: View) -> pd.DataFrame:
+        """``events`` plus a column for each combined axis, so proposed gates can be tested on them."""
+        out = events
+        for axis in (view.x, view.y):
+            if axis.pending is not None:
+                out = out.assign(
+                    **{
+                        axis.key: parse_formula(axis.pending.formula).evaluate(
+                            events, positive_denominators=False
+                        )
+                    }
+                )
+        return out
+
+    @staticmethod
+    def _values(events: pd.DataFrame, axis: Axis) -> np.ndarray:
+        return project_to_display(events[axis.key].to_numpy(dtype=np.float64), axis.scale)
+
+    @staticmethod
+    def _drift(x: np.ndarray, y: np.ndarray, ctx: _Context) -> tuple[float, tuple[Region, ...]]:
+        frame, split = ctx.frame, ctx.split
+        if split.components:
+            means = np.array([c.mean for c in split.components])
+            refit = by_mixture(
+                replace(ctx.view, x=replace(ctx.view.x, values=x), y=replace(ctx.view.y, values=y)),
+                0.0,
+                means,
+            )
+            if isinstance(refit, str):
+                return 0.0, ()
+            shifts = [
+                max(
+                    abs(n.mean[0] - o.mean[0]) / frame.span("x"),
+                    abs(n.mean[1] - o.mean[1]) / frame.span("y"),
+                )
+                for n, o in zip(refit.components, split.components, strict=True)
+            ]
+            ghosts = tuple(
+                Region("", 0.0, tuple(float(v) for v in frame.unit(p.outline).ravel()))
+                for p in refit.pieces
+            )
+            return float(max(shifts)), ghosts
+        drift, ghosts_list = 0.0, []
+        for axis, pos in split.cuts:
+            valley = find_valley(x if axis == "x" else y)
+            if valley is None:
+                continue
+            drift = max(drift, abs(valley.position - pos) / frame.span(axis))
+            u = frame.unit(np.array([[valley.position, valley.position]]))[
+                0, 0 if axis == "x" else 1
+            ]
+            line = (u, 0.0, u, 1.0) if axis == "x" else (0.0, u, 1.0, u)
+            ghosts_list.append(Region("", 0.0, tuple(float(v) for v in line)))
+        return float(drift), tuple(ghosts_list)
+
+    # ── Compare methods ───────────────────────────────────────────────
+
+    def compare(self, request: StepRequest) -> tuple[MethodOutcome, ...]:
+        """Every method's split of the population, beside the user's own gates under it."""
+        outcomes: list[MethodOutcome] = []
+        best_pair = self.propose(replace(request, method_key=MARKER_PAIRS.key, view_rank=0))
+        proposals: dict[str, Proposal | str] = {}
+        for info in METHODS:
+            req = replace(request, method_key=info.key, view_rank=0)
+            if info.key == DENSITY_VALLEYS.key and not (request.x_channel and request.y_channel):
+                if isinstance(best_pair, str):
+                    proposals[info.key] = best_pair
+                    continue
+                view = best_pair.context.view
+                req = replace(req, x_channel=view.x.key, y_channel=view.y.key)
+            proposals[info.key] = best_pair if info.key == MARKER_PAIRS.key else self.propose(req)
+        own = self._own_gates(request, proposals)
+        outcomes.append(own[0])
+        for info in METHODS:
+            p = proposals[info.key]
+            if isinstance(p, str):
+                outcomes.append(MethodOutcome(info.name, info.key, {}, {}, "", None, p))
+                continue
+            percents = {r.name: 100 * r.fraction for r in p.plot.regions if r.is_main}
+            agreement = {
+                r.name: max((match_scores(r.mask, m)[0] for m in own[1]), default=0.0)
+                for r in p.plot.regions
+                if r.is_main and r.mask is not None and own[1]
+            }
+            outcomes.append(
+                MethodOutcome(info.name, info.key, percents, agreement, p.context.view.name, p.plot)
+            )
+        return tuple(outcomes)
+
+    def _own_gates(
+        self, request: StepRequest, proposals: dict[str, Proposal | str]
+    ) -> tuple[MethodOutcome, list[np.ndarray]]:
+        """The user's gates directly under the population, with their events among the ones the split saw."""
+        data = next((p.context.data for p in proposals.values() if isinstance(p, Proposal)), None)
+        sample = self._state.data.experiment.samples.get(request.sample_id)
+        node = (
+            sample.gate_tree.find_node_by_id(request.node_id)
+            if sample and request.node_id
+            else None
+        )
+        node = node or (sample.gate_tree if sample else None)
+        children = [c for c in node.children if c.gate is not None] if node is not None else []
+        if data is None or not children:
+            text = "No gates of yours under this population yet." if data is not None else ""
+            return MethodOutcome("Your gates", "", {}, {}, "", None, text), []
+        masks, percents = [], {}
+        for child in children:
+            if child.gate is None:
+                continue
+            try:
+                mask = np.asarray(child.gate.contains(data.events), dtype=bool)
+            except KeyError:
+                continue
+            masks.append(mask)
+            percents[child.name] = 100.0 * float(mask.mean())
+        summary = f"{len(masks)} gate{'s' if len(masks) != 1 else ''} drawn by hand"
+        return MethodOutcome("Your gates", "", percents, {}, summary, None), masks
+
+    # ── Why this gate ─────────────────────────────────────────────────
+
+    def story(self, sample_id: str, node_id: str) -> GateStory | None:
+        """Why the auto gate ``node_id`` is where it is; None for a gate drawn by hand."""
+        sample = self._state.data.experiment.samples.get(sample_id)
+        node = sample.gate_tree.find_node_by_id(node_id) if sample else None
+        if node is None or node.gate is None or not node.gate.provenance:
+            return None
+        return story_of(node.name, node.gate.provenance)

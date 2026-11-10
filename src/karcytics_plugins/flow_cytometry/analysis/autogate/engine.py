@@ -1,8 +1,7 @@
 """The one interface the Auto Gating tab depends on.
 
 The tab is built against this protocol only, so the engine behind it can be
-swapped without touching any widget: ``DemoEngine`` (example output, while
-the analysis is being built) now, the real engine later.
+swapped (or faked in a test) without touching any widget.
 """
 
 from __future__ import annotations
@@ -13,20 +12,18 @@ from .models import GateStory, GroupPreview, MethodOutcome, Proposal, StepReques
 
 
 class AutoGateEngine(Protocol):
-    is_demo: bool  # True: everything returned is example output
-
-    def propose(self, request: StepRequest) -> Proposal:
-        """The next split of ``request.population``."""
+    def propose(self, request: StepRequest) -> Proposal | str:
+        """The next split of the population, or why there isn't one."""
         ...
 
-    def preview_group(self, request: StepRequest, adaptive: bool) -> GroupPreview:
-        """The proposed gates on every sample of the group (fixed, or moved to fit each)."""
+    def preview_group(self, proposal: Proposal, request: StepRequest) -> GroupPreview:
+        """The proposal's gates on every sample of the group."""
         ...
 
     def compare(self, request: StepRequest) -> tuple[MethodOutcome, ...]:
-        """Every method's strategy from ``request.population``, beside the user's own gates."""
+        """Every method's split of the population, beside the user's own gates."""
         ...
 
-    def story(self, gate: str, parent: str, request: StepRequest) -> GateStory:
-        """Why the auto gate ``gate`` (a population of ``parent``) is where it is."""
+    def story(self, sample_id: str, node_id: str) -> GateStory | None:
+        """Why the auto gate ``node_id`` is where it is; None for a gate drawn by hand."""
         ...

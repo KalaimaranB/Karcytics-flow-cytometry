@@ -374,7 +374,7 @@ class WorkspaceBuilder:
         # composition_root: its engine pulls in the clustering package (numba).
         from karcytics_plugins.flow_cytometry.ui.widgets.auto_gating import create_auto_gating_tab
 
-        auto_gating = create_auto_gating_tab(panel.state, parent=panel)
+        auto_gating = create_auto_gating_tab(panel.state, panel.services, parent=panel)
         auto_gating.open_tab_requested.connect(panel.show_tab)
         panel._center_stack.addWidget(auto_gating)  # 8
         panel._auto_gating = auto_gating

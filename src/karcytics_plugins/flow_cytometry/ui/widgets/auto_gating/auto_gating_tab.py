@@ -1,28 +1,32 @@
 """Auto Gating tab: split a population into ordinary gates, one transparent step at a time.
 
 Composition only. The sidebar holds the user's choices, the pages draw what
-the engine returns, and the gating tree reads the sample's real tree. The
-tab turns choices into a ``StepRequest`` and hands it to the engine; it
-knows nothing about how a split is found.
+the engine returns, and the gating tree reads the sample's real tree. The tab
+turns choices into a ``StepRequest``, hands it to the engine, and hands an
+accepted proposal to the committer; it knows nothing about how a split is found.
 
 * sidebar: group, reference sample, population, channels, method, stopping rules
 * main: Build | Why this gate | Apply to group | Compare methods
-* right: the gating tree, with a proposal's populations under their parent
+* right: the gating tree, with a proposal's populations dashed under their parent
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.components import BioScrollArea, HeaderLabel
 from karcytics_sdk.plugin.theme_fallback import theme_manager
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QHBoxLayout, QTabWidget, QVBoxLayout, QWidget
 
-from ....analysis.autogate import AutoGateEngine, StepRequest, method
-from ....analysis.autogate.models import Proposal
-from ....analysis.fcs_io import get_channel_marker_label, get_fluorescence_channels
-from ..panel_style import banner
+from ....analysis.autogate import StepRequest, method
+from ....analysis.fcs_io import (
+    get_channel_marker_label,
+    get_fluorescence_channels,
+    get_scatter_channels,
+)
 from .apply_page import ApplyPage
 from .build_page import BuildPage
 from .compare_page import ComparePage
@@ -31,15 +35,15 @@ from .setup_sidebar import SetupSidebar
 from .why_panel import WhyPanel
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from ....analysis.autogate import AutoGateEngine, ProposalCommitter
+    from ....analysis.autogate.models import MethodOutcome, Proposal
     from ....analysis.experiment import Sample
     from ....analysis.state import FlowState
 
 ALL_SAMPLES = "all"
-DEMO_NOTE = (
-    "🚧 <b>Preview.</b> The analysis isn't connected yet: every proposal, percentage and "
-    "explanation here is example output, labelled with your markers, so the layout can be "
-    "reviewed. Nothing is added to your gates."
-)
+BUILD, WHY, APPLY, COMPARE = range(4)
 _TABS_QSS = (
     "QTabWidget { background: transparent; }"
     " QTabWidget::pane { border: 1px solid {BORDER}; border-radius: 4px; background: {BG_DARK}; }"
@@ -59,18 +63,33 @@ def _padded(page: QWidget) -> QWidget:
     return host
 
 
+@contextmanager
+def _busy() -> Generator[None]:
+    QGuiApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+    try:
+        yield
+    finally:
+        QGuiApplication.restoreOverrideCursor()
+
+
 class AutoGatingTab(QWidget):
     open_tab_requested = Signal(object)  # MainTab
 
     def __init__(
-        self, state: FlowState, engine: AutoGateEngine, parent: QWidget | None = None
+        self,
+        state: FlowState,
+        engine: AutoGateEngine,
+        committer: ProposalCommitter,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName("AutoGatingTab")
         self._state = state
         self._engine = engine
+        self._committer = committer
         self._proposal: Proposal | None = None
         self._view_rank = 0
+        self._stale_pages: set[int] = set()  # pages to recompute when next shown
 
         # Everything sits in a scroll area. The centre stack is as wide as its
         # widest page's minimum, even while that page is hidden, so this tab
@@ -93,7 +112,7 @@ class AutoGatingTab(QWidget):
         self._sidebar = SetupSidebar()
         root.addWidget(self._sidebar)
         root.addWidget(self._build_main(), 1)
-        self._tree = GatingTreePanel()
+        self._tree = GatingTreePanel(state)
         self._tree.population_clicked.connect(self._on_population_clicked)
         self._tree.open_tab_requested.connect(self.open_tab_requested)
         root.addWidget(self._tree)
@@ -102,7 +121,6 @@ class AutoGatingTab(QWidget):
         self._sidebar.sample_changed.connect(self._on_sample_changed)
         self._sidebar.choices_changed.connect(self._on_choices_changed)
         self._sidebar.propose_clicked.connect(self._on_propose)
-        self._sidebar.run_clicked.connect(self._on_run)
 
     def _build_main(self) -> QWidget:
         main = QWidget()
@@ -110,10 +128,6 @@ class AutoGatingTab(QWidget):
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(10)
         layout.addWidget(HeaderLabel("Auto Gating"))
-        self._banner = banner("AutoGateDemoBanner", DEMO_NOTE)
-        self._banner.setVisible(self._engine.is_demo)
-        layout.addWidget(self._banner)
-
         self._tabs = QTabWidget()
         self._tabs.setObjectName("AutoGateTabs")
         tab_bar = self._tabs.tabBar()
@@ -122,19 +136,20 @@ class AutoGatingTab(QWidget):
         theme_manager.apply_style(self._tabs, _TABS_QSS)
         self._build = BuildPage()
         self._build.accept_clicked.connect(self._on_accept)
-        self._build.adjust_clicked.connect(self._on_adjust)
         self._build.next_view_clicked.connect(self._on_next_view)
         self._build.reject_clicked.connect(self._on_reject)
         self._why = WhyPanel()
         self._apply = ApplyPage()
-        self._apply.mode_changed.connect(lambda _adaptive: self._refresh_apply())
         self._compare = ComparePage()
         self._compare.use_clicked.connect(self._on_use_method)
-        self._tabs.addTab(_padded(self._build), "Build")
-        self._why_page = _padded(self._why)
-        self._tabs.addTab(self._why_page, "Why this gate")
-        self._tabs.addTab(_padded(self._apply), "Apply to group")
-        self._tabs.addTab(_padded(self._compare), "Compare methods")
+        for page, title in (
+            (self._build, "Build"),
+            (self._why, "Why this gate"),
+            (self._apply, "Apply to group"),
+            (self._compare, "Compare methods"),
+        ):
+            self._tabs.addTab(_padded(page), title)
+        self._tabs.currentChanged.connect(self._refresh_page)
         layout.addWidget(self._tabs, 1)
         return main
 
@@ -172,29 +187,32 @@ class AutoGatingTab(QWidget):
         sample = self._reference_sample()
         self._sidebar.set_populations(population_items(sample))
         fcs = sample.fcs_data if sample is not None else None
-        labels = (
-            [get_channel_marker_label(fcs, ch) for ch in get_fluorescence_channels(fcs)]
-            if fcs
-            else []
+        scatter = get_scatter_channels(fcs) if fcs else []
+        markers = get_fluorescence_channels(fcs) if fcs else []
+        channels = (
+            [(get_channel_marker_label(fcs, ch), ch) for ch in scatter + markers] if fcs else []
         )
-        self._sidebar.set_channels(labels)
+        self._sidebar.set_channels(channels, start_unticked=frozenset(scatter))
         self._on_choices_changed()
 
     # ── Requests ──────────────────────────────────────────────────────
 
     def _request(self) -> StepRequest:
-        _node_id, population = self._sidebar.population()
+        node_id, _name = self._sidebar.population()
         key = self._sidebar.method_key()
         x, y = self._sidebar.axes() if method(key).user_picks_axes else ("", "")
+        min_events, min_valley = self._sidebar.stopping_rules()
         return StepRequest(
             method_key=key,
-            population=population or "All Events",
+            sample_id=self._sidebar.sample_id() or "",
+            node_id=node_id,
             channels=self._sidebar.channels(),
-            samples=tuple((s.display_name, s.role.is_control) for s in self._group_samples()),
-            reference=self._sidebar.sample_name(),
+            group=tuple(s.sample_id for s in self._group_samples()),
             x_channel=x,
             y_channel=y,
             view_rank=self._view_rank,
+            min_events=min_events,
+            min_valley=min_valley,
         )
 
     def _on_choices_changed(self) -> None:
@@ -209,46 +227,62 @@ class AutoGatingTab(QWidget):
         self._propose()
 
     def _propose(self) -> None:
-        self._show(self._engine.propose(self._request()))
+        with _busy():
+            result = self._engine.propose(self._request())
+        if isinstance(result, str):
+            self._show(None, result)
+        else:
+            self._show(result)
 
-    def _show(self, proposal: Proposal | None) -> None:
+    def _show(self, proposal: Proposal | None, message: str = "") -> None:
         self._proposal = proposal
-        self._build.show_proposal(proposal)
-        node_id, _name = self._sidebar.population()
-        proposed = proposal.plot.main_names if proposal else ()
-        self._tree.show_tree(self._reference_sample(), node_id, proposed)
-        self._refresh_apply()
-        request = self._request()
-        self._compare.show_outcomes(
-            self._engine.compare(request) if proposal else (), request.population
-        )
+        self._build.show_proposal(proposal, message)
+        self._show_tree()
+        self._stale_pages = {APPLY, COMPARE}
+        self._refresh_page(self._tabs.currentIndex())
 
-    def _refresh_apply(self) -> None:
-        preview = (
-            self._engine.preview_group(self._request(), self._apply.adaptive())
-            if self._proposal is not None
-            else None
+    def _show_tree(self) -> None:
+        node_id, _name = self._sidebar.population()
+        regions = (
+            tuple(r for r in self._proposal.plot.regions if r.is_main) if self._proposal else ()
         )
-        self._apply.show_preview(preview, self._group_name())
+        self._tree.show_tree(self._reference_sample(), node_id, regions, node_id)
+
+    def _refresh_page(self, index: int) -> None:
+        """Recompute the Apply or Compare page if it is showing and out of date."""
+        if index not in self._stale_pages:
+            return
+        self._stale_pages.discard(index)
+        if index == APPLY:
+            preview = None
+            if self._proposal is not None:
+                with _busy():
+                    preview = self._engine.preview_group(self._proposal, self._request())
+            self._apply.show_preview(preview, self._group_name())
+        elif index == COMPARE:
+            request = self._request()
+            _node, name = self._sidebar.population()
+            outcomes: tuple[MethodOutcome, ...] = ()
+            if request.sample_id and len(request.channels) > 1:
+                with _busy():
+                    outcomes = self._engine.compare(request)
+            self._compare.show_outcomes(outcomes, name)
 
     # ── Actions ───────────────────────────────────────────────────────
 
-    def _preview_only(self, what: str) -> None:
-        self._build.show_status(f"Preview only: {what}")
-
     def _on_accept(self) -> None:
-        if self._proposal is None:
+        proposal = self._proposal
+        if proposal is None:
             return
-        n = len(self._proposal.plot.main_names)
-        samples = len(self._group_samples())
-        self._preview_only(
-            f"this will add {n} gates under {self._proposal.parent} and copy them to the "
-            f"{samples} samples of {self._group_name()}."
-        )
-
-    def _on_adjust(self) -> None:
-        self._preview_only(
-            "this will open the proposed gates on the Gating tab for you to move before accepting."
+        with _busy():
+            added = self._committer.accept(proposal)
+        names = ", ".join(r.name for r in proposal.gated)
+        self._proposal = None
+        self._sidebar.set_populations(population_items(self._reference_sample()))
+        self._show(None, "Added. Click a population in the tree to split it next.")
+        self._build.show_status(
+            f"Added {len(added)} gate{'s' if len(added) != 1 else ''} under {proposal.parent}: {names}. "
+            f"They go to every sample in {self._group_name()}, and undo works as usual."
         )
 
     def _on_next_view(self) -> None:
@@ -256,19 +290,22 @@ class AutoGatingTab(QWidget):
         self._propose()
 
     def _on_reject(self) -> None:
-        self._show(None)
-        self._build.show_status("Rejected. Nothing was added.")
-
-    def _on_run(self) -> None:
-        self._propose()
-        self._preview_only(
-            "this will keep splitting each new population until a stopping rule is met."
-        )
+        self._show(None, "Rejected. Nothing was added.")
 
     def _on_use_method(self, key: str) -> None:
         self._sidebar.set_method(key)
-        self._tabs.setCurrentIndex(0)
+        self._tabs.setCurrentIndex(BUILD)
+        self._on_propose()
 
-    def _on_population_clicked(self, name: str, parent: str) -> None:
-        self._why.show_story(self._engine.story(name, parent, self._request()))
-        self._tabs.setCurrentWidget(self._why_page)
+    def _on_population_clicked(self, node_id: str | None) -> None:
+        """A population picked in the tree: split it next, and show why it is there."""
+        sample = self._reference_sample()
+        self._sidebar.set_population(node_id)  # re-proposes if a proposal was showing
+        if sample is None or node_id is None:
+            self._why.show_story(None)
+            return
+        node = sample.gate_tree.find_node_by_id(node_id)
+        story = self._engine.story(sample.sample_id, node_id)
+        self._why.show_story(story, node.name if node is not None else "")
+        if self._proposal is None:
+            self._show_tree()

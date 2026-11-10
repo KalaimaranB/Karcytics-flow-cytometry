@@ -1,7 +1,7 @@
 """Build: one proposed split at a time, with how its view was chosen and why.
 
-Accept / Adjust / Next view / Reject are only signals; the tab decides what
-they do.
+Accept / Next view / Reject are only signals; the tab decides what they do.
+Accepted gates are ordinary gates: they are moved on the Gating tab.
 """
 
 from __future__ import annotations
@@ -30,7 +30,6 @@ EMPTY_TEXT = "Pick a population and press “Propose next split”."
 
 class BuildPage(QWidget):
     accept_clicked = Signal()
-    adjust_clicked = Signal()
     next_view_clicked = Signal()
     reject_clicked = Signal()
 
@@ -104,15 +103,12 @@ class BuildPage(QWidget):
         actions = QHBoxLayout()
         self._accept = PrimaryButton("Accept")
         self._accept.setObjectName("AutoGateAcceptButton")
-        self._adjust = SecondaryButton("Adjust")
-        self._adjust.setToolTip("Move the proposed gates on the plot before accepting them.")
         self._next = SecondaryButton("Next-best view")
         self._next.setToolTip("Propose the split on the runner-up view instead.")
         self._next.setObjectName("AutoGateNextViewButton")
         self._reject = SecondaryButton("Reject")
         for button, signal in (
             (self._accept, self.accept_clicked),
-            (self._adjust, self.adjust_clicked),
             (self._next, self.next_view_clicked),
             (self._reject, self.reject_clicked),
         ):
@@ -121,10 +117,11 @@ class BuildPage(QWidget):
         actions.addStretch()
         return actions
 
-    def show_proposal(self, proposal: Proposal | None) -> None:
+    def show_proposal(self, proposal: Proposal | None, message: str = "") -> None:
+        """Show ``proposal``; without one, ``message`` says why (or how to start)."""
         clear_layout(self._sections_layout)
         has = proposal is not None
-        for button in (self._accept, self._adjust, self._next, self._reject):
+        for button in (self._accept, self._next, self._reject):
             button.setEnabled(has)
         self._method.setVisible(has)
         self._reason.setVisible(has)
@@ -132,7 +129,7 @@ class BuildPage(QWidget):
         if proposal is None:
             self._title.setText("No proposal yet")
             self._meta.setText("")
-            self._plot.set_plot(None, empty_text=EMPTY_TEXT)
+            self._plot.set_plot(None, empty_text=message or EMPTY_TEXT)
             self._sections_layout.addWidget(
                 BioCaptionLabel("How the view was chosen appears here.")
             )
@@ -142,8 +139,9 @@ class BuildPage(QWidget):
         self._title.setText(f"Proposed split of {proposal.parent}")
         self._method.setText(info.name)
         self._meta.setText(f"{proposal.n_events:,} events · not added yet")
-        n = len(proposal.plot.main_names)
-        self._accept.setText(f"Accept · add {n} gates")
+        n = len(proposal.gated)
+        self._accept.setText(f"Accept · add {n} gate{'s' if n != 1 else ''}")
+        self._accept.setEnabled(n > 0)
         self._next.setVisible(not info.user_picks_axes)
         self._plot.set_plot(proposal.plot)
         self._reason.setText(proposal.reason)

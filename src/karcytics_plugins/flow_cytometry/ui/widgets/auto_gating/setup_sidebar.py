@@ -135,6 +135,11 @@ class SetupSidebar(QWidget):
         self._min_valley.setRange(0.1, 0.95)
         self._min_valley.setSingleStep(0.05)
         self._min_valley.setValue(0.5)
+        self._min_valley.setToolTip(
+            "How empty the gap between two peaks must be to split there (1 = no events between them)."
+        )
+        self._min_events.valueChanged.connect(lambda _v: self.choices_changed.emit())
+        self._min_valley.valueChanged.connect(lambda _v: self.choices_changed.emit())
         rules.addRow("Smallest population", self._min_events)
         rules.addRow("Deepest level", self._max_depth)
         rules.addRow("Clear valley at least", self._min_valley)
@@ -148,6 +153,10 @@ class SetupSidebar(QWidget):
         self._run = SecondaryButton("Run to the stopping rules")
         self._run.setObjectName("AutoGateRunButton")
         self._run.clicked.connect(self.run_clicked)
+        self._run.setEnabled(False)
+        self._run.setToolTip(
+            "Coming next: proposes and accepts splits until a stopping rule is met."
+        )
         layout.addWidget(self._propose)
         layout.addWidget(self._run)
 
@@ -173,29 +182,46 @@ class SetupSidebar(QWidget):
     def set_populations(self, items: list[tuple[str, Any]]) -> None:
         repopulate_combo(self._population, items, restore_data=self._population.currentData())
 
-    def set_channels(self, labels: list[str]) -> None:
-        """Show ``labels``, keeping what was unticked; new channels start ticked."""
-        unticked = {
-            self._channels.item(i).text()
+    def set_channels(
+        self, channels: list[tuple[str, str]], start_unticked: frozenset[str] = frozenset()
+    ) -> None:
+        """Show (label, channel) pairs, keeping the user's ticks.
+
+        A channel shown for the first time starts ticked, unless it is in
+        ``start_unticked`` (scatter: there for the cells split, kept out of marker splits).
+        """
+        shown = {
+            self._channels.item(i).data(Qt.ItemDataRole.UserRole): self._channels.item(
+                i
+            ).checkState()
             for i in range(self._channels.count())
-            if self._channels.item(i).checkState() != Qt.CheckState.Checked
         }
         self._channels.blockSignals(True)
         self._channels.clear()
-        for label in labels:
+        for label, channel in channels:
             item = QListWidgetItem(label)
+            item.setData(Qt.ItemDataRole.UserRole, channel)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(
-                Qt.CheckState.Unchecked if label in unticked else Qt.CheckState.Checked
-            )
+            first = Qt.CheckState.Unchecked if channel in start_unticked else Qt.CheckState.Checked
+            item.setCheckState(shown.get(channel, first))
             self._channels.addItem(item)
         self._channels.blockSignals(False)
         x, y = self._x_axis.currentData(), self._y_axis.currentData()
-        pairs = [(label, label) for label in labels]
-        repopulate_combo(self._x_axis, pairs, restore_data=x)
-        repopulate_combo(self._y_axis, pairs, restore_data=y)
-        if y is None and len(labels) > 1:
-            self._y_axis.setCurrentIndex(1)
+        repopulate_combo(self._x_axis, channels, restore_data=x)
+        repopulate_combo(self._y_axis, channels, restore_data=y)
+        if x is None and y is None:  # first fill: FSC-A × SSC-A, the usual first split
+            keys = [ch for _label, ch in channels]
+            for combo, preferred, fallback in (
+                (self._x_axis, "FSC-A", 0),
+                (self._y_axis, "SSC-A", 1),
+            ):
+                index = combo.findData(preferred)
+                combo.setCurrentIndex(index if index >= 0 else min(fallback, len(keys) - 1))
+
+    def set_population(self, node_id: str | None) -> None:
+        index = self._population.findData(node_id)
+        if index >= 0:
+            self._population.setCurrentIndex(index)
 
     # ── Read by the tab ───────────────────────────────────────────────
 
@@ -213,8 +239,9 @@ class SetupSidebar(QWidget):
         return self._population.currentData(), self._population.currentText().strip()
 
     def channels(self) -> tuple[str, ...]:
+        """The ticked channels' keys."""
         return tuple(
-            self._channels.item(i).text()
+            self._channels.item(i).data(Qt.ItemDataRole.UserRole)
             for i in range(self._channels.count())
             if self._channels.item(i).checkState() == Qt.CheckState.Checked
         )
@@ -226,4 +253,9 @@ class SetupSidebar(QWidget):
         self._methods.set_method(key)
 
     def axes(self) -> tuple[str, str]:
-        return self._x_axis.currentText(), self._y_axis.currentText()
+        """The density-valley axes' channel keys."""
+        return self._x_axis.currentData() or "", self._y_axis.currentData() or ""
+
+    def stopping_rules(self) -> tuple[int, float]:
+        """(smallest population in events, clearest valley needed)."""
+        return self._min_events.value(), self._min_valley.value()

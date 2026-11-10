@@ -40,7 +40,7 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/fcs_io.py": {
-      "KS300": 790,
+      "KS300": 795,
       "KS302:_auto_apply_spill": 87,
       "KS302:_load_with_fcsparser": 241,
       "KS310": 6

@@ -19,8 +19,9 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .._utils import project_to_display, project_to_raw
+from .._utils import project_to_display
 from ..gating import RectangleGate
+from ..gating.from_display import rectangle_from_display
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -91,22 +92,15 @@ class _DisplayData:
 
     def to_gate(self, box: _Box) -> RectangleGate:
         """``box`` as a gate in raw values; an open edge goes to the data's extreme."""
-        corners = []
-        for ch, lo, hi in ((box.x, *box.bounds[:2]), (box.y, *box.bounds[2:])):
-            values = self.values[ch]
-            lo = float(np.nanmin(values)) - 1.0 if np.isinf(lo) else lo
-            hi = float(np.nanmax(values)) + 1.0 if np.isinf(hi) else hi
-            corners.append(project_to_raw(np.array([lo, hi]), self.scales[ch]))
-        (x_min, x_max), (y_min, y_max) = corners
-        return RectangleGate(
-            box.x,
-            box.y,
-            x_min=float(x_min),
-            x_max=float(x_max),
-            y_min=float(y_min),
-            y_max=float(y_max),
-            x_scale=self.scales[box.x].copy(),
-            y_scale=self.scales[box.y].copy(),
+        xs, ys = self.values[box.x], self.values[box.y]
+        extremes = (
+            float(np.nanmin(xs)),
+            float(np.nanmax(xs)),
+            float(np.nanmin(ys)),
+            float(np.nanmax(ys)),
+        )
+        return rectangle_from_display(
+            box.x, box.y, box.bounds, self.scales[box.x], self.scales[box.y], extremes
         )
 
 

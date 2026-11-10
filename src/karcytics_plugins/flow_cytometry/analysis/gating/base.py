@@ -30,6 +30,8 @@ class Gate(ABC):
         derived_formulas: For axes that are derived parameters, the formula
                    in effect when the gate was drawn (display/audit only —
                    evaluation always uses the current definition).
+        provenance: For a gate made by auto gating, the record of how and why
+                   it was placed (JSON-safe; empty for a gate drawn by hand).
     """
 
     # False for a gate that names the populations it creates itself
@@ -49,6 +51,7 @@ class Gate(ABC):
         self.y_param = y_param
         self.adaptive = adaptive
         self.derived_formulas: dict[str, str] = {}
+        self.provenance: dict[str, Any] = {}
 
     @abstractmethod
     def copy(self) -> Gate:
@@ -105,6 +108,8 @@ class Gate(ABC):
         }
         if self.derived_formulas:
             d["derived_formulas"] = dict(self.derived_formulas)
+        if self.provenance:
+            d["provenance"] = dict(self.provenance)
         return d
 
     @classmethod

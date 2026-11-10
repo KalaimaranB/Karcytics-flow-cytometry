@@ -1,6 +1,6 @@
 """Events on a 2-D view with the gates a split would make, drawn with QPainter.
 
-Everything arrives in display units (0-1 on each axis), so the plot needs no
+Everything arrives in plot units (0-1 on each axis), so the plot needs no
 scales. One widget serves the large Build plot and the small ones on the
 Apply and Compare pages (``compact``).
 """
@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts, theme_manager
 from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPaintEvent, QPen, QPolygonF
+from PySide6.QtGui import QColor, QFont, QPainter, QPaintEvent, QPen, QPolygonF
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
-from ....analysis.autogate.models import PlotData, Region, Shape
+from ....analysis.autogate.models import PlotData, Region
 from ..panel_style import palette_color
 
-EVENT_ALPHA = 120
+EVENT_ALPHA = 110
+LINE_POINTS = 2  # an outline of two points is a line (a cut on another sample)
 
 
 class ProposalPlot(QWidget):
@@ -51,31 +52,33 @@ class ProposalPlot(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor(Colors.BG_DARKEST))
-        rect = self._frame()
         if self._plot is None:
             p.setPen(QColor(Colors.FG_SECONDARY))
-            p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._empty_text)
+            p.drawText(
+                self.rect().adjusted(12, 12, -12, -12),
+                int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap),
+                self._empty_text,
+            )
             return
+        rect = self._frame()
         self._draw_axes(p, rect)
         self._draw_events(p, rect)
+        self._draw_cuts(p, rect)
         for region in self._plot.ghosts:
-            self._draw_region(p, rect, region, QColor(Colors.FG_SECONDARY), ghost=True)
-        quadrant_drawn = False
+            self._draw_outline(p, rect, region, QColor(Colors.FG_SECONDARY), ghost=True)
         for i, region in enumerate(self._plot.regions):
-            color = QColor(palette_color(i))
-            if region.shape is Shape.QUADRANT:
-                if not quadrant_drawn:
-                    self._draw_region(p, rect, region, QColor(Colors.ACCENT_WARNING))
-                    quadrant_drawn = True
-                self._label_quadrant(p, rect, region, color)
-            else:
-                self._draw_region(p, rect, region, color)
+            color = QColor(palette_color(i)) if region.is_main else QColor(Colors.FG_SECONDARY)
+            self._draw_outline(p, rect, region, color)
 
     def _font(self, size: int, bold: bool = False) -> QFont:
         font = QFont(self.font())
         font.setPixelSize(size)
         font.setBold(bold)
         return font
+
+    @staticmethod
+    def _at(rect: QRectF, x: float, y: float) -> QPointF:
+        return QPointF(rect.left() + x * rect.width(), rect.bottom() - y * rect.height())
 
     def _draw_axes(self, p: QPainter, rect: QRectF) -> None:
         assert self._plot is not None
@@ -115,73 +118,39 @@ class ProposalPlot(QWidget):
         ys = rect.bottom() - self._plot.points[:, 1] * rect.height()
         p.drawPoints(QPolygonF([QPointF(float(x), float(y)) for x, y in zip(xs, ys, strict=True)]))
 
-    @staticmethod
-    def _at(rect: QRectF, x: float, y: float) -> QPointF:
-        return QPointF(rect.left() + x * rect.width(), rect.bottom() - y * rect.height())
+    def _draw_cuts(self, p: QPainter, rect: QRectF) -> None:
+        assert self._plot is not None
+        p.setPen(
+            QPen(QColor(Colors.ACCENT_WARNING), 1.5 if self._compact else 2, Qt.PenStyle.DashLine)
+        )
+        for axis, pos in self._plot.cuts:
+            if axis == "x":
+                p.drawLine(self._at(rect, pos, 0), self._at(rect, pos, 1))
+            else:
+                p.drawLine(self._at(rect, 0, pos), self._at(rect, 1, pos))
 
-    def _pen(self, color: QColor, ghost: bool) -> QPen:
+    def _draw_outline(
+        self, p: QPainter, rect: QRectF, region: Region, color: QColor, ghost: bool = False
+    ) -> None:
+        o = region.outline
+        points = [self._at(rect, o[i], o[i + 1]) for i in range(0, len(o) - 1, 2)]
+        if not points:
+            return
         pen = QPen(color, 1.2 if ghost or self._compact else 2.0)
         if ghost or self._dashed:
             pen.setStyle(Qt.PenStyle.DashLine)
-        return pen
-
-    def _draw_region(
-        self, p: QPainter, rect: QRectF, region: Region, color: QColor, ghost: bool = False
-    ) -> None:
         fill = QColor(color)
-        fill.setAlpha(0 if ghost else 22)
-        p.setPen(self._pen(color, ghost))
+        fill.setAlpha(0 if ghost or not region.is_main else 22)
+        p.setPen(pen)
         p.setBrush(fill)
-        params = region.params
-        anchor: QPointF | None = None
-        if region.shape is Shape.ELLIPSE:
-            cx, cy, rx, ry, angle = params
-            center = self._at(rect, cx, cy)
-            p.save()
-            p.translate(center)
-            p.rotate(-angle)
-            p.drawEllipse(QPointF(0, 0), rx * rect.width(), ry * rect.height())
-            p.restore()
-            anchor = self._at(rect, cx - rx, cy + ry + 0.04)
-        elif region.shape is Shape.POLYGON:
-            pts = [self._at(rect, params[i], params[i + 1]) for i in range(0, len(params) - 1, 2)]
-            p.drawPolygon(QPolygonF(pts))
-            top = max(range(len(pts)), key=lambda i: -pts[i].y())
-            anchor = QPointF(min(pt.x() for pt in pts), pts[top].y() - 6)
-        elif region.shape is Shape.QUADRANT:
-            x_cut, y_cut = params[0], params[1]
-            path = QPainterPath()
-            path.moveTo(self._at(rect, x_cut, 0))
-            path.lineTo(self._at(rect, x_cut, 1))
-            path.moveTo(self._at(rect, 0, y_cut))
-            path.lineTo(self._at(rect, 1, y_cut))
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            p.drawPath(path)
-        elif region.shape is Shape.RANGE:
-            lo, hi = params[0], params[1]
-            p.drawRect(QRectF(self._at(rect, lo, 1), self._at(rect, hi, 0)))
-            anchor = self._at(rect, lo, 0.96)
-        if anchor is not None and not ghost:
-            self._label(p, anchor, region, color)
-
-    def _label(self, p: QPainter, at: QPointF, region: Region, color: QColor) -> None:
-        if self._compact and not region.is_main:
+        if len(points) == LINE_POINTS:
+            p.drawLine(points[0], points[1])
             return
-        p.setPen(color)
-        p.setFont(self._font(10 if self._compact else 12, bold=True))
-        p.drawText(at, f"{region.name} · {region.fraction:.0%}")
-
-    def _label_quadrant(self, p: QPainter, rect: QRectF, region: Region, color: QColor) -> None:
-        q = int(region.params[2])
-        right, bottom = q in (1, 3), q in (2, 3)
-        flags = (Qt.AlignmentFlag.AlignRight if right else Qt.AlignmentFlag.AlignLeft) | (
-            Qt.AlignmentFlag.AlignBottom if bottom else Qt.AlignmentFlag.AlignTop
-        )
-        main = region.is_main
-        if self._compact and not main:
-            return  # too little room: a small plot labels only the populations it gates
-        p.setPen(color if main else QColor(Colors.FG_SECONDARY))
-        p.setFont(self._font(10 if self._compact else 12, bold=main))
-        p.drawText(
-            rect.adjusted(6, 4, -6, -4), int(flags), f"{region.name} · {region.fraction:.0%}"
-        )
+        p.drawPolygon(QPolygonF(points))
+        if not ghost and (region.is_main or not self._compact):
+            top = min(points, key=lambda pt: pt.y())
+            left = min(pt.x() for pt in points)
+            p.setPen(color)
+            p.setFont(self._font(10 if self._compact else 12, bold=region.is_main))
+            at = QPointF(max(left, rect.left() + 2), max(top.y() - 6, rect.top() + 12))
+            p.drawText(at, f"{region.name} · {region.fraction:.0%}")

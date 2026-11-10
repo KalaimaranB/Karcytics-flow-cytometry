@@ -1,27 +1,39 @@
-"""The reference sample's real gating tree, with a proposal's populations shown under their parent.
+"""The reference sample's gating tree, drawn like the Gating tab's, with a proposal in it.
 
-The tree is the one source of truth for gates: this only reads it. Proposed
-populations are not in it until accepted, so they are drawn italic and
-marked "proposed".
+The tree is the one source of truth for gates: this only reads it. It lays out
+a light mirror of the tree (same node ids, the real gates and statistics) so a
+proposal's populations can be drawn under their parent, dashed, without
+touching the real tree. Clicking a population picks it.
 """
 
 from __future__ import annotations
 
-from karcytics_sdk.plugin.components import BioCaptionLabel, BioListWidget, SecondaryButton
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QListWidgetItem, QVBoxLayout, QWidget
+from typing import TYPE_CHECKING
 
-from ....analysis.experiment import Sample
+from karcytics_sdk.plugin import ZoomControls
+from karcytics_sdk.plugin.components import BioCaptionLabel, BioScrollArea, SecondaryButton
+from karcytics_sdk.plugin.theme_fallback import theme_manager
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QResizeEvent
+from PySide6.QtWidgets import QVBoxLayout, QWidget
+
+from ....analysis.fcs_io import derived_labels_of
+from ....analysis.gating.gate_node import GateNode
 from ....analysis.population_matching import ALL_EVENTS_LABEL, PATH_SEP, populations
 from ....main_tabs import MainTab
+from ..gate_hierarchy.node_tree_engine import NodeTreeEngine
+from ..gate_hierarchy.sample_view import SampleViewWidget
 from ..panel_style import section_header
 
-PANEL_MIN_WIDTH, PANEL_MAX_WIDTH = 220, 290
+if TYPE_CHECKING:
+    from ....analysis.autogate.models import Region
+    from ....analysis.experiment import Sample
+    from ....analysis.state import FlowState
+
+PANEL_MIN_WIDTH, PREFERRED_WIDTH, PANEL_MAX_WIDTH = 240, 340, 380
+READABLE_SCALE = 0.7  # the tree is fitted to the panel, but never drawn smaller than this
 INDENT = " "  # an em space per level
-_PROPOSED = "proposed"
-_NAME_ROLE = Qt.ItemDataRole.UserRole
-_PARENT_ROLE = Qt.ItemDataRole.UserRole + 1
+PROPOSED_PREFIX = "proposed:"
 
 
 def population_items(sample: Sample | None) -> list[tuple[str, str | None]]:
@@ -34,12 +46,39 @@ def population_items(sample: Sample | None) -> list[tuple[str, str | None]]:
     return items
 
 
+def _mirror(node: GateNode, copies: dict[str, GateNode]) -> GateNode:
+    """A copy of ``node``'s subtree that shares its ids, gates and statistics."""
+    if node.node_id in copies:
+        return copies[node.node_id]
+    copy = GateNode(
+        node_id=node.node_id,
+        name=node.name,
+        gate=node.gate,
+        statistics=node.statistics,
+        is_logic_node=node.is_logic_node,
+        logic_operator=node.logic_operator,
+        is_umap_parent=node.is_umap_parent,
+    )
+    copies[node.node_id] = copy
+    for child in node.children:
+        if child.is_incomplete:
+            continue
+        child_copy = _mirror(child, copies)
+        child_copy.parents.append(copy)
+        copy.children.append(child_copy)
+    return copy
+
+
 class GatingTreePanel(QWidget):
-    population_clicked = Signal(str, str)  # population name, its parent's name
+    population_clicked = Signal(object)  # node id (None: All Events)
     open_tab_requested = Signal(object)  # MainTab
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, state: FlowState, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._state = state
+        self._engine = NodeTreeEngine()
+        self._root_id: str | None = None
+        self._focus_id: str | None = None  # the node scrolled into view
         self.setMinimumWidth(PANEL_MIN_WIDTH)
         self.setMaximumWidth(PANEL_MAX_WIDTH)
         layout = QVBoxLayout(self)
@@ -48,19 +87,27 @@ class GatingTreePanel(QWidget):
         layout.addWidget(
             section_header(
                 "Gating tree",
-                "The group's real gating tree. Accepted auto gates are ordinary gates: edit, "
-                "rename or delete them like any other. Click a population to see why it was gated.",
+                "The reference sample's real gating tree. Click a population to split it next, or to "
+                "see why an auto gate is where it is. Dashed: proposed, not added yet. Accepted auto "
+                "gates are ordinary gates: edit, rename or delete them like any other.",
             )
         )
         self._caption = BioCaptionLabel("")
         layout.addWidget(self._caption)
-        self._list = BioListWidget()
-        self._list.setObjectName("AutoGateTree")
-        self._list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._list.setTextElideMode(Qt.TextElideMode.ElideRight)
-        self._list.setSpacing(2)
-        self._list.itemClicked.connect(self._on_item_clicked)
-        layout.addWidget(self._list, 1)
+
+        self._scroll = BioScrollArea()
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        theme_manager.apply_style(
+            self._scroll, "QScrollArea { background: {BG_DARKEST}; border: 1px solid {BORDER}; }"
+        )
+        self._view = SampleViewWidget(state, editable=False)
+        self._view.setObjectName("AutoGateTree")
+        self._view.setMinimumSize(120, 120)
+        self._view.node_clicked.connect(self._on_node_clicked)
+        self._scroll.setWidget(self._view)
+        layout.addWidget(self._scroll, 1)
+        ZoomControls(self._view.zoom_in, self._view.zoom_out, self._fit).overlay_on(self._scroll)
 
         layout.addSpacing(6)
         layout.addWidget(section_header("Elsewhere"))
@@ -68,38 +115,66 @@ class GatingTreePanel(QWidget):
         lens.setToolTip("Audit these gates against a clustering in the Sample Lens tab.")
         lens.clicked.connect(lambda: self.open_tab_requested.emit(MainTab.SAMPLE_LENS))
         gating = SecondaryButton("Open in Gating")
-        gating.setToolTip("Show these populations on the Gating tab.")
+        gating.setToolTip("Show these populations on the Gating tab, where gates can be moved.")
         gating.clicked.connect(lambda: self.open_tab_requested.emit(MainTab.GATING))
         layout.addWidget(lens)
         layout.addWidget(gating)
 
     def show_tree(
-        self, sample: Sample | None, parent_id: str | None, proposed: tuple[str, ...]
+        self,
+        sample: Sample | None,
+        selected_id: str | None,
+        proposed: tuple[Region, ...] = (),
+        parent_id: str | None = None,
     ) -> None:
-        """``sample``'s tree, with ``proposed`` populations under the node ``parent_id``."""
-        self._list.clear()
-        self._caption.setText(sample.display_name if sample is not None else "No sample loaded")
-        ancestors: list[str] = []  # the names on the path to the current row
-        for label, node_id in population_items(sample):
-            name = label.strip()
-            depth = len(label) - len(label.lstrip(INDENT))
-            del ancestors[depth:]
-            self._add(label, name, ancestors[-1] if ancestors else "")
-            ancestors.append(name)
-            if node_id == parent_id and proposed:
-                for child in proposed:
-                    item = self._add(f"{INDENT * (depth + 1)}{child}  · {_PROPOSED}", child, name)
-                    font = QFont(item.font())
-                    font.setItalic(True)
-                    item.setFont(font)
+        """``sample``'s tree, ``proposed`` populations dashed under ``parent_id``, ``selected_id`` picked."""
+        if sample is None:
+            self._caption.setText("No sample loaded")
+            self._view.clear()
+            return
+        self._caption.setText(sample.display_name)
+        copies: dict[str, GateNode] = {}
+        root = _mirror(sample.gate_tree, copies)
+        self._root_id = root.node_id
+        parent = copies.get(parent_id) if parent_id else root
+        ids = set()
+        for i, region in enumerate(proposed):
+            node = GateNode(
+                node_id=f"{PROPOSED_PREFIX}{i}",
+                name=region.name,
+                statistics={"pct_parent": 100 * region.fraction},
+                parents=[parent] if parent else [],
+            )
+            if parent is not None:
+                parent.children.append(node)
+            ids.add(node.node_id)
+        total = sample.fcs_data.num_events if sample.fcs_data is not None else 0
+        rects = self._engine.compute(root, total, derived_labels_of(sample.fcs_data))
+        for r in rects:
+            if r.node_id in ids:
+                r.gate_type = "Proposed"
+        self._view.set_rects(rects)
+        self._view.set_proposed(ids)
+        self._view.set_selected(selected_id or root.node_id)
+        self._focus_id = selected_id or root.node_id
+        QTimer.singleShot(0, self._fit)
 
-    def _add(self, label: str, name: str, parent: str) -> QListWidgetItem:
-        item = QListWidgetItem(label)
-        item.setData(_NAME_ROLE, name)
-        item.setData(_PARENT_ROLE, parent)
-        item.setToolTip(f"{parent} / {name}" if parent else name)
-        self._list.addItem(item)
-        return item
+    def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
+        return QSize(PREFERRED_WIDTH, super().sizeHint().height())
 
-    def _on_item_clicked(self, item: QListWidgetItem) -> None:
-        self.population_clicked.emit(item.data(_NAME_ROLE), item.data(_PARENT_ROLE))
+    def _fit(self) -> None:
+        self._view.fit_view(READABLE_SCALE)
+        center = self._view.node_center(self._focus_id) if self._focus_id else None
+        if center is not None:  # keep the population being split in view
+            self._scroll.ensureVisible(
+                center.x(), center.y(), self._scroll.width() // 2, self._scroll.height() // 3
+            )
+
+    def _on_node_clicked(self, node_id: str) -> None:
+        if node_id.startswith(PROPOSED_PREFIX):
+            return
+        self.population_clicked.emit(None if node_id == self._root_id else node_id)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 - Qt override
+        super().resizeEvent(event)
+        QTimer.singleShot(0, self._fit)

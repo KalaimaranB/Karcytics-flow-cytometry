@@ -1,7 +1,8 @@
-"""Apply to group: the proposed gates on every sample, fixed or moved to fit each.
+"""Apply to group: the proposed gates on every sample, and whether each sample fits them.
 
-A table of each sample's populations and how far its gates moved, and the
-gates drawn on each sample so a move can be checked by eye.
+Accepted gates go to every sample unchanged. For each sample the split is also
+redone on its own events (dashed grey): where that sits far from the gates,
+the sample is flagged for a look.
 """
 
 from __future__ import annotations
@@ -10,17 +11,14 @@ from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
     BioScrollArea,
     BioTableWidget,
-    BioToggleButton,
     SubtitleLabel,
 )
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
-    QButtonGroup,
     QGridLayout,
-    QHBoxLayout,
     QHeaderView,
     QLabel,
     QTableWidgetItem,
@@ -34,12 +32,10 @@ from .proposal_plot import ProposalPlot
 
 PLOTS_PER_ROW = 3
 MINI_PLOT_HEIGHT = 190
-TABLE_HEIGHT = 220
+TABLE_HEIGHT = 200
 
 
 class ApplyPage(QWidget):
-    mode_changed = Signal(bool)  # True: adapt to each sample
-
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -49,32 +45,11 @@ class ApplyPage(QWidget):
         layout.addWidget(self._title)
         layout.addWidget(
             BioCaptionLabel(
-                "Accepted gates go to every sample in the group, like any gate you draw. "
-                "Control samples (unstained, single stains, FMOs) are skipped."
+                "Accepted gates go to every sample in the group unchanged, like any gate you draw. "
+                "Dashed grey: where each sample's own split would be. A sample whose own split sits "
+                "far from the gates is flagged. Control samples (unstained, single stains, FMOs) are skipped."
             )
         )
-
-        modes = QHBoxLayout()
-        self._fixed = BioToggleButton("Same gates everywhere")
-        self._fixed.setObjectName("AutoGateFixedMode")
-        self._fixed.setToolTip(
-            "Every sample gets exactly the reference sample's gates (and PCA axes)."
-        )
-        self._adaptive = BioToggleButton("Adapt to each sample")
-        self._adaptive.setObjectName("AutoGateAdaptiveMode")
-        self._adaptive.setToolTip(
-            "Each cut moves to that sample's own valley, within a limit. Big moves are flagged for review."
-        )
-        group = QButtonGroup(self)
-        group.setExclusive(True)
-        for button in (self._fixed, self._adaptive):
-            group.addButton(button)
-            modes.addWidget(button)
-        self._fixed.setChecked(True)
-        self._adaptive.toggled.connect(self.mode_changed)
-        modes.addStretch()
-        layout.addLayout(modes)
-
         self._table = BioTableWidget()
         self._table.setObjectName("AutoGateGroupTable")
         self._table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -92,9 +67,6 @@ class ApplyPage(QWidget):
         scroll.setWidget(grid_host)
         layout.addWidget(scroll, 1)
         self.show_preview(None, "")
-
-    def adaptive(self) -> bool:
-        return self._adaptive.isChecked()
 
     def show_preview(self, preview: GroupPreview | None, group_name: str) -> None:
         self._title.setText(f"Apply to {group_name}" if group_name else "Apply to the group")
@@ -114,7 +86,7 @@ class ApplyPage(QWidget):
             self._grid.addWidget(self._sample_card(row), i // PLOTS_PER_ROW, i % PLOTS_PER_ROW)
 
     def _fill_table(self, preview: GroupPreview) -> None:
-        headers = ["Sample", *[f"{p} %" for p in preview.populations], "Gate moved", "Status"]
+        headers = ["Sample", *[f"{p} %" for p in preview.populations], "Drift", "Status"]
         self._table.clear()
         self._table.setColumnCount(len(headers))
         self._table.setHorizontalHeaderLabels(headers)
@@ -126,7 +98,7 @@ class ApplyPage(QWidget):
             cells += [
                 f"{row.percents[p]:.1f}" if p in row.percents else "—" for p in preview.populations
             ]
-            cells += [f"{row.shift:.0%}" if row.plot is not None else "—", row.status]
+            cells += [f"{row.drift:.0%}" if row.plot is not None else "—", row.status]
             for c, text in enumerate(cells):
                 item = QTableWidgetItem(text)
                 if 0 < c < len(cells) - 1:

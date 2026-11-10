@@ -764,6 +764,11 @@ def derived_labels_of(data: object) -> dict[str, str]:
     return state.labels if isinstance(state, DerivedColumnsState) else {}
 
 
+def get_scatter_channels(data: FCSData) -> list[str]:
+    """Return the scatter channels (forward and side scatter), e.g. ``FSC-A``, ``SSC-H``."""
+    return [ch for ch in data.channels if ch.startswith(("FSC", "SSC"))]
+
+
 def get_channel_marker_label(data: FCSData, channel: str) -> str:
     """Return the display label for a channel.
 

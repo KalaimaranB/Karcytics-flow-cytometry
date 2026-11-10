@@ -158,14 +158,25 @@ class WhyPanel(QWidget):
         text_layout.addWidget(self._edits)
         return text_card
 
-    def show_story(self, story: GateStory | None) -> None:
+    def show_story(self, story: GateStory | None, population: str = "") -> None:
+        """``story``; without one, say that ``population`` (if any) was drawn by hand."""
         self._story = story
         clear_layout(self._facts)
         clear_layout(self._sections)
         self._method.setVisible(story is not None)
         if story is None:
-            self._title.setText("Click a population in the gating tree to see why it was gated")
-            self._methods_text.setText("")
+            self._density.set_density(np.zeros(0), 0.5, "")
+            if population:
+                self._title.setText(f"{population}: drawn by hand")
+                self._methods_text.setText(
+                    "This gate wasn't made by auto gating, so nothing was recorded about it. "
+                    "Accepted auto gates show here how and why they were placed."
+                )
+            else:
+                self._title.setText(
+                    "Click an auto gate in the gating tree to see why it is where it is"
+                )
+                self._methods_text.setText("")
             self._edits.setText("")
             return
         self._title.setText(story.gate)

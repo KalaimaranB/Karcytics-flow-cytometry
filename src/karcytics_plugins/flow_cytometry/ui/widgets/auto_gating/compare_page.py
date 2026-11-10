@@ -1,6 +1,6 @@
 """Compare methods: each method's strategy beside your own gates.
 
-Previews only: nothing is added until "Use this strategy".
+Previews only: nothing is added from here.
 """
 
 from __future__ import annotations
@@ -35,9 +35,9 @@ class ComparePage(QWidget):
         layout.addWidget(self._title)
         layout.addWidget(
             BioCaptionLabel(
-                "Every method run from the same population, beside your own gates. Agreement is "
-                "F1 against your gates (1 = the same cells). Previews only: nothing is added "
-                "until you pick one."
+                "Every method's first split of the same population, beside the gates you drew under "
+                "it. “Agrees” is F1 against your best-matching gate (1 = the same cells). Previews "
+                "only: nothing is added from here."
             )
         )
         scroll = BioScrollArea()
@@ -70,11 +70,17 @@ class ComparePage(QWidget):
         title = QLabel(outcome.label)
         theme_manager.apply_style(title, "color: {FG_PRIMARY}; font-weight: bold; font-size: 14px;")
         layout.addWidget(title)
-        layout.addWidget(BioCaptionLabel(f"{outcome.steps} step · {outcome.axes}"))
+        if outcome.summary:
+            layout.addWidget(BioCaptionLabel(outcome.summary))
         plot = ProposalPlot(compact=True)
         plot.setFixedHeight(MINI_PLOT_HEIGHT)
-        plot.set_plot(outcome.plot, dashed=bool(outcome.method_key))
+        own = "Each of your gates is on its own axes: compare by the numbers below."
+        empty = outcome.error or (own if not outcome.method_key else "")
+        plot.set_plot(outcome.plot, dashed=bool(outcome.method_key), empty_text=empty)
         layout.addWidget(plot)
+        if outcome.error:
+            layout.addStretch()
+            return frame
 
         layout.addWidget(section_header("Populations"))
         grid = QGridLayout()
@@ -94,7 +100,8 @@ class ComparePage(QWidget):
         layout.addLayout(grid)
         layout.addStretch()
         if outcome.method_key:
-            use = SecondaryButton("Use this strategy")
+            use = SecondaryButton("Use this method")
+            use.setToolTip("Switch the Build page to this method.")
             use.setObjectName(f"AutoGateUse_{outcome.method_key}")
             use.clicked.connect(lambda _c=False, key=outcome.method_key: self.use_clicked.emit(key))
             layout.addWidget(use)
