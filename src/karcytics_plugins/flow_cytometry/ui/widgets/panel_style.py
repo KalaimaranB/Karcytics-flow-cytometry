@@ -106,4 +106,5 @@ def clear_layout(layout: QLayout) -> None:
         item = layout.takeAt(0)
         widget = item.widget() if item is not None else None
         if widget is not None:
+            widget.hide()  # deleteLater waits for the event loop; until then it would still paint
             widget.deleteLater()

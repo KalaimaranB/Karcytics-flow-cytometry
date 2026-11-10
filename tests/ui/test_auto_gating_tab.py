@@ -85,12 +85,12 @@ def test_a_population_with_no_clear_split_says_why(tab):
 def test_accepting_adds_the_gates_under_the_population(tab):
     _propose_on_t_cells(tab, "pairs")
     names = tab._proposal.plot.main_names
-    before = {c.name for c in _t_cells(tab).children}
+    before = {c.node_id for c in _t_cells(tab).children}
 
     tab._build.accept_clicked.emit()
 
-    after = {c.name for c in _t_cells(tab).children}
-    assert after - before == set(names)
+    added = [c.name for c in _t_cells(tab).children if c.node_id not in before]
+    assert added == list(names)
     assert tab._build._status.text().startswith("Added")
     assert not tab._tree._view._proposed  # nothing dashed any more
 

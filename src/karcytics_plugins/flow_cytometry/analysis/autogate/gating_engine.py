@@ -23,6 +23,7 @@ from .models import (
     MARKER_PAIRS,
     METHODS,
     PCA,
+    BarSection,
     GateStory,
     GroupPreview,
     MethodOutcome,
@@ -45,7 +46,7 @@ from .population import (
 )
 from .split import Piece, Split, by_mixture, by_valleys, split_axis_record
 from .story import story_of
-from .views import Axis, View, choose, loadings_section
+from .views import Axis, View, ViewChoice, choose, loadings_section
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -53,6 +54,7 @@ if TYPE_CHECKING:
     from ..axis_manager import AxisManager
     from ..state import FlowState
 
+MAX_VIEWS_TRIED = 5  # mixture methods move on from views that hold one population
 FLAG_DRIFT = 0.05  # a sample whose own split sits further than this share of an axis needs a look
 
 
@@ -91,13 +93,10 @@ class GatingEngine:
         choice = choose(data, info.key, request.channels, *axes)
         if isinstance(choice, str):
             return choice
-        view, sections = choice.ranked(request.view_rank)
-        if info.key == DENSITY_VALLEYS.key:
-            split = by_valleys(view, request.min_valley)
-        else:
-            split = by_mixture(view, request.min_valley)
-        if isinstance(split, str):
-            return split
+        found = self._split(info.key, choice, data, request)
+        if isinstance(found, str):
+            return found
+        view, sections, split, rank = found
         # Each region holds exactly what its gate holds: the gate, not the shape it was
         # fitted as, is what goes in the tree, so its numbers are the ones shown.
         on_axes = self._with_pending(data.events, view)
@@ -106,12 +105,12 @@ class GatingEngine:
         ]
         split = replace(split, pieces=[p for p in pieces if p.mask.any()])
         frame = Frame.around(view.x.values, view.y.values)
-        # Named by what was cut: the picked axes for density valleys, else every channel used.
-        naming = tuple(a for a in axes if a) if info.user_picks_axes else channels
+        # Named by the view's own markers; PCA axes mix every channel, so by all of them.
+        naming = channels if info.key == PCA.key else (view.x.key, view.y.key)
         names = name_regions(data, naming, [p.mask for p in split.pieces])
         regions = sorted(
             (
-                self._region(name, piece, frame)
+                self._region(name, piece, frame, data, request.min_events)
                 for name, piece in zip(names, split.pieces, strict=True)
             ),
             key=lambda r: -r.fraction,
@@ -129,7 +128,7 @@ class GatingEngine:
             for axis, pos in split.cuts
         )
         plot = PlotData(view.x.label, view.y.label, points, tuple(regions), cuts=cuts)
-        reason = self._reason(info.key, request.view_rank, view, choice, split, data, regions)
+        reason = self._reason(info.key, rank, view, choice, split, data, regions)
         pending = tuple(a.pending for a in (view.x, view.y) if a.pending is not None)
         provenance = self._record(info.key, data, view, choice.notes, split, request)
         return Proposal(
@@ -144,17 +143,51 @@ class GatingEngine:
             pending,
             provenance,
             _Context(view, split, frame, data),
+            rank,
         )
 
     @staticmethod
-    def _region(name: str, piece: Piece, frame: Frame) -> Region:
+    def _split(
+        key: str, choice: ViewChoice, data: PopulationData, request: StepRequest
+    ) -> tuple[View, tuple[BarSection, ...], Split, int] | str:
+        """The split on the requested view, or for the mixtures the first of the next
+        MAX_VIEWS_TRIED views (by score) holding at least two populations to gate.
+        """
+        if key == DENSITY_VALLEYS.key:
+            view, sections = choice.ranked(request.view_rank)
+            split = by_valleys(view, request.min_valley)
+            return split if isinstance(split, str) else (view, sections, split, request.view_rank)
+        per_event = data.parent_total / max(len(data.events), 1)
+        tried = []
+        for rank in range(
+            request.view_rank, request.view_rank + min(MAX_VIEWS_TRIED, len(choice.views))
+        ):
+            view, sections = choice.ranked(rank)
+            split = by_mixture(view, request.min_valley)
+            if not isinstance(split, str):
+                big = [p for p in split.pieces if p.mask.sum() * per_event >= request.min_events]
+                if len(big) >= 2:  # noqa: PLR2004 - a split needs two populations
+                    return view, sections, split, rank
+            tried.append(view.name)
+        return (
+            f"No clear split in the {len(tried)} best views ({', '.join(tried)}): none holds two "
+            f"populations of {request.min_events:,}+ events with a valley of {request.min_valley:.2f} "
+            "between them. Try other channels, or lower “Clear valley at least”."
+        )
+
+    @staticmethod
+    def _region(
+        name: str, piece: Piece, frame: Frame, data: PopulationData, min_events: int
+    ) -> Region:
         outline = frame.unit(piece.outline)
+        fraction = float(piece.mask.mean())
         return Region(
             name,
-            float(piece.mask.mean()),
+            fraction,
             tuple(float(v) for v in outline.ravel()),
             piece.gate,
             piece.mask,
+            is_main=fraction * data.parent_total >= min_events,
         )
 
     @staticmethod
@@ -168,14 +201,19 @@ class GatingEngine:
         regions: list[Region],
     ) -> str:
         n_views = len(getattr(choice, "views", ()))
-        lead = f"Runner-up view {rank % max(n_views, 1) + 1} of {n_views}. " if rank else ""
+        place = f"ranks {rank % max(n_views, 1) + 1} of {n_views}" if rank else "is the clearest"
         if key == MARKER_PAIRS.key:
-            lead += f"{view.name} is the clearest of the {n_views} marker pairs (score {view.score:.2f}). "
+            lead = f"{view.name} {place} of the {n_views} marker pairs (score {view.score:.2f}). "
         elif key == PCA.key:
-            lead += (
-                f"{view.name} separates {data.parent_name} best of {n_views} planes (score {view.score:.2f}). "
-                "Accepting adds the components as derived parameters, so their formulas are kept. "
+            lead = (
+                f"{view.name} {place} of the {n_views} planes of {data.parent_name} (score "
+                f"{view.score:.2f}). Accepting adds the components as derived parameters, so their "
+                "formulas are kept. "
             )
+        else:
+            lead = ""
+        if rank and key != DENSITY_VALLEYS.key:
+            lead += "Views ranked above it held one population each, or were skipped. "
         named = ", ".join(f"{r.name} ({r.fraction:.0%})" for r in regions if r.is_main)
         return f"{lead}{split.reason} Named from each group's medians: {named}."
 

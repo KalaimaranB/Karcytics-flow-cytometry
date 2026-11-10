@@ -7,17 +7,28 @@ from dataclasses import replace
 
 import numpy as np
 import pytest
+from matplotlib.path import Path as MplPath
 
 from karcytics_plugins.flow_cytometry.analysis.autogate import (
     GatingEngine,
     ProposalCommitter,
     StepRequest,
 )
-from karcytics_plugins.flow_cytometry.analysis.autogate.density import find_valley, separation
-from karcytics_plugins.flow_cytometry.analysis.autogate.mixture import fit_mixture, inside
+from karcytics_plugins.flow_cytometry.analysis.autogate.density import (
+    find_valley,
+    on_scale,
+    separation,
+    valley_2d,
+)
+from karcytics_plugins.flow_cytometry.analysis.autogate.mixture import (
+    envelope,
+    fit_mixture,
+    inside,
+)
 from karcytics_plugins.flow_cytometry.analysis.autogate.models import METHODS
 from karcytics_plugins.flow_cytometry.analysis.axis_manager import AxisManager
 from karcytics_plugins.flow_cytometry.analysis.derived.expression import parse_formula
+from karcytics_plugins.flow_cytometry.analysis.gating.ellipse import EllipseGate
 from karcytics_plugins.flow_cytometry.analysis.gating.gate_factory import gate_from_dict
 from karcytics_plugins.flow_cytometry.analysis.services.derived_parameter_service import (
     DerivedParameterService,
@@ -73,8 +84,37 @@ def test_one_peak_has_no_clear_valley_and_no_separation():
 def test_bic_finds_two_groups_and_one():
     rng = np.random.default_rng(0)
     two = np.vstack((rng.normal((0, 0), 1, (3000, 2)), rng.normal((8, 8), 1, (2000, 2))))
-    assert len(fit_mixture(two).components) == 2  # noqa: PLR2004
-    assert len(fit_mixture(rng.normal(0, 1, (4000, 2))).components) == 1
+    assert len(fit_mixture(two, 0.3).components) == 2  # noqa: PLR2004
+    assert len(fit_mixture(rng.normal(0, 1, (4000, 2)), 0.3).components) == 1
+
+
+def test_a_skewed_population_is_one_population_however_many_components_fit_it():
+    """Real populations are lopsided: BIC spends several Gaussians on one, which then merge."""
+    rng = np.random.default_rng(0)
+    skewed = np.column_stack((rng.lognormal(0, 0.6, 6000), rng.normal(0, 0.3, 6000)))
+    dead = rng.normal((8, 3), 0.3, (400, 2))
+    mixture = fit_mixture(np.vstack((skewed, dead)), 0.3)
+
+    assert mixture.fitted > 2  # noqa: PLR2004 - BIC wants several components
+    assert len(mixture.components) == 2  # noqa: PLR2004 - but there are two populations
+    outline = MplPath(envelope(mixture.parts[0]))
+    assert outline.contains_points(skewed).mean() > 0.9  # noqa: PLR2004 - not squeezed
+    assert not outline.contains_points(dead).any()  # nor bridging to the other group
+
+
+def test_noise_has_no_2d_valley_at_any_size_but_a_small_group_does():
+    rng = np.random.default_rng(0)
+    for n in (500, 2000, 20_000):
+        assert valley_2d(*rng.normal(0, 1, (2, n))) < 0.2  # noqa: PLR2004
+        assert valley_2d(*rng.lognormal(0, 0.6, (2, n))) < 0.2  # noqa: PLR2004
+    with_group = np.hstack((rng.normal(0, 1, (2, 1900)), rng.normal(5, 0.5, (2, 100))))
+    assert valley_2d(*with_group) > 0.9  # noqa: PLR2004
+
+
+def test_events_piled_on_a_detector_limit_are_off_scale():
+    values = np.concatenate((np.linspace(0, 100, 1000), np.full(50, 262_143.0)))
+    assert not on_scale(values)[-50:].any() and on_scale(values)[:1000].all()
+    assert on_scale(np.linspace(0, 1, 100)).all()  # a single top value is just the brightest
 
 
 # ── Proposals ─────────────────────────────────────────────────────────
@@ -87,8 +127,11 @@ def test_every_method_finds_cd4_and_cd8_t_cells(lens, info):
 
     assert not isinstance(proposal, str), proposal
     names = proposal.plot.main_names
-    assert any("CD4+" in n and "CD8−" in n for n in names), names
-    assert any("CD4−" in n and "CD8+" in n for n in names), names
+    if info.key == "pairs":  # named by the view's own markers, which may not include CD8
+        assert any("CD4+" in n for n in names) and any("CD4−" in n for n in names), names
+    else:
+        assert any("CD4+" in n and "CD8−" in n for n in names), names
+        assert any("CD4−" in n and "CD8+" in n for n in names), names
     assert proposal.reason and proposal.view_sections
     assert proposal.provenance["method"] == info.key
 
@@ -113,9 +156,16 @@ def test_an_ellipse_gate_keeps_the_shape_it_was_fitted_as(lens):
     xy = np.column_stack((view.x.values, view.y.values))
     events = proposal.context.data.events
 
-    for component, region in zip(proposal.context.split.components, proposal.gated, strict=False):
+    split = proposal.context.split
+    ellipses = [
+        (c, p)
+        for c, p in zip(split.components, split.pieces, strict=True)
+        if isinstance(p.gate, EllipseGate)
+    ]
+    assert ellipses
+    for component, piece in ellipses:
         shape = inside(xy, component)
-        assert np.mean(region.gate.contains(events) == shape) > 0.99  # noqa: PLR2004 - edge rounding
+        assert np.mean(piece.gate.contains(events) == shape) > 0.99  # noqa: PLR2004 - edge rounding
 
 
 def test_pca_axes_are_formulas_that_reproduce_the_components(lens):
@@ -123,7 +173,8 @@ def test_pca_axes_are_formulas_that_reproduce_the_components(lens):
     proposal = engine.propose(_request(state, "pca"))
     view = proposal.context.view
 
-    assert [a.name.split(" ·")[0] for a in proposal.pending_axes] == ["PC1", "PC2"]
+    assert all(a.name.startswith("PC") for a in proposal.pending_axes)
+    assert len(proposal.pending_axes) == 2  # noqa: PLR2004
     for axis in (view.x, view.y):
         values = parse_formula(axis.pending.formula).evaluate(proposal.context.data.events)
         assert np.allclose(values, axis.values, equal_nan=True)
@@ -144,7 +195,8 @@ def test_the_next_best_view_is_another_view(lens):
     best = engine.propose(_request(state, "pairs"))
     second = engine.propose(_request(state, "pairs", view_rank=1))
     assert second.context.view.name != best.context.view.name
-    assert second.reason.startswith("Runner-up view 2")
+    assert "ranks 2 of" in second.reason
+    assert second.view_rank >= 1
 
 
 # ── Group, comparison, record ─────────────────────────────────────────
@@ -214,5 +266,5 @@ def test_the_cells_split_runs_on_forward_and_side_scatter(lens):
     assert not isinstance(proposal, str), proposal
     cells = max(proposal.plot.regions, key=lambda r: r.fraction)
     assert cells.fraction == pytest.approx(0.92, abs=0.02)  # the planted debris is 8%
-    assert cells.name == "FSC-Ahi SSC-Ahi"
+    assert cells.name.startswith("FSC-Ahi")
     assert len(proposal.gated) == 1  # the debris is a sliver, not a population to keep

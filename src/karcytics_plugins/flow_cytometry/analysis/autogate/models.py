@@ -47,8 +47,6 @@ PCA = MethodInfo(
 )
 METHODS: tuple[MethodInfo, ...] = (DENSITY_VALLEYS, MARKER_PAIRS, PCA)
 
-MAIN_SHARE = 0.1  # a region holding less of its parent is a sliver, not a population to gate
-
 
 def method(key: str) -> MethodInfo:
     return next((m for m in METHODS if m.key == key), PCA)
@@ -67,7 +65,9 @@ class StepRequest:
     y_channel: str = ""
     view_rank: int = 0  # 0: the best view, 1: the next best, ...
     min_events: int = 500
-    min_valley: float = 0.5
+    min_valley: float = (
+        0.3  # real populations rarely part more cleanly; one noisy peak stays under 0.2
+    )
 
 
 @dataclass(frozen=True)
@@ -97,10 +97,7 @@ class Region:
     outline: tuple[float, ...]  # polygon in plot units: x0, y0, x1, y1, ...
     gate: Gate | None = None  # what accepting adds (None: shown only)
     mask: np.ndarray | None = None  # its events among the ones the split looked at
-
-    @property
-    def is_main(self) -> bool:
-        return self.fraction >= MAIN_SHARE
+    is_main: bool = False  # big enough to gate: at least the smallest population's events
 
 
 @dataclass(frozen=True, eq=False)
@@ -144,6 +141,7 @@ class Proposal:
     pending_axes: tuple[PendingAxis, ...] = ()
     provenance: dict[str, Any] = field(default_factory=dict)  # stored on every accepted gate
     context: Any = None  # the engine's own: how to redo this split on another sample
+    view_rank: int = 0  # the view it is on; the next best starts after it
 
     @property
     def gated(self) -> tuple[Region, ...]:

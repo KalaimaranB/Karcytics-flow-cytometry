@@ -22,7 +22,7 @@ from karcytics_sdk.plugin.theme_fallback import theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFormLayout, QListWidgetItem, QVBoxLayout, QWidget
 
-from ....analysis.autogate import method
+from ....analysis.autogate import StepRequest, method
 from ..panel_style import section_header
 from .method_picker import MethodPicker
 
@@ -134,7 +134,7 @@ class SetupSidebar(QWidget):
         self._min_valley = BioDoubleSpinBox()
         self._min_valley.setRange(0.1, 0.95)
         self._min_valley.setSingleStep(0.05)
-        self._min_valley.setValue(0.5)
+        self._min_valley.setValue(StepRequest.min_valley)
         self._min_valley.setToolTip(
             "How empty the gap between two peaks must be to split there (1 = no events between them)."
         )

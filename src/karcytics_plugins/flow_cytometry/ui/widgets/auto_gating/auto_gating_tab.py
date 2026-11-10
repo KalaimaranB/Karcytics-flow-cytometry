@@ -243,10 +243,10 @@ class AutoGatingTab(QWidget):
 
     def _show_tree(self) -> None:
         node_id, _name = self._sidebar.population()
-        regions = (
-            tuple(r for r in self._proposal.plot.regions if r.is_main) if self._proposal else ()
-        )
-        self._tree.show_tree(self._reference_sample(), node_id, regions, node_id)
+        proposal = self._proposal
+        regions = tuple(r for r in proposal.plot.regions if r.is_main) if proposal else ()
+        events = proposal.n_events if proposal else 0
+        self._tree.show_tree(self._reference_sample(), node_id, regions, node_id, events)
 
     def _refresh_page(self, index: int) -> None:
         """Recompute the Apply or Compare page if it is showing and out of date."""

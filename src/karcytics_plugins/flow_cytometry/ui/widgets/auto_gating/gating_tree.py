@@ -107,7 +107,16 @@ class GatingTreePanel(QWidget):
         self._view.node_clicked.connect(self._on_node_clicked)
         self._scroll.setWidget(self._view)
         layout.addWidget(self._scroll, 1)
-        ZoomControls(self._view.zoom_in, self._view.zoom_out, self._fit).overlay_on(self._scroll)
+        zoom = ZoomControls(self._view.zoom_in, self._view.zoom_out, self._fit)
+        # The panel is narrow: the full labels ("Zoom Out (-)") were clipped to "om Out".
+        for button, text, tip in (
+            (zoom.zoom_out_button, "−", "Zoom out (-)"),
+            (zoom.zoom_in_button, "+", "Zoom in (+)"),
+            (zoom.fit_button, "Fit", "Fit the tree to the panel (F)"),
+        ):
+            button.setText(text)
+            button.setToolTip(tip)
+        zoom.overlay_on(self._scroll)
 
         layout.addSpacing(6)
         layout.addWidget(section_header("Elsewhere"))
@@ -126,6 +135,7 @@ class GatingTreePanel(QWidget):
         selected_id: str | None,
         proposed: tuple[Region, ...] = (),
         parent_id: str | None = None,
+        parent_events: int = 0,
     ) -> None:
         """``sample``'s tree, ``proposed`` populations dashed under ``parent_id``, ``selected_id`` picked."""
         if sample is None:
@@ -142,7 +152,10 @@ class GatingTreePanel(QWidget):
             node = GateNode(
                 node_id=f"{PROPOSED_PREFIX}{i}",
                 name=region.name,
-                statistics={"pct_parent": 100 * region.fraction},
+                statistics={
+                    "pct_parent": 100 * region.fraction,
+                    "count": round(region.fraction * parent_events),
+                },
                 parents=[parent] if parent else [],
             )
             if parent is not None:

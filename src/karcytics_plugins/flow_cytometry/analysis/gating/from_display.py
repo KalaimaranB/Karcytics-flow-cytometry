@@ -13,6 +13,7 @@ import numpy as np
 
 from .._utils import project_to_raw
 from .ellipse import EllipseGate
+from .polygon import PolygonGate
 from .rectangle import RectangleGate
 
 if TYPE_CHECKING:
@@ -78,6 +79,21 @@ def ellipse_from_display(  # noqa: PLR0913 - a gate is two axes, their scales an
         width=x_end - cx,
         height=y_end - cy,
         angle=angle,
+        x_scale=x_scale.copy(),
+        y_scale=y_scale.copy(),
+    )
+
+
+def polygon_from_display(
+    x: str, y: str, vertices: np.ndarray, x_scale: AxisScale, y_scale: AxisScale
+) -> PolygonGate:
+    """A polygon whose ``vertices`` ((n, 2), in order) are in display units."""
+    vx = project_to_raw(vertices[:, 0], x_scale)
+    vy = project_to_raw(vertices[:, 1], y_scale)
+    return PolygonGate(
+        x,
+        y,
+        vertices=[(float(a), float(b)) for a, b in zip(vx, vy, strict=True)],
         x_scale=x_scale.copy(),
         y_scale=y_scale.copy(),
     )

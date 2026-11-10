@@ -15,11 +15,16 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 import numpy as np
+from matplotlib.path import Path as MplPath
 
 from ..clustering.describe import short_marker
-from ..gating.from_display import ellipse_from_display, rectangle_from_display
+from ..gating.from_display import (
+    ellipse_from_display,
+    polygon_from_display,
+    rectangle_from_display,
+)
 from .density import Valley, find_valley
-from .mixture import MAX_OVERLAP, RADIUS, Component, axes, fit_mixture, inside, outline
+from .mixture import RADIUS, Component, axes, envelope, fit_mixture, inside, outline
 
 if TYPE_CHECKING:
     from ..gating.base import Gate
@@ -127,17 +132,24 @@ def by_valleys(view: View, min_valley: float) -> Split | str:
 
 
 def by_mixture(view: View, min_valley: float, means_init: np.ndarray | None = None) -> Split | str:
-    if means_init is None and view.score < min_valley:
-        return (
-            f"No clear split: the best view ({view.name}) has a valley of {view.score:.2f}, "
-            f"below {min_valley:.2f}. This population may be one population, or try other channels."
-        )
     xy = np.column_stack((view.x.values, view.y.values))
-    mixture = fit_mixture(xy, means_init)
+    mixture = fit_mixture(xy, min_valley, means_init)
     if len(mixture.components) < 2:  # noqa: PLR2004 - a split needs two groups
-        return f"One population on {view.name}: one group fits better than two or more (BIC)."
+        return (
+            f"One population on {view.name}: the mixture's {mixture.fitted} components have no "
+            f"valley of {min_valley:.2f} between them. Try other channels, or lower "
+            "“Clear valley at least”."
+        )
     pieces = []
-    for comp in mixture.components:
+    for comp, parts in zip(mixture.components, mixture.parts, strict=True):
+        if len(parts) > 1:
+            shape = envelope(parts)
+            mask = MplPath(shape).contains_points(xy)
+            polygon = polygon_from_display(
+                view.x.key, view.y.key, shape, view.x.scale, view.y.scale
+            )
+            pieces.append(Piece(mask, shape, polygon))
+            continue
         a, b, angle = axes(comp)
         gate = ellipse_from_display(
             view.x.key,
@@ -150,20 +162,21 @@ def by_mixture(view: View, min_valley: float, means_init: np.ndarray | None = No
         )
         pieces.append(Piece(inside(xy, comp), outline(comp), gate))
     k = len(mixture.components)
-    if mixture.bic_best != k:
+    if mixture.fitted != k:
         reason = (
-            f"BIC prefers {mixture.bic_best} groups, but some of them overlap (one population split "
-            f"in two), so the best fit with distinct groups is kept: {k} groups. "
+            f"A Gaussian mixture fits best with {mixture.fitted} components (BIC); those with no "
+            f"valley of {min_valley:.2f} between them are one population, leaving {k}. "
         )
     else:
-        others = [str(n) for n in range(1, len(mixture.bic) + 1) if n != k]
-        reason = f"A Gaussian mixture fits {k} groups better than {', '.join(others)} (BIC). "
-    reason += f"Each gate is the ellipse {RADIUS:g} standard deviations around its group."
+        reason = (
+            f"A Gaussian mixture fits best with {k} components (BIC), each its own population. "
+        )
+    reason += f"Each gate is the ellipse {RADIUS:g} standard deviations around its population, or the matching contour of its components' density when it has several."
     record: dict[str, object] = {
         "groups": k,
-        "groups_bic_best": mixture.bic_best,
-        "max_overlap": MAX_OVERLAP,
-        "groups_tried": [[n + 1, round(b, 1)] for n, b in enumerate(mixture.bic)],
+        "components": mixture.fitted,
+        "min_valley": min_valley,
+        "components_tried": [[n + 1, round(b, 1)] for n, b in enumerate(mixture.bic)],
         "radius": RADIUS,
     }
     return Split(pieces, [], reason, record, mixture.components)
