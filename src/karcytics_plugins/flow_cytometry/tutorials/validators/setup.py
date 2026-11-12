@@ -345,3 +345,19 @@ class LearningCompensationCompleteValidator(FlowUIValidator):
                 "Reached the last slide but hasn't answered both reasoning questions yet."
             )
         return True
+
+
+class LearningCompensationTabOpenValidator(FlowUIValidator):
+    """Verifies the Spectral viewer's Learning Compensation sub-tab is open.
+
+    A check rather than a wait for currentChanged, so a learner already on
+    that sub-tab passes at once instead of hanging.
+    """
+
+    def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
+        spectral_viewer = ui.spectral_viewer
+        if spectral_viewer is None:
+            return self.log_failure("Spectral viewer missing.")
+        if not spectral_viewer.learning_tab_active():
+            return self.log_failure("The Learning Compensation sub-tab isn't open.")
+        return True

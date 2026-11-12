@@ -12,6 +12,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+# A tutorial step's metadata key asking the Spectral viewer to spotlight one
+# of its sub-tabs on its own (SpectralViewer.get_tutorial_target_rects).
+# The only value so far is "learning".
+SPECTRAL_TAB_HIGHLIGHT_KEY = "spectral_tab_highlight"
+
 if TYPE_CHECKING:
     from ..analysis.clustering import ClusteringMethod
     from ..analysis.clustering.describe import ClusterSummary

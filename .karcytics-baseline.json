@@ -107,8 +107,8 @@
       "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/course1.py": {
-      "KS300": 1252,
-      "KS310": 5
+      "KS300": 1144,
+      "KS310": 4
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/course2.py": {
       "KS300": 1039
@@ -538,6 +538,9 @@
       "KS302:LayoutEngine.compute_layout": 88,
       "KS310": 1
     },
+    "src/karcytics_plugins/flow_cytometry/ui/widgets/panel_style.py": {
+      "KS240": 10
+    },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/population_analysis_viewer.py": {
       "KS210": 1,
       "KS242": 7,
@@ -555,9 +558,6 @@
       "KS302:PropertiesPanel._show_sample_details": 135,
       "KS310": 4,
       "KS360": 7
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/panel_style.py": {
-      "KS240": 10
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/sample_lens/gating_path.py": {
       "KS210": 1,
@@ -592,22 +592,18 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_learning_tab.py": {
       "KS210": 3,
-      "KS240": 54,
-      "KS242": 2,
-      "KS300": 1364,
-      "KS301:SpectralLearningTab": 54,
-      "KS302:SpectralLearningTab._render_slide_4_predict_correct": 111,
-      "KS310": 23,
-      "KS342": 3
+      "KS240": 51,
+      "KS242": 1,
+      "KS300": 1331,
+      "KS301:SpectralLearningTab": 53,
+      "KS310": 22
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_viewer.py": {
       "KS240": 4,
       "KS242": 8,
-      "KS300": 700,
-      "KS302:SpectralViewer._setup_ui": 147,
-      "KS310": 5,
-      "KS320": 1,
-      "KS342": 3
+      "KS300": 684,
+      "KS310": 4,
+      "KS320": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/statistics_explorer.py": {
       "KS210": 2,

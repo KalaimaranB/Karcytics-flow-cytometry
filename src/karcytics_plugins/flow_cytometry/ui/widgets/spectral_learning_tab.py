@@ -18,14 +18,12 @@ from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib import patches
 from matplotlib.figure import Figure
-from PySide6.QtCore import Qt as _Qt
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
-    QSlider,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -35,6 +33,12 @@ from karcytics_plugins.flow_cytometry.analysis.spectral_math import spectral_ove
 from karcytics_plugins.flow_cytometry.ui.academy_context import LearningDeckSnapshot
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
+)
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_slide4 import (
+    grade_slide4_answer,
+    slide4_cells,
+    slide4_expected_dp,
+    slide4_plot,
 )
 
 if TYPE_CHECKING:
@@ -153,13 +157,9 @@ class SpectralLearningTab(QWidget):
         self._ruler_ok = False
         self._ruler_hint: str | None = None
 
-        # Slide 4 predict+slider state. _corrected_scatter is the live
-        # artist the slider drags in place — see _on_slider_moved.
-        self._predicted_point: tuple[float, float] | None = None
-        self._slider_pct = 0.0
-        self._corrected_scatter = None
-        self._active_leak_x = 0.0
-        self._active_leak_pct = 0.0
+        # Slide 4 (one rule for every cell) reasoning-task state
+        self._slide4_mc_correct = False
+        self._slide4_mc_hint: str | None = None
 
         # Slide 6 gate-drag state
         self._gate_rect: patches.Rectangle | None = None
@@ -261,7 +261,7 @@ class SpectralLearningTab(QWidget):
         self.update_view()
 
     def _clear_interactive_widgets(self):
-        # _add_slider/_add_answer_input nest their controls in a QHBoxLayout
+        # _add_answer_input nests their controls in a QHBoxLayout
         # (`addLayout`, not `addWidget`) — a shallow widget-only sweep leaves
         # those rows behind, so every re-render stacked a fresh slider/input
         # on top of the last. Clear recursively instead.
@@ -301,7 +301,7 @@ class SpectralLearningTab(QWidget):
 
     def _pairs(self) -> list[tuple[str, str, float]]:
         if self._pair_cache is None:
-            self._pair_cache = best_overlap_pairs(self._viewer._active_fluors)
+            self._pair_cache = best_overlap_pairs(self._viewer.active_fluors)
         return self._pair_cache
 
     def _teaching_pair(self) -> tuple[str, str, float]:
@@ -334,7 +334,7 @@ class SpectralLearningTab(QWidget):
     # ── render dispatch ────────────────────────────────────────────────────
 
     def update_view(self, from_animation=False):
-        fluors = self._viewer._active_fluors
+        fluors = self._viewer.active_fluors
         self._btn_prev.setEnabled(self._current_step > 0)
         can_advance = (self._current_step in self._completed_steps) and (
             self._current_step < self._max_steps - 1
@@ -371,7 +371,7 @@ class SpectralLearningTab(QWidget):
             self._render_slide_1_physics,
             self._render_slide_2_unstained,
             self._render_slide_3_ruler,
-            self._render_slide_4_predict_correct,
+            self._render_slide_4_one_rule,
             self._render_slide_5_compensate_all,
             self._render_slide_6_gate,
             self._render_slide_7_matrix,
@@ -705,15 +705,21 @@ class SpectralLearningTab(QWidget):
         )
         btn.clicked.connect(on_submit)
 
+        # Wrapped, and under the input rather than beside it: a long message
+        # in the (horizontal) interactive row widened the left panel until the
+        # plot was squeezed to a sliver.
         self._answer_error = QLabel()
         self._answer_error.setStyleSheet("color: #ff7b72;")
+        self._answer_error.setWordWrap(True)
         self._answer_error.hide()
 
         row = QHBoxLayout()
         row.addWidget(self._answer_input)
         row.addWidget(btn)
-        self._interactive_layout.addLayout(row)
-        self._interactive_layout.addWidget(self._answer_error)
+        column = QVBoxLayout()
+        column.addLayout(row)
+        column.addWidget(self._answer_error)
+        self._interactive_layout.addLayout(column)
 
     def _check_pct_answer(self, true_pct: float) -> bool:
         val = self._answer_input.text().strip().rstrip("%")
@@ -766,166 +772,114 @@ class SpectralLearningTab(QWidget):
         self.update_view()
 
     # ==========================================================================
-    # SLIDE 4: Predict, Then Correct
+    # SLIDE 4: One Rule for Every Cell
     # ==========================================================================
-    def _render_slide_4_predict_correct(self, fluors):
-        self._step_label.setText("Step 4: Predict, Then Correct")
+    def _render_slide_4_one_rule(self, fluors):
+        self._step_label.setText("Step 4: One Rule for Every Cell")
         dye_a, dye_b, pct = self._teaching_pair()
         label_a = fluors[dye_a].get("display_label", dye_a)
         label_b = fluors[dye_b].get("display_label", dye_b)
-        leak_x, leak_y = 800.0, 800.0 * pct / 100.0
-        # The autofluorescence floor — the y-level a fully-compensated cell
-        # reaches (it can't go below this because cells always have some
-        # background signal even with no dye).
-        _AUTOFLUO_FLOOR = 40.0
+        cells = slide4_cells(pct)
+        done = 3 in self._completed_steps  # noqa: PLR2004
 
+        self._explanation.setHtml(self._slide4_html(label_a, label_b, pct, cells, done))
+        if done:
+            title = "Three Cells, Compensated"
+        elif self._slide4_mc_correct:
+            title = "Cells 1 and 2 Compensated"
+        else:
+            title = "Three Cells, Before Compensation"
+        self._ax.set_title(title, color=Colors.FG_PRIMARY, pad=15)
+        self._set_axes_labels(f"{label_a} Detector", f"{label_b} Detector")
+        slide4_plot(self._ax, cells, pct, show_pure=self._slide4_mc_correct, show_dp=done)
+
+        if self._slide4_mc_correct and not done:
+            self._add_answer_input("Compensated value", self._check_slide4_answer)
+
+    def _slide4_html(self, label_a, label_b, pct, cells, done) -> str:
+        (x1, y1), (x2, y2), (x3, y3) = cells
         html = f"""
         <h3 style="color: #3fb950;">Applying the Math</h3>
-        <p>Step 3 gave us the slope — {pct:.1f}% of every unit of true {label_a} signal
-        shows up as FALSE {label_b} signal. Compensation reverses that: for a cell measuring
-        some brightness in the leaking ({label_b}) detector, we subtract (spillover % × the
-        true {label_a} reading) to strip out exactly the false portion, leaving only what
-        {label_b} actually saw on its own.</p>
-        <p>Here's one real leaked cell — the <b>orange cell</b> on the plot, sitting at
-        ({leak_x:.0f}, {leak_y:.0f}). Its x-position ({label_a}) is real and shouldn't move;
-        only its inflated y-position ({label_b}) is the artifact we're correcting. Before we
-        correct it —</p>
+        <p>Step 3 measured the leak: {pct:.1f}% of {label_a}'s light lands in {label_b}'s
+        detector. Compensation has to undo that for every cell, and it never knows in advance
+        which cells "should" be {label_b}-negative.</p>
+        <p>Here are three cells from a stained sample, before compensation. The dashed line is
+        the <b>autofluorescence floor</b> from Step 2: where a cell with no {label_b} at all
+        belongs.</p>
+        <table cellpadding="3">
+        <tr><td></td><td><b>{label_a}</b></td><td><b>{label_b}</b></td></tr>
+        <tr><td>Cell 1</td><td>{x1:.0f}</td><td>{y1:.0f}</td></tr>
+        <tr><td>Cell 2</td><td>{x2:.0f}</td><td>{y2:.0f}</td></tr>
+        <tr><td>Cell 3</td><td>{x3:.0f}</td><td>{y3:.0f}</td></tr>
+        </table>
         """
-        if self._predicted_point is None:
-            html += "<p style='color: #3fb950; font-weight: bold;'>Action Required: Click on the plot where YOU think this cell should land once it's correctly compensated.</p>"
-        elif 3 not in self._completed_steps:  # noqa: PLR2004
-            px, py = self._predicted_point
+        if not self._slide4_mc_correct:
             html += (
-                f"<p>You predicted ({px:.0f}, {py:.0f}) — that's the blue X. The bright "
-                "orange dot is the corrected position, driven by the slider below: it "
-                f"recomputes {leak_y:.0f} − (slider% × {leak_x:.0f}) live as you drag, the "
-                "same subtraction from the paragraph above.</p>"
-                "<p>Why aim for the dashed line and not zero? Even a cell with NO dye at all "
-                "still gives off a faint natural glow (autofluorescence, from Step 2's "
-                "unstained control) — so a perfectly compensated cell settles there, not at "
-                "y = 0. Too little slider and the dot stays stranded above the line (some "
-                "leaked signal still uncorrected); too much and you'd be subtracting more "
-                "than was ever really there.</p>"
-                "<p style='color: #3fb950; font-weight: bold;'>Action Required: Drag the "
-                "slider until the orange dot lands on the dashed "
-                "<b>autofluorescence floor</b> line — that slider % is your answer for "
-                "the spillover here.</p>"
+                f"<p style='color: #3fb950; font-weight: bold;'>Action Required: Cells 1 and 2 "
+                f"carry no {label_b} at all. How much must compensation take off each one's "
+                f"{label_b} reading?</p>"
+                "<p>"
+                "<a href='s4_same' style='color:#58a6ff;'>A) The same amount from both</a><br>"
+                "<a href='s4_proportional' style='color:#58a6ff;'>B) More from Cell 2, in "
+                f"proportion to its {label_a} brightness</a><br>"
+                "<a href='s4_floor' style='color:#58a6ff;'>C) Whatever it takes to bring each "
+                "down to the floor</a>"
+                "</p>"
+            )
+            if self._slide4_mc_hint:
+                html += f"<p style='color: #ff7b72;'>{self._slide4_mc_hint}</p>"
+            return html
+
+        html += (
+            f"<p style='color: #3fb950; font-weight: bold;'>Right: the leak is a fraction of "
+            f"each cell's own {label_a} light. {pct:.1f}% of {x1:.0f} is {pct / 100 * x1:.0f}; "
+            f"{pct:.1f}% of {x2:.0f} is {pct / 100 * x2:.0f}. Both cells land on the floor.</p>"
+        )
+        if not done:
+            html += (
+                f"<p style='color: #3fb950; font-weight: bold;'>Action Required: Cell 3 reads "
+                f"{x3:.0f} for {label_a} and {y3:.0f} for {label_b}. Apply the same rule: what "
+                f"is its compensated {label_b} reading?</p>"
             )
         else:
-            html += f"<p style='color: #3fb950; font-weight: bold;'>Corrected! {pct:.1f}% compensation brought it right down to the autofluorescence floor.</p>"
-
-        self._explanation.setHtml(html)
-        self._ax.set_title("Correcting a Single Cell", color=Colors.FG_PRIMARY, pad=15)
-        self._set_axes_labels("True Detector", "Leaking Detector")
-
-        applied = self._slider_pct if self._predicted_point is not None else 0.0
-        corrected_y = max(0.0, leak_y - (applied / 100.0) * leak_x)
-        self._active_leak_x = leak_x
-        self._active_leak_pct = pct
-
-        # The leaked cell — large, orange, clearly annotated.
-        self._ax.scatter(
-            [leak_x], [leak_y], color="#f0883e", s=120, alpha=0.9, zorder=4, label="Leaked cell"
-        )
-        self._ax.annotate(
-            "leaked cell",
-            xy=(leak_x, leak_y),
-            xytext=(leak_x - 200, leak_y + 60),
-            color="#f0883e",
-            fontsize=8,
-            arrowprops={"arrowstyle": "->", "color": "#f0883e", "lw": 1.2},
-        )
-
-        # Corrected dot — only shown after the user has clicked a prediction.
-        self._corrected_scatter = None
-        if self._predicted_point is not None:
-            self._corrected_scatter = self._ax.scatter(
-                [leak_x],
-                [corrected_y],
-                color="#ffa657",
-                s=120,
-                edgecolor="white",
-                zorder=5,
-                label="Corrected (slider)",
+            expected = slide4_expected_dp(pct, cells)
+            html += (
+                f"<p style='color: #3fb950; font-weight: bold;'>Exactly: {y3:.0f} − "
+                f"{pct:.1f}% × {x3:.0f} ≈ {expected:.0f}. Cell 3 stays well above the floor: "
+                f"most of its {label_b} signal was never leaked {label_a} light. It's a real "
+                f"double-positive.</p>"
+                f"<p>Compensation removes only the part of a reading that {label_a} explains. "
+                f"It doesn't erase real signal, and it doesn't push cells to the floor. Skip it, "
+                f"and Cell 2's leaked light reads as {label_b} it doesn't have.</p>"
             )
-            px, py = self._predicted_point
-            self._ax.scatter(
-                [px], [py], marker="x", color="#58a6ff", s=120, label="Your prediction"
-            )
-            # Autofluorescence floor line — only shown once the user has
-            # placed their prediction so it doesn't telegraph the answer.
-            self._ax.axhline(
-                _AUTOFLUO_FLOOR,
-                color=Colors.BORDER,
-                ls="--",
-                label="Autofluorescence floor",
-            )
-            self._ax.text(
-                30,
-                _AUTOFLUO_FLOOR + 15,
-                "autofluorescence floor",
-                color=Colors.FG_DISABLED,
-                fontsize=8,
-            )
+        return html
 
-        self._ax.legend(
-            facecolor=Colors.BG_DARKEST,
-            edgecolor=Colors.BORDER,
-            labelcolor=Colors.FG_PRIMARY,
-            fontsize=8,
-        )
-        self._ax.set_xlim(0, 1000)
-        self._ax.set_ylim(0, 1000)
-
-        if self._predicted_point is not None and 3 not in self._completed_steps:  # noqa: PLR2004
-            self._add_slider(self._on_slide4_slider_release)
-
-    def _add_slider(self, on_release):
-        self._slider = QSlider()
-
-        self._slider.setOrientation(_Qt.Orientation.Horizontal)
-        self._slider.setRange(0, 100)
-        self._slider.setValue(int(self._slider_pct))
-        self._slider.valueChanged.connect(self._on_slider_moved)
-        self._slider.sliderReleased.connect(on_release)
-        self._slider_readout = QLabel(f"{self._slider_pct:.0f}%")
-        self._slider_readout.setStyleSheet(f"color: {Colors.FG_PRIMARY};")
-        row = QHBoxLayout()
-        row.addWidget(self._slider, stretch=1)
-        row.addWidget(self._slider_readout)
-        self._interactive_layout.addLayout(row)
-
-    def _on_slider_moved(self, value: int):
-        # Deliberately does NOT call update_view(): that clears and rebuilds
-        # every interactive widget, including this very slider, while Qt
-        # still has an active mouse grab on it mid-drag — destroying/
-        # replacing a widget mid-grab crashes (segfault), it doesn't just
-        # misbehave. Move only the plotted point instead.
-        self._slider_pct = float(value)
-        self._slider_readout.setText(f"{value}%")
-        if self._corrected_scatter is None:
+    def _check_slide4_answer(self):
+        dye_a, dye_b, pct = self._teaching_pair()
+        fluors = self._viewer.active_fluors
+        cells = slide4_cells(pct)
+        val = self._answer_input.text().strip()
+        try:
+            guess = float(val)
+        except ValueError:
+            self._answer_error.setText("Enter a number, e.g. 250")
+            self._answer_error.show()
             return
-        corrected_y = max(
-            0.0,
-            (self._active_leak_x * self._active_leak_pct / 100.0)
-            - (value / 100.0) * self._active_leak_x,
+        verdict = grade_slide4_answer(
+            guess,
+            pct,
+            cells,
+            fluors[dye_a].get("display_label", dye_a),
+            fluors[dye_b].get("display_label", dye_b),
         )
-        self._corrected_scatter.set_offsets([[self._active_leak_x, corrected_y]])
-        self._canvas.draw_idle()
+        if verdict is None:
+            self._defer(self._finish_slide4)
+            return
+        self._answer_error.setText(verdict)
+        self._answer_error.show()
 
-    def _on_slide4_slider_release(self):
-        # Deferred for the same reason as _on_slider_moved: sliderReleased
-        # still fires from inside the slider's own event processing, so
-        # rebuilding _interactive_layout (destroying this slider) here
-        # synchronously is just as unsafe as doing it during the drag.
-        self._defer(self._finish_slide4_slider_release)
-
-    def _finish_slide4_slider_release(self):
-        _dye_a, _dye_b, pct = self._teaching_pair()
-        # Pass condition: slider value is within tolerance of the real spillover %,
-        # which is exactly when the corrected dot reaches the autofluorescence floor.
-        if abs(self._slider_pct - pct) <= _PCT_TOLERANCE:
-            self._complete_step()
+    def _finish_slide4(self):
+        self._complete_step()
         self.update_view()
 
     # ==========================================================================
@@ -1002,7 +956,7 @@ class SpectralLearningTab(QWidget):
     def _start_animation(self):
         # _clear_interactive_widgets() would destroy the very "Compensate
         # All" button whose click we're still handling — defer it, same
-        # reasoning as _on_slide4_slider_release.
+        # reasoning as _check_slide4_answer.
         self._is_animating = True
         self._anim_progress = 0.0
         self._defer(self._begin_animation_timer)
@@ -1161,7 +1115,7 @@ class SpectralLearningTab(QWidget):
                 )
 
     def _check_slide7_count(self):
-        n_dyes = len([d for d in self._viewer._active_fluors.values() if "em_data" in d])
+        n_dyes = len([d for d in self._viewer.active_fluors.values() if "em_data" in d])
         if self._check_tube_count_answer(n_dyes + 1):
             self._defer(self._finish_slide7_count)
 
@@ -1187,6 +1141,23 @@ class SpectralLearningTab(QWidget):
                     "cloud would still call half the true negatives 'positive'. "
                     "The threshold needs to clear the whole cloud."
                 )
+            self.update_view()
+        elif self._current_step == 3 and not self._slide4_mc_correct:  # noqa: PLR2004
+            if link == "s4_proportional":
+                self._slide4_mc_correct = True
+                self._slide4_mc_hint = None
+            else:
+                self._slide4_mc_hint = {
+                    "s4_same": (
+                        "Spillover is a fraction of each cell's own light. Cell 2 is three "
+                        "times as bright, so it leaked three times as much: compare how far "
+                        "each sits above the floor."
+                    ),
+                    "s4_floor": (
+                        "Compensation can't see which cells 'should' be negative; it applies "
+                        "one rule to every event. Cell 3 is why that matters."
+                    ),
+                }.get(link, "Not quite: think about where the leaked light comes from.")
             self.update_view()
         elif self._current_step == 6 and not self._slide7_mc_correct:  # noqa: PLR2004
             if link == "mc_single":
@@ -1221,10 +1192,6 @@ class SpectralLearningTab(QWidget):
                 # Render the first point immediately — otherwise nothing is
                 # visible until the mouse actually moves, which reads as the
                 # click having done nothing.
-                self.update_view()
-        elif cs == 3:  # noqa: PLR2004
-            if self._predicted_point is None:
-                self._predicted_point = (event.xdata, event.ydata)
                 self.update_view()
         elif cs == 4:  # noqa: PLR2004
             if self._anim_prediction is None:

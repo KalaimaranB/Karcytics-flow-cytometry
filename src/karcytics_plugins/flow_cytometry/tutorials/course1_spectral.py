@@ -1,0 +1,203 @@
+"""Course 1, why spillover happens: the Spectral viewer and the Compensation Masterclass.
+
+The learner loads the panel's dyes in the Spectral viewer, reads the overlap
+callouts, judges which overlap matters, then works through the Learning
+Compensation slideshow. Its last step hands back to the Compensation tab.
+"""
+
+from __future__ import annotations
+
+from karcytics_sdk.plugin.tutorial_models import (
+    ActionStep,
+    AnswerChoice,
+    BaseStep,
+    InfoStep,
+    QuestionStep,
+    VerificationStep,
+)
+from PySide6.QtWidgets import QAbstractButton, QWidget
+
+from ..main_tabs import MainTab
+from ..ui.academy_context import SPECTRAL_TAB_HIGHLIGHT_KEY
+from .validators.base import TabActiveValidator
+from .validators.setup import (
+    LearningCompensationCompleteValidator,
+    LearningCompensationTabOpenValidator,
+)
+
+
+def _show_emission_curves(panel: QWidget) -> None:
+    """ActionStep callback: turns the Spectral viewer's EM toggle back on.
+
+    The step before lets the learner switch AB / EX / EM freely; the overlap
+    callouts the next step points at are only drawn while EM is on.
+    """
+    button = panel.findChild(QAbstractButton, "SpectralEMToggle")
+    if button is not None and not button.isChecked():
+        button.setChecked(True)
+
+
+SPECTRAL_STEPS: list[BaseStep] = [
+    VerificationStep(
+        id="c1_sp43_verify_spectral_tab",
+        text="Click the **Spectral** tab (highlighted) at the top.",
+        cyto_emotion="pointing",
+        allow_interaction=True,
+        hide_next_button=True,
+        target_widget_names=["MainTabBar"],
+        validator=TabActiveValidator(MainTab.SPECTRAL),
+        on_success_step_id="c1_sp44_spectral_intro",
+    ),
+    InfoStep(
+        id="c1_sp44_spectral_intro",
+        text=(
+            "The **Spectral Viewer** 🌈<br><br>"
+            "Every curve here is pulled live from **FPbase** — an open, "
+            "community-maintained online database of real fluorescent "
+            "protein and dye spectra (fpbase.org). This isn't simulated data; "
+            "it's the actual physics of the dyes in your panel.<br><br>"
+            "The full citation sits under the viewer, with links to FPbase and "
+            "its paper."
+        ),
+        cyto_emotion="talking",
+        target_widget_names=["SpectralPlotArea", "SpectralCitation"],
+        next_step_id="c1_sp45_load_six",
+    ),
+    InfoStep(
+        id="c1_sp45_load_six",
+        text=(
+            "Karcytics already detected all 6 of your panel's markers (CD45, "
+            "CD3, CD4, CD8, B220, PI) from the FCS channel headers and "
+            "plotted every one of their spectra automatically — no need to "
+            "add them by hand.<br><br>"
+            "(You can still double-click any channel in **Available "
+            "Channels** to add others, or click a spectrum's legend entry "
+            "to remove it.)"
+        ),
+        cyto_emotion="happy",
+        target_widget_names=["SpectralSourceList"],
+        next_step_id="c1_sp46_ab_ex_em_info",
+    ),
+    InfoStep(
+        id="c1_sp46_ab_ex_em_info",
+        text=(
+            "Reading AB / EX / EM 🔬<br><br>"
+            "• **AB** (Absorbance) — the wavelengths the dye physically absorbs. "
+            "Mostly a chemistry detail.<br>"
+            "• **EX** (Excitation) — the wavelengths that make the dye 'light "
+            "up'. This tells you which laser to use (e.g. the 488 nm Blue "
+            "laser).<br>"
+            "• **EM** (Emission) — the wavelengths the dye shoots back out. This "
+            "tells you which detector captures the signal.<br><br>"
+            "Try the **AB / EX / EM** buttons (highlighted) to see each curve "
+            "set on its own. Spillover is about **EM**: it's emitted light "
+            "landing in the wrong detector."
+        ),
+        cyto_emotion="talking",
+        allow_interaction=True,
+        target_widget_names=["SpectralABToggle", "SpectralEXToggle", "SpectralEMToggle"],
+        next_step_id="c1_sp46b_show_emission",
+    ),
+    ActionStep(
+        id="c1_sp46b_show_emission",
+        text="Switching the emission curves back on...",
+        action=_show_emission_curves,
+        next_step_id="c1_sp47_overlap_callouts",
+    ),
+    InfoStep(
+        id="c1_sp47_overlap_callouts",
+        text=(
+            "Reading the overlap callouts 🔍<br><br>"
+            "Karcytics has already marked every pair of emission curves that "
+            "overlap: the hatched white area is the shared light, and each "
+            "callout gives an **Overlap integral %** for that pair. That's why "
+            "the plot is busy as soon as it loads. Click a callout to dismiss "
+            "it.<br><br>"
+            "The % is estimated from the published spectra alone. Your "
+            "cytometer's lasers and filters shift the real spillover, which is "
+            "why we still measure it from controls."
+        ),
+        cyto_emotion="talking",
+        target_widget_names=["SpectralPlotArea"],
+        next_step_id="c1_sp47b_which_overlap_matters",
+    ),
+    QuestionStep(
+        id="c1_sp47b_which_overlap_matters",
+        text=(
+            "Overlap isn't automatically a problem 🧠<br><br>"
+            "Two overlaps in your panel: **CD3** (Pacific Blue) with **B220** "
+            "(FITC), and **CD4** (PE) with **PI** (PerCP-Cy5.5), the live/dead "
+            "dye. Left uncorrected, which one could quietly distort your "
+            "results?"
+        ),
+        question_id="c1_overlap_that_matters",
+        choices=[
+            AnswerChoice(
+                "CD3 with B220",
+                feedback=(
+                    "T cells and B cells are separate lineages: a cell is "
+                    "essentially never both, so leaked light there can't invent "
+                    "a believable double-positive population."
+                ),
+            ),
+            AnswerChoice("CD4 with PI", correct=True),
+            AnswerChoice(
+                "Neither: they're well under 50%",
+                feedback=(
+                    "A few percent of a very bright dye is enough to push a "
+                    "negative cell past a gate. The size of the overlap matters "
+                    "less than what the two signals mean."
+                ),
+            ),
+        ],
+        explanation=(
+            "PE leaking into the PI detector makes bright, live CD4+ cells look "
+            "dead, so the live/dead gate throws real CD4 T cells away. Overlap "
+            "matters when both signals can sit on one cell, or one drives a "
+            "gating decision. You'll meet this PE → PerCP-Cy5.5 leak again in "
+            "the matrix."
+        ),
+        cyto_emotion="thinking",
+        target_widget_names=["SpectralPlotArea"],
+        next_step_id="c1_sp48_learning_switch",
+    ),
+    # A VerificationStep, like every tab switch in the courses: a learner
+    # already on the sub-tab passes at once. The spotlight is the tab
+    # itself, via the viewer's get_tutorial_target_rects hook (a tab isn't
+    # a QWidget the driver's name lookup can find).
+    VerificationStep(
+        id="c1_sp48_learning_switch",
+        text=(
+            "Let's put the theory into practice — click the **Learning "
+            "Compensation** sub-tab (highlighted) just above the plot."
+        ),
+        cyto_emotion="pointing",
+        allow_interaction=True,
+        hide_next_button=True,
+        metadata={SPECTRAL_TAB_HIGHLIGHT_KEY: "learning"},
+        validator=LearningCompensationTabOpenValidator(),
+        on_success_step_id="c1_sp49_slideshow",
+    ),
+    VerificationStep(
+        id="c1_sp49_slideshow",
+        text=(
+            "The **Compensation Masterclass**<br><br>"
+            "I'll step back and let you work through this interactive "
+            "slideshow at your own pace — it walks through spillover, single-"
+            "stain controls, and matrix inversion using REAL numbers measured "
+            "from the dyes you just loaded, not textbook examples.<br><br>"
+            "The final slide asks you to reason through which control tubes "
+            "you'd actually need to run to build a real compensation matrix. "
+            "I'll find you again once you've worked through it!"
+        ),
+        validator=LearningCompensationCompleteValidator(),
+        allow_interaction=True,
+        hide_next_button=True,
+        manual_dismiss_bubble=True,
+        cyto_emotion="thinking",
+        target_widget_names=["SpectralLearningTab"],
+        on_success_step_id="c1_s13b_verify_comp_tab",
+        failure_hint="Take your time working through the slideshow — I'll continue once you reach the final slide.",
+        stuck_hint_after_ms=120000,
+    ),
+]

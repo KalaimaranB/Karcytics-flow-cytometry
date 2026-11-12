@@ -16,10 +16,8 @@ import numpy as np
 from karcytics_sdk.plugin import BioSectionLabel, get_logger
 from karcytics_sdk.plugin.components import (
     BioCaptionLabel,
-    BioHelpButton,
     BioLineEdit,
     BioListWidget,
-    BioToggleButton,
     SecondaryButton,
 )
 from karcytics_sdk.plugin.rendering import AxesColors, style_axes
@@ -30,7 +28,7 @@ from karcytics_sdk.plugin.runtime_services import (
 )
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from matplotlib.figure import Figure
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QRect, Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFrame,
@@ -43,46 +41,23 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.spectral_math import overlap_pct_from_grid
+from karcytics_plugins.flow_cytometry.ui.academy_context import SPECTRAL_TAB_HIGHLIGHT_KEY
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
 
 from .spectral_learning_tab import SpectralLearningTab
+from .spectral_parts import CitationLabel, DropCanvas, toggle_button
 
 if TYPE_CHECKING:
+    from karcytics_sdk.plugin.tutorial_models import BaseStep
+
     from ...analysis.biology_services import FluorophoreService
     from ...analysis.state import FlowState
 
 
-# ── Drop canvas ───────────────────────────────────────────────────────────────
-
-
-class DropCanvas(QFrame):
-    """Transparent frame wrapping the matplotlib canvas; accepts drag-drops from the channel list."""
-
-    def __init__(self, viewer: SpectralViewer, parent: QWidget | None = None):
-        super().__init__(parent)
-        self._viewer = viewer
-        self.setAcceptDrops(True)
-        lay = QVBoxLayout(self)
-        lay.setContentsMargins(0, 0, 0, 0)
-        self.canvas_layout = lay
-
-    def dragEnterEvent(self, event):
-        if event.source() is self._viewer._source_list:
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        if event.source() is self._viewer._source_list:
-            item = event.source().currentItem()
-            if item:
-                self._viewer._add_fluor(
-                    item.data(Qt.ItemDataRole.UserRole), display_label=item.text()
-                )
-            event.acceptProposedAction()
-
-
 # ── Main widget ───────────────────────────────────────────────────────────────
+
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -115,33 +90,7 @@ class SpectralViewer(QWidget):
 
     # ── UI construction ───────────────────────────────────────────────────────
 
-    def _toggle_btn(
-        self, label: str, active: bool, help_text: str | None = None
-    ) -> BioToggleButton:
-        btn = BioToggleButton(label)
-        btn.setChecked(active)
-        btn.setMinimumWidth(160)
-
-        if help_text:
-            lay = QHBoxLayout(btn)
-            lay.setContentsMargins(0, 0, 8, 0)
-
-            help_btn = BioHelpButton(btn)
-            help_btn.setHelpText(help_text)
-
-            # Left-aligned, padded so the text never runs under the right-aligned help icon.
-            btn.custom_css_overrides = "text-align: left; padding-left: 12px; padding-right: 36px;"
-            # Force a style refresh so the override takes effect immediately
-            btn._apply_theme_styles()
-
-            lay.addWidget(
-                help_btn,
-                alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-            )
-
-        return btn
-
-    def _setup_ui(self):  # noqa: PLR0915
+    def _setup_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -153,7 +102,55 @@ class SpectralViewer(QWidget):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(16)
 
-        # ── Left panel ────────────────────────────────────────────────────────
+        root.addLayout(self._build_sources(), stretch=1)
+
+        # ── Right panel ───────────────────────────────────────────────────────
+        right = QVBoxLayout()
+        right.setSpacing(8)
+
+        right.addLayout(self._build_toolbar())
+
+        # Canvas with drag-drop wrapper
+        self._drop_frame = DropCanvas(
+            self._source_list, lambda data, text: self._add_fluor(data, display_label=text)
+        )
+        self._drop_frame.setObjectName("SpectralPlotArea")
+        right.addWidget(self._drop_frame, stretch=1)
+
+        root.addLayout(right, stretch=3)
+
+        # Matplotlib setup
+        self._figure = Figure(facecolor=Colors.BG_DARK)
+        self._canvas = FigureCanvasQTAgg(self._figure)
+        self._drop_frame.canvas_layout.addWidget(self._canvas)
+        self._canvas.mpl_connect("button_press_event", self._on_canvas_click)
+
+        self._ax = self._figure.add_subplot(111)
+        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
+        self._update_plot()
+
+        self._tabs.addTab(analysis_tab, "Spectral Analysis")
+
+        self._learning_tab = SpectralLearningTab(viewer=self)
+        self._learning_tab.setObjectName("SpectralLearningTab")
+        self._learning_tab_index = self._tabs.addTab(self._learning_tab, "Learning Compensation")
+
+        self._tabs.currentChanged.connect(self._on_tab_changed)
+
+        main_layout.addWidget(self._tabs)
+
+        main_layout.addWidget(CitationLabel())
+
+        # The Learning Compensation tab follows the Academy's active course.
+        self._bound_on_academy_step_changed = self._on_academy_step_changed
+        academy_event_bus.subscribe(
+            KarcyticsEvent.ACADEMY_STEP_CHANGED, self._bound_on_academy_step_changed
+        )
+        self.destroyed.connect(self._cleanup_events)
+        self._on_academy_step_changed(None)
+
+    def _build_sources(self) -> QVBoxLayout:
+        """The left panel: FPbase search, the channels to add, the active spectra."""
         left = QVBoxLayout()
         left.setSpacing(10)
 
@@ -196,19 +193,16 @@ class SpectralViewer(QWidget):
 
         self._list_widget.itemDoubleClicked.connect(self._remove_fluor)
 
-        root.addLayout(left, stretch=1)
+        return left
 
-        # ── Right panel ───────────────────────────────────────────────────────
-        right = QVBoxLayout()
-        right.setSpacing(8)
-
-        # Toolbar
+    def _build_toolbar(self) -> QHBoxLayout:
+        """Above the plot: the AB / EX / EM toggles and Clear All."""
         toolbar = QHBoxLayout()
         toolbar.setSpacing(6)
 
         toolbar.addWidget(QLabel("Show:"))
 
-        self._btn_ab = self._toggle_btn(
+        self._btn_ab = toggle_button(
             "AB  Absorbance",
             active=False,
             help_text="Absorbance (AB): The physical wavelengths of light that the fluorophore absorbs. In flow cytometry, this is mostly a chemistry detail.",
@@ -216,7 +210,7 @@ class SpectralViewer(QWidget):
         self._btn_ab.setToolTip("Show Absorbance")
         self._btn_ab.setObjectName("SpectralABToggle")
 
-        self._btn_ex = self._toggle_btn(
+        self._btn_ex = toggle_button(
             "EX  Excitation",
             active=True,
             help_text="Excitation (EX): The wavelengths of light that actually cause the fluorophore to 'light up'. You use the EX curve to figure out which laser on your flow cytometer to use (e.g., the 488 nm Blue laser).",
@@ -224,7 +218,7 @@ class SpectralViewer(QWidget):
         self._btn_ex.setToolTip("Show Excitation")
         self._btn_ex.setObjectName("SpectralEXToggle")
 
-        self._btn_em = self._toggle_btn(
+        self._btn_em = toggle_button(
             "EM  Emission",
             active=True,
             help_text="Emission (EM): The wavelengths of light the fluorophore shoots back out. You use the EM curve to figure out which detector to use to capture the signal.",
@@ -252,42 +246,7 @@ class SpectralViewer(QWidget):
         clear_btn.clicked.connect(self._clear_all)
         toolbar.addWidget(clear_btn)
 
-        right.addLayout(toolbar)
-
-        # Canvas with drag-drop wrapper
-        self._drop_frame = DropCanvas(self)
-        self._drop_frame.setObjectName("SpectralPlotArea")
-        right.addWidget(self._drop_frame, stretch=1)
-
-        root.addLayout(right, stretch=3)
-
-        # Matplotlib setup
-        self._figure = Figure(facecolor=Colors.BG_DARK)
-        self._canvas = FigureCanvasQTAgg(self._figure)
-        self._drop_frame.canvas_layout.addWidget(self._canvas)
-        self._canvas.mpl_connect("button_press_event", self._on_canvas_click)
-
-        self._ax = self._figure.add_subplot(111)
-        style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
-        self._update_plot()
-
-        self._tabs.addTab(analysis_tab, "Spectral Analysis")
-
-        self._learning_tab = SpectralLearningTab(viewer=self)
-        self._learning_tab.setObjectName("SpectralLearningTab")
-        self._learning_tab_index = self._tabs.addTab(self._learning_tab, "Learning Compensation")
-
-        self._tabs.currentChanged.connect(self._on_tab_changed)
-
-        main_layout.addWidget(self._tabs)
-
-        # The Learning Compensation tab follows the Academy's active course.
-        self._bound_on_academy_step_changed = self._on_academy_step_changed
-        academy_event_bus.subscribe(
-            KarcyticsEvent.ACADEMY_STEP_CHANGED, self._bound_on_academy_step_changed
-        )
-        self.destroyed.connect(self._cleanup_events)
-        self._on_academy_step_changed(None)
+        return toolbar
 
     def _cleanup_events(self) -> None:
         academy_event_bus.unsubscribe(
@@ -302,6 +261,24 @@ class SpectralViewer(QWidget):
         )
         logger.debug("Learning Compensation tab visible: %s", teaches_it)
         self._tabs.setTabVisible(self._learning_tab_index, teaches_it)
+
+    def learning_tab_active(self) -> bool:
+        return self._tabs.currentWidget() is self._learning_tab
+
+    def get_tutorial_target_rects(self, step: BaseStep) -> list[QRect]:
+        """Academy hook (AcademyStepDriver._collect_canvas_target_rects in the
+        SDK): spotlights just the Learning Compensation sub-tab, not the whole
+        tab widget, when a step's metadata asks for it. A tab is not a QWidget
+        of its own, so the driver's name lookup can't find it.
+        """
+        wanted = (getattr(step, "metadata", None) or {}).get(SPECTRAL_TAB_HIGHLIGHT_KEY)
+        bar = self._tabs.tabBar()
+        if wanted != "learning" or not bar.isVisible():
+            return []
+        if not self._tabs.isTabVisible(self._learning_tab_index):
+            return []
+        rect = bar.tabRect(self._learning_tab_index)
+        return [QRect(bar.mapToGlobal(rect.topLeft()), rect.size())]
 
     def _on_tab_changed(self, index: int):
         if self._tabs.widget(index) is self._learning_tab:
@@ -330,6 +307,8 @@ class SpectralViewer(QWidget):
                 child.setStyleSheet(
                     f"color: {Colors.FG_PRIMARY}; font-weight: bold; font-size: 11px;"
                 )
+            elif isinstance(child, CitationLabel):
+                child.restyle()
             elif (
                 child.text() == "↕ Double-click or drag onto plot"
                 or child.text() == "Double-click to remove"
@@ -395,6 +374,11 @@ class SpectralViewer(QWidget):
     @property
     def learning_tab(self) -> SpectralLearningTab:
         return self._learning_tab
+
+    @property
+    def active_fluors(self) -> dict[str, dict[str, Any]]:
+        """The spectra on the plot, by name (read-only for other widgets)."""
+        return self._active_fluors
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -651,7 +635,7 @@ class SpectralViewer(QWidget):
                 self._ax.fill_between(
                     x_grid,
                     overlap,
-                    where=mask,
+                    where=mask.tolist(),  # matplotlib stubs want a Sequence[bool]
                     alpha=0.45,
                     color="white",
                     hatch="///",
