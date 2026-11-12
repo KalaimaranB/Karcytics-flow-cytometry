@@ -14,7 +14,15 @@ import numpy as np
 
 from .._utils import project_to_display
 from ..sample_lens.synthesis import match_scores
-from .assembly import exact, frame_of, plot_of, record_of, regions_of, with_pending
+from .assembly import (
+    exact,
+    frame_of,
+    plot_of,
+    record_of,
+    regions_of,
+    scale_note,
+    with_pending,
+)
 from .density import find_valley
 from .models import (
     DENSITY_VALLEYS,
@@ -51,7 +59,7 @@ from .split import (
     by_mixture,
     by_singlets,
     by_valleys,
-    cells_names,
+    cells_by_density,
 )
 from .story import story_of
 from .views import Axis, View, ViewChoice, choose, loadings_section
@@ -162,9 +170,7 @@ class GatingEngine:
         frame = frame_of(view)
         # Named by the view's own markers; PCA axes mix every channel, so by all of them.
         naming = channels if info.key == PCA.key else (view.x.key, view.y.key)
-        if step == CELLS_STEP:
-            names = cells_names(view, split)
-        elif all(p.name for p in split.pieces):
+        if all(p.name for p in split.pieces):
             names = [p.name for p in split.pieces]
         else:
             names = name_regions(data, naming, [p.mask for p in split.pieces])
@@ -181,8 +187,10 @@ class GatingEngine:
         reason = self._reason(info.key, rank, view, choice, split, data, regions)
         pending = tuple(a.pending for a in (view.x, view.y) if a.pending is not None)
         provenance = record_of(info.key, data, view, choice.notes, split, request)
-        if step:
+        if step:  # how the view was chosen doesn't apply: convention chose it
             reason, provenance["convention"] = _convention_reason(step, split), step
+            sections = ()
+        reason += scale_note(data, view)
         return Proposal(
             info.key,
             data.sample.sample_id,
@@ -214,8 +222,10 @@ class GatingEngine:
             if step == SINGLETS_STEP:
                 area, height = (data.events[a.key].to_numpy(np.float64) for a in (view.x, view.y))
                 split = by_singlets(view, area, height, request.min_valley)
+            elif step == CELLS_STEP:
+                split = cells_by_density(view, request.min_valley)
             else:
-                split = by_valleys(view, request.min_valley, cells=step == CELLS_STEP)
+                split = by_valleys(view, request.min_valley)
             return split if isinstance(split, str) else (view, sections, split, request.view_rank)
         per_event = data.parent_total / max(len(data.events), 1)
         tried = []
@@ -452,8 +462,8 @@ def _on_scatter(node: GateNode) -> bool:
 
 def _convention_reason(step: str, split: Split) -> str:
     lead = {
-        CELLS_STEP: "Cells first, by convention: debris is cut off at the valley below the main "
-        "forward-scatter peak; side scatter isn't cut, so large, granular cells stay in. ",
+        CELLS_STEP: "Cells first, by convention: the gate outlines where the cells are, so the "
+        "debris corner (low forward and side scatter) is left out. ",
         SINGLETS_STEP: "Singlets next, by convention: doublets (two cells passing together) are "
         "left out. ",
     }[step]

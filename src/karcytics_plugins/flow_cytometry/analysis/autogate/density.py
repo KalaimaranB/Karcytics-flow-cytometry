@@ -134,19 +134,55 @@ def separation(x: np.ndarray, y: np.ndarray) -> float:
     return best
 
 
-def valley_2d(x: np.ndarray, y: np.ndarray) -> float:
-    """The deepest valley on the straight line between two peaks of the smoothed 2-D density."""
+@dataclass(frozen=True)
+class Grid:
+    """A smoothed 2-D histogram: ``heights[i, j]`` at x bin i, y bin j; the tallest is 1."""
+
+    heights: np.ndarray
+    x_lo: float
+    x_hi: float
+    y_lo: float
+    y_hi: float
+
+    def to_display(self, ix: np.ndarray, iy: np.ndarray) -> np.ndarray:
+        """Bin coordinates (fractional allowed) to display units, (n, 2)."""
+        n = self.heights.shape[0]
+        return np.column_stack(
+            (
+                self.x_lo + (ix + 0.5) * (self.x_hi - self.x_lo) / n,
+                self.y_lo + (iy + 0.5) * (self.y_hi - self.y_lo) / n,
+            )
+        )
+
+
+def smoothed_grid(
+    x: np.ndarray, y: np.ndarray, bins: int = GRID, pad: float = 0.0, smooth: float = GRID_SMOOTH_SD
+) -> Grid | None:
+    """The view's density on a ``bins`` grid over its robust range (widened by ``pad`` of it
+    on each side); None with too few on-scale events. Smoothing widens below
+    FULL_DETAIL_EVENTS events, so noise isn't read as peaks.
+    """
     keep = on_scale(x) & on_scale(y)
-    if keep.sum() < GRID:
-        return 0.0
+    if keep.sum() < bins:
+        return None
     (xlo, xhi), (ylo, yhi) = robust_range(x[keep]), robust_range(y[keep])
-    counts, _, _ = np.histogram2d(x[keep], y[keep], bins=GRID, range=((xlo, xhi), (ylo, yhi)))
-    sd = GRID_SMOOTH_SD * max(1.0, float(np.sqrt(FULL_DETAIL_EVENTS / keep.sum())))
+    xlo, xhi = xlo - pad * (xhi - xlo), xhi + pad * (xhi - xlo)
+    ylo, yhi = ylo - pad * (yhi - ylo), yhi + pad * (yhi - ylo)
+    counts, _, _ = np.histogram2d(x[keep], y[keep], bins=bins, range=((xlo, xhi), (ylo, yhi)))
+    sd = smooth * max(1.0, float(np.sqrt(FULL_DETAIL_EVENTS / keep.sum())))
     h = _smooth_2d(counts, sd)
     if h.max() <= 0:
+        return None
+    return Grid(h / h.max(), xlo, xhi, ylo, yhi)
+
+
+def valley_2d(x: np.ndarray, y: np.ndarray) -> float:
+    """The deepest valley on the straight line between two peaks of the smoothed 2-D density."""
+    grid = smoothed_grid(x, y)
+    if grid is None:
         return 0.0
-    h /= h.max()
-    peaks = _peaks_2d(h)
+    h = grid.heights
+    peaks = peaks_2d(h)
     best = 0.0
     for i, a in enumerate(peaks):
         for b in peaks[i + 1 :]:
@@ -159,18 +195,23 @@ def valley_2d(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def _smooth_2d(counts: np.ndarray, sd: float) -> np.ndarray:
-    radius = min(int(3 * sd), GRID - 1)
+    radius = min(int(3 * sd), counts.shape[0] - 1)
     kernel = np.exp(-0.5 * (np.arange(-radius, radius + 1) / sd) ** 2)
     kernel /= kernel.sum()
     rows = np.apply_along_axis(np.convolve, 0, counts, kernel, mode="same")
     return np.apply_along_axis(np.convolve, 1, rows, kernel, mode="same")
 
 
-def _peaks_2d(h: np.ndarray) -> list[tuple[int, int]]:
-    """Local maxima at least MIN_PEAK_SHARE_2D tall and MIN_PEAK_DISTANCE apart, tallest first."""
+def peaks_2d(
+    h: np.ndarray,
+    min_distance: int = MIN_PEAK_DISTANCE,
+    min_share: float = MIN_PEAK_SHARE_2D,
+    most: int = MAX_PEAKS,
+) -> list[tuple[int, int]]:
+    """Local maxima at least ``min_share`` tall and ``min_distance`` apart, tallest first."""
     padded = np.pad(h, 1, constant_values=-1.0)
     centre = padded[1:-1, 1:-1]
-    is_max = centre >= MIN_PEAK_SHARE_2D
+    is_max = centre >= min_share
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
             if dr or dc:
@@ -179,9 +220,9 @@ def _peaks_2d(h: np.ndarray) -> list[tuple[int, int]]:
                 )
     peaks: list[tuple[int, int]] = []
     for r, c in sorted(zip(*np.nonzero(is_max), strict=True), key=lambda p: -h[p]):
-        if all(max(abs(r - pr), abs(c - pc)) >= MIN_PEAK_DISTANCE for pr, pc in peaks):
+        if all(max(abs(r - pr), abs(c - pc)) >= min_distance for pr, pc in peaks):
             peaks.append((int(r), int(c)))
-        if len(peaks) == MAX_PEAKS:
+        if len(peaks) == most:
             break
     return peaks
 

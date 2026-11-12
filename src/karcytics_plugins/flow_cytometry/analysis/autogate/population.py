@@ -15,6 +15,8 @@ from .._utils import project_to_display
 from ..derived.sync import sync_sample
 from ..fcs_io import get_channel_marker_label, get_scatter_channels
 from ..population_matching import label_path_index, populations
+from ..scaling import AxisScale
+from ..transforms import TransformType
 from .density import robust_range
 
 if TYPE_CHECKING:
@@ -23,7 +25,6 @@ if TYPE_CHECKING:
     from ..axis_manager import AxisManager
     from ..experiment import Sample
     from ..fcs_io import FCSData
-    from ..scaling import AxisScale
     from ..state import FlowState
 
 MAX_EVENTS = 20_000  # a split looks at no more than this many events of its population
@@ -41,6 +42,7 @@ class PopulationData:
     scales: dict[str, AxisScale]
     labels: dict[str, str]  # channel -> "CD4 (PE-A)"
     display: dict[str, np.ndarray] = field(default_factory=dict)
+    rescaled: frozenset[str] = frozenset()  # channels searched on biexponential, not linear
 
     def on_display(self, channel: str) -> np.ndarray:
         if channel not in self.display:
@@ -115,11 +117,14 @@ def load_population(  # noqa: PLR0913 - the request, unpacked
     missing = [ch for ch in channels if ch not in events.columns]
     if missing:
         return f"{sample.display_name} has no channel {missing[0]}."
-    scales = {ch: axis_manager.get_scale(ch, sample_id) for ch in channels}
     fcs = sample.fcs_data
     assert fcs is not None  # it has events
     labels = {ch: get_channel_marker_label(fcs, ch) for ch in channels}
-    return PopulationData(sample, node_id, name, subsample(events), len(events), scales, labels)
+    events_used = subsample(events)
+    scales, rescaled = search_scales(events_used, channels, axis_manager, sample_id)
+    return PopulationData(
+        sample, node_id, name, events_used, len(events), scales, labels, rescaled=rescaled
+    )
 
 
 @dataclass(frozen=True)
@@ -165,3 +170,40 @@ def singlet_pair(data: FCSData) -> tuple[str, str] | None:
         if area in channels and height in channels:
             return area, height
     return None
+
+
+SKEWED_AT = 0.2  # median this low in its range (0.5-99.5%) on linear: the events crowd the bottom
+SKEWED_SPAN = 3.0  # ... and the range reaches this many times the median
+
+
+def search_scale(values: np.ndarray, scale: AxisScale) -> AxisScale:
+    """The scale to search ``values`` on: ``scale``, or biexponential where linear crowds them.
+
+    Side scatter on a linear axis puts most cells in a thin band at the bottom,
+    where no population can be told apart; on a biexponential axis it spreads out.
+    """
+    if scale.transform_type != TransformType.LINEAR:
+        return scale
+    finite = values[np.isfinite(values)]
+    if finite.size < 2:  # noqa: PLR2004 - a range needs two
+        return scale
+    lo, median, hi = (float(q) for q in np.quantile(finite, [0.005, 0.5, 0.995]))
+    if hi <= lo or (median - lo) / (hi - lo) >= SKEWED_AT or hi < SKEWED_SPAN * max(median, 1.0):
+        return scale
+    return AxisScale(
+        transform_type=TransformType.BIEXPONENTIAL,
+        logicle_t=max(scale.logicle_t, float(finite.max())),
+    )
+
+
+def search_scales(
+    events: pd.DataFrame, channels: tuple[str, ...], axis_manager: AxisManager, sample_id: str
+) -> tuple[dict[str, AxisScale], frozenset[str]]:
+    """Each channel's search scale, and which of them differ from the app's."""
+    scales, rescaled = {}, set()
+    for ch in channels:
+        shown = axis_manager.get_scale(ch, sample_id)
+        scales[ch] = search_scale(events[ch].to_numpy(dtype=np.float64), shown)
+        if scales[ch] is not shown:
+            rescaled.add(ch)
+    return scales, frozenset(rescaled)

@@ -27,8 +27,12 @@ from ..gating.from_display import (
 from ..gating.polygon import PolygonGate
 from .density import Valley, find_valley, on_scale
 from .mixture import RADIUS, Component, axes, envelope, fit_mixture, inside, outline
+from .regions import OUTLINE, density_regions
+from .regions import inside as in_outline
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from ..gating.base import Gate
     from .views import View
 
@@ -54,6 +58,8 @@ class Split:
     reason: str
     record: dict[str, object] = field(default_factory=dict)
     components: tuple[Component, ...] = ()  # mixtures: to redo the fit on another sample
+    # density regions: one piece around several of them (identified by their outlines)
+    join: Callable[[list[Piece]], Piece | None] | None = None
 
 
 def _extremes(view: View) -> tuple[float, float, float, float]:
@@ -80,16 +86,10 @@ def split_axis_record(view: View) -> dict[str, object]:
     }
 
 
-def by_valleys(
-    view: View, min_valley: float, cells: bool = False, x_only: bool = False
-) -> Split | str:
-    """Rectangles between the valleys on each axis (only x when ``x_only``).
-
-    ``cells``: the cells split, cut only on x (forward scatter), and only below its
-    tallest peak, where debris is.
-    """
-    axes = (("x", view.x),) if cells or x_only else (("x", view.x), ("y", view.y))
-    valleys = {name: find_valley(axis.values, side="below" if cells else "") for name, axis in axes}
+def by_valleys(view: View, min_valley: float, x_only: bool = False) -> Split | str:
+    """Rectangles between the valleys on each axis (only x when ``x_only``)."""
+    axes = (("x", view.x),) if x_only else (("x", view.x), ("y", view.y))
+    valleys = {name: find_valley(axis.values) for name, axis in axes}
     cuts = {
         name: v.position for name, v in valleys.items() if v is not None and v.depth >= min_valley
     }
@@ -262,14 +262,6 @@ def by_singlets(view: View, area: np.ndarray, height: np.ndarray, min_valley: fl
     return Split(pieces, [], reason, record)
 
 
-def cells_names(view: View, split: Split) -> list[str]:
-    """By convention: above the forward-scatter valley is cells, below it debris."""
-    if not split.cuts:  # nothing cut off: it is all cells
-        return [CELLS for _p in split.pieces]
-    cut = split.cuts[0][1]
-    return [CELLS if np.median(view.x.values[p.mask]) >= cut else DEBRIS for p in split.pieces]
-
-
 def whole(view: View, why: str) -> Split:
     """One piece holding the whole population: a rectangle open on every side."""
     extremes = _extremes(view)
@@ -291,3 +283,76 @@ def whole(view: View, why: str) -> Split:
     )
     mask = np.ones(len(view.x.values), dtype=bool)
     return Split([Piece(mask, corners, gate)], [], why, {"whole_population": True})
+
+
+def by_density(view: View, min_valley: float) -> Split | str:
+    """One polygon per density region: gates that follow the populations' own shapes."""
+    found = density_regions(view.x.values, view.y.values, min_valley)
+    if found is None:
+        return f"Too few events on {view.name} to map its density."
+    pieces, regions = [], []
+    for region in found.regions:
+        shape = found.outline(region.mask)
+        if shape is not None:
+            pieces.append(Piece(in_outline(shape, view), shape, _polygon(view, shape)))
+            regions.append(region)
+
+    def join(chosen: list[Piece]) -> Piece | None:
+        picked = [
+            r
+            for p, r in zip(pieces, regions, strict=True)
+            if any(p.outline is c.outline for c in chosen)
+        ]
+        shape = found.joined(picked)
+        if shape is None:
+            return None
+        return Piece(in_outline(shape, view), shape, _polygon(view, shape))
+
+    reason = (
+        f"On {view.name}: its density has {found.peaks} peak{'s' if found.peaks != 1 else ''}; "
+        f"peaks with no valley of {min_valley:.2f} between them are one population, leaving "
+        f"{len(pieces)}. Each gate follows its population's outline, where the density falls "
+        f"to {OUTLINE:.0%} of that population's peak."
+    )
+    record: dict[str, object] = {
+        "density_peaks": found.peaks,
+        "populations": len(pieces),
+        "outline_level": round(OUTLINE, 4),
+    }
+    return Split(pieces, [], reason, record, join=join)
+
+
+def cells_by_density(view: View, min_valley: float) -> Split | str:
+    """Cells on forward × side scatter: the outline of where the cells are.
+
+    Debris sits near the origin, below and left of the cells; scattered and
+    saturated events lie outside the cells' density. So the gate is the outline
+    of every density region except any lying below-left of the main one.
+    """
+    found = density_regions(view.x.values, view.y.values, min_valley)
+    if found is None or not found.regions:
+        return f"Too few events on {view.name} to map its density."
+    main = found.regions[0]
+    debris = [
+        r for r in found.regions[1:] if r.peak[0] < main.peak[0] and r.peak[1] <= main.peak[1]
+    ]
+    kept = [r for r in found.regions if r not in debris]
+    shape = found.joined(kept)
+    if shape is None:
+        return f"No cells region found on {view.name}."
+    pieces = [Piece(in_outline(shape, view), shape, _polygon(view, shape), CELLS)]
+    if debris:
+        junk = found.joined(debris)
+        if junk is not None:
+            pieces.append(Piece(in_outline(junk, view), junk, _polygon(view, junk), DEBRIS))
+    reason = (
+        f"On {view.name}: the gate follows the cells' density, leaving out the debris near the "
+        "origin and scattered or saturated events"
+        + (", and a separate debris population below and left of the cells" if debris else "")
+        + f" (outlined where the density falls to {OUTLINE:.0%} of its peak)."
+    )
+    return Split(pieces, [], reason, {"density_peaks": found.peaks, "debris_regions": len(debris)})
+
+
+def _polygon(view: View, shape: np.ndarray) -> Gate:
+    return polygon_from_display(view.x.key, view.y.key, shape, view.x.scale, view.y.scale)

@@ -151,7 +151,9 @@ class BuildPage(QWidget):
             return
         info = method(proposal.method_key)
         self._title.setText(f"Proposed split of {proposal.parent}")
-        self._method.setText(info.name)
+        self._method.setText(
+            "By convention" if proposal.provenance.get("convention") else info.name
+        )
         self._meta.setText(f"{proposal.n_events:,} events · not added yet")
         n = len(proposal.gated)
         self._accept.setText(f"Accept · add {n} gate{'s' if n != 1 else ''}")

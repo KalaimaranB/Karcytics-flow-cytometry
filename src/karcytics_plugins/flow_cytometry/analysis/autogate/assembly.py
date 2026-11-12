@@ -87,6 +87,17 @@ def plot_of(
     return PlotData(view.x.label, view.y.label, points, tuple(regions), cuts=cuts)
 
 
+def scale_note(data: PopulationData, view: View) -> str:
+    """Says which axes were searched on biexponential instead of the app's linear."""
+    labels = [a.label for a in (view.x, view.y) if a.key in data.rescaled]
+    if not labels:
+        return ""
+    return (
+        f" {' and '.join(labels)} {'is' if len(labels) == 1 else 'are'} searched and gated on a "
+        "biexponential scale: on a linear one the events crowd the bottom."
+    )
+
+
 def frame_of(view: View) -> Frame:
     return Frame.around(view.x.values, view.y.values)
 
@@ -118,6 +129,7 @@ def record_of(  # noqa: PLR0913 - everything the record keeps
         "min_valley": request.min_valley,
     }
     record.update(split_axis_record(view))
+    record["biexponential_axes"] = [a.label for a in (view.x, view.y) if a.key in data.rescaled]
     record.update(split.record)
     if key == PCA.key:
         record["loadings"] = notes.get("loadings")

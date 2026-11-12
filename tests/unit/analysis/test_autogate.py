@@ -272,7 +272,10 @@ def test_the_cells_split_comes_first_whatever_the_method(lens):
     assert proposal.reason.startswith("Cells first")
     assert [r.name for r in proposal.gated] == ["Cells"]  # debris is shown, not gated
     cells = proposal.gated[0]
-    assert cells.fraction == pytest.approx(0.92, abs=0.02)  # the planted debris is 8%
+    rows = (proposal.context.data.events.index.to_numpy() - 7) // 3  # row i is labelled 3i + 7
+    debris = rows < 480  # the fixture plants 8% debris first
+    assert cells.mask[debris].mean() < 0.05  # noqa: PLR2004 - the debris corner is left out
+    assert cells.mask[~debris].mean() > 0.93  # noqa: PLR2004 - the cells' outline holds them
     assert {proposal.gated[0].gate.x_param} == {"FSC-A"}
     assert proposal.provenance["convention"] == "cells"
 

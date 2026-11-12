@@ -256,6 +256,9 @@ def log_transform(
     return np.log10(clamped) / decades
 
 
+DITHER_SEED = 0
+
+
 def biexponential_transform(  # noqa: PLR0913
     data: np.ndarray,
     *,
@@ -288,10 +291,13 @@ def biexponential_transform(  # noqa: PLR0913
         Transformed values in display units.
     """
     # Apply continuous +/-0.5 uniform dithering to prevent integer banding
-    # (barcode artifacts) which dramatically skew density calculations near 0
+    # (barcode artifacts) which dramatically skew density calculations near 0.
+    # Seeded, so the same values always land in the same place: a gate's
+    # contains() must not include an edge event on one call and drop it on the next.
     data_jitter = np.asarray(data, dtype=np.float64).copy()
     if enable_dithering:
-        data_jitter += np.random.uniform(-0.5, 0.5, size=data_jitter.shape)
+        rng = np.random.default_rng(DITHER_SEED)
+        data_jitter += rng.uniform(-0.5, 0.5, size=data_jitter.shape)
 
     # ── FlowKit LogicleTransform (real Parks 2006 algorithm) ──────────
     # NOTE: flowkit.transforms is a namespace package — it cannot be imported

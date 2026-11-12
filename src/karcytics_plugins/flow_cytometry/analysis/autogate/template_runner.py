@@ -16,7 +16,7 @@ import numpy as np
 
 from ..clustering.describe import short_marker
 from ..fcs_io import get_channel_marker_label
-from .assembly import exact, frame_of, plot_of, record_of, regions_of
+from .assembly import exact, frame_of, plot_of, record_of, regions_of, scale_note
 from .density import find_valley
 from .models import TEMPLATE, Proposal, StepRequest
 from .naming import calls_of, name_regions
@@ -24,13 +24,14 @@ from .population import (
     PopulationData,
     population_events,
     scatter_pair,
+    search_scales,
     singlet_pair,
     subsample,
 )
 from .split import CELLS as CELLS_NAME
 from .split import SINGLETS as SINGLETS_NAME
-from .split import Split, by_mixture, by_singlets, by_valleys, cells_names, whole
-from .template import CELLS, SINGLETS, GatingTemplate, TemplateStep
+from .split import Split, by_density, by_mixture, by_singlets, by_valleys, cells_by_density, whole
+from .template import CELLS, MARKERS, SINGLETS, GatingTemplate, TemplateStep
 from .views import View, chosen_axes
 
 ASKED_VALLEY = 0.6  # of the usual clear valley: enough when the template says a population is there
@@ -145,10 +146,11 @@ class TemplateRunner:
                 reason = split
                 continue
             split = exact(split, data, view)
-            chosen = _chosen(step, split, view, data, axes, min_events)
-            if isinstance(chosen, str):
-                reason = chosen
+            matching = _chosen(step, split, data, axes, min_events)
+            if isinstance(matching, str):
+                reason = matching
                 continue
+            split, chosen = _joined(split, matching, data, view)
             return self._proposal(
                 template=template,
                 step=step,
@@ -165,14 +167,17 @@ class TemplateRunner:
     def _data(self, sample: Sample, parent: _Parent, axes: tuple[str, str]) -> PopulationData:
         fcs = sample.fcs_data
         assert fcs is not None  # checked by run
+        events = subsample(parent.events)
+        scales, rescaled = search_scales(events, axes, self._axis_manager, sample.sample_id)
         return PopulationData(
             sample,
             parent.node_id,
             parent.name,
-            subsample(parent.events),
+            events,
             len(parent.events),
-            {ch: self._axis_manager.get_scale(ch, sample.sample_id) for ch in axes},
+            scales,
             {ch: get_channel_marker_label(fcs, ch) for ch in axes},
+            rescaled=rescaled,
         )
 
     def _proposal(  # noqa: PLR0913 - everything a proposal is made of
@@ -191,13 +196,17 @@ class TemplateRunner:
         min_events, min_valley = rules
         masks = [p.mask for p in split.pieces]
         names = (
-            cells_names(view, split)
-            if step.kind == CELLS
-            else [p.name for p in split.pieces]
+            [p.name for p in split.pieces]
             if all(p.name for p in split.pieces)
             else name_regions(data, _called_on(step, view), masks)
         )
-        found_as = names[chosen] if len(names) > 1 else f"all of {parent.name}"
+        found_as = (
+            f"all of {parent.name}"
+            if split.record.get("whole_population")
+            else names[chosen]
+            if len(names) > 1
+            else _reading(step, data, view, masks[0])
+        )
         names[chosen] = step.name
         frame = frame_of(view)
         regions = [
@@ -216,7 +225,7 @@ class TemplateRunner:
         )
         reason = (
             f"{step.name}: asked for {asked} within {parent.name}. {split.reason}{bar} Kept: "
-            f"{found_as} ({kept.fraction:.0%} of {parent.name})."
+            f"{found_as} ({kept.fraction:.0%} of {parent.name}).{scale_note(data, view)}"
         )
         request = StepRequest(
             TEMPLATE.key,
@@ -286,13 +295,18 @@ def _splits(
     step: TemplateStep, view: View, data: PopulationData, min_valley: float
 ) -> list[Split | str]:
     if step.kind == CELLS:
-        return [by_valleys(view, min_valley, cells=True)]
+        return [cells_by_density(view, min_valley)]
     if step.kind == SINGLETS:
         area, height = (data.events[a.key].to_numpy(np.float64) for a in (view.x, view.y))
         return [by_singlets(view, area, height, min_valley)]
-    if len(step.calls) == 1:
-        return [by_valleys(view, min_valley, x_only=True), by_mixture(view, min_valley)]
-    return [by_valleys(view, min_valley), by_mixture(view, min_valley)]
+    # Density regions first (gates shaped like the populations), then straight cuts at
+    # the valleys, then a mixture: the first whose region reads as asked is kept.
+    one = len(step.calls) == 1
+    return [
+        by_density(view, min_valley),
+        by_valleys(view, min_valley, x_only=one),
+        by_mixture(view, min_valley),
+    ]
 
 
 def _called_on(step: TemplateStep, view: View) -> tuple[str, ...]:
@@ -342,21 +356,47 @@ def _already(
     )
 
 
-def _chosen(  # noqa: PLR0913 - the step, the split and what to judge it by
+def _joined(
+    split: Split, matching: list[int], data: PopulationData, view: View
+) -> tuple[Split, int]:
+    """``split`` with the matching pieces as one (density regions that read alike are one
+    population, e.g. low- and high-side-scatter live cells); the index of that piece.
+    """
+    if len(matching) == 1 or split.join is None:
+        return split, max(matching, key=lambda i: int(split.pieces[i].mask.sum()))
+    piece = split.join([split.pieces[i] for i in matching])
+    if piece is None:
+        return split, matching[0]
+    rest = [p for i, p in enumerate(split.pieces) if i not in matching]
+    joined = exact(replace(split, pieces=[piece, *rest]), data, view)
+    return joined, 0
+
+
+def _reading(step: TemplateStep, data: PopulationData, view: View, mask: np.ndarray) -> str:
+    """How a lone region reads on the step's markers, e.g. "PI−"."""
+    if step.kind != MARKERS:
+        return step.name
+    channels = (view.x.key, view.y.key)[: len(step.calls)]
+    got = calls_of(data, channels, [mask])[0]
+    return " ".join(
+        f"{c.marker}{got.get(ch, '?')}" for ch, c in zip(channels, step.calls, strict=True)
+    )
+
+
+def _chosen(
     step: TemplateStep,
     split: Split,
-    view: View,
     data: PopulationData,
     axes: tuple[str, str],
     min_events: int,
-) -> int | str:
-    """The piece holding the population asked for (the largest, if several do)."""
+) -> list[int] | str:
+    """The pieces holding the population asked for (several regions may read as asked)."""
     if split.record.get("whole_population"):
-        return 0
+        return [0]
     if step.kind in (CELLS, SINGLETS):
         wanted = CELLS_NAME if step.kind == CELLS else SINGLETS_NAME
-        names = cells_names(view, split) if step.kind == CELLS else [p.name for p in split.pieces]
-        return names.index(wanted) if wanted in names else f"No {wanted.lower()} region found."
+        names = [p.name for p in split.pieces]
+        return [names.index(wanted)] if wanted in names else f"No {wanted.lower()} region found."
     masks = [p.mask for p in split.pieces]
     channels = axes[: len(step.calls)]
     calls = calls_of(data, channels, masks)
@@ -370,4 +410,4 @@ def _chosen(  # noqa: PLR0913 - the step, the split and what to judge it by
     if not matching:
         found = ", ".join(name_regions(data, channels, masks))
         return f"No {step.calls_text} population found (found: {found})."
-    return max(matching, key=lambda i: int(masks[i].sum()))
+    return matching

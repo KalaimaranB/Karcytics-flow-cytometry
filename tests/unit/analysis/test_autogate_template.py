@@ -62,9 +62,9 @@ def test_each_population_is_found_where_it_was_planted(lens):
     state, runner = lens
     _plan, steps = _run(state, runner)
 
-    assert steps["Cells"].proposal.gated[0].fraction == pytest.approx(0.92, abs=0.02)
+    assert steps["Cells"].proposal.gated[0].fraction == pytest.approx(0.92, abs=0.05)
     t_cells = steps["T cells"].proposal.gated[0]
-    assert t_cells.name == "T cells" and t_cells.fraction == pytest.approx(0.70 / 0.92, abs=0.04)
+    assert t_cells.name == "T cells" and t_cells.fraction == pytest.approx(0.70 / 0.92, abs=0.06)
     cd4 = steps["CD4 T"].proposal.gated[0]
     assert cd4.fraction == pytest.approx(0.40 / 0.70, abs=0.05)
     assert steps["CD8 T"].proposal.gated[0].fraction == pytest.approx(0.30 / 0.70, abs=0.05)

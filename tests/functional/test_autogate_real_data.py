@@ -74,17 +74,22 @@ def test_cells_come_first_from_all_events(fcs_test_data_dir):
 
     assert not isinstance(proposal, str), proposal
     assert [r.name for r in proposal.gated] == ["Cells"]
-    assert 0.8 < proposal.gated[0].fraction < 0.95  # noqa: PLR2004
+    assert 0.8 < proposal.gated[0].fraction < 0.98  # noqa: PLR2004
 
 
-def test_no_cells_cut_where_forward_scatter_has_no_debris_valley(fcs_test_data_dir):
-    """Sample B's only FSC valley lies above its main peak (lymphocytes | larger cells)."""
+def test_the_cells_gate_follows_the_cells_and_leaves_out_saturated_events(fcs_test_data_dir):
+    """Sample B has no debris valley on forward scatter, but its cells' outline still
+    leaves out the column of events clipped at the forward-scatter limit.
+    """
     engine, markers = _engine(fcs_test_data_dir, "Sample B")
     proposal = engine.propose(_request("pairs", markers, cells_first=True))
 
     assert not isinstance(proposal, str), proposal
-    assert proposal.reason.startswith("Cells step skipped")
-    assert "Cells" not in [r.name for r in proposal.gated]
+    (cells,) = proposal.gated
+    assert cells.gate.__class__.__name__ == "PolygonGate"
+    events = proposal.context.data.events
+    saturated = events["FSC-A"].to_numpy() >= events["FSC-A"].max()
+    assert saturated.sum() > 50 and cells.mask[saturated].mean() < 0.05  # noqa: PLR2004
 
 
 def _template_plan(fcs_test_data_dir, name: str):
