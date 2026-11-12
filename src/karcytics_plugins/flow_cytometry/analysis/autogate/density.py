@@ -16,6 +16,7 @@ SMOOTH_SD = 2.0  # bins
 EDGE_QUANTILE = 0.005  # the axis runs from this quantile to 1 minus it
 MIN_PEAK_GAP = 8  # bins between two peaks
 MIN_PEAK_SHARE = 0.03  # a peak must be at least this high relative to the tallest
+CLEAR_PEAK = 0.1  # of the tallest: lower bumps on a population's tail are noise
 MIN_PEAK_SHARE_2D = 0.05
 GRID = 64  # bins per side of the 2-D density
 GRID_SMOOTH_SD = 3.0  # bins, at FULL_DETAIL_EVENTS or more
@@ -119,6 +120,22 @@ def find_valley(values: np.ndarray, side: str = "") -> Valley | None:
     depth, low = best
     position = d.lo + (low + 0.5) * (d.hi - d.lo) / BINS
     return Valley(float(position), float(depth), d)
+
+
+def peak_beyond(values: np.ndarray, position: float, above: bool) -> bool:
+    """Whether a clear peak of ``values`` lies above (or below) ``position``: a
+    population there, not just the tail of one on the other side.
+    """
+    d = density(values)
+    h = d.heights
+    centers = d.lo + (np.arange(BINS) + 0.5) * (d.hi - d.lo) / BINS
+    return any(
+        h[i] >= CLEAR_PEAK
+        and h[i] >= h[i - 1]
+        and h[i] > h[i + 1]
+        and (centers[i] > position if above else centers[i] < position)
+        for i in range(1, BINS - 1)
+    )
 
 
 def separation(x: np.ndarray, y: np.ndarray) -> float:

@@ -128,8 +128,8 @@ class SetupSidebar(QWidget):
         self._cells_first.setObjectName("AutoGateCellsFirst")
         self._cells_first.setChecked(StepRequest.cells_first)
         self._cells_first.setToolTip(
-            "By convention, before any marker: from All Events the cells gate (debris cut off "
-            "below the forward-scatter valley), then from it the singlets gate (doublets left out "
+            "By convention, before any marker: from All Events the cells gate (the cells' density "
+            "region on scatter, debris in the low corner left out), then from it the singlets gate (doublets left out "
             "by forward-scatter area against height). Then the method searches the markers."
         )
         self._cells_first.toggled.connect(lambda _on: self.choices_changed.emit())

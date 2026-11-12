@@ -86,5 +86,16 @@ change when the real engine replaces `DemoEngine`.
       those markers and keeps the region whose calls match. Steps that aren't
       there say why; Singlets steps aside without FSC-H. Templates save as
       JSON. Apply/Compare don't yet cover template runs.
+- [x] **Density regions, biexponential search.** Marker steps and Cells are
+      gated by density-region polygons (watershed on the smoothed 2-D
+      density, persistence merge); Cells keeps the main region, leaving out
+      the low-FSC/low-SSC debris corner and off-scale events. A linear axis
+      that crowds its events is searched on biexponential (recorded).
+      Biexponential dithering is seeded, so runs repeat.
+- [x] **Controls as reference points (templates).** For each marker, an FMO
+      lacking it (else an unstained tube, said to be weaker) is put through
+      the same gates; its 99.5th percentile is tried first as where positive
+      starts, if the sample has a clear peak beyond it. Lines also veto regions
+      on their wrong side. Single stains are not used yet.
 - [ ] **9. Academy course + user docs** (`docs/user/00_OVERVIEW.md` tab list,
       Sample Lens "sits between" wording, a new `17_AUTO_GATING.md`).

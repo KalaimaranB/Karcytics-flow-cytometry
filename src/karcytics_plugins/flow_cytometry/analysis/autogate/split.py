@@ -101,6 +101,39 @@ def by_valleys(view: View, min_valley: float, x_only: bool = False) -> Split | s
             f"(deepest {deepest:.2f}, needs {min_valley:.2f}). Try other axes, or lower "
             "“Clear valley at least”."
         )
+    pieces = _rectangles(view, cuts)
+    said = []
+    for name, axis in axes:
+        v = valleys[name]
+        marker = short_marker(axis.label)
+        if name in cuts and v is not None:
+            said.append(
+                f"{marker} has two peaks with a clear gap (valley {v.depth:.2f}), cut at its lowest point"
+            )
+        else:
+            said.append(f"{marker} has no clear valley, so it isn't cut")
+    reason = f"On {view.name}: " + "; ".join(said) + "."
+    record: dict[str, object] = {
+        "cuts": {
+            short_marker(a.label): round(float(cuts[n]), 4)
+            for n, a in (("x", view.x), ("y", view.y))
+            if n in cuts
+        }
+    }
+    return Split(pieces, [(n, float(p)) for n, p in cuts.items()], reason, record)
+
+
+def by_lines(view: View, lines: dict[str, float], reason: str, record: dict[str, object]) -> Split:
+    """Rectangles on each side of given lines ("x"/"y" → display position), e.g. where a
+    control says positive starts.
+    """
+    return Split(
+        _rectangles(view, lines), [(n, float(p)) for n, p in lines.items()], reason, record
+    )
+
+
+def _rectangles(view: View, cuts: dict[str, float]) -> list[Piece]:
+    """The view cut at ``cuts`` ("x"/"y" → display position) into open-ended rectangles."""
     x_edges = [-np.inf, cuts["x"], np.inf] if "x" in cuts else [-np.inf, np.inf]
     y_edges = [-np.inf, cuts["y"], np.inf] if "y" in cuts else [-np.inf, np.inf]
     xs, ys = view.x.values, view.y.values
@@ -126,25 +159,7 @@ def by_valleys(view: View, min_valley: float, x_only: bool = False) -> Split | s
                 extremes,
             )
             pieces.append(Piece(mask, corners, gate))
-    said = []
-    for name, axis in axes:
-        v = valleys[name]
-        marker = short_marker(axis.label)
-        if name in cuts and v is not None:
-            said.append(
-                f"{marker} has two peaks with a clear gap (valley {v.depth:.2f}), cut at its lowest point"
-            )
-        else:
-            said.append(f"{marker} has no clear valley, so it isn't cut")
-    reason = f"On {view.name}: " + "; ".join(said) + "."
-    record: dict[str, object] = {
-        "cuts": {
-            short_marker(a.label): round(float(cuts[n]), 4)
-            for n, a in (("x", view.x), ("y", view.y))
-            if n in cuts
-        }
-    }
-    return Split(pieces, [(n, float(p)) for n, p in cuts.items()], reason, record)
+    return pieces
 
 
 def by_mixture(view: View, min_valley: float, means_init: np.ndarray | None = None) -> Split | str:

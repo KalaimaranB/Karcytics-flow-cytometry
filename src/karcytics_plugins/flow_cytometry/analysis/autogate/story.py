@@ -70,6 +70,8 @@ def _methods_text(gate: str, record: dict[str, Any]) -> str:
         )
         if record.get("whole_population"):
             text += f"Nothing split {parent} on these markers, so the gate holds all of it. "
+        elif record.get("control_lines"):
+            text += _controls_text(record["control_lines"])
         elif record.get("cuts"):
             cuts = ", ".join(record["cuts"])
             text += (
@@ -91,13 +93,26 @@ def _methods_text(gate: str, record: dict[str, Any]) -> str:
             "population's merged Gaussian. "
         )
     if record.get("convention") == "cells":
-        text += "Following convention, this first split only removed debris below the forward-scatter valley. "
+        text += (
+            "Following convention, this first split kept the cells' density region on forward and "
+            "side scatter, leaving out debris in the low corner and off-scale events. "
+        )
     elif record.get("convention") == "singlets":
         text += (
             "Following convention, doublets were removed by the ratio of forward-scatter area to height "
             f"(kept between {record.get('ratio_kept', ['?', '?'])[0]} and {record.get('ratio_kept', ['?', '?'])[1]}). "
         )
     return text + "The same gates were applied unchanged to every sample in the group."
+
+
+def _controls_text(lines: dict[str, dict[str, Any]]) -> str:
+    """How control tubes placed the positive boundaries, e.g. for an FMO."""
+    each = "; ".join(
+        f"{marker}+ at the {line.get('percentile', 99.5):g}th percentile of the {line.get('kind')} "
+        f"control {line.get('control')} ({int(line.get('events', 0)):,} events)"
+        for marker, line in lines.items()
+    )
+    return f"Positive boundaries were set from control tubes put through the same gates: {each}. "
 
 
 def story_of(gate: str, record: dict[str, Any]) -> GateStory:

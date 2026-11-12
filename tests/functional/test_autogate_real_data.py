@@ -125,3 +125,54 @@ def test_a_template_finds_no_stained_populations_in_an_unstained_tube(fcs_test_d
     steps = _template_plan(fcs_test_data_dir, "Blank")
     assert steps["Live"].proposal is None
     assert steps["B cells"].proposal is None and steps["T cells"].proposal is None
+
+
+def _with_fmo_plan(fcs_test_data_dir, name: str, fmos: dict[str, str]):
+    """A template run on ``name`` with FMO tubes (file name → marker left out) in the experiment."""
+    from karcytics_plugins.flow_cytometry.analysis.autogate import TemplateRunner
+    from karcytics_plugins.flow_cytometry.analysis.autogate.template import GatingTemplate
+    from karcytics_plugins.flow_cytometry.analysis.experiment import SampleRole
+
+    engine, _markers = _engine(fcs_test_data_dir, name)
+    samples = engine._state.data.experiment.samples
+    for tube, marker in fmos.items():
+        fcs = load_fcs(str(fcs_test_data_dir / f"Specimen_001_{tube}.fcs"), in_process_daemon)
+        samples[tube] = Sample(
+            sample_id=tube,
+            display_name=tube,
+            fcs_data=fcs,
+            role=SampleRole.FMO_CONTROL,
+            fmo_minus=marker,
+        )
+    template = GatingTemplate.from_dict(
+        {
+            "name": "Spleen",
+            "steps": [
+                {"id": "c", "name": "Cells", "parent": None, "markers": "scatter"},
+                {"id": "k", "name": "Leukocytes", "parent": "c", "markers": "CD45+"},
+                {"id": "t", "name": "T cells", "parent": "k", "markers": "CD3+"},
+            ],
+        }
+    )
+    plan = TemplateRunner(engine._state, engine._axis_manager).run(template, "s", None)
+    assert not isinstance(plan, str), plan
+    return {o.step.name: o for o in plan.outcomes}
+
+
+def test_an_fmo_tube_places_the_positive_line(fcs_test_data_dir):
+    steps = _with_fmo_plan(fcs_test_data_dir, "Sample C", {"FMO e450": "CD3", "FMO APC": "CD45"})
+    t_cells = steps["T cells"].proposal
+    assert t_cells is not None, steps["T cells"].message
+    assert t_cells.provenance["control_lines"]["CD3"]["control"] == "FMO e450"
+    assert 0.05 < t_cells.gated[0].fraction < 0.4  # noqa: PLR2004
+
+
+def test_an_fmo_line_with_only_a_tail_beyond_it_is_not_taken_for_a_population(
+    fcs_test_data_dir,
+):
+    """The unstained tube sits a little brighter than the FMO on CD45 (its own
+    autofluorescence), so some events cross the FMO's line, but no population does.
+    """
+    steps = _with_fmo_plan(fcs_test_data_dir, "Blank", {"FMO APC": "CD45"})
+    assert steps["Leukocytes"].proposal is None
+    assert "no clear population above it" in steps["Leukocytes"].message

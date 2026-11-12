@@ -5,6 +5,10 @@ own markers (one marker against side scatter, two against each other; Cells
 and Singlets on scatter, by convention) and the region whose +/lo/− calls
 match what was asked for is kept. Its gate gives the next steps their events.
 A step whose population isn't there says so, and its children are skipped.
+
+Where the experiment has a control for a step's markers (an FMO lacking it, or
+an unstained tube), the control is put through the same gates and its 99.5th
+percentile is tried first as where positive starts.
 """
 
 from __future__ import annotations
@@ -17,12 +21,14 @@ import numpy as np
 from ..clustering.describe import short_marker
 from ..fcs_io import get_channel_marker_label
 from .assembly import exact, frame_of, plot_of, record_of, regions_of, scale_note
-from .density import find_valley
+from .controls import ControlLine, control_for, control_line
+from .density import find_valley, peak_beyond
 from .models import TEMPLATE, Proposal, StepRequest
 from .naming import calls_of, name_regions
 from .population import (
     PopulationData,
     population_events,
+    same_population,
     scatter_pair,
     search_scales,
     singlet_pair,
@@ -30,7 +36,16 @@ from .population import (
 )
 from .split import CELLS as CELLS_NAME
 from .split import SINGLETS as SINGLETS_NAME
-from .split import Split, by_density, by_mixture, by_singlets, by_valleys, cells_by_density, whole
+from .split import (
+    Split,
+    by_density,
+    by_lines,
+    by_mixture,
+    by_singlets,
+    by_valleys,
+    cells_by_density,
+    whole,
+)
 from .template import CELLS, MARKERS, SINGLETS, GatingTemplate, TemplateStep
 from .views import View, chosen_axes
 
@@ -43,6 +58,7 @@ if TYPE_CHECKING:
     from ..axis_manager import AxisManager
     from ..experiment import Sample
     from ..fcs_io import FCSData
+    from ..gating.base import Gate
     from ..state import FlowState
     from .models import BarSection
 
@@ -72,6 +88,8 @@ class _Parent:
     events: pd.DataFrame
     name: str
     node_id: str | None  # in the real tree; None for a population not added yet
+    start_id: str | None  # the population the template starts from
+    gates: tuple[Gate, ...] = ()  # the template's gates from there to here
 
 
 class TemplateRunner:
@@ -95,7 +113,7 @@ class TemplateRunner:
             return f"{sample.display_name} has no events loaded."
         if not template.steps:
             return "The template has no populations yet."
-        parents: dict[str | None, _Parent] = {None: _Parent(events, start_name, start_id)}
+        parents: dict[str | None, _Parent] = {None: _Parent(events, start_name, start_id, start_id)}
         outcomes = []
         for step in template.ordered():
             parent = parents.get(step.parent_id)
@@ -115,8 +133,9 @@ class TemplateRunner:
             if isinstance(found, str):
                 outcomes.append(StepOutcome(step, None, found))
                 continue
-            proposal, kept = found
-            parents[step.step_id] = _Parent(kept, step.name, None)
+            proposal, gate = found
+            kept = parent.events[np.asarray(gate.contains(parent.events), dtype=bool)]
+            parents[step.step_id] = _Parent(kept, step.name, None, start_id, (*parent.gates, gate))
             outcomes.append(StepOutcome(step, proposal))
         return TemplatePlan(template, sample_id, start_id, start_name, tuple(outcomes))
 
@@ -127,7 +146,7 @@ class TemplateRunner:
         step: TemplateStep,
         parent: _Parent,
         rules: tuple[int, float],
-    ) -> tuple[Proposal, pd.DataFrame] | str:
+    ) -> tuple[Proposal, Gate] | str:
         min_events, min_valley = rules
         if len(parent.events) < min_events:
             return f"{parent.name} has {len(parent.events):,} events, fewer than {min_events:,}."
@@ -137,9 +156,18 @@ class TemplateRunner:
             return axes
         data = self._data(sample, parent, axes)
         view, sections = chosen_axes(data, *axes).ranked(0)
-        reason = "No split found."
+        reason, ruled_out = "No split found.", ""
         valley = min_valley if step.kind in (CELLS, SINGLETS) else ASKED_VALLEY * min_valley
-        for split in [*_splits(step, view, data, valley), _already(step, view, data, axes)]:
+        lines, note = self._lines(sample, step, parent, data)
+        cut = (
+            len(lines) == len(step.calls) and not note and all(c.level != "lo" for c in step.calls)
+        )
+        candidates = [
+            *([_by_controls(view, lines)] if cut else []),
+            *_splits(step, view, data, valley),
+            _already(step, view, data, axes),
+        ]
+        for split in candidates:
             if split is None:
                 continue
             if isinstance(split, str):
@@ -149,6 +177,11 @@ class TemplateRunner:
             matching = _chosen(step, split, data, axes, min_events)
             if isinstance(matching, str):
                 reason = matching
+                continue
+            wrong = {i: _wrong_side(step, data, split.pieces[i].mask, lines) for i in matching}
+            matching = [i for i in matching if not wrong[i]]
+            if not matching:  # the controls say it isn't what was asked for
+                ruled_out = f"A region reads {step.calls_text}, but {next(iter(wrong.values()))}"
                 continue
             split, chosen = _joined(split, matching, data, view)
             return self._proposal(
@@ -161,8 +194,44 @@ class TemplateRunner:
                 split=split,
                 chosen=chosen,
                 rules=rules,
+                note=note,
             )
-        return reason
+        return f"{ruled_out or reason} {note}".strip()
+
+    def _lines(
+        self, sample: Sample, step: TemplateStep, parent: _Parent, data: PopulationData
+    ) -> tuple[dict[str, ControlLine], str]:
+        """Control lines (channel → line) for the markers the step calls, from the same
+        population in control tubes, through the same gates; and, if they can't be cut
+        at, why not. Lines that aren't cut at still rule out regions on their wrong side.
+        """
+        if step.kind != MARKERS:
+            return {}, ""
+        others = [s for s in self._state.data.experiment.samples.values() if s is not sample]
+        lines, notes = {}, []
+        for ch, call in zip(data.labels, step.calls, strict=False):
+            control = control_for(others, ch, data.labels[ch])
+            if control is None:
+                continue
+            events = _through(control[0], sample, parent)
+            line = control_line(*control, events, ch, data.labels[ch], data.scales[ch])
+            if line is None:
+                notes.append(
+                    f"The {control[1]} control {control[0].display_name} has too few events "
+                    f"in {parent.name} to place a line, so it isn't used."
+                )
+                continue
+            lines[ch] = line
+            side = "above" if call.level == "+" else "below"
+            if call.level != "lo" and not peak_beyond(
+                data.on_display(ch), line.position, above=side == "above"
+            ):
+                notes.append(
+                    f"The {line.kind} control {line.control} puts {line.marker}+ at "
+                    f"{line.position:.2f}, but {parent.name} has no clear population {side} "
+                    "it (only the tail of the other side), so it isn't cut at."
+                )
+        return lines, " ".join(notes)
 
     def _data(self, sample: Sample, parent: _Parent, axes: tuple[str, str]) -> PopulationData:
         fcs = sample.fcs_data
@@ -192,14 +261,16 @@ class TemplateRunner:
         split: Split,
         chosen: int,
         rules: tuple[int, float],
-    ) -> tuple[Proposal, pd.DataFrame] | str:
+        note: str = "",
+    ) -> tuple[Proposal, Gate] | str:
         min_events, min_valley = rules
         masks = [p.mask for p in split.pieces]
-        names = (
-            [p.name for p in split.pieces]
-            if all(p.name for p in split.pieces)
-            else name_regions(data, _called_on(step, view), masks)
-        )
+        if all(p.name for p in split.pieces):
+            names = [p.name for p in split.pieces]
+        elif "control_lines" in split.record:
+            names = _line_names(split, data, _called_on(step, view), masks)
+        else:
+            names = name_regions(data, _called_on(step, view), masks)
         found_as = (
             f"all of {parent.name}"
             if split.record.get("whole_population")
@@ -219,13 +290,14 @@ class TemplateRunner:
         asked = "by convention" if step.kind in (CELLS, SINGLETS) else step.calls_text
         bar = (
             ""
-            if step.kind in (CELLS, SINGLETS)
+            if step.kind in (CELLS, SINGLETS) or "control_lines" in split.record
             else f" A valley of {ASKED_VALLEY * min_valley:.2f} is enough here, as the template "
             "says the population is there."
         )
         reason = (
             f"{step.name}: asked for {asked} within {parent.name}. {split.reason}{bar} Kept: "
             f"{found_as} ({kept.fraction:.0%} of {parent.name}).{scale_note(data, view)}"
+            + (f" {note}" if note else "")
         )
         request = StepRequest(
             TEMPLATE.key,
@@ -250,8 +322,35 @@ class TemplateRunner:
             reason,
             provenance=record,
         )
-        gate = split.pieces[chosen].gate
-        return proposal, parent.events[np.asarray(gate.contains(parent.events), dtype=bool)]
+        return proposal, split.pieces[chosen].gate
+
+
+def _through(control: Sample, reference: Sample, parent: _Parent) -> pd.DataFrame | None:
+    """``control``'s events in ``parent``'s population: the start population matched by
+    name, then the template's gates so far. None if the control has no such population.
+    """
+    found, node_id = same_population(reference, parent.start_id, control)
+    if not found:
+        return None
+    events, _name = population_events(control, node_id)
+    try:
+        for gate in parent.gates:
+            if events is None:
+                return None
+            events = events[np.asarray(gate.contains(events), dtype=bool)]
+    except KeyError:  # the control lacks a channel a gate is on
+        return None
+    return events
+
+
+def _by_controls(view: View, lines: dict[str, ControlLine]) -> Split:
+    """The view cut where the controls say positive starts."""
+    return by_lines(
+        view,
+        {("x" if ch == view.x.key else "y"): line.position for ch, line in lines.items()},
+        f"On {view.name}: " + "; ".join(line.text for line in lines.values()) + ".",
+        {"control_lines": {line.marker: line.record() for line in lines.values()}},
+    )
 
 
 def resolve(fcs: FCSData, marker: str) -> str | None:
@@ -399,7 +498,11 @@ def _chosen(
         return [names.index(wanted)] if wanted in names else f"No {wanted.lower()} region found."
     masks = [p.mask for p in split.pieces]
     channels = axes[: len(step.calls)]
-    calls = calls_of(data, channels, masks)
+    calls = (
+        _against_lines(split, data, channels, masks)
+        if "control_lines" in split.record
+        else calls_of(data, channels, masks)
+    )
     per_event = data.parent_total / max(len(data.events), 1)
     matching = [
         i
@@ -411,3 +514,45 @@ def _chosen(
         found = ", ".join(name_regions(data, channels, masks))
         return f"No {step.calls_text} population found (found: {found})."
     return matching
+
+
+def _wrong_side(
+    step: TemplateStep, data: PopulationData, mask: np.ndarray, lines: dict[str, ControlLine]
+) -> str:
+    """Why a region lies on the wrong side of a control line for what was asked; "" if not."""
+    for ch, call in zip(data.labels, step.calls, strict=False):
+        line = lines.get(ch)
+        if line is None or call.level == "lo":
+            continue
+        above = float(np.median(data.on_display(ch)[mask])) > line.position
+        if above != (call.level == "+"):
+            side = "below" if call.level == "+" else "above"
+            return (
+                f"most of it lies {side} {line.position:.2f}, where the {line.kind} control "
+                f"{line.control} puts {line.marker}+, so it isn't taken."
+            )
+    return ""
+
+
+def _against_lines(
+    split: Split, data: PopulationData, channels: tuple[str, ...], masks: list[np.ndarray]
+) -> list[dict[str, str]]:
+    """Each piece's calls by which side of the control lines it lies: + above, − below."""
+    on = dict(zip(("x", "y"), channels, strict=False))  # the step's markers, x first
+    at = {on[axis]: position for axis, position in split.cuts}
+    return [
+        {ch: ("+" if np.median(data.on_display(ch)[mask]) > at[ch] else "−") for ch in channels}
+        if mask.any()
+        else {}
+        for mask in masks
+    ]
+
+
+def _line_names(
+    split: Split, data: PopulationData, channels: tuple[str, ...], masks: list[np.ndarray]
+) -> list[str]:
+    """Pieces named by the control lines, e.g. "CD4+ CD8−"."""
+    return [
+        " ".join(f"{short_marker(data.labels[ch])}{calls.get(ch, '?')}" for ch in channels)
+        for calls in _against_lines(split, data, channels, masks)
+    ]
