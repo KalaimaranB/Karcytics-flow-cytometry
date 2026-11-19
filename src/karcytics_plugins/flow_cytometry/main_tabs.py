@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from enum import IntEnum
 
 
@@ -20,6 +21,16 @@ class MainTab(IntEnum):
     COMPARISONS = 9
 
     @property
+    def available(self) -> bool:
+        """False for a tab that is built but not shown yet (still in review).
+
+        Auto Gating stays hidden unless KARCYTICS_FLOW_AUTO_GATING=1.
+        """
+        if self is MainTab.AUTO_GATING:
+            return os.environ.get("KARCYTICS_FLOW_AUTO_GATING") == "1"
+        return True
+
+    @property
     def label(self) -> str:
         return self.name.replace("_", " ").title()
 
@@ -31,7 +42,8 @@ class MainTab(IntEnum):
         since, so adding a tab (Auto Gating) never changes what an old save restores.
         """
         if isinstance(saved, str):
-            return cls.__members__.get(saved)
+            tab = cls.__members__.get(saved)
+            return tab if tab is not None and tab.available else None
         if isinstance(saved, int) and 0 <= saved < len(_LEGACY_ORDER):
             return _LEGACY_ORDER[saved]
         return None

@@ -50,6 +50,17 @@ if TYPE_CHECKING:
 logger = get_logger(__name__, "flow_cytometry")
 
 
+def _main_tab_bar() -> QTabBar:
+    """One tab per MainTab, so tab indices match MainTab values; unavailable ones hidden."""
+    bar = QTabBar()
+    bar.setObjectName("MainTabBar")
+    bar.setExpanding(False)
+    bar.setDocumentMode(True)
+    for tab in MainTab:
+        bar.setTabVisible(bar.addTab(tab.label), tab.available)
+    return bar
+
+
 class WorkspaceBuilder:
     """Builds the primary workspace layout for the flow cytometry plugin.
 
@@ -85,12 +96,7 @@ class WorkspaceBuilder:
         top_bar_layout = QHBoxLayout()
         top_bar_layout.setContentsMargins(0, 0, 16, 0)
 
-        panel._tab_bar = QTabBar()
-        panel._tab_bar.setObjectName("MainTabBar")
-        panel._tab_bar.setExpanding(False)
-        panel._tab_bar.setDocumentMode(True)
-        for tab in MainTab:
-            panel._tab_bar.addTab(tab.label)
+        panel._tab_bar = _main_tab_bar()
 
         top_bar_layout.addWidget(panel._tab_bar)
 

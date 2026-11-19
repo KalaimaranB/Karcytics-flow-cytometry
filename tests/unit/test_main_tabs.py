@@ -19,8 +19,18 @@ def test_a_saved_index_is_read_in_the_old_order():
     assert MainTab.restore(9) is None
 
 
-def test_auto_gating_sits_between_population_analysis_and_sample_lens():
+def test_auto_gating_sits_between_population_analysis_and_sample_lens(monkeypatch):
+    monkeypatch.setenv("KARCYTICS_FLOW_AUTO_GATING", "1")
     labels = [t.label for t in MainTab]
     i = labels.index("Auto Gating")
     assert labels[i - 1 : i + 2] == ["Population Analysis", "Auto Gating", "Sample Lens"]
     assert MainTab.restore("AUTO_GATING") is MainTab.AUTO_GATING
+
+
+def test_auto_gating_is_hidden_until_switched_on(monkeypatch):
+    monkeypatch.delenv("KARCYTICS_FLOW_AUTO_GATING", raising=False)
+    assert not MainTab.AUTO_GATING.available
+    assert MainTab.restore("AUTO_GATING") is None
+    assert all(t.available for t in MainTab if t is not MainTab.AUTO_GATING)
+    monkeypatch.setenv("KARCYTICS_FLOW_AUTO_GATING", "1")
+    assert MainTab.AUTO_GATING.available
