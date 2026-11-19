@@ -19,6 +19,36 @@ from .constants import FPBASE_MAX_MATCHES, HTTP_OK
 
 logger = get_logger(__name__, "flow_cytometry")
 
+# FCS channel spellings that differ from FPbase's dye names.
+_CHANNEL_NAME_MAPPINGS = {
+    "APC-Cy7": "APC/Cy7",
+    "PerCP-Cy5-5": "PerCP-Cy5.5",
+}
+
+# Stains that are themselves the fluorescent dye (not an antibody carrying
+# one). Their channel is named for the detector, e.g. PI is read in
+# PerCP-Cy5-5-A, so the detector's dye would be the wrong spectrum.
+_DIRECT_DYE_MARKERS = {
+    "PI": "Propidium Iodide",
+    "PROPIDIUM IODIDE": "Propidium Iodide",
+    "7-AAD": "7-AAD",
+    "7AAD": "7-AAD",
+    "DAPI": "DAPI",
+}
+
+
+def fpbase_query_for_channel(channel: str, marker: str = "") -> str:
+    """The FPbase dye name to look up for an FCS channel and its marker label."""
+    direct = _DIRECT_DYE_MARKERS.get(marker.strip().upper())
+    if direct:
+        return direct
+    # Strip the detector suffix (-A, -H, -W) without breaking tandem dye names.
+    query = re.sub(r"-[AHW]$", "", channel).strip()
+    for fcs_name, fpbase_name in _CHANNEL_NAME_MAPPINGS.items():
+        query = query.replace(fcs_name, fpbase_name)
+    return query
+
+
 # Cache key versioned so stale old-format entries are ignored
 _DYES_INDEX_KEY = "fpbase_dyes_index_v3"
 

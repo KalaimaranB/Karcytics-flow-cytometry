@@ -1,6 +1,6 @@
 [project]
 name = "flow_cytometry"
-version = "1.0.0"
+version = "1.0.1"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
@@ -52,16 +52,13 @@ entry_point = "karcytics_plugins.flow_cytometry:initialize"
 process_model = "isolated"
 is_beta = false
 release_notes = """
-Flow Cytometry 1.0: the first stable release.
+Flow Cytometry 1.0.1
 
-New since 0.11.3:
-- PhenoGraph joins FlowSOM in Population Analysis, with a Cluster Graph view.
-- Sample Lens: audit gates against FlowSOM and PhenoGraph runs, focus mode, plots per row, and editing sibling gates on the gate path.
-- Academy Course 6, Second Opinions, compares hand gates with FlowSOM and PhenoGraph. Course 5 now follows what your own run finds.
-- The Spectral tab now sits before Pipeline.
-- Deleting a gate no longer closes the plot of an AND/OR population that still has another parent.
-- Item checkboxes in lists (such as Comparisons channels) follow the theme.
-- Internal cleanup: one gating coordinator, and a single path to event data, so derived parameters are always up to date.
+- Spectral viewer: dyes that are the stain themselves (PI, 7-AAD, DAPI) now show their own spectrum, not the spectrum of the detector they are read in.
+- Academy Course 1: a new question on what FSC and SSC tell you about cells; the Spectral steps now make clear that spectra belong to fluorophores, not markers.
+- Academy: the T-cells box can be drawn on plots whose CD3 axis ends low; the Learning Compensation tab re-checks the course when shown.
+- Faster density plots.
+- Dependency updates for security advisories (Pillow, certifi, msgpack, tornado).
 """
 requires = ["task_scheduler", "logger", "event_bus"]
 tags = ["flow cytometry", "gating", "FMO", "compensation", "FCS", "UMAP", "bioinformatics"]

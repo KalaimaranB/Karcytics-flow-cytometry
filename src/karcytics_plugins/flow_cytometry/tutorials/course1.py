@@ -34,6 +34,7 @@ from karcytics_plugins.flow_cytometry.analysis import events
 from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
 from ..main_tabs import MainTab
 from .constants import PREVIEW_ALL_SAMPLES, PREVIEW_VIEW_BOTH
+from .course1_scatter import SCATTER_STEPS
 from .course1_spectral import SPECTRAL_STEPS
 from .tutorial_assets import describe_files_location, start_provisioning
 from .validators.base import PropertiesViewValidator, TabActiveValidator, WorkflowSavedValidator
@@ -218,8 +219,12 @@ course_1_fundamentals = Course(
             id="c1_s1_intro",
             text=(
                 "Welcome to Karcytics Flow Cytometry! 🧬<br><br>"
+                "Imagine, you are a busy graduate student, and you "
+                "isolated cells from three different mouse tissues:"
+                "spleen, thymus and bone marrow. However, much to your dismay"
+                ",you forgot to label the samples with the type of tissue they came from!"
                 "Today's mystery: 3 unknown samples — one is Spleen, one is "
-                "Thymus, one is Bone Marrow. Immune cells look different "
+                "Thymus, one is Bone Marrow. Immune cells distributions look different "
                 "from organ to organ, and by the end of Course 3 you'll "
                 "have a confident, evidence-based answer for which is "
                 "which. (Course 4 goes even deeper if you want it — but "
@@ -234,7 +239,8 @@ course_1_fundamentals = Course(
             id="c1_s1a_prediction",
             text=(
                 "Make a prediction 🔮<br><br>"
-                "The thymus is where T cells grow up. Which cells do you "
+                "The thymus is where T cells mature and undergo positive "
+                "and negative selection. Which cells do you "
                 "expect the thymus sample to have *very few* of? There's no "
                 "wrong answer — Course 3 will tell you."
             ),
@@ -260,7 +266,7 @@ course_1_fundamentals = Course(
                 "• Read a spillover matrix and judge whether it is doing "
                 "its job<br><br>"
                 "These are the exact skills you'd use on a real "
-                "cytometer — tutorial or not."
+                "cytometer."
             ),
             cyto_emotion="talking",
             next_step_id="c1_s1c_ask_provision",
@@ -385,7 +391,7 @@ course_1_fundamentals = Course(
             id="c1_s4b_fmo_question",
             text=(
                 "Quick check ✅<br><br>"
-                "CD45 is stained with the dye **APC**. Later you'll need to "
+                "Cells were labeled with an APC-conjugated anti-CD45 antibody. Later you'll need to "
                 "know how bright a cell can be *without* CD45. Which file "
                 "shows you that?"
             ),
@@ -393,18 +399,19 @@ course_1_fundamentals = Course(
             choices=[
                 AnswerChoice(
                     "Blank",
-                    feedback="Close, but Blank has no dyes at all, so it misses the glow the other dyes spill into the APC detector. Its edge sits too low.",
+                    feedback="Close, but the blank contains no fluorophores, so it does not capture the spillover from the other dyes into the APC detector. Its lower boundary is therefore too low.",
                 ),
                 AnswerChoice("FMO APC", correct=True),
                 AnswerChoice(
                     "Sample A",
-                    feedback="Sample A has CD45 stained, so its real signal hides the background you're looking for.",
+                    feedback="Sample A contains APC-conjugated anti-CD45, its true APC signal prevents assessment of the spillover/background into the APC channel",
                 ),
             ],
             explanation=(
-                "FMO APC has every dye except APC: the same spillover as your "
-                "samples, but no real CD45 signal. Whatever it shows in the APC "
-                "channel is background, so that's where CD45-negative ends."
+                "The APC FMO includes all fluorophores except APC, "
+                "matching the spillover into the APC channel while "
+                "lacking true CD45 signal. Its APC signal is background,"
+                "defining the CD45-negative boundary."
             ),
             cyto_emotion="thinking",
             next_step_id="c1_s5_check_properties_view",
@@ -480,7 +487,7 @@ course_1_fundamentals = Course(
             text=(
                 "**Step 3 of 4** — FMO controls.<br><br>"
                 "**FMO (Fluorescence Minus One)**. Each FMO file has every "
-                "dye *except* one, letting us clearly see the boundary between "
+                "fluorophore *except* one, letting us clearly see the boundary between "
                 "the true negative background and actual positive signals for that missing dye.<br><br>"
                 "Doing this one-by-one is tedious! Click **🏷️ Bulk Assign Roles** "
                 "(highlighted in the ribbon).<br><br>"
@@ -592,37 +599,7 @@ course_1_fundamentals = Course(
             event_trigger="sample_double_clicked",
             next_step_id="c1_s22c_verify_sample_open",
         ),
-        QuestionStep(
-            id="c1_s22d_scatter_physics",
-            text=(
-                "Read the plot 💡<br><br>"
-                "**FSC** (forward scatter) tracks a particle's size; **SSC** "
-                "(side scatter) tracks how much is inside it. Debris is "
-                "fragments: small and simple. Where on this plot does it sit?"
-            ),
-            question_id="c1_debris_location",
-            choices=[
-                AnswerChoice("Bottom-left: low FSC, low SSC", correct=True),
-                AnswerChoice(
-                    "Top-right: high FSC, high SSC",
-                    feedback="That's big, granular cells. Fragments scatter little light either way.",
-                ),
-                AnswerChoice(
-                    "Bottom-right: high FSC, low SSC",
-                    feedback="High FSC means large. Fragments are small.",
-                ),
-            ],
-            explanation=(
-                "Fragments bend little light forward and have little inside to "
-                "bounce light sideways. Scatter alone separates intact cells "
-                "from junk, before a single dye is involved, which is why it's "
-                "the first gate."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            target_widget_names=["FlowCanvas"],
-            next_step_id="c1_s23_cells_intro",
-        ),
+        *SCATTER_STEPS,
         # Cells gate
         InfoStep(
             id="c1_s23_cells_intro",
@@ -770,12 +747,12 @@ course_1_fundamentals = Course(
             text=(
                 "Phase 3 — Compensation ⚖️<br><br>"
                 "Every gate after **Cells** sits on a fluorescence channel, so "
-                "the dyes have to be untangled first.<br><br>"
-                "Fluorescent dyes spill light into adjacent detectors. "
-                "Compensation removes this cross-talk mathematically — and "
-                "it's exactly why we tagged Single Stain and Full Panel "
-                "roles first: the math needs to know which files ARE the "
-                "controls before it can correct the samples."
+                "the dyes have to be split up first.<br><br>"
+                "Fluorescent dyes can spill signal into detectors intended for"
+                "other dyes. Compensation removes this cross-talk mathematically."
+                "That is why we assign the Single Stain and Full Panel roles first:"
+                "the algorithm needs to identify the control files before it can"
+                "calculate and apply the correction to the experimental samples."
             ),
             cyto_emotion="thinking",
             next_step_id="c1_s12c_auto_applied_info",
@@ -803,13 +780,12 @@ course_1_fundamentals = Course(
             id="c1_s12d_spectral_theory_1",
             text=(
                 "Where does spillover actually come from? <br><br>"
-                "A fluorescent dye doesn't glow at one exact wavelength — it emits "
-                "across a broad, hill-shaped range spanning 100nm or more. "
-                "Detectors sit under the peak of one dye's hill, but that hill's "
-                "shoulders still spill into neighboring detectors.<br><br>"
-                "Two dyes with peaks 50nm apart can still overlap by 20-30% or "
-                "more — that overlap is exactly the spillover compensation exists "
-                "to correct."
+                "A fluorescent dye does not emit at one exact wavelength. "
+                "It emits across a broad, hill shaped range that can span 100 nm"
+                "or more.Detectors sit under the peak of one dye’s curve, but the"
+                "shoulders of that curve can still spill into neighboring detectors."
+                "Two dyes with peaks 50 nm apart can still overlap by 20 to 30 "
+                "percent or more. That overlap is the spillover that compensation corrects."
             ),
             cyto_emotion="thinking",
             next_step_id="c1_s12e_spectral_theory_2",
@@ -818,7 +794,7 @@ course_1_fundamentals = Course(
             id="c1_s12e_spectral_theory_2",
             text=(
                 "Spillover in action 🌈<br><br>"
-                "FITC's glow spills into the PE detector. Without compensation, "
+                "FITC's fluorescence spills into the PE detector. Without compensation, "
                 "how does a cell that's bright for FITC but carries no PE look?"
             ),
             question_id="c1_spillover_effect",

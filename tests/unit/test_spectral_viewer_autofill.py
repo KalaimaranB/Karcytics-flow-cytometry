@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication
 
 app = QApplication.instance() or QApplication(sys.argv)
@@ -69,6 +70,30 @@ def test_refresh_sources_populates_without_a_current_sample():
     assert any("CD45" in label for label in labels)
     # FSC/SSC/Time are excluded, and duplicates across the two samples are deduped
     assert viewer._source_list.count() == 3  # noqa: PLR2004
+
+
+def test_refresh_sources_queries_direct_dyes_by_marker():
+    """PI is the dye itself: its detector's name (PerCP-Cy5.5) is the wrong spectrum."""
+    state = FlowState()
+    state.data.experiment = Experiment()
+    sample = Sample(sample_id="s0", display_name="Sample 0")
+    sample.fcs_data = FCSData(
+        file_path=Path("s0.fcs"),
+        channels=["PerCP-Cy5-5-A", "APC-A"],
+        markers=["PI", "CD45"],
+    )
+    state.data.experiment.samples["s0"] = sample
+
+    viewer = SpectralViewer(state=state, fluor_service=_fake_fluor_service())
+    viewer._refresh_sources()
+
+    queries = {
+        viewer._source_list.item(i).text(): viewer._source_list.item(i).data(
+            Qt.ItemDataRole.UserRole
+        )
+        for i in range(viewer._source_list.count())
+    }
+    assert queries == {"PI (PerCP-Cy5-5-A)": "Propidium Iodide", "CD45 (APC-A)": "APC"}
 
 
 def test_refresh_sources_empty_experiment_stays_empty():

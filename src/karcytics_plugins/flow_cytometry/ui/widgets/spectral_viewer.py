@@ -9,7 +9,6 @@ Features:
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -40,6 +39,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from karcytics_plugins.flow_cytometry.analysis.biology_services import fpbase_query_for_channel
 from karcytics_plugins.flow_cytometry.analysis.spectral_math import overlap_pct_from_grid
 from karcytics_plugins.flow_cytometry.ui.academy_context import SPECTRAL_TAB_HIGHLIGHT_KEY
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
@@ -430,12 +430,6 @@ class SpectralViewer(QWidget):
 
     # ── Data loading ──────────────────────────────────────────────────────────
 
-    # Normalise common channel-naming discrepancies vs FPbase's dye names.
-    _CHANNEL_NAME_MAPPINGS = {
-        "APC-Cy7": "APC/Cy7",
-        "PerCP-Cy5-5": "PerCP-Cy5.5",
-    }
-
     def _refresh_sources(self) -> None:
         """Repopulate the channel list from every loaded sample's real panel.
 
@@ -458,12 +452,7 @@ class SpectralViewer(QWidget):
                 marker = fcs.markers[i] if i < len(fcs.markers) else ""
                 label = f"{marker} ({channel})" if marker else channel
 
-                # Strip detector suffix (-A, -H, -W) without destroying tandem dye names
-                query_term = re.sub(r"-[AHW]$", "", channel).strip()
-                for k, v in self._CHANNEL_NAME_MAPPINGS.items():
-                    if k in query_term:
-                        query_term = query_term.replace(k, v)
-
+                query_term = fpbase_query_for_channel(channel, marker)
                 item = QListWidgetItem(label)
                 item.setData(Qt.ItemDataRole.UserRole, query_term)
                 self._source_list.addItem(item)

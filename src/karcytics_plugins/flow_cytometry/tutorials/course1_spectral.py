@@ -55,7 +55,6 @@ SPECTRAL_STEPS: list[BaseStep] = [
             "Every curve here is pulled live from **FPbase** — an open, "
             "community-maintained online database of real fluorescent "
             "protein and dye spectra (fpbase.org). This isn't simulated data; "
-            "it's the actual physics of the dyes in your panel.<br><br>"
             "The full citation sits under the viewer, with links to FPbase and "
             "its paper."
         ),
@@ -66,10 +65,14 @@ SPECTRAL_STEPS: list[BaseStep] = [
     InfoStep(
         id="c1_sp45_load_six",
         text=(
-            "Karcytics already detected all 6 of your panel's markers (CD45, "
-            "CD3, CD4, CD8, B220, PI) from the FCS channel headers and "
-            "plotted every one of their spectra automatically — no need to "
-            "add them by hand.<br><br>"
+            "Karcytics read your panel's 6 fluorescence channels from the FCS "
+            "headers and plotted each **fluorophore's** spectrum automatically: "
+            "FITC, PE, PerCP-Cy5.5, Pacific Blue, APC-Cy7 and APC.<br><br>"
+            "Each legend entry also shows the **marker** that dye is attached to, "
+            "like **CD45 (APC-A)**. A marker such as CD45 is just a protein on the "
+            "cell and has no colour of its own. The colour comes from the "
+            "fluorophore on the antibody, so spillover is a property of the "
+            "dyes, not the markers.<br><br>"
             "(You can still double-click any channel in **Available "
             "Channels** to add others, or click a spectrum's legend entry "
             "to remove it.)"
@@ -83,12 +86,10 @@ SPECTRAL_STEPS: list[BaseStep] = [
         text=(
             "Reading AB / EX / EM 🔬<br><br>"
             "• **AB** (Absorbance) — the wavelengths the dye physically absorbs. "
-            "Mostly a chemistry detail.<br>"
             "• **EX** (Excitation) — the wavelengths that make the dye 'light "
-            "up'. This tells you which laser to use (e.g. the 488 nm Blue "
-            "laser).<br>"
-            "• **EM** (Emission) — the wavelengths the dye shoots back out. This "
-            "tells you which detector captures the signal.<br><br>"
+            "up'. This tells you which laser to use, such as the 488 nm blue laser."
+            "• **EM** (Emission) — the wavelengths the dye emits. This tells you "
+            "which detector captures the signal."
             "Try the **AB / EX / EM** buttons (highlighted) to see each curve "
             "set on its own. Spillover is about **EM**: it's emitted light "
             "landing in the wrong detector."
@@ -126,8 +127,8 @@ SPECTRAL_STEPS: list[BaseStep] = [
         text=(
             "Overlap isn't automatically a problem 🧠<br><br>"
             "Two overlaps in your panel: **CD3** (Pacific Blue) with **B220** "
-            "(FITC), and **CD4** (PE) with **PI** (PerCP-Cy5.5), the live/dead "
-            "dye. Left uncorrected, which one could quietly distort your "
+            "(FITC), and **CD4** (PE) with **PI**, the live/dead dye read in "
+            "the PerCP-Cy5.5 detector. Left uncorrected, which one could quietly distort your "
             "results?"
         ),
         question_id="c1_overlap_that_matters",
