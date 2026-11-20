@@ -64,15 +64,9 @@ class PopulationSelectionPopup(FloatingGridPopup):
         self._checked: set[tuple[str, str]] = set()
         self._known: set[tuple[str, str]] = set()
 
-        # Sample checklist toggles, tab switches, and a gate that finishes
-        # propagating late all trigger another refresh() long after the
-        # popup first opened — before this flag existed, any (sample,
-        # population) pair that simply hadn't been *seen* yet at that point
-        # (e.g. a gate that propagated onto a sample after the user had
-        # already clicked None and hand-picked a couple of populations) got
-        # silently auto-checked on that later refresh, with no click behind
-        # it. Once the user has touched the picker at all, later refreshes
-        # must leave newly-discovered pairs unchecked instead.
+        # Refreshes keep coming (tab switches, gates propagating late). Once the
+        # user has touched the picker, pairs first seen later stay unchecked:
+        # nothing should check itself without a click.
         self._user_has_interacted = False
 
         self._multi_select = True
@@ -151,9 +145,13 @@ class PopulationSelectionPopup(FloatingGridPopup):
         return None
 
     def get_checked_populations(self) -> list[tuple[str, str | None, str]]:
-        """Return (sample_id, node_id, label) triples for every checked cell."""
+        """(sample_id, node_id, label) per checked cell, in grid order: rows, then samples."""
+        rows = {row.label_path: i for i, row in enumerate(self._rows)}
+        samples = {sid: i for i, sid in enumerate(self._sample_ids)}
         result: list[tuple[str, str | None, str]] = []
-        for sid, label in self._checked:
+        last = len(rows) + len(samples)  # any pair not on the grid sorts after it
+        cells = sorted(self._checked, key=lambda c: (rows.get(c[1], last), samples.get(c[0], last)))
+        for sid, label in cells:
             node_idx = self._groups.node_index.get(sid, {})
             if label in node_idx:
                 result.append((sid, node_idx[label], label))

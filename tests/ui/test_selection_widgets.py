@@ -305,3 +305,19 @@ def test_single_select_mode_specific_label_overrides_just_that_sample(
     checked = widget.get_checked_populations()
     labels_by_sid = {sid: label for sid, _nid, label in checked}
     assert labels_by_sid == {"s1": "Debris", "s2": "All Events"}
+
+
+@pytest.mark.ui
+def test_checked_populations_come_in_grid_order(qtbot, two_samples_shared_and_specific):
+    """Rows down the tree, then sample columns: the same order every run, not a set's."""
+    widget = SampleAndPopulationSelector(multi_population=True)
+    qtbot.addWidget(widget)
+    widget.refresh(two_samples_shared_and_specific)
+
+    cells = [(sid, label) for sid, _node_id, label in widget.get_checked_populations()]
+
+    rows = [row.label_path for row in widget.population_selector._rows]
+    expected = [
+        (sid, label) for label in rows for sid in ("s1", "s2") if (sid, label) in set(cells)
+    ]
+    assert cells == expected

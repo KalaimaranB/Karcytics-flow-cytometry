@@ -381,7 +381,7 @@
         "src/karcytics_plugins/flow_cytometry/ui/widgets/sample_list.py": "029a4cfaae7500e0609938f479cbe36a7d89c43ad830805cd32d06da8d97d11c",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/scope_selection_dialog.py": "7575c60fc81eeee696e2a46bd4f47c28ede76b08d25641f4c45b9630f6b80ee6",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/__init__.py": "bc6781a161894f3408b8ec40f2a370e9b6e0209412b0e19cffac98c2ddaefe2c",
-        "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/population_selection_popup.py": "399bc57d4929693f2e96e33b9449dc5572c9b5b66f28f91e4a4d650f75a00f00",
+        "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/population_selection_popup.py": "27aa74aad300eedd93687c14e455728c20d12200d0cc5a9f4a99a4a45d34e64b",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/selector_panel.py": "428247b4dd7e7297fd20d70639d48c8220211f69daa464dfb8a75560385a6af2",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_learning_tab.py": "f33cdff79076d6ff0be12be3aab3665c7ed36d52de24f11d929af63abecaa722",
         "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_parts.py": "ca32dee71e3015f196b28156ac985e4d08bab9e1b6947980a416e2844d5fc0cd",
