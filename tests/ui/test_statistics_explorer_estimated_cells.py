@@ -1,8 +1,7 @@
-"""Tests for the Statistics tab honoring a UMAP-exported node's estimation
-correction (`node.statistics["is_estimated"/"is_scale_valid"/"estimated_count"
-/"estimated_pct_total"]`, populated by dag_evaluator — see its own
-`_propagate_estimation`). Only COUNT/%Total should read the corrected value;
-%Parent/CV/etc. must always come from `compute_statistic`'s raw computation.
+"""The Statistics tab's widgets: Compute, the table's estimate marks, copy, CSV and the chart.
+
+What the cells hold (estimates, dashes, failures) is tested in
+tests/unit/analysis/test_statistics_table.py.
 """
 
 from __future__ import annotations
@@ -13,184 +12,140 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from PySide6.QtWidgets import QApplication
 
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating.subset import SubsetGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.statistics import StatType
+from karcytics_plugins.flow_cytometry.analysis.statistics_table import (
+    PopulationPick,
+    StatisticsRequest,
+    compute_table,
+)
+from karcytics_plugins.flow_cytometry.ui.widgets import statistics_explorer as explorer_module
+from karcytics_plugins.flow_cytometry.ui.widgets.copyable import CopyableCanvas
 from karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer import StatisticsExplorer
 
 
 @pytest.fixture
-def sample_with_estimated_node():
+def state():
     sample = Sample(sample_id="s1", display_name="Sample 1")
     events = pd.DataFrame({"FSC-A": range(10), "FITC-A": [float(i) for i in range(10)]})
     sample.fcs_data = FCSData(
         file_path=Path("sample.fcs"), channels=["FSC-A", "FITC-A"], markers=["", ""], events=events
     )
-
     root = sample.gate_tree
-    bcells = root.add_child(gate=SubsetGate(indices=list(range(5))), name="B-cells")
-
-    umap_bcells = root.add_child(gate=SubsetGate(indices=list(range(3))), name="UMAP B Cells")
-    # Bypass dag_evaluator (covered separately in test_dag_evaluator.py) and set
-    # the estimation fields directly, to isolate what statistics_explorer.py
-    # does with them.
-    umap_bcells.statistics = {
+    root.add_child(gate=SubsetGate(indices=list(range(5))), name="B-cells")
+    exported = root.add_child(gate=SubsetGate(indices=list(range(3))), name="UMAP B Cells")
+    exported.statistics = {
         "count": 3,
-        "pct_parent": 30.0,
-        "pct_total": 30.0,
         "is_estimated": True,
         "scale_factor": 4.0,
         "is_scale_valid": True,
         "estimated_count": 12,
         "estimated_pct_total": 120.0,
     }
-
-    return sample, bcells, umap_bcells
+    state = FlowState()
+    state.data.experiment.samples["s1"] = sample
+    return state
 
 
 @pytest.fixture
-def widget(qtbot, sample_with_estimated_node):
-    sample, _bcells, _umap_bcells = sample_with_estimated_node
-    state = FlowState()
-    state.data.experiment.samples["s1"] = sample
+def widget(qtbot, state):
     w = StatisticsExplorer(state)
     qtbot.addWidget(w)
     return w
 
 
-@pytest.mark.ui
-def test_estimated_populations_count_and_percent_total_use_the_corrected_value(
-    widget, sample_with_estimated_node
-):
-    _sample, bcells, umap_bcells = sample_with_estimated_node
-    rows = widget._compute_results(
-        ["s1"],
-        [("s1", bcells.node_id, "B-cells"), ("s1", umap_bcells.node_id, "UMAP B Cells")],
-        [StatType.COUNT, StatType.PERCENT_TOTAL, StatType.CV],
-        channel="FITC-A",
+def _show(widget, stats=(StatType.COUNT,)):
+    """Compute the table for both populations and show it."""
+    root = widget._state.data.experiment.samples["s1"].gate_tree
+    picks = tuple(PopulationPick("s1", c.node_id, c.name) for c in root.children)
+    table = compute_table(
+        widget._state.data.experiment, StatisticsRequest(("s1",), picks, tuple(stats), None)
     )
-    by_pop = {r["population"]: r for r in rows}
-
-    # Manually-gated population: untouched, no ::scale key anywhere.
-    manual_row = by_pop["B-cells"]
-    assert manual_row["s1::count"] == "5"
-    assert "s1::count::scale" not in manual_row
-    assert "s1::percent_total::scale" not in manual_row
-
-    # UMAP-exported, scale-valid population: COUNT/%Total use the corrected
-    # value and carry the ::scale marker; CV does not.
-    est_row = by_pop["UMAP B Cells"]
-    assert est_row["s1::count"] == "12"
-    assert est_row["s1::count::scale"] == 4.0
-    assert est_row["s1::percent_total"] == "120.00%"
-    assert est_row["s1::percent_total::scale"] == 4.0
-    assert "s1::cv::scale" not in est_row
+    widget.show_table(table)
+    return table
 
 
 @pytest.mark.ui
-def test_not_scale_valid_population_is_left_unscaled(widget, sample_with_estimated_node):
-    _sample, bcells, umap_bcells = sample_with_estimated_node
-    umap_bcells.statistics["is_scale_valid"] = False
-    umap_bcells.statistics.pop("estimated_count", None)
-    umap_bcells.statistics.pop("estimated_pct_total", None)
+def test_compute_runs_in_the_background_and_shows_the_table(widget, qtbot):
+    widget._stat_picker.set_selected([StatType.COUNT])
 
-    rows = widget._compute_results(
-        ["s1"],
-        [("s1", umap_bcells.node_id, "UMAP B Cells")],
-        [StatType.COUNT],
-        channel=None,
-    )
+    widget._compute_btn.click()
 
-    row = rows[0]
-    assert row["s1::count"] == "3"  # raw compute_statistic result, not corrected
-    assert "s1::count::scale" not in row
+    qtbot.waitUntil(lambda: widget._table is not None, timeout=5000)
+    assert widget._table_view.rowCount() >= 2  # noqa: PLR2004 - both gates, maybe All Events
+    assert widget._export_btn.isEnabled()
+    assert widget._compute_btn.isVisibleTo(widget)
 
 
 @pytest.mark.ui
-def test_table_marks_estimated_cells_with_asterisk_and_tooltip(widget, sample_with_estimated_node):
-    _sample, bcells, umap_bcells = sample_with_estimated_node
-    pop_pairs = [("s1", bcells.node_id, "B-cells"), ("s1", umap_bcells.node_id, "UMAP B Cells")]
-    stats = [StatType.COUNT]
-    widget._last_results = widget._compute_results(["s1"], pop_pairs, stats, channel=None)
+def test_estimated_cells_carry_a_star_a_tooltip_and_a_caption(widget):
+    _show(widget)
 
-    widget._populate_table(["s1"], pop_pairs, stats, channel=None)
-
-    # Column 0 = Population, column 1 = separator, column 2 = s1::count.
-    manual_cell = widget._table.item(0, 2)
-    est_cell = widget._table.item(1, 2)
-    assert manual_cell.text() == "5"
-    assert manual_cell.toolTip() == ""
-    assert est_cell.text() == "12*"
-    assert "25%" in est_cell.toolTip()  # 1 / scale_factor(4.0) = 25% subsample
-    # isVisible() requires a shown top-level window (not the case in an
-    # offscreen test); isHidden() reflects the explicit setVisible() call.
+    # Column 0 = Population, column 1 = Sample 1's separator, column 2 = its Count.
+    manual, estimated = widget._table_view.item(0, 2), widget._table_view.item(1, 2)
+    assert (manual.text(), manual.toolTip()) == ("5", "")
+    assert estimated.text() == "12*"
+    assert "25%" in estimated.toolTip()  # 1 / scale factor 4
     assert not widget._estimated_caption.isHidden()
 
 
 @pytest.mark.ui
-def test_csv_export_does_not_crash_on_mixed_scale_keys(
-    widget, sample_with_estimated_node, tmp_path
-):
-    """Regression test: row 0 (B-cells) has no `::scale` keys, row 1 (UMAP
-    B Cells) does — csv.DictWriter derived fieldnames from row 0 alone and
-    raised ValueError the moment it hit row 1's extra key. See _on_export.
-    """
-    _sample, bcells, umap_bcells = sample_with_estimated_node
-    pop_pairs = [("s1", bcells.node_id, "B-cells"), ("s1", umap_bcells.node_id, "UMAP B Cells")]
-    widget._last_results = widget._compute_results(
-        ["s1"], pop_pairs, [StatType.COUNT, StatType.PERCENT_TOTAL], channel=None
-    )
+def test_copy_selected_rows_puts_tab_separated_lines_on_the_clipboard(widget):
+    _show(widget)
+    widget._table_view.selectRow(1)
 
-    out_path = tmp_path / "export.csv"
-    with patch(
-        "karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer.QFileDialog.getSaveFileName",
-        return_value=(str(out_path), "CSV Files (*.csv)"),
-    ):
-        widget._on_export()
+    widget._table_view._copy_selected()
 
-    with out_path.open(newline="", encoding="utf-8") as f:
-        rows = list(csv.DictReader(f))
-
-    assert not any(k.endswith("::scale") for row in rows for k in row)
-    by_pop = {row["population"]: row for row in rows}
-    assert by_pop["B-cells"]["s1::count"] == "5"
-    assert by_pop["UMAP B Cells"]["s1::count"] == "12*"
-    assert by_pop["UMAP B Cells"]["s1::percent_total"] == "120.00%*"
+    lines = QApplication.clipboard().text().split("\n")
+    assert len(lines) == 2  # noqa: PLR2004 - the header and the one row
+    assert lines[0].split("\t") == ["Population", "", "Sample 1 Count"]
+    assert lines[1].split("\t") == ["UMAP B Cells", "", "12*"]
 
 
 @pytest.mark.ui
-def test_csv_export_reports_a_diagnostic_instead_of_crashing_on_unexpected_failure(
-    widget, sample_with_estimated_node, tmp_path
-):
-    """Defense in depth for whatever the *next* unanticipated row shape is:
-    any failure inside _on_export must surface as a non-fatal diagnostic
-    report (and a status-label message) rather than an unhandled exception
-    escaping the button's clicked handler.
-    """
-    _sample, bcells, _umap_bcells = sample_with_estimated_node
-    widget._last_results = widget._compute_results(
-        ["s1"], [("s1", bcells.node_id, "B-cells")], [StatType.COUNT], channel=None
-    )
+def test_csv_export_writes_the_table(widget, tmp_path):
+    _show(widget, (StatType.COUNT, StatType.PERCENT_TOTAL))
+    path = tmp_path / "export.csv"
 
-    out_path = tmp_path / "export.csv"
+    with patch.object(explorer_module, "get_save_path", return_value=str(path)):
+        widget._export_btn.click()
+
+    with path.open(newline="", encoding="utf-8") as f:
+        by_pop = {row["population"]: row for row in csv.DictReader(f)}
+    assert by_pop["UMAP B Cells"]["s1::percent_total"] == "120.00%*"
+    assert widget.completed_exports == {"csv"}
+
+
+@pytest.mark.ui
+def test_a_failed_csv_export_reports_a_diagnostic_instead_of_crashing(widget, tmp_path):
+    _show(widget)
     with (
-        patch(
-            "karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer.QFileDialog.getSaveFileName",
-            return_value=(str(out_path), "CSV Files (*.csv)"),
-        ),
-        patch(
-            "karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer.csv.DictWriter",
-            side_effect=RuntimeError("boom"),
-        ),
+        patch.object(explorer_module, "get_save_path", return_value=str(tmp_path / "x.csv")),
+        patch.object(explorer_module, "write_csv", side_effect=RuntimeError("boom")),
         patch("karcytics_sdk.plugin.runtime_services.diagnostics.report_error") as report_error,
     ):
-        widget._on_export()  # must not raise
+        widget._export_btn.click()  # must not raise
 
-    assert report_error.call_count == 1
     _args, kwargs = report_error.call_args
-    assert isinstance(kwargs.get("exception"), RuntimeError)
-    assert kwargs.get("fatal") is False
+    assert isinstance(kwargs["exception"], RuntimeError)
+    assert kwargs["fatal"] is False
     assert "Export failed" in widget._status_lbl.text()
+    assert widget.completed_exports == set()
+
+
+@pytest.mark.ui
+@pytest.mark.parametrize("chart_type", ["Grouped Bar", "Horizontal Bar", "Heatmap"])
+def test_the_chart_renders_in_the_background(widget, qtbot, chart_type):
+    _show(widget)
+    widget._chart_type_combo.setCurrentText(chart_type)
+
+    widget._view_buttons.button(2).click()  # Chart
+
+    qtbot.waitUntil(lambda: widget._chart_page.findChild(CopyableCanvas) is not None, timeout=5000)
+    assert widget._figure is not None
+    assert widget._figure.axes[0].get_title() == "Count by Population"

@@ -36,6 +36,40 @@ class StatType(Enum):
     MIN = "min"
     MAX = "max"
 
+    @property
+    def label(self) -> str:
+        """The statistic's name for people: "Percent Parent", "MFI"."""
+        if self in (StatType.MFI, StatType.SD, StatType.CV):
+            return self.value.upper()
+        return self.value.replace("_", " ").title()
+
+    @property
+    def needs_channel(self) -> bool:
+        """True for statistics of a channel's values; Count and the % stats need none."""
+        return self not in _EVENT_COUNT_STATS
+
+
+_EVENT_COUNT_STATS = frozenset(
+    {
+        StatType.COUNT,
+        StatType.PERCENT_PARENT,
+        StatType.PERCENT_GRANDPARENT,
+        StatType.PERCENT_TOTAL,
+    }
+)
+_PERCENT_STATS = frozenset(
+    {StatType.PERCENT_PARENT, StatType.PERCENT_GRANDPARENT, StatType.PERCENT_TOTAL, StatType.CV}
+)
+
+
+def format_statistic(stat_type: StatType, value: float) -> str:
+    """A statistic's value as shown: "1,234" counts, "12.50%" percentages, "3.14" otherwise."""
+    if stat_type == StatType.COUNT:
+        return f"{int(value):,}"
+    if stat_type in _PERCENT_STATS:
+        return f"{value:.2f}%"
+    return f"{value:.2f}"
+
 
 @dataclass
 class StatDefinition:
@@ -68,17 +102,7 @@ class StatResult:
 
     def __post_init__(self) -> None:
         if not self.formatted:
-            if self.definition.stat_type == StatType.COUNT:
-                self.formatted = f"{int(self.value):,}"
-            elif self.definition.stat_type in (
-                StatType.PERCENT_PARENT,
-                StatType.PERCENT_GRANDPARENT,
-                StatType.PERCENT_TOTAL,
-                StatType.CV,
-            ):
-                self.formatted = f"{self.value:.2f}%"
-            else:
-                self.formatted = f"{self.value:.2f}"
+            self.formatted = format_statistic(self.definition.stat_type, self.value)
 
 
 def _compute_percent_statistic(  # noqa: PLR0911

@@ -355,8 +355,17 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       so they disagreed as soon as HDBSCAN noise or a drawn population made an id -1 (one
       `cluster_rgb` now); drawing a population left the map coloured by the old clusters.
 - [ ] `spectral_learning_tab.py` (1,382; 1,331).
-- [ ] `statistics_explorer.py` (1,378; 1,350): table presenter, chart on `IPlotRenderer` (see B4),
-      export/clipboard service.
+- [x] `statistics_explorer.py` (1,378 → 518): the results are Qt-free in
+      `analysis/statistics_table.py` (`StatisticsRequest` → `compute_table` → a table of
+      `StatCell`s holding the number as well as the text, so the chart no longer parses "1,234"
+      back; the CSV and chart values come from it; unit-tested). `StatType.label` /
+      `.needs_channel` and `format_statistic` replace the explorer's tables and `StatResult`'s copy
+      of the formatting. The widget is a `StatPicker`, a `StatisticsTableView` (a `BioTableWidget`)
+      and the chart on `IPlotRenderer` (`StatisticsChartRenderer`, off the GUI thread); Compute
+      goes through `submit_task`, and the view toggle is two `BioToggleButton`s. Fixed on the way:
+      Copy Selected Rows copied literal `\t`/`\n`; the two-line headers split the copied header
+      row; the sample tints were `#rrggbb` + `"18"`, which Qt reads as `#AARRGGBB` (solid wrong
+      colours); the selector listed populations in set (hash) order (32f65bc).
 - [ ] `flow_canvas.py` (1,278; 1,250): extract `GateHitTester`; tutorial-guide drawing into an overlay
       (the `gate_drawing_fsm.py` pattern).
 - [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.

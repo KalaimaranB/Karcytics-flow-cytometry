@@ -61,8 +61,7 @@ def test_statistics_checks_follow_the_tab(qtbot, state):
     assert populations.check(state, ui)
     assert not PopulationsCheckedValidator("statistics_explorer", "cd4").check(state, ui)
 
-    for stat, box in explorer._stat_checkboxes.items():
-        box.setChecked(stat is StatType.MEDIAN)
+    explorer._stat_picker.set_selected([StatType.MEDIAN])
     assert StatsCheckedValidator(StatType.MEDIAN, max_checked=1).check(state, ui)
     assert not StatsCheckedValidator(StatType.MEAN).check(state, ui)
 

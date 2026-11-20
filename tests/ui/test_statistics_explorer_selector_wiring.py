@@ -54,9 +54,9 @@ def test_compute_drops_sample_columns_with_no_checked_population(qtbot):
     widget._selector.population_selector.check_all(False)
     widget._selector.population_selector._toggle_cell("s1", "B-cells")
 
-    for stat, cb in widget._stat_checkboxes.items():
-        cb.setChecked(stat == StatType.PERCENT_TOTAL)
+    widget._stat_picker.set_selected([StatType.PERCENT_TOTAL])
 
-    widget._on_compute()
+    request = widget._request()
 
-    assert widget._current_sample_ids == ["s1"]
+    assert not isinstance(request, str)
+    assert request.sample_ids == ("s1",)

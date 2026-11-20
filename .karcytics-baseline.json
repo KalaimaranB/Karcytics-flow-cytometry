@@ -566,7 +566,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/population_selection_popup.py": {
       "KS210": 1,
       "KS240": 1,
-      "KS300": 642,
+      "KS300": 640,
       "KS310": 4,
       "KS342": 3
     },
@@ -590,17 +590,7 @@
       "KS320": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/statistics_explorer.py": {
-      "KS210": 2,
-      "KS220": 2,
-      "KS242": 13,
-      "KS250": 1,
-      "KS300": 1350,
-      "KS302:StatisticsExplorer._compute_results": 85,
-      "KS302:StatisticsExplorer._populate_table": 133,
-      "KS302:StatisticsExplorer._redraw_chart_locked": 151,
-      "KS302:StatisticsExplorer._setup_ui": 301,
-      "KS310": 9,
-      "KS342": 1
+      "KS250": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/umap_animator_widget.py": {
       "KS240": 1,
