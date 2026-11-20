@@ -12,6 +12,7 @@ import pytest
 from karcytics_plugins.flow_cytometry.ui.widgets.cluster_plot_render_task import (
     ClusterPlotRenderTask,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.cluster_scatter_draw import ScatterSpec
 
 
 def _embedding_and_colors(n=200):
@@ -25,16 +26,15 @@ def _embedding_and_colors(n=200):
 def test_run_returns_an_rgba_image_buffer_of_the_configured_size():
     embedding, color_data = _embedding_and_colors()
     task = ClusterPlotRenderTask()
-    task.configure(
+    spec = ScatterSpec(
         embedding=embedding,
         color_data=color_data,
         title="FITC-A",
         cmap="viridis",
         norm=mcolors.Normalize(vmin=0, vmax=1),
-        width_px=200,
-        height_px=160,
-        dpi=100,
+        colorbar_label="Intensity",
     )
+    task.configure(spec, width_px=200, height_px=160, dpi=100)
 
     result = task.run(None)
 
@@ -55,14 +55,15 @@ def test_run_draws_a_discrete_cluster_id_colorbar():
 
     task = ClusterPlotRenderTask()
     task.configure(
-        embedding=embedding,
-        color_data=clusters,
-        title="Auto-Cluster ID",
-        cmap=cmap,
-        norm=norm,
-        is_discrete=True,
-        min_c=0,
-        max_c=2,
+        ScatterSpec(
+            embedding=embedding,
+            color_data=clusters,
+            title="Auto-Cluster ID",
+            cmap=cmap,
+            norm=norm,
+            colorbar_label="Cluster ID",
+            id_range=(0, 2),
+        )
     )
 
     result = task.run(None)

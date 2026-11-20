@@ -11,7 +11,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.umap_analysis import UmapAnalysis
 from karcytics_plugins.flow_cytometry.ui.services.umap_service import UmapService
 from karcytics_plugins.flow_cytometry.ui.widgets import population_analysis_viewer
-from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import ClusterResultsPanel
+from karcytics_plugins.flow_cytometry.ui.widgets.cluster_plot_gallery import ClusterPlotGallery
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
 )
@@ -32,7 +32,7 @@ class SyncUmapService(UmapService):
 
 @pytest.fixture
 def viewer(qtbot, monkeypatch):
-    monkeypatch.setattr(ClusterResultsPanel, "_request_gallery_tile", lambda *_a, **_k: None)
+    monkeypatch.setattr(ClusterPlotGallery, "_request_tile", lambda *_a, **_k: None)
     # The animation's own quick UMAP isn't under test: report it failed, so the run goes on.
     monkeypatch.setattr(
         population_analysis_viewer, "_prepare_animation", lambda *_a: {"success": False}

@@ -147,7 +147,7 @@ def _propagate_estimation(
     """Returns `(is_estimated, scale_factor, is_scale_valid)` for `node`.
 
     Origin case: `node.is_estimated` was set once, at UMAP-export time
-    (see `cluster_results_panel.py::_create_populations`). Otherwise the
+    (see `clustering/result_tables.py::export_populations`). Otherwise the
     flag is inherited from parents — AND (the default `logic_operator`,
     so this covers an ordinary single-parent gate too) only ever
     *restricts* an estimated parent's subsample, so its `scale_factor`

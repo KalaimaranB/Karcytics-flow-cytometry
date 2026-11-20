@@ -340,9 +340,20 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       `analysis/animation/alignment.py`; `experiment_edits.runs_key` replaces four copies of the
       key format. Fixed on the way: a refused run (no name/channels) stayed "running", and
       `ClusterResultsPanel.academy_snapshot()` crashed on a UMAP run without HDBSCAN.
-- [ ] `cluster_results_panel.py` (1,406; 1,379 on 2026-11-19): the ~340-line `_build_unified_statistics_tab` becomes
-      its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the
-      Interactive Map tab onto the SDK canvas.
+- [x] `cluster_results_panel.py` (1,406 → 162): a tab host now. `ClusterPlotGallery` (tiles via
+      the SDK's `submit_task`, not the global-signal bookkeeping), `ClusterMapTab` (the map on the
+      SDK's `LayeredMatplotlibCanvas`: the hover KD-tree and point thinning build off the GUI thread,
+      and drawing no longer blocks on `MPL_RASTER_LOCK` while gallery tiles hold it) and
+      `ClusterStatisticsTab` + `PopulationExportList` (SDK tables, labels and splitter; the
+      expression chart on `IPlotRenderer`). The tables, drawn populations and export are Qt-free
+      in `analysis/clustering/result_tables.py` (unit-tested); the panel's and
+      `attachment_manager`'s copies of the stats builder now call `run_input.cluster_tables`.
+      `IPlotRenderer` and its worker moved to `ui/graph/figure_renderer.py`
+      (`FigureRenderWorker`), and the copy-to-clipboard plots to `ui/widgets/copyable.py`, for
+      the other splits. A `ScatterSpec` replaces the scatter's nine loose arguments. Fixed on the
+      way: the table's cluster swatches used `tab20(id)` while the map used `tab20(id - lowest)`,
+      so they disagreed as soon as HDBSCAN noise or a drawn population made an id -1 (one
+      `cluster_rgb` now); drawing a population left the map coloured by the old clusters.
 - [ ] `spectral_learning_tab.py` (1,382; 1,331).
 - [ ] `statistics_explorer.py` (1,378; 1,350): table presenter, chart on `IPlotRenderer` (see B4),
       export/clipboard service.

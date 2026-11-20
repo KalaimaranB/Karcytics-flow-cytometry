@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import pandas as pd
 from karcytics_sdk.plugin import get_logger
 
 from .clustering import FLOWSOM, PHENOGRAPH, method_of, tree_embedding
 from .clustering.phenograph import graph_embedding
+from .clustering.run_input import cluster_tables
 from .transforms import biexponential_transform
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -262,19 +262,4 @@ class AttachmentManager:
 
     def _reconstruct_cluster_stats(self, res: dict):
         """Reconstruct the cluster statistical properties."""
-        df_cluster = pd.DataFrame(res["intensities"], columns=res["channels"])
-        df_cluster["Cluster_ID"] = res["clusters"]
-
-        counts = df_cluster["Cluster_ID"].value_counts().sort_index()
-        percentages = (counts / len(df_cluster)) * 100
-        stats_df = pd.DataFrame(
-            {
-                "Cluster ID": counts.index,
-                "Cell Count": counts.values,
-                "% of Total": percentages.values,
-            }
-        )
-        res["cluster_stats"] = stats_df.to_dict(orient="split")
-
-        heatmap_df = df_cluster.groupby("Cluster_ID").median()
-        res["marker_heatmap"] = heatmap_df.to_dict(orient="split")
+        res.update(cluster_tables(res["intensities"], res["clusters"], res["channels"]))

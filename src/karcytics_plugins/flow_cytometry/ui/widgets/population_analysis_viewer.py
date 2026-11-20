@@ -523,11 +523,10 @@ class PopulationAnalysisViewer(QWidget):
     def _on_recluster_requested(self, resolution: float) -> None:
         """Re-cluster the PhenoGraph run on screen; the panel shows the result."""
         panel = self._results_panel
-        run = getattr(panel, "_results", None)
-        if run is None or not isinstance(panel, ClusterResultsPanel):
+        if not isinstance(panel, ClusterResultsPanel):
             return
         self._umap_service.recluster_phenograph(
-            run,
+            panel.run,
             resolution,
             on_done=lambda arrays: self._finish_recluster(panel, arrays),
             on_error_cb=lambda err: self._finish_recluster(panel, {"error": err}),

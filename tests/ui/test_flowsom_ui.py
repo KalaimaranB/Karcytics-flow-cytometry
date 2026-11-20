@@ -9,7 +9,7 @@ from karcytics_plugins.flow_cytometry.analysis.flowsom_analysis import FlowsomAn
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.services.umap_service import UmapService
-from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import ClusterResultsPanel
+from karcytics_plugins.flow_cytometry.ui.widgets.cluster_plot_gallery import ClusterPlotGallery
 from karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer import (
     PopulationAnalysisViewer,
 )
@@ -33,7 +33,7 @@ class SyncFlowsomService(UmapService):
 @pytest.fixture
 def viewer(qtbot, monkeypatch):
     # Gallery tiles render on worker threads; not what these tests are about.
-    monkeypatch.setattr(ClusterResultsPanel, "_request_gallery_tile", lambda *_a, **_k: None)
+    monkeypatch.setattr(ClusterPlotGallery, "_request_tile", lambda *_a, **_k: None)
     state = FlowState()
     sample, _events, _truth = make_sample("s1", n=3000)
     state.data.experiment.add_sample(sample)
@@ -113,7 +113,9 @@ def test_changing_k_recuts_the_tree_and_the_statistics(viewer):
         "Interactive Map",
         "Population Statistics",
     ]
-    assert "Metacluster 0" in [e.text() for _c, e in panel._cluster_ui_elements.values()]
+    assert "Metacluster 0" in [
+        name for _ticked, name in panel.academy_snapshot().cluster_rows.values()
+    ]
 
 
 @pytest.mark.ui

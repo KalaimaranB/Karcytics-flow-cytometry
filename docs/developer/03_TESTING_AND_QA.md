@@ -59,10 +59,10 @@ needs a specific palette (`test_compensation_editor_preview.py`).
 
 ## Patterns worth copying
 
-- **Synchronous task scheduler.** `FlowCanvas`, `ClusterResultsPanel` and
+- **Synchronous task scheduler.** `FlowCanvas`, `ClusterPlotGallery` and
   friends take an injectable scheduler. `test_flow_canvas.py::
-  _synchronous_scheduler` and `test_cluster_results_panel_gallery.py::
-  _FakeGlobalScheduler` run the task inline but emit its result via
+  _synchronous_scheduler` and `test_cluster_plot_gallery.py::
+  _FakeScheduler` run the task inline but emit its result via
   `QTimer.singleShot(0, ...)`, so `.connect()` calls made right after
   `submit()` are registered in time. Wait with `qtbot.waitUntil`. Code that
   isn't injected runs on the real `QThreadPool`, so a widget may receive a

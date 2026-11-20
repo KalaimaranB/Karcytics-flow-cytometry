@@ -347,22 +347,6 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/cluster_map_view.py": {
       "KS242": 6
     },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/cluster_plot_render_task.py": {
-      "KS310": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/cluster_results_panel.py": {
-      "KS210": 6,
-      "KS220": 1,
-      "KS242": 19,
-      "KS300": 1294,
-      "KS302:ClusterResultsPanel._build_unified_statistics_tab": 423,
-      "KS302:ClusterResultsPanel._create_populations": 93,
-      "KS302:ClusterResultsPanel._on_polygon_drawn": 84,
-      "KS310": 11
-    },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/cluster_scatter_draw.py": {
-      "KS310": 3
-    },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons/kwargs_builders.py": {
       "KS302:build_pseudocolor_overlay_kwargs": 109,
       "KS310": 1
@@ -545,10 +529,10 @@
       "KS210": 1,
       "KS242": 7,
       "KS250": 1,
-      "KS300": 633,
+      "KS300": 632,
       "KS301:PopulationAnalysisViewer": 34,
       "KS310": 2,
-      "KS342": 3
+      "KS342": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/properties_panel.py": {
       "KS210": 5,
