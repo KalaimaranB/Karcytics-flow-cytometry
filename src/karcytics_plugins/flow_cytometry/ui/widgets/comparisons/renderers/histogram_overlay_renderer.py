@@ -27,7 +27,7 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
     log_decade_tick_values,
 )
 
-from .base import IPlotRenderer
+from ....graph.figure_renderer import IPlotRenderer
 
 _X_TRANSFORM_TYPES = {
     "linear": TransformType.LINEAR,
@@ -51,7 +51,7 @@ class HistogramOverlayRenderer(IPlotRenderer):
 
     Split into prepare() (heavy numpy/scipy curve computation — gaussian_kde
     for every population, potentially dozens of them) and render() (cheap
-    matplotlib drawing of already-computed curves). ComparisonsWorker calls
+    matplotlib drawing of already-computed curves). FigureRenderWorker calls
     prepare() before acquiring MPL_RASTER_LOCK and render() after (see
     worker.py) — holding that process-wide lock around gaussian_kde for many
     populations was previously starving the main gating canvas's paint

@@ -283,7 +283,7 @@ def build_pseudocolor_overlay_kwargs(
     # Pre-compute the (expensive: fast_histogram + gaussian_filter +
     # map_coordinates + rankdata over up to PSEUDOCOLOR_MAX_EVENTS points)
     # density coloring for the base layer here, *before* the renderer runs
-    # under ComparisonsWorker's MPL_RASTER_LOCK. That lock exists to serialize
+    # under FigureRenderWorker's MPL_RASTER_LOCK. That lock exists to serialize
     # matplotlib's C-level Agg/FreeType drawing calls against RenderTask's
     # background rendering of the main canvas — it was never meant to guard
     # pure-numpy data prep, and holding it for the whole duration of this

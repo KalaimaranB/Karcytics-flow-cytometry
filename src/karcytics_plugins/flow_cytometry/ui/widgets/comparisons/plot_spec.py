@@ -28,8 +28,8 @@ if TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
     from ....analysis.comparison_data import ComparisonsDataExtractor
+    from ...graph.figure_renderer import IPlotRenderer
     from .options.base import IOptionsPanel
-    from .renderers.base import IPlotRenderer
 
 
 class PlotType(StrEnum):

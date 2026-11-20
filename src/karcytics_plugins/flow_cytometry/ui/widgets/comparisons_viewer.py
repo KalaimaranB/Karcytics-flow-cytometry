@@ -63,10 +63,10 @@ from karcytics_plugins.flow_cytometry.ui.widgets.selection.selector_panel import
 
 from ...analysis.comparison_data import ComparisonsDataExtractor
 from ..academy_context import ComparisonsSnapshot, PopulationPicks
+from ..graph.figure_renderer import FigureRenderWorker
 from .comparisons.options.base import IOptionsPanel
 from .comparisons.plot_spec import ChannelMode, PlotType, PlotTypeSpec, PopulationMode, SampleMode
 from .comparisons.registry import PLOT_REGISTRY
-from .comparisons.worker import ComparisonsWorker
 
 if TYPE_CHECKING:
     pass
@@ -141,7 +141,7 @@ class ComparisonsViewer(QWidget):
         self._state = state
         self._gate_coordinator = gate_coordinator
         self._extractor = ComparisonsDataExtractor()
-        self._worker: ComparisonsWorker | None = None
+        self._worker: FigureRenderWorker | None = None
         self._current_figure: Figure | None = None
         # Exports that actually succeeded ("plot"); read by the Academy's
         # export checklist (ExportDoneValidator).
@@ -485,7 +485,7 @@ class ComparisonsViewer(QWidget):
 
         renderer = spec.renderer_cls()
         self._pending_plot_type = plot_type
-        self._worker = ComparisonsWorker(renderer, render_kwargs, self)
+        self._worker = FigureRenderWorker(renderer, render_kwargs, self)
         self._worker.finished_ok.connect(self._on_render_done)
         self._worker.finished_err.connect(self._on_render_error)
         self._worker.start()
@@ -565,7 +565,7 @@ class ComparisonsViewer(QWidget):
             try:
                 # savefig() triggers a full Agg rasterization pass — must
                 # hold MPL_RASTER_LOCK or this can race a
-                # ComparisonsWorker/RenderTask drawing a different Figure
+                # FigureRenderWorker/RenderTask drawing a different Figure
                 # on a background thread and corrupt matplotlib's shared
                 # C-level state.
                 with MPL_RASTER_LOCK:

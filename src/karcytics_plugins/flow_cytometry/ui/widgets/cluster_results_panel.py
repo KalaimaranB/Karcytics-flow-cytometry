@@ -16,9 +16,8 @@ from karcytics_sdk.plugin.runtime_services import task_scheduler
 from karcytics_sdk.plugin.theme_fallback import Colors, Fonts
 from matplotlib.figure import Figure
 from PySide6.QtCore import QSize, Qt, Signal
-from PySide6.QtGui import QAction, QColor, QImage, QPixmap
+from PySide6.QtGui import QColor, QImage, QPixmap
 from PySide6.QtWidgets import (
-    QApplication,
     QCheckBox,
     QFrame,
     QGridLayout,
@@ -26,7 +25,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QInputDialog,
     QLabel,
-    QMenu,
     QScrollArea,
     QSizePolicy,
     QSplitter,
@@ -52,94 +50,11 @@ from ...analysis.services import experiment_edits
 from ..academy_context import ClusterResultsSnapshot
 from .cluster_plot_render_task import ClusterPlotRenderTask
 from .cluster_scatter_draw import draw_cluster_scatter
+from .copyable import CopyableCanvas, CopyablePixmapLabel
 from .flowsom_tree import FlowsomTreeView
 from .phenograph_graph import PhenographGraphView
 
 logger = get_logger(__name__, "flow_cytometry")
-
-
-class CopyableCanvas(FigureCanvasQTAgg):
-    """A Matplotlib canvas that supports right-click to copy to clipboard."""
-
-    def __init__(self, figure):
-        super().__init__(figure)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._show_context_menu)
-
-    def _show_context_menu(self, pos):
-        menu = QMenu(self)
-        copy_action = QAction("Copy Image to Clipboard", self)
-        copy_action.triggered.connect(self._copy_to_clipboard)
-        menu.addAction(copy_action)
-        menu.exec(self.mapToGlobal(pos))
-
-    def _copy_to_clipboard(self):
-        pixmap = self.grab()
-        QApplication.clipboard().setPixmap(pixmap)
-
-    def wheelEvent(self, event):
-        # Ignore wheel events so they propagate to the parent QScrollArea
-        # allowing the user to scroll through the gallery while hovered over a plot
-        event.ignore()
-
-
-class CopyablePixmapLabel(QLabel):
-    """A rendered-plot image tile with the same right-click-to-copy behavior as
-    `CopyableCanvas`, for Plot Gallery tiles rendered off-thread by
-    `ClusterPlotRenderTask` (a static image, not a live interactive `Figure`).
-
-    Displayed at one fixed, deterministic logical size
-    (`ClusterResultsPanel._GALLERY_TILE_WIDTH_PX`/`_HEIGHT_PX`) rather than
-    expanding to fill its grid cell like the old live `CopyableCanvas` did.
-    Three different attempts at dynamic expand-and-preserve-aspect-ratio
-    sizing each introduced a *new* visual bug in turn: `setScaledContents`
-    stretched width/height independently and distorted the plot;
-    `Expanding` + resize-driven `KeepAspectRatio` rescaling fixed that but
-    then hit `QGridLayout` distributing row height inconsistently without
-    explicit row stretch factors (rows ended up wildly different heights —
-    e.g. 120px/258px/315px for otherwise-identical tiles). Fixed-size tiles
-    sidestep all of that: no `QGridLayout` stretch heuristics are involved
-    in sizing a tile at all, so it can't drift per-row. The real cost:
-    tiles won't grow to fill extra window width the way the old live canvas
-    did. The source pixmap is rendered at
-    `ClusterResultsPanel._GALLERY_SUPERSAMPLE`x this display size (see
-    `_request_gallery_tile`) and downscaled once here with
-    `Qt.AspectRatioMode.KeepAspectRatio` so it stays sharp rather than
-    visibly softening — the same supersample-then-downscale trick
-    `group_preview.py`'s thumbnails already use.
-    """
-
-    def __init__(self, pixmap: QPixmap, display_size: QSize, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self._original_pixmap = pixmap
-        self.setFixedSize(display_size)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setPixmap(
-            pixmap.scaled(
-                display_size,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation,
-            )
-        )
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._show_context_menu)
-
-    def _show_context_menu(self, pos):
-        menu = QMenu(self)
-        copy_action = QAction("Copy Image to Clipboard", self)
-        copy_action.triggered.connect(self._copy_to_clipboard)
-        menu.addAction(copy_action)
-        menu.exec(self.mapToGlobal(pos))
-
-    def _copy_to_clipboard(self):
-        # Copy the full-resolution source, not whatever downscaled size is
-        # currently displayed, so pasting elsewhere keeps full quality.
-        QApplication.clipboard().setPixmap(self._original_pixmap)
-
-    def wheelEvent(self, event):
-        # Ignore wheel events so they propagate to the parent QScrollArea,
-        # matching CopyableCanvas's rationale.
-        event.ignore()
 
 
 class HoverStatsWidget(QFrame):

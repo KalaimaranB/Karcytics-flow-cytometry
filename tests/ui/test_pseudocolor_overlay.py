@@ -103,7 +103,7 @@ def test_comparisons_viewer_builds_pseudocolor_overlay_kwargs(qtbot):
 
     # base_density must be pre-computed by build_kwargs (main thread, no
     # lock held) rather than left for the renderer to compute later while
-    # ComparisonsWorker holds MPL_RASTER_LOCK — see kwargs_builders.py docstring.
+    # FigureRenderWorker holds MPL_RASTER_LOCK — see kwargs_builders.py docstring.
     assert "base_density" in kwargs
     assert kwargs["base_density"] is not None
     x_plot, y_plot, c_plot = kwargs["base_density"]

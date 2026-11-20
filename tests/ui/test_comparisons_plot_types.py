@@ -159,7 +159,7 @@ def test_generate_button_produces_a_visible_canvas(qtbot, two_sample_state, plot
     """Regression test for two real bugs neither `test_plot_type_renders_
     without_crashing` nor `_cycle_and_render` above could catch, because both
     call `renderer.render()` directly and skip the actual Generate Plot path
-    (`_on_generate` -> `ComparisonsWorker` QThread -> `_on_render_done`):
+    (`_on_generate` -> `FigureRenderWorker` QThread -> `_on_render_done`):
 
     1. `_on_render_done` guarded the canvas-swap logic with
        `if container_layout:` — but a QLayout's truthiness in PySide6 follows
@@ -170,7 +170,7 @@ def test_generate_button_produces_a_visible_canvas(qtbot, two_sample_state, plot
        `self._current_figure` directly — but the canvas widget was never
        parented into the visible tree, so nothing ever appeared on screen,
        for every plot type, every time.
-    2. `ComparisonsWorker.run()` calls `renderer.render()` — which ends in
+    2. `FigureRenderWorker.run()` calls `renderer.render()` — which ends in
        `fig.tight_layout()` for most renderers — on a QThread. tight_layout()
        computes tick space via `Transform.inverted()` -> `numpy.linalg.inv()`,
        a BLAS call; nested BLAS-thread-pool parallelism on this thread's

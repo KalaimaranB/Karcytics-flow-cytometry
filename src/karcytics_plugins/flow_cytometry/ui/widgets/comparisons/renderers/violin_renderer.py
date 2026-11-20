@@ -6,7 +6,7 @@ import numpy as np
 from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 
-from .base import IPlotRenderer
+from ....graph.figure_renderer import IPlotRenderer
 
 # Palette consistent with Karcytics gate colours (hex, no Qt dependency)
 _DEFAULT_PALETTE = [

@@ -17,10 +17,8 @@ import pytest
 from PySide6.QtCore import QObject, QSize, QTimer, Signal
 
 from karcytics_plugins.flow_cytometry.ui.widgets import cluster_results_panel as panel_module
-from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import (
-    ClusterResultsPanel,
-    CopyablePixmapLabel,
-)
+from karcytics_plugins.flow_cytometry.ui.widgets.cluster_results_panel import ClusterResultsPanel
+from karcytics_plugins.flow_cytometry.ui.widgets.copyable import CopyablePixmapLabel
 
 
 class _FakeGlobalScheduler(QObject):

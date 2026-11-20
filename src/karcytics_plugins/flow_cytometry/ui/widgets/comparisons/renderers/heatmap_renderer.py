@@ -7,7 +7,7 @@ import pandas as pd
 from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from matplotlib.figure import Figure
 
-from .base import IPlotRenderer
+from ....graph.figure_renderer import IPlotRenderer
 
 
 class HeatmapRenderer(IPlotRenderer):

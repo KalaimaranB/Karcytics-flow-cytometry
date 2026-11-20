@@ -13,7 +13,7 @@ import textwrap
 import numpy as np
 from matplotlib.figure import Figure
 
-from .base import IPlotRenderer
+from ....graph.figure_renderer import IPlotRenderer
 
 _DEFAULT_PALETTE = [
     "#00bcd4",

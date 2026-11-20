@@ -36,7 +36,7 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
     compute_bio_tick_positions,
 )
 
-from .base import IPlotRenderer
+from ....graph.figure_renderer import IPlotRenderer
 
 # Cap points actually drawn per layer — the underlying event arrays can be
 # gate-sized (hundreds of thousands); rasterized scatter still needs a visual cap.
@@ -77,7 +77,7 @@ class PseudocolorOverlayRenderer(IPlotRenderer):
     Pure drawing only — no heavy numpy/scipy density computation. That work
     (`compute_pseudocolor_points`, which can take seconds over a real gated
     population) is expected to happen in the kwargs builder *before*
-    ComparisonsWorker acquires MPL_RASTER_LOCK to call this method, since that lock
+    FigureRenderWorker acquires MPL_RASTER_LOCK to call this method, since that lock
     exists to serialize matplotlib's C-level drawing calls, not to guard
     plain data prep — see kwargs_builders.build_pseudocolor_overlay_kwargs.
     Pass ``base_density`` as that pre-computed ``(x_plot, y_plot, c_plot)``

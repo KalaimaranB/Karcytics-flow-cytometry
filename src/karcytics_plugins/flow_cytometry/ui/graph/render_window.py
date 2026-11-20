@@ -155,7 +155,7 @@ class RenderWindow(QMainWindow):
             dpi = 300 if path.endswith(".png") else None
             # savefig() triggers a full Agg rasterization pass, exactly like
             # draw()/paintEvent() — must hold MPL_RASTER_LOCK or it can race a
-            # background RenderTask/ComparisonsWorker drawing a different
+            # background RenderTask/FigureRenderWorker drawing a different
             # Figure and corrupt matplotlib's shared C-level state.
             with MPL_RASTER_LOCK:
                 self._canvas._fig.savefig(path, dpi=dpi, bbox_inches="tight")
