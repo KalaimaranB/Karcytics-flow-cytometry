@@ -307,7 +307,11 @@ each file pays its share when B7 splits it.
 
 ## B7. Split the god classes
 
-Comes after B5/B6, which empty out much of each file. Sizes today:
+Comes after B5/B6, which empty out much of each file. Sizes at the audit, then on
+2026-11-19 when B7 resumed after the Auto Gating work and the 1.0.1 release. Order from
+there: cluster_results_panel, statistics_explorer, flow_canvas, the remaining inline charts,
+graph_window/comparisons_viewer (with the canvas-layer cycles), the `analysis/` cycles with
+compensation_sources, then spectral_learning_tab (most Academy-coupled, so last).
 
 - [x] `ui/main_panel.py` (1,623 → 587). Target ≤ 600: gate events and delete → a `GatingController`;
       workflow load/save/close → `WorkspaceIOHandler`; async startup → a startup sequencer;
@@ -336,16 +340,16 @@ Comes after B5/B6, which empty out much of each file. Sizes today:
       `analysis/animation/alignment.py`; `experiment_edits.runs_key` replaces four copies of the
       key format. Fixed on the way: a refused run (no name/channels) stayed "running", and
       `ClusterResultsPanel.academy_snapshot()` crashed on a UMAP run without HDBSCAN.
-- [ ] `cluster_results_panel.py` (1,406): the ~340-line `_build_unified_statistics_tab` becomes
+- [ ] `cluster_results_panel.py` (1,406; 1,379 on 2026-11-19): the ~340-line `_build_unified_statistics_tab` becomes
       its own widget; `CopyableCanvas` / `CopyablePixmapLabel` to a shared module; the
       Interactive Map tab onto the SDK canvas.
-- [ ] `spectral_learning_tab.py` (1,382).
-- [ ] `statistics_explorer.py` (1,378): table presenter, chart on `IPlotRenderer` (see B4),
+- [ ] `spectral_learning_tab.py` (1,382; 1,331).
+- [ ] `statistics_explorer.py` (1,378; 1,350): table presenter, chart on `IPlotRenderer` (see B4),
       export/clipboard service.
-- [ ] `flow_canvas.py` (1,278): extract `GateHitTester`; tutorial-guide drawing into an overlay
+- [ ] `flow_canvas.py` (1,278; 1,250): extract `GateHitTester`; tutorial-guide drawing into an overlay
       (the `gate_drawing_fsm.py` pattern).
 - [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
-- [ ] `graph_window.py` (901), `comparisons_viewer.py` (825).
+- [ ] `graph_window.py` (901; 896), `comparisons_viewer.py` (825; 795).
 - [ ] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:
       `statistics_explorer`, `cluster_results_panel`, `cluster_map_view`,
       `compensation_preview`.

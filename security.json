@@ -9,7 +9,7 @@
         ".ci_keys/runner_delegation.json": "4beec9b1fe2204a2fdbc225dbdcdeb790d509c7a4c12d171892e9f889a648919",
         ".claude/settings.json": "c43a881a3fd23c1bac0245c3d142f9d65eddf7ef2360eeb56be3e4189a95dab1",
         ".coderabbit.yaml": "f52b0ac31b8114e005b1c48e399537c78336cea158e1e5b095a5e1231859d4ba",
-        ".karcytics-baseline.json": "174bb8df6f6a02c0276d2e33a90c8db380a78fae96999cbc7f91075d30b38009",
+        ".karcytics-baseline.json": "b2691c43aa8450fed185020f1d8256d01b294cd7ed77125acfc8efb0c72c8283",
         ".pre-commit-config.yaml": "9375009f35b6cda030e486f545c01f89b537592beaab3ba36f8ed843c0faa0ab",
         "delegation.json": "1bb6e3de954b246eca1fb386b2313852729d88705fe9190d8a9233b4c66baf20",
         "docs/images/00_overview/academy.png": "b888c921b9ca698f4c709a21943c971fbe38f79e19b0fbcdbc9b8bcac4ba7c5a",
