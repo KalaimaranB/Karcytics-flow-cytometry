@@ -18,8 +18,6 @@ state machine that manages drawing, selection, and editing modes.
 
 from __future__ import annotations
 
-import io
-from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -28,39 +26,28 @@ import pandas as pd
 import shiboken6
 from karcytics_sdk.interfaces.i_crash_reporter import ICrashReporter
 from karcytics_sdk.plugin import CentralEventBus, get_logger
-from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.rendering.mpl_canvas import LayeredMatplotlibCanvas
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtCore import Qt as _Qt
-from PySide6.QtGui import QAction, QImage
-from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSizePolicy
+from PySide6.QtWidgets import QSizePolicy
 
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
-from karcytics_plugins.flow_cytometry.analysis.gating import (
-    Gate,
-    GateNode,
-    QuadrantSubGate,
-    RangeGate,
-)
+from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
 
-from .canvas.axis_formatter import AxisFormatter
-
 # Decomposed components
 from .canvas.data_layer import FlowDataComputeStage, FlowDataRasterizeStage, FlowRenderState
-from .canvas.event_handler import CanvasEventHandler, artist_contains_point
+from .canvas.event_handler import CanvasEventHandler
+from .canvas.gate_hit_tester import GateHitTester, overlay_artists
 from .canvas.gate_layer import GateLayerRenderer
-from .flow_services import (
-    CoordinateMapper,
-    GateFactory,
-    GateOverlayRenderer,
-    OverlayArtists,
-)
-from .gate_editor import RECTANGLE_HANDLE_ORDER, GateEditor
+from .canvas.plot_export import install_plot_menu
+from .canvas.tutorial_guide import TutorialGuide
+from .canvas.zoom_handler import ZoomHandler
+from .flow_services import CoordinateMapper, GateFactory, GateOverlayRenderer
+from .gate_editor import GateEditor
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -155,8 +142,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
         self._overlay_manager = OverlayManager(self)
         self._batch_update = False  # set_batch_update: hold redraws until the batch ends
-        self._current_tutorial_step: Any | None = None
-        self._guide_patches: list[Any] = []  # the tutorial step's guide shapes
+        self.guide = TutorialGuide(self)  # the Academy's guide shapes
         self.setObjectName("FlowCanvas")
         self.setStyleSheet(f"background-color: {_PLOT_BG};")
 
@@ -192,8 +178,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._fmo_sample_id: str | None = None
         self._backgate_mask: np.ndarray | None = None
         self._backgate_color: str = "#ff7b72"
-
-        self._guide_poly_patch: Any | None = None
 
         # ── Service instances (SOLID: Separation of concerns) ────────────
         self._coordinate_mapper = CoordinateMapper(self._x_scale, self._y_scale)
@@ -266,29 +250,27 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         CentralEventBus.subscribe(events.GATE_RENAMED, self._cb_gate_renamed)
         self.destroyed.connect(self._cleanup_events)
 
-        # Mouse event connections
-        self._mpl_conn_press = self.mpl_connect("button_press_event", self._on_press)
-        self._mpl_conn_release = self.mpl_connect("button_release_event", self._on_release)
-        self._cid_motion = self.mpl_connect("motion_notify_event", self._on_motion)
-        self._mpl_conn_dblclick = self.mpl_connect("button_press_event", self._on_dblclick)
-        self._cid_scroll = self.mpl_connect("scroll_event", self._on_scroll)
-        self._cid_key = self.mpl_connect("key_press_event", self._on_key_press)
-        self._cid_draw = self.mpl_connect("draw_event", self._on_draw)
-
-        # ── Decomposed components ─────────────────────────────────────
-        from .canvas.zoom_handler import ZoomHandler
-
+        # ── Components ────────────────────────────────────────────────
+        self.hit_tester = GateHitTester(self)
+        self.event_handler = CanvasEventHandler(self)
         self._zoom_handler = ZoomHandler(self)
+        self._gate_renderer = GateLayerRenderer(self)
+        for name, handler in (
+            ("button_press_event", self.event_handler.handle_press),
+            ("button_press_event", self.event_handler.handle_dblclick),
+            ("button_release_event", self.event_handler.handle_release),
+            ("motion_notify_event", self.event_handler.handle_motion),
+            ("scroll_event", self._zoom_handler.handle_scroll),
+            ("key_press_event", self._on_key_press),
+            ("draw_event", self._on_draw),
+        ):
+            self.mpl_connect(name, handler)
 
         self.set_compute_stage(FlowDataComputeStage())
         self.set_rasterize_stage(FlowDataRasterizeStage(self))
         self.data_layer_finished.connect(self._on_data_layer_finished)
         self.data_layer_failed.connect(self._on_data_layer_failed)
-
-        self._gate_renderer = GateLayerRenderer(self)
-        self._event_handler = CanvasEventHandler(self)
-
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        install_plot_menu(self, self._fig)
         # Show empty state
         self._show_empty()
 
@@ -307,141 +289,54 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         super().mouseDoubleClickEvent(event)
         event.accept()
 
-    def set_guide_polygon(self, vertices: list[tuple[float, float]] | None) -> None:
-        """Draws a faint dark purple dotted polygon to guide tutorial users."""
-        if self._guide_poly_patch:
-            try:
-                self._guide_poly_patch.remove()
-            except (ValueError, AttributeError, NotImplementedError):
-                pass
-            self._guide_poly_patch = None
+    # ── Read-only view, for the canvas's components ──────────────────
 
-        if vertices:
-            from matplotlib.patches import Polygon  # karcytics: allow KS360 - heavy library
+    @property
+    def ax(self) -> Any:
+        """The plot's matplotlib Axes (the same object for the canvas's lifetime)."""
+        return self._ax
 
-            self._guide_poly_patch = Polygon(
-                vertices,
-                closed=True,
-                fill=False,
-                edgecolor="#800080",  # Dark purple
-                linestyle="--",
-                linewidth=2,
-                alpha=0.8,
-                zorder=100,  # Ensure it renders on top
-            )
-            self._ax.add_patch(self._guide_poly_patch)
+    @property
+    def x_param(self) -> str:
+        return self._x_param
 
-        self.draw_idle()
+    @property
+    def y_param(self) -> str:
+        return self._y_param
+
+    @property
+    def x_scale(self) -> AxisScale:
+        return self._x_scale
+
+    @property
+    def y_scale(self) -> AxisScale:
+        return self._y_scale
+
+    @property
+    def gate_nodes(self) -> list[GateNode]:
+        """The displayed gates' nodes."""
+        return self._gate_nodes
+
+    @property
+    def selected_node_id(self) -> str | None:
+        return self._selected_gate_id
+
+    @property
+    def gate_overlays(self) -> dict:
+        """Overlay key (gate id) -> its drawn artists, in draw order."""
+        return self._gate_overlay_artists
+
+    @property
+    def gate_editor(self) -> GateEditor:
+        return self._gate_editor
+
+    @property
+    def coordinate_mapper(self) -> CoordinateMapper:
+        return self._coordinate_mapper
 
     def set_tutorial_guide(self, step: Any | None) -> None:
-        """Sets the active tutorial step, applies transforms to data bounds, and draws guides."""
-        self._current_tutorial_step = step
-
-        # Clean up old patches
-        for patch in self._guide_patches:
-            try:
-                patch.remove()
-            except Exception:
-                pass
-        self._guide_patches.clear()
-
-        # Backward compatibility for old `guide_poly` via the existing method
-        old_poly = getattr(step, "guide_poly", None) if step else None
-        self.set_guide_polygon(old_poly)
-
-        if not step:
-            self.draw_idle()
-            return
-
-        # A guide naming its channels is drawn only on plots of those channels
-        # (the Sample Lens shows several plots at once).
-        guide_axes = (getattr(step, "metadata", None) or {}).get("guide_axes")
-        if guide_axes and tuple(guide_axes) != (self._x_param, self._y_param):
-            self.draw_idle()
-            return
-
-        from karcytics_plugins.flow_cytometry.analysis.scaling import get_transform_kwargs
-
-        x_kwargs = get_transform_kwargs(self._x_scale)
-        y_kwargs = get_transform_kwargs(self._y_scale)
-
-        # Common style
-        style: dict[str, Any] = {
-            "fill": False,
-            "edgecolor": "#800080",  # Dark purple
-            "linestyle": "--",
-            "linewidth": 2,
-            "alpha": 0.8,
-            "zorder": 100,
-        }
-
-        self._draw_tutorial_shapes(step, x_kwargs, y_kwargs, style)
-
-        self.draw_idle()
-
-    def _draw_tutorial_shapes(
-        self, step: Any, x_kwargs: dict[str, Any], y_kwargs: dict[str, Any], style: dict[str, Any]
-    ) -> None:
-        """Draw metadata-driven tutorial shapes."""
-        from matplotlib.patches import Polygon, Rectangle  # karcytics: allow KS360 - heavy library
-
-        from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
-
-        # 1. guide_data_poly
-        guide_data_poly = getattr(step, "metadata", {}).get("guide_data_poly")
-        if guide_data_poly:
-            xs = np.array([p[0] for p in guide_data_poly])
-            ys = np.array([p[1] for p in guide_data_poly])
-            txs = apply_transform(xs, self._x_scale.transform_type, **x_kwargs)
-            tys = apply_transform(ys, self._y_scale.transform_type, **y_kwargs)
-            vertices = list(zip(txs, tys, strict=True))
-            patch = Polygon(vertices, closed=True, **style)
-            self._ax.add_patch(patch)
-            self._guide_patches.append(patch)
-
-        # 2. guide_rect
-        guide_rect = getattr(step, "metadata", {}).get("guide_rect")
-        if guide_rect:
-            min_x, max_x, min_y, max_y = guide_rect
-            txs = apply_transform(
-                np.array([min_x, max_x]), self._x_scale.transform_type, **x_kwargs
-            )
-            tys = apply_transform(
-                np.array([min_y, max_y]), self._y_scale.transform_type, **y_kwargs
-            )
-            # Clipped to the plot: an edge past the axis would otherwise not show at all.
-            (x0, x1), (y0, y1) = sorted(self._ax.get_xlim()), sorted(self._ax.get_ylim())
-            txs, tys = np.clip(txs, x0, x1), np.clip(tys, y0, y1)
-            rect_patch = Rectangle((txs[0], tys[0]), txs[1] - txs[0], tys[1] - tys[0], **style)
-            self._ax.add_patch(rect_patch)
-            self._guide_patches.append(rect_patch)
-
-        # 3. guide_range
-        guide_range = getattr(step, "metadata", {}).get("guide_range")
-        if guide_range:
-            min_x, max_x = guide_range
-            txs = apply_transform(
-                np.array([min_x, max_x]), self._x_scale.transform_type, **x_kwargs
-            )
-            # Use axvspan instead of a patch so it spans the entire Y axis
-            span = self._ax.axvspan(txs[0], txs[1], color="#800080", alpha=0.08, zorder=99)
-            line1 = self._ax.axvline(
-                txs[0], color="#800080", linestyle="--", linewidth=2, zorder=100
-            )
-            line2 = self._ax.axvline(
-                txs[1], color="#800080", linestyle="--", linewidth=2, zorder=100
-            )
-            self._guide_patches.extend([span, line1, line2])
-
-        # 4. guide_quadrant
-        guide_quadrant = getattr(step, "metadata", {}).get("guide_quadrant")
-        if guide_quadrant:
-            x_thresh, y_thresh = guide_quadrant
-            tx = apply_transform(np.array([x_thresh]), self._x_scale.transform_type, **x_kwargs)[0]
-            ty = apply_transform(np.array([y_thresh]), self._y_scale.transform_type, **y_kwargs)[0]
-            line_x = self._ax.axvline(tx, color="#800080", linestyle="--", linewidth=2, zorder=100)
-            line_y = self._ax.axhline(ty, color="#800080", linestyle="--", linewidth=2, zorder=100)
-            self._guide_patches.extend([line_x, line_y])
+        """Show an Academy step's guide shapes (the SDK's academy driver calls this)."""
+        self.guide.set_step(step)
 
     def paintEvent(self, event) -> None:
         """Paint under a non-blocking RasterLock acquire, retrying if a background render task holds it.
@@ -602,10 +497,10 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._drawing_mode = mode
 
         if mode == GateDrawingMode.NONE:
-            self.setCursor(_Qt.CursorShape.ArrowCursor)
+            self.setCursor(Qt.CursorShape.ArrowCursor)
             self._hide_instruction()
         else:
-            self.setCursor(_Qt.CursorShape.CrossCursor)
+            self.setCursor(Qt.CursorShape.CrossCursor)
             self._show_instruction(mode)
             # Grab keyboard focus so Escape reaches keyPressEvent right away.
             # Every other tool's first "cancelable" moment is a click/drag,
@@ -772,10 +667,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """The data layer finished computing+rasterizing — redraw gate overlays on top of it."""
         self._hide_loading()
         self._gate_renderer.render()
-        # Re-apply tutorial guides if they exist, because ax.clear() wiped them out
-        step = self._current_tutorial_step
-        if step is not None:
-            self.set_tutorial_guide(step)
+        self.guide.redraw()  # the render's ax.clear() took it off
 
         # ax.clear() also dropped any gate preview being drawn right now.
         self._fsm.restore_preview()
@@ -811,25 +703,15 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """Hide the loading overlay."""
         self._overlay_manager.hide_loading()
 
-    def _render_data_layer(self) -> None:
-        """Trigger an (async) render of the expensive scatter/histogram data.
-
-        Delegated to request_data_redraw() / FlowDataComputeStage+FlowDataRasterizeStage.
-        """
-        self.request_data_redraw(self._snapshot_render_state(), debounce_ms=0)  # type: ignore[arg-type]
-
-    def _render_gate_layer(self) -> None:
-        """Draw gate overlays on top of the cached data layer.
-
-        Delegated to GateLayerRenderer.
-        """
+    def render_gates(self) -> None:
+        """Redraw the gate overlays over the current data layer (cheap: no data render)."""
         self._gate_renderer.render()
 
     # ── Mouse event handlers — gate drawing state machine ─────────────
 
     def keyPressEvent(self, event) -> None:
         """Handle keyboard — Escape cancels drawing."""
-        self._event_handler.handle_key_press(event)
+        self.event_handler.handle_key_press(event)
         super().keyPressEvent(event)
 
     def _on_key_press(self, event) -> None:
@@ -852,181 +734,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # After the cache capture, so the preview is never baked into it.
         self._fsm.paint_preview()
 
-    def _on_scroll(self, event) -> None:
-        """Handle scroll wheel to zoom in and out."""
-        self._zoom_handler.handle_scroll(event)
-
-    def _on_press(self, event) -> None:
-        """Handle mouse press — start drawing or select gate."""
-        self._event_handler.handle_press(event)
-
-    def _on_motion(self, event) -> None:
-        """Handle mouse movement — rubber-band preview during drawing."""
-        self._event_handler.handle_motion(event)
-
-    def _on_release(self, event) -> None:
-        """Handle mouse release — finalize gate drawing."""
-        self._event_handler.handle_release(event)
-
-    def _on_dblclick(self, event) -> None:
-        """Handle double-click — close polygon."""
-        self._event_handler.handle_dblclick(event)
-
-    def _finalize_drag_gate(self, x0: float, y0: float, x1: float, y1: float, mode: str) -> None:
-        self._event_handler.finalize_drag_gate(x0, y0, x1, y1, mode)
-
-    def _finalize_rectangle(self, x0, y0, x1, y1):
-        # Kept for backward compatibility if needed, but FSM calls _finalize_drag_gate
-        self._event_handler.finalize_drag_gate(x0, y0, x1, y1, "rectangle")
-
-    def _finalize_polygon(self, vertices: list[tuple[float, float]]) -> None:
-        self._event_handler.finalize_polygon(vertices)
-
-    def _finalize_ellipse(self, x0: float, y0: float, x1: float, y1: float) -> None:
-        self._event_handler.finalize_drag_gate(x0, y0, x1, y1, "ellipse")
-
-    def _finalize_quadrant(self, x: float, y: float) -> None:
-        self._event_handler.finalize_quadrant(x, y)
-
-    def _finalize_range(self, x0: float, x1: float) -> None:
-        self._event_handler.finalize_drag_gate(x0, 0, x1, 0, "range")
-
-    def _try_select_gate(self, x: float, y: float, alt_cycle: bool = False) -> bool:
-        return self._event_handler.try_select_gate(x, y, alt_cycle=alt_cycle)
-
-    def _find_node_id_for_gate(self, gate_id: str) -> str | None:
-        """Look up which node_id corresponds to this gate_id in active nodes."""
-        for node in self._gate_nodes:
-            if node.gate and node.gate.gate_id == gate_id:
-                return node.node_id
-        return None
-
-    # ── Gate editing (drag handles) ────────────────────────────────────
-    #
-    # Only the *selected* gate ever exposes handles/body-move — this is
-    # what keeps overlapping gates unambiguous: a gate must be explicitly
-    # selected (top-most-wins click, or Alt+click cycling) before it can be
-    # edited, so a drag never accidentally grabs whichever gate happens to
-    # be underneath.
-
-    def _find_selected_gate(self) -> Gate | None:
-        """The Gate object behind `_selected_gate_id` (a GateNode.node_id)."""
-        if not self._selected_gate_id:
-            return None
-        for node in self._gate_nodes:
-            if node.node_id == self._selected_gate_id and node.gate is not None:
-                return node.gate
-        return None
-
-    def _try_hit_edit_handle(self, x: float, y: float) -> tuple[Gate, str] | None:
-        """Hit-test the selected gate's edit handles only.
-
-        Uses a fixed pixel-space radius (via ax.transData) so the click
-        target stays a constant screen size regardless of zoom/axis scale —
-        GateEditor.get_handles() returns positions in transformed-data
-        space, which has no fixed relationship to pixels.
-        """
-        gate = self._find_selected_gate()
-        if gate is None:
-            return None
-
-        handles = self._gate_editor.get_handles(gate)
-        if not handles:
-            return None
-
-        target = gate.parent if isinstance(gate, QuadrantSubGate) else gate
-        x_only = isinstance(target, RangeGate)
-        order = RECTANGLE_HANDLE_ORDER if hasattr(target, "x_min") else list(handles)
-
-        mouse_px = self._ax.transData.transform((x, y))
-        radius_px = 8.0
-        best_key: str | None = None
-        best_dist = radius_px
-        for key in order:
-            if key not in handles:
-                continue
-            hx, hy = handles[key]
-            hx_px, hy_px = self._ax.transData.transform((hx, hy))
-            dist = (
-                abs(hx_px - mouse_px[0])
-                if x_only
-                else float(np.hypot(hx_px - mouse_px[0], hy_px - mouse_px[1]))
-            )
-            if dist <= best_dist:
-                best_dist = dist
-                best_key = key
-
-        return (gate, best_key) if best_key is not None else None
-
-    def _find_overlay_key_for_gate(self, gate: Gate) -> str | None:
-        """Resolve which key in `_gate_overlay_artists` renders `gate`'s geometry.
-
-        Quadrant crosshairs are drawn once per parent geometry — deduplicated
-        in GateLayerRenderer._redraw_gate_overlays — keyed by whichever of the
-        4 QuadrantSubGates happened to be encountered first while walking
-        `_active_gates`, not necessarily the exact subgate instance that is
-        currently selected/being edited. A direct `gate.gate_id` lookup can
-        therefore miss the real entry for a quadrant even though its crosshair
-        is on screen; resolve by parent identity in that case.
-        """
-        if gate.gate_id in self._gate_overlay_artists:
-            return gate.gate_id
-        if isinstance(gate, QuadrantSubGate):
-            for key, info in self._gate_overlay_artists.items():
-                candidate = info.get("gate")
-                if isinstance(candidate, QuadrantSubGate) and candidate.parent is gate.parent:
-                    return key
-        return None
-
-    def _try_hit_selected_gate_body(self, x: float, y: float) -> Gate | None:
-        """Hit-test the selected gate's body (patch) for a whole-gate move drag.
-
-        Range/Quadrant overlays use a Line2D as their `patch`, which has no
-        enclosed area to represent a "body" — those types have no move
-        affordance distinct from their handles (matches the plan: Quadrant's
-        single center handle already *is* the move; Range's body-move is
-        exposed via MOVE_HANDLE from its dedicated shaded span instead, see
-        below).
-        """
-        gate = self._find_selected_gate()
-        if gate is None:
-            return None
-
-        key = self._find_overlay_key_for_gate(gate)
-        info = self._gate_overlay_artists.get(key) if key else None
-        if not info:
-            return None
-        patch = info.get("patch")
-        if patch is None:
-            return None
-
-        px, py = self._ax.transData.transform((x, y))
-
-        target = gate.parent if isinstance(gate, QuadrantSubGate) else gate
-        if isinstance(target, RangeGate):
-            # The visible "body" is the shaded axvspan, tracked separately
-            # from `patch` (which is the left boundary Line2D) — approximate
-            # its hit test directly from the gate's own bounds instead.
-            x_raw = self._coordinate_mapper.inverse_transform_x(np.array([x]))[0]
-            return gate if target.low <= x_raw <= target.high else None
-
-        if not hasattr(patch, "contains_point"):
-            return None
-        return gate if artist_contains_point(patch, px, py) else None
-
-    def _iter_overlay_artists(self, artists: OverlayArtists | None):
-        """Yield every real matplotlib artist inside an OverlayArtists bundle."""
-        if artists is None:
-            return
-        if artists.patch is not None:
-            yield artists.patch
-        if hasattr(artists, "extra_artists") and artists.extra_artists:
-            yield from artists.extra_artists
-        if artists.label_text is not None:
-            yield artists.label_text
-        if artists.handles:
-            yield from artists.handles.values()
-
     def _begin_gate_edit_preview(self, gate: Gate) -> None:
         """Remove `gate`'s current overlay artists and recapture the bitmap
         cache without them baked in.
@@ -1039,10 +746,10 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         (a single full draw, at press time — not per motion frame) keeps the
         per-frame drag path exactly as cheap as rubber-band's.
         """
-        key = self._find_overlay_key_for_gate(gate)
+        key = self.hit_tester.overlay_key_for(gate)
         info = self._gate_overlay_artists.pop(key, None) if key else None
         if info:
-            for artist in self._iter_overlay_artists(info.get("artists")):
+            for artist in overlay_artists(info.get("artists")):
                 try:
                     artist.remove()
                 except (ValueError, AttributeError, NotImplementedError):
@@ -1105,7 +812,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             return
 
         logger.debug(f"FlowCanvas: Handling geometry change for {gate_id}")
-        self.update_gate_overlays()
+        self.refresh_gates()
 
     def _on_controller_selected(self, sample_id: str, node_id: str) -> None:
         """Update selection highlight when changed globally."""
@@ -1140,24 +847,11 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         else:
             self._gate_renderer.render()
 
-    def update_gate_overlays(self) -> None:
-        """Backward-compatible alias for refreshing and re-rendering gates."""
-        self.refresh_gates()
-
     def _cancel_drawing(self) -> None:
         """Cancel the active drawing operation."""
         self._fsm.cancel()
         self._hide_instruction()
         self._clear_previews()
-
-    def _clear_drawing_state(self) -> None:
-        """Backward-compatible alias for clearing the drawing state."""
-        self._cancel_drawing()
-        self._drawing_mode = GateDrawingMode.NONE
-
-    def _setup_axis_ticks(self) -> None:
-        """Backward-compatible alias for axis tick setup."""
-        AxisFormatter(self).apply_formatting()
 
     def _show_instruction(self, mode: GateDrawingMode) -> None:
         self._overlay_manager.show_instruction(mode)
@@ -1175,75 +869,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _show_error(self, msg: str) -> None:
         self._overlay_manager.show_error(msg)
-
-    # ── Context Menu ──────────────────────────────────────────────────
-
-    def _on_context_menu(self, pos) -> None:
-        """Show context menu on right click."""
-        menu = QMenu(self)
-
-        # Copy to clipboard
-        copy_act = QAction("📋  Copy to Clipboard (PNG)", self)
-        copy_act.triggered.connect(self._copy_to_clipboard)
-        menu.addAction(copy_act)
-
-        menu.addSeparator()
-
-        # Download submenu
-        download_menu = menu.addMenu("💾  Download")
-        if download_menu:
-            for fmt, suffix in [("PNG", "png"), ("PDF", "pdf"), ("SVG", "svg")]:
-                action = QAction(fmt, self)
-                action.triggered.connect(lambda checked=False, f=suffix: self._on_download_plot(f))
-                download_menu.addAction(action)
-
-        menu.exec(self.mapToGlobal(pos))
-
-    def _copy_to_clipboard(self) -> None:
-        """Render figure to PNG in memory and copy to system clipboard."""
-        try:
-            buf = io.BytesIO()
-            # savefig() triggers a full Agg rasterization pass — must hold
-            # MPL_RASTER_LOCK the same as paintEvent()/draw() do, or this can race
-            # a background RenderTask drawing this same Figure.
-            with MPL_RASTER_LOCK:
-                self._fig.savefig(buf, format="png", dpi=96, bbox_inches="tight")
-            buf.seek(0)
-            image = QImage()
-            image.loadFromData(buf.read())
-
-            clipboard = QApplication.clipboard()
-            if clipboard:
-                clipboard.setImage(image)
-            logger.info("Plot copied to clipboard")
-        except Exception as e:
-            logger.error(f"Failed to copy plot: {e}")
-
-    def _on_download_plot(self, fmt: str) -> None:
-        """Download plot in specified format (png, pdf, or svg)."""
-        # Generate default filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        default_name = f"flow_plot_{timestamp}.{fmt}"
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            f"Save plot as {fmt.upper()}",
-            default_name,
-            f"{fmt.upper()} (*.{fmt})",
-        )
-
-        if not file_path:
-            return
-
-        try:
-            # DPI settings for different formats
-            dpi = 300 if fmt == "pdf" else 150
-            # See _copy_to_clipboard: savefig() needs MPL_RASTER_LOCK too.
-            with MPL_RASTER_LOCK:
-                self._fig.savefig(file_path, format=fmt, dpi=dpi, bbox_inches="tight")
-            logger.info(f"Plot saved to {file_path}")
-        except Exception as e:
-            logger.error(f"Failed to save plot: {e}")
 
     def _clear_previews(self) -> None:
         """Clear temporary gate previews across all views."""

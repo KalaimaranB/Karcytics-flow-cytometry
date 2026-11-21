@@ -366,8 +366,17 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       Copy Selected Rows copied literal `\t`/`\n`; the two-line headers split the copied header
       row; the sample tints were `#rrggbb` + `"18"`, which Qt reads as `#AARRGGBB` (solid wrong
       colours); the selector listed populations in set (hash) order (32f65bc).
-- [ ] `flow_canvas.py` (1,278; 1,250): extract `GateHitTester`; tutorial-guide drawing into an overlay
-      (the `gate_drawing_fsm.py` pattern).
+- [x] `flow_canvas.py` (1,278 → 875): `canvas/gate_hit_tester.py` (`GateHitTester`: gates under a
+      point, the selected gate's handles and body, the quadrant overlay-key lookup) and
+      `canvas/tutorial_guide.py` (`TutorialGuide`: the Academy guide shapes, re-added after each data
+      render; `overlay_manager`/`data_layer` call `guide.forget()` instead of clearing canvas lists).
+      The canvas gained a read-only view (`ax`, `x_param`, `x_scale`, `gate_nodes`,
+      `selected_node_id`, `gate_overlays`, …) that the components use instead of its privates; mouse
+      events connect straight to `CanvasEventHandler`/`ZoomHandler` (six pass-throughs gone), and the
+      FSM calls `event_handler.finalize_*` / `hit_tester.*`. Dead aliases removed
+      (`_finalize_rectangle/_ellipse/_range`, `_clear_drawing_state`, `_setup_axis_ticks`,
+      `update_gate_overlays`, `_render_data_layer`, `set_guide_polygon`). The right-click
+      Copy/Download menu had never been connected: now wired (`canvas/plot_export.py`, user's call).
 - [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
 - [ ] `graph_window.py` (901; 896), `comparisons_viewer.py` (825; 795).
 - [ ] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:

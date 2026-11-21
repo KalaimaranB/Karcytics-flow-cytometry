@@ -54,6 +54,7 @@ GATE_COLOR_PALETTE = [
 ]
 GATE_SELECTED_COLOR = "#2188FF"  # Blue for the selected gate
 GATE_DRAWING_COLOR = "#333333"  # In-progress/temp gate preview (main + subplot)
+TUTORIAL_GUIDE_COLOR = "#800080"  # Academy guide shapes: unlike any gate or population
 
 OVERLAY_COLORS = {
     "default": "#000000",  # Black

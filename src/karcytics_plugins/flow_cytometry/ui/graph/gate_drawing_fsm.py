@@ -1,9 +1,4 @@
-"""Gate Drawing State Machine (FSM).
-
-Encapsulates the logic for interactive gate creation (mouse press, motion, release).
-This extracts the complex state management from FlowCanvas, making it
-easier to add new interactive gate types.
-"""
+"""Gate Drawing State Machine (FSM): drawing and editing gates by mouse press, motion and release."""
 
 from __future__ import annotations
 
@@ -18,6 +13,7 @@ from PySide6.QtCore import QTimer
 
 from ...analysis import events
 from ...analysis.constants import GATE_DRAWING_COLOR
+from .canvas.gate_hit_tester import overlay_artists
 from .gate_editor import MOVE_HANDLE
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -96,21 +92,21 @@ class GateDrawingFSM:
         logger.info(f"FSM press: mode={mode}, x={x:.2f}, y={y:.2f}, state={self.state}")
         if mode == "none":
             if alt_cycle:
-                self.canvas._try_select_gate(x, y, alt_cycle=True)
+                self.canvas.event_handler.try_select_gate(x, y, alt_cycle=True)
                 return
 
-            edit_hit = self.canvas._try_hit_edit_handle(x, y)
+            edit_hit = self.canvas.hit_tester.edit_handle_at(x, y)
             if edit_hit is not None:
                 gate, handle_key = edit_hit
                 self._start_edit(gate, handle_key, x, y)
                 return
 
-            body_gate = self.canvas._try_hit_selected_gate_body(x, y)
+            body_gate = self.canvas.hit_tester.selected_body_at(x, y)
             if body_gate is not None:
                 self._start_edit(body_gate, MOVE_HANDLE, x, y)
                 return
 
-            self.canvas._try_select_gate(x, y)
+            self.canvas.event_handler.try_select_gate(x, y)
             return
 
         if mode == "polygon":
@@ -121,7 +117,7 @@ class GateDrawingFSM:
 
         if mode == "quadrant":
             self._clear_quadrant_crosshair(blit=False)
-            self.canvas._finalize_quadrant(x, y)
+            self.canvas.event_handler.finalize_quadrant(x, y)
             return
 
         # For drag-based gates
@@ -163,12 +159,12 @@ class GateDrawingFSM:
         if abs(x - x0) < 1e-6 and abs(y - y0) < 1e-6:  # noqa: PLR2004
             return
 
-        self.canvas._finalize_drag_gate(x0, y0, x, y, mode)
+        self.canvas.event_handler.finalize_drag_gate(x0, y0, x, y, mode)
 
     def handle_dblclick(self, x: float, y: float, mode: str):
         """Handle double click (polygon completion)."""
         if mode == "polygon" and len(self._polygon_vertices) >= 3:  # noqa: PLR2004
-            self.canvas._finalize_polygon(list(self._polygon_vertices))
+            self.canvas.event_handler.finalize_polygon(list(self._polygon_vertices))
             self._polygon_vertices.clear()
             self._clear_polygon_progress()
             self.state = DrawingState.IDLE
@@ -176,10 +172,8 @@ class GateDrawingFSM:
     def cancel(self):
         """Cancel current drawing operation."""
         if self.state == DrawingState.EDITING and self._edit_target is not None:
-            # Restore the in-memory gate — motion handling mutated it
-            # directly (no modify_gate() call yet), so a cancel must undo
-            # that or the visual would stay stuck at the abandoned drag
-            # position with nothing to trigger a refresh.
+            # Motion mutated the gate in place (no modify_gate() yet): undo it,
+            # or the plot stays at the abandoned drag with nothing to refresh it.
             self.canvas._gate_editor.restore(self._edit_target, self._edit_anchor or {})
             self.canvas.refresh_gates()
         self._reset_edit_state()
@@ -282,7 +276,7 @@ class GateDrawingFSM:
             canvas._fig.stale_callback = None
             try:
                 if self._edit_preview_info:
-                    for artist in canvas._iter_overlay_artists(self._edit_preview_info["artists"]):
+                    for artist in overlay_artists(self._edit_preview_info["artists"]):
                         try:
                             artist.remove()
                         except Exception:
@@ -300,12 +294,12 @@ class GateDrawingFSM:
                 info = {"patch": new_artists.patch, "gate": gate, "artists": new_artists}
                 self._edit_preview_info = info
                 canvas._gate_overlay_artists[gate.gate_id] = info
-                canvas._gate_artists.extend(canvas._iter_overlay_artists(new_artists))
+                canvas._gate_artists.extend(overlay_artists(new_artists))
 
             if canvas.has_blit_background:
                 canvas._fig.canvas.restore_region(canvas._canvas_bitmap_cache)  # type: ignore
                 if new_artists:
-                    for artist in canvas._iter_overlay_artists(new_artists):
+                    for artist in overlay_artists(new_artists):
                         ax.draw_artist(artist)  # type: ignore
                 canvas._fig.canvas.blit(ax.bbox)  # type: ignore
                 canvas._fig.canvas.flush_events()  # type: ignore

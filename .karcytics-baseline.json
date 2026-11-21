@@ -188,12 +188,12 @@
       "KS240": 11,
       "KS302:FlowDataComputeStage._compute_2d": 122,
       "KS310": 4,
-      "KS342": 14,
+      "KS342": 12,
       "KS360": 4
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/event_handler.py": {
       "KS310": 3,
-      "KS342": 39,
+      "KS342": 33,
       "KS360": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/gate_layer.py": {
@@ -204,7 +204,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/overlay_manager.py": {
       "KS240": 10,
-      "KS342": 20
+      "KS342": 16
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/zoom_handler.py": {
       "KS342": 20
@@ -225,15 +225,14 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/flow_canvas.py": {
-      "KS220": 1,
-      "KS240": 18,
-      "KS300": 1250,
-      "KS301:FlowCanvas": 86,
-      "KS302:FlowCanvas.__init__": 157,
-      "KS310": 5,
+      "KS240": 11,
+      "KS300": 875,
+      "KS301:FlowCanvas": 69,
+      "KS302:FlowCanvas.__init__": 152,
+      "KS310": 4,
       "KS320": 1,
       "KS342": 4,
-      "KS360": 8
+      "KS360": 5
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/flow_services.py": {
       "KS240": 2,
@@ -242,12 +241,12 @@
       "KS360": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/gate_drawing_fsm.py": {
-      "KS300": 702,
+      "KS300": 696,
       "KS302:GateDrawingFSM._draw_polygon_progress": 94,
       "KS302:GateDrawingFSM._draw_rubber_band": 108,
       "KS302:GateDrawingFSM._draw_rubber_band._action": 95,
       "KS310": 30,
-      "KS342": 107
+      "KS342": 97
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/graph_manager.py": {
       "KS310": 3,

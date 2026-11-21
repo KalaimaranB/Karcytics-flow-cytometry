@@ -16,8 +16,8 @@ def test_a_guide_for_other_channels_is_not_drawn(qtbot):
     canvas.set_axes("FSC-A", "SSC-A")
 
     canvas.set_tutorial_guide(_step(guide_axes=("FITC-A", "Pacific Blue-A")))
-    assert canvas._guide_patches == []
+    assert canvas.guide.artists == []
     canvas.set_tutorial_guide(_step(guide_axes=("FSC-A", "SSC-A")))
-    assert len(canvas._guide_patches) == 1
+    assert len(canvas.guide.artists) == 1
     canvas.set_tutorial_guide(_step())  # no channels named: drawn as before
-    assert len(canvas._guide_patches) == 1
+    assert len(canvas.guide.artists) == 1

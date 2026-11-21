@@ -115,7 +115,7 @@ class CanvasEventHandler:
                 was_idle = getattr(canvas._fsm, "state", None) == DrawingState.IDLE
 
                 canvas._cancel_drawing()
-                canvas._render_gate_layer()
+                canvas.render_gates()
 
                 if was_idle:
                     canvas.drawing_cancelled.emit()
@@ -159,20 +159,12 @@ class CanvasEventHandler:
         another without having to move or delete anything first.
         """
         canvas = self.canvas
-        px, py = canvas._ax.transData.transform((x, y))
-
-        # _gate_overlay_artists is populated in draw order (see gate_layer.py's
-        # _redraw_gate_overlays), so later entries render on top.
-        hits = [
-            gate_id
-            for gate_id, info in canvas._gate_overlay_artists.items()
-            if artist_contains_point(info["patch"], px, py)
-        ]
+        hits = canvas.hit_tester.gates_at(x, y)  # in draw order: later ones are on top
 
         hit_id = None
         if alt_cycle:
             if hits:
-                selected_gate = canvas._find_selected_gate()
+                selected_gate = canvas.hit_tester.selected_gate()
                 selected_key = selected_gate.gate_id if selected_gate else None
                 if selected_key in hits:
                     idx = hits.index(selected_key)
@@ -185,7 +177,7 @@ class CanvasEventHandler:
             # (bottom-most) one added.
             hit_id = hits[-1]
 
-        node_id = canvas._find_node_id_for_gate(hit_id) if hit_id else None
+        node_id = canvas.hit_tester.node_id_for(hit_id) if hit_id else None
 
         if canvas._controller and not canvas._local_selection:
             canvas._controller.select_gate(canvas._sample_id, node_id)  # type: ignore
@@ -193,7 +185,7 @@ class CanvasEventHandler:
             old_selected = canvas._selected_gate_id
             canvas._selected_gate_id = node_id
             if node_id != old_selected:
-                canvas._render_gate_layer()
+                canvas.render_gates()
                 canvas.gate_selected.emit(node_id)
 
         return hit_id is not None

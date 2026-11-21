@@ -77,7 +77,7 @@ class GateEditor:
     # click target stays a constant screen size regardless of zoom/axis
     # scale) needs `ax.transData`, which is a matplotlib Axes concept this
     # class deliberately has no dependency on (mirrors GateFactory). That
-    # hit-testing lives in FlowCanvas._try_hit_edit_handle instead, which
+    # hit-testing lives in GateHitTester.edit_handle_at instead, which
     # converts get_handles()'s positions to pixels before comparing.
 
     def apply_drag(

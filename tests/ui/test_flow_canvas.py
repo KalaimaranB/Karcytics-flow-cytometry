@@ -97,7 +97,7 @@ class TestFlowCanvasRenderingPipeline:
 
     @pytest.mark.ui
     def test_gate_artists_clear_in_render_data(self, qtbot):
-        """_render_data_layer should clear gate artists once the async render completes."""
+        """A data render clears the gate artists once it completes."""
         parent = None
         canvas = FlowCanvas(parent=parent)
         canvas._task_scheduler, _workers = _synchronous_scheduler()
@@ -107,7 +107,7 @@ class TestFlowCanvasRenderingPipeline:
         canvas._gate_artists.append(mock_artist)
 
         # Call render - should clear once the async render completes
-        canvas._render_data_layer()
+        canvas.redraw()
 
         qtbot.waitUntil(lambda: len(canvas._gate_artists) == 0, timeout=2000)
 
@@ -225,7 +225,7 @@ class TestFlowCanvasGateDrawingStateMachine:
         """
         canvas = FlowCanvas(parent=None)
         canvas.set_drawing_mode(GateDrawingMode.RECTANGLE)
-        canvas._finalize_drag_gate = Mock()
+        canvas.event_handler.finalize_drag_gate = Mock()
         canvas._fsm.handle_press(0.1, 0.1, "rectangle")
 
         real_lock = canvas.raster_lock
@@ -271,7 +271,7 @@ class TestFlowCanvasEditState:
         canvas = FlowCanvas(parent=None)
         gate, _node = self._select_rectangle_gate(canvas)
 
-        hit = canvas._try_hit_edit_handle(0, 100)  # the "nw" corner in data space
+        hit = canvas.hit_tester.edit_handle_at(0, 100)  # the "nw" corner in data space
         assert hit is not None
         hit_gate, handle_key = hit
         assert hit_gate is gate
@@ -283,7 +283,7 @@ class TestFlowCanvasEditState:
         canvas = FlowCanvas(parent=None)
         self._select_rectangle_gate(canvas)
 
-        assert canvas._try_hit_edit_handle(-40, 140) is None
+        assert canvas.hit_tester.edit_handle_at(-40, 140) is None
 
     @pytest.mark.ui
     def test_try_hit_edit_handle_none_when_nothing_selected(self):
@@ -299,7 +299,7 @@ class TestFlowCanvasEditState:
         canvas.set_axes("FSC-A", "SSC-A")
         canvas.set_gates([gate], [node])
 
-        assert canvas._try_hit_edit_handle(0, 100) is None
+        assert canvas.hit_tester.edit_handle_at(0, 100) is None
 
     @pytest.mark.ui
     def test_try_hit_selected_gate_body(self):
@@ -307,8 +307,8 @@ class TestFlowCanvasEditState:
         canvas = FlowCanvas(parent=None)
         gate, _node = self._select_rectangle_gate(canvas)
 
-        assert canvas._try_hit_selected_gate_body(50, 50) is gate  # center, well inside
-        assert canvas._try_hit_selected_gate_body(-40, 140) is None  # outside
+        assert canvas.hit_tester.selected_body_at(50, 50) is gate  # center, well inside
+        assert canvas.hit_tester.selected_body_at(-40, 140) is None  # outside
 
     @pytest.mark.ui
     def test_drag_handle_end_to_end_commits_once(self):
@@ -414,7 +414,7 @@ class TestFlowCanvasEditState:
         canvas._controller = Mock()
         canvas._controller.modify_gate = Mock(return_value=True)
 
-        hit = canvas._try_hit_edit_handle(70, 50)  # the "e" handle
+        hit = canvas.hit_tester.edit_handle_at(70, 50)  # the "e" handle
         assert hit is not None
         assert hit[1] == "e"
 
@@ -450,7 +450,7 @@ class TestFlowCanvasEditState:
         canvas._controller = Mock()
         canvas._controller.modify_gate = Mock(return_value=True)
 
-        hit = canvas._try_hit_edit_handle(100, 0)  # vertex v1
+        hit = canvas.hit_tester.edit_handle_at(100, 0)  # vertex v1
         assert hit is not None
         assert hit[1] == "v1"
 
@@ -487,8 +487,8 @@ class TestFlowCanvasEditState:
         canvas._controller.modify_gate = Mock(return_value=True)
 
         # Click well inside the triangle, away from any vertex handle.
-        assert canvas._try_hit_edit_handle(50, 30) is None
-        body_gate = canvas._try_hit_selected_gate_body(50, 30)
+        assert canvas.hit_tester.edit_handle_at(50, 30) is None
+        body_gate = canvas.hit_tester.selected_body_at(50, 30)
         assert body_gate is gate
 
         canvas._fsm.handle_press(50, 30, "none")
@@ -508,7 +508,7 @@ class TestFlowCanvasEditState:
         whichever QuadrantSubGate is selected. Deliberately selects a
         *non-representative* subgate (GateLayerRenderer dedups the 4
         subgates to one rendered crosshair, keyed by whichever iterates
-        first) to exercise _find_overlay_key_for_gate's parent-identity
+        first) to exercise GateHitTester.overlay_key_for's parent-identity
         resolution rather than a same-id lookup happening to work by luck.
         """
         from karcytics_plugins.flow_cytometry.analysis.gating import GateNode
@@ -538,7 +538,7 @@ class TestFlowCanvasEditState:
         canvas._controller = Mock()
         canvas._controller.modify_gate = Mock(return_value=True)
 
-        hit = canvas._try_hit_edit_handle(50, 50)
+        hit = canvas.hit_tester.edit_handle_at(50, 50)
         assert hit is not None
         hit_gate, handle_key = hit
         assert hit_gate is subgates[1]  # resolved via the selected Q2 subgate
@@ -634,7 +634,7 @@ class TestFlowCanvasEventHandling:
         canvas._drawing_mode = GateDrawingMode.RECTANGLE
 
         # This should not crash
-        canvas._on_press(event)
+        canvas.event_handler.handle_press(event)
         assert canvas._fsm._drag_start == (100, 200)
 
     @pytest.mark.ui
@@ -660,7 +660,7 @@ class TestFlowCanvasEventHandling:
         event.x, event.y = canvas._ax.transData.transform((150, 250))
         event.inaxes = canvas._ax
 
-        canvas._on_release(event)
+        canvas.event_handler.handle_release(event)
         # Should clear drag start in FSM
         assert canvas._fsm._drag_start is None
 

@@ -360,7 +360,7 @@ def test_clicking_a_sibling_gate_edits_it_on_that_plot_only(lens):
     canvas.draw()
     box = canvas._gate_overlay_artists[nk.gate.gate_id]["patch"].get_window_extent()
     x, y = canvas._ax.transData.inverted().transform(((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2))
-    assert canvas._try_select_gate(x, y)
+    assert canvas.event_handler.try_select_gate(x, y)
 
     assert canvas._selected_gate_id == nk.node_id
     assert plots[2].canvas._selected_gate_id == _cd4_node(state).node_id  # kept its handles

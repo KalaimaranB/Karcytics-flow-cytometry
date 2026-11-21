@@ -382,8 +382,7 @@ class FlowDataRasterizeStage(RasterizeStage):
         canvas._gate_overlay_artists.clear()
         # These artists were just invalidated by the caller's ax.clear() —
         # drop the stale references so nothing later tries to .remove() them.
-        canvas._guide_poly_patch = None
-        canvas._guide_patches.clear()
+        canvas.guide.forget()
         canvas._overlay_manager._instruction_text = None
 
         if render_data.mode == "empty":
