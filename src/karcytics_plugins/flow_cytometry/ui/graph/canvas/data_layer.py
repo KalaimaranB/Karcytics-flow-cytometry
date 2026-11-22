@@ -26,6 +26,8 @@ from karcytics_plugins.flow_cytometry.analysis.scaling import (
 from karcytics_plugins.flow_cytometry.analysis.transforms import apply_transform
 
 from ..renderers.factory import RenderStrategyFactory
+from .axis_formatter import AxisFormatter
+from .modes import DisplayMode
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -34,7 +36,8 @@ if TYPE_CHECKING:
     from karcytics_plugins.flow_cytometry.analysis.state import FlowState
     from karcytics_plugins.flow_cytometry.ui.graph.renderers.base import DisplayStrategy
 
-    from ..flow_canvas import DisplayMode, FlowCanvas
+    from ..flow_canvas import FlowCanvas
+
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -120,8 +123,6 @@ class FlowDataComputeStage(RenderComputeStage):
 
         x_raw = df[flow_state.x_param].values.astype(np.float64)
 
-        from ..flow_canvas import DisplayMode
-
         if flow_state.display_mode in (DisplayMode.HISTOGRAM, DisplayMode.CDF):
             result = self._compute_1d(flow_state, x_raw)
             if result is not None:
@@ -151,8 +152,6 @@ class FlowDataComputeStage(RenderComputeStage):
 
             render_kwargs_1d: dict[str, Any] = {}
             if state.render_config:
-                from ..flow_canvas import DisplayMode
-
                 if state.display_mode == DisplayMode.HISTOGRAM:
                     h = state.render_config.histogram
                     render_kwargs_1d.update(
@@ -257,8 +256,6 @@ class FlowDataComputeStage(RenderComputeStage):
         }
 
         if state.render_config:
-            from ..flow_canvas import DisplayMode
-
             mode = state.display_mode
 
             if mode == DisplayMode.PSEUDOCOLOR:
@@ -407,7 +404,6 @@ class FlowDataRasterizeStage(RasterizeStage):
 
     def _draw_strategy(self, ax: Any, data: FlowRenderData) -> None:
         assert data.strategy is not None
-        from .axis_formatter import AxisFormatter
 
         if data.mode == "1d":
             if data.xlim is not None:

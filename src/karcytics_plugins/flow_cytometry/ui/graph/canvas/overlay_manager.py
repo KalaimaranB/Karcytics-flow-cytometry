@@ -8,7 +8,7 @@ from karcytics_sdk.plugin import get_logger
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel
 
-from ..flow_canvas import GateDrawingMode
+from .modes import GateDrawingMode
 
 if TYPE_CHECKING:
     from ..flow_canvas import FlowCanvas

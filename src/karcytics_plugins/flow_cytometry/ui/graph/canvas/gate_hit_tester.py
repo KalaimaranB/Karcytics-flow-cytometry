@@ -16,9 +16,34 @@ import numpy as np
 from ....analysis.gating import Gate, QuadrantSubGate, RangeGate
 from ..flow_services import OverlayArtists
 from ..gate_editor import RECTANGLE_HANDLE_ORDER
-from .event_handler import artist_contains_point
 
 HANDLE_RADIUS_PX = 8.0  # a constant screen size, whatever the zoom or axis scale
+
+
+class _PixelEvent:
+    """Minimal mouseevent-like object — Artist.contains() only reads .x/.y."""
+
+    __slots__ = ("x", "y")
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = x
+        self.y = y
+
+
+def artist_contains_point(artist, px: float, py: float) -> bool:
+    """Hit-test an arbitrary matplotlib artist at a pixel-space point.
+
+    ``Patch`` subclasses (Rectangle, Ellipse, Polygon) implement
+    ``contains_point((px, py))`` directly. ``Line2D`` — used as the overlay
+    ``patch`` for RangeGate and QuadrantGate, whose visuals are lines rather
+    than filled shapes — has no ``contains_point`` at all, only the generic
+    ``Artist.contains(mouseevent)``, which needs an object exposing pixel
+    ``.x``/``.y`` attributes rather than a raw coordinate pair.
+    """
+    if hasattr(artist, "contains_point"):
+        return bool(artist.contains_point((px, py)))
+    contained, _ = artist.contains(_PixelEvent(px, py))
+    return bool(contained)
 
 
 def overlay_artists(bundle: OverlayArtists | None) -> Iterator[Any]:

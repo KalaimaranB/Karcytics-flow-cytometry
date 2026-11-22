@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis.config import RenderConfig
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-from .flow_canvas import DisplayMode
+from .canvas.modes import DisplayMode
 from .render_panels import (
     ContourSettingsPanel,
     DotPlotSettingsPanel,

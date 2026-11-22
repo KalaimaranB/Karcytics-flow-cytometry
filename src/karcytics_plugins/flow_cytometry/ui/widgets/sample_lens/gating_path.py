@@ -43,7 +43,8 @@ from ....analysis.fcs_io import get_channel_marker_label
 from ....analysis.gating import GateNode
 from ....analysis.sample_lens.edges import gate_axes, gate_extent
 from ....analysis.scaling import AxisScale, fit_scale
-from ...graph.flow_canvas import DisplayMode, FlowCanvas
+from ...graph.canvas.modes import DisplayMode
+from ...graph.flow_canvas import FlowCanvas
 from ..panel_style import card
 
 if TYPE_CHECKING:
@@ -274,8 +275,7 @@ class GatingPathStrip(QWidget):
         row.addWidget(self._title)
         row.addStretch()
         row.addWidget(BioCaptionLabel("Plots per row:"))
-        # A dropdown, not a spin box: "All" is one of the choices, not a
-        # number to type (0), which nobody would guess.
+        # A dropdown, not a spin box: "All" is a choice, not a number (0) to guess.
         self._columns = BioComboBox()
         self._columns.setObjectName("SampleLensColumnsCombo")
         self._columns.addItem("All", 0)  # every plot in one row

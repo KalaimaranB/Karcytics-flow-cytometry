@@ -43,8 +43,8 @@ class TransformDialog(QDialog):
         y_name: str,
         x_scale: AxisScale,
         y_scale: AxisScale,
-        auto_range_x_callback: Callable[[], tuple[float, float]],
-        auto_range_y_callback: Callable[[], tuple[float, float]],
+        auto_range_x_callback: Callable[[float | None], tuple[float, float]],
+        auto_range_y_callback: Callable[[float | None], tuple[float, float]],
         parent=None,
     ) -> None:
         super().__init__(parent)
@@ -64,8 +64,8 @@ class TransformDialog(QDialog):
 
         self._tabs = QTabWidget()
 
-        self._x_panel = AxisTransformPanel(x_name, x_scale, auto_range_x_callback, self)  # type: ignore
-        self._y_panel = AxisTransformPanel(y_name, y_scale, auto_range_y_callback, self)  # type: ignore
+        self._x_panel = AxisTransformPanel(x_name, x_scale, auto_range_x_callback, self)
+        self._y_panel = AxisTransformPanel(y_name, y_scale, auto_range_y_callback, self)
 
         self._x_panel.scale_changed.connect(
             lambda: self.scale_changed.emit("x", self._x_panel.scale)

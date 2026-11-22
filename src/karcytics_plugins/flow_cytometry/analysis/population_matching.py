@@ -80,6 +80,31 @@ def _walk(node: GateNode, prefix: str, visited: set[str]) -> list[tuple[str, Gat
     return out
 
 
+def name_path(node: GateNode) -> list[str]:
+    """``node``'s population names from the top down (first parent each step; no root)."""
+    path: list[str] = []
+    current: GateNode | None = node
+    while current is not None and not current.is_root:
+        path.append(current.name)
+        current = current.parents[0] if current.parents else None
+    return path[::-1]
+
+
+def follow_name_path(tree: GateNode, path: list[str]) -> tuple[GateNode, bool]:
+    """Walk ``path`` down ``tree`` by child name.
+
+    Returns the deepest node reached and whether the whole path matched; a
+    partial match stops at the last population both trees share.
+    """
+    node = tree
+    for name in path:
+        child = next((c for c in node.children if c.name == name), None)
+        if child is None:
+            return node, False
+        node = child
+    return node, True
+
+
 def populations(sample: Sample) -> list[tuple[str, GateNode]]:
     """Every population in ``sample`` as ``(label_path, node)``, in tree order."""
     if sample.gate_tree is None:

@@ -7,11 +7,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
+    from ....analysis.scaling import AxisScale
     from ..flow_canvas import FlowCanvas
 
 
+_MIN_VALUE, _MAX_VALUE = -1e6, 1e7
+
+
 class ZoomHandler:
-    """Manages scroll-based zooming."""
+    """Turns the scroll wheel into a request for zoomed scales (the owner applies them)."""
 
     def __init__(self, canvas: FlowCanvas) -> None:
         self.canvas = canvas
@@ -29,9 +33,9 @@ class ZoomHandler:
         else:
             return
 
-        mapper = self.canvas._coordinate_mapper
-        x_scale = self.canvas._x_scale
-        y_scale = self.canvas._y_scale
+        mapper = self.canvas.coordinate_mapper
+        x_scale = self.canvas.x_scale
+        y_scale = self.canvas.y_scale
 
         # Calculate new ranges in visual space
         x_min_vis = mapper.transform_x(np.array([x_scale.min_val]))[0]
@@ -39,53 +43,31 @@ class ZoomHandler:
         y_min_vis = mapper.transform_y(np.array([y_scale.min_val]))[0]
         y_max_vis = mapper.transform_y(np.array([y_scale.max_val]))[0]
 
-        # Apply zoom in visual space
+        # Zoom in visual space, about the pointer
         new_width = (x_max_vis - x_min_vis) * scale_factor
         new_height = (y_max_vis - y_min_vis) * scale_factor
-
         relx = (
             (x_max_vis - event.xdata) / (x_max_vis - x_min_vis) if x_max_vis != x_min_vis else 0.5
         )
         rely = (
             (y_max_vis - event.ydata) / (y_max_vis - y_min_vis) if y_max_vis != y_min_vis else 0.5
         )
+        new_x = (event.xdata - new_width * (1 - relx), event.xdata + new_width * relx)
+        new_y = (event.ydata - new_height * (1 - rely), event.ydata + new_height * rely)
 
-        new_x_min = event.xdata - new_width * (1 - relx)
-        new_x_max = event.xdata + new_width * relx
-        new_y_min = event.ydata - new_height * (1 - rely)
-        new_y_max = event.ydata + new_height * rely
+        # Back to real values, within sanity limits (no zooming out forever).
+        real_x = mapper.inverse_transform_x(np.array(new_x))
+        real_y = mapper.inverse_transform_y(np.array(new_y))
+        self.canvas.scale_edit_requested.emit(
+            _with_range(x_scale, *real_x), _with_range(y_scale, *real_y)
+        )
 
-        # Transform back to real values
-        new_real_x_min = mapper.inverse_transform_x(np.array([new_x_min]))[0]
-        new_real_x_max = mapper.inverse_transform_x(np.array([new_x_max]))[0]
-        new_real_y_min = mapper.inverse_transform_y(np.array([new_y_min]))[0]
-        new_real_y_max = mapper.inverse_transform_y(np.array([new_y_max]))[0]
 
-        # Apply reasonably clamped values to scale
-        parent = self.canvas.parent()
-        while parent and not hasattr(parent, "_notify_axis_change"):
-            parent = parent.parent()
-
-        if parent:
-            # Enforce some sanity limits (don't zoom out infinitely)
-            parent._x_scale.min_val = max(-1e6, new_real_x_min)
-            parent._x_scale.max_val = min(1e7, new_real_x_max)
-            parent._y_scale.min_val = max(-1e6, new_real_y_min)
-            parent._y_scale.max_val = min(1e7, new_real_y_max)
-
-            # Avoid divide-by-zero on extreme zooms
-            if parent._x_scale.max_val <= parent._x_scale.min_val:
-                parent._x_scale.max_val = parent._x_scale.min_val + 1.0
-            if parent._y_scale.max_val <= parent._y_scale.min_val:
-                parent._y_scale.max_val = parent._y_scale.min_val + 1.0
-
-            self.canvas._canvas_bitmap_cache = None
-            # parent._x_scale/_y_scale are separate AxisScale instances from
-            # canvas._x_scale/_y_scale (GraphWindow clones them — see
-            # _render_initial). Mutating the parent's copy alone leaves the
-            # canvas rendering with its old, unchanged scale, so scroll-zoom
-            # would silently do nothing. set_scales() re-syncs the canvas
-            # (and its coordinate mapper/gate factory) to the new range,
-            # mirroring the pattern used in _auto_range_axes.
-            self.canvas.set_scales(parent._x_scale, parent._y_scale)
-            parent._notify_axis_change()
+def _with_range(scale: AxisScale, low: float, high: float) -> AxisScale:
+    """A copy of ``scale`` showing ``low``..``high``, clamped and never empty."""
+    zoomed = scale.copy()
+    zoomed.min_val = max(_MIN_VALUE, float(low))
+    zoomed.max_val = min(_MAX_VALUE, float(high))
+    if zoomed.max_val <= zoomed.min_val:  # an extreme zoom: avoid dividing by zero
+        zoomed.max_val = zoomed.min_val + 1.0
+    return zoomed

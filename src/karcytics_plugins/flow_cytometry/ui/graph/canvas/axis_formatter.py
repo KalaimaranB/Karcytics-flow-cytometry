@@ -9,6 +9,8 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
     log_decade_tick_values,
 )
 
+from .modes import DisplayMode
+
 COMPACT_TICKS = 4  # linear ticks on a small canvas
 
 
@@ -27,7 +29,6 @@ class AxisFormatter:
         y_scale = self.canvas._y_scale
         mapper = self.canvas._coordinate_mapper
         display_mode = self.canvas._display_mode
-        from ..flow_canvas import DisplayMode
 
         if getattr(self.canvas, "_compact_ticks", False):
             # A small canvas: few linear ticks, thousands as "50k" (log ticks stay).

@@ -15,10 +15,8 @@ from karcytics_plugins.flow_cytometry.analysis.gating import (
     QuadrantGate,
     RectangleGate,
 )
-from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import (
-    FlowCanvas,
-    GateDrawingMode,
-)
+from karcytics_plugins.flow_cytometry.ui.graph.canvas.modes import GateDrawingMode
+from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import FlowCanvas
 
 
 class _FakeWorker:

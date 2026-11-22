@@ -34,8 +34,8 @@ from karcytics_plugins.flow_cytometry.ui.graph.canvas.data_layer import (
     FlowRenderData,
     FlowRenderState,
 )
+from karcytics_plugins.flow_cytometry.ui.graph.canvas.modes import DisplayMode
 from karcytics_plugins.flow_cytometry.ui.graph.figure_renderer import IPlotRenderer
-from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
 from karcytics_plugins.flow_cytometry.ui.graph.flow_services import CoordinateMapper
 from karcytics_plugins.flow_cytometry.ui.widgets.figure_view import FigureView
 

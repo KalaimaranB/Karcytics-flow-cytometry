@@ -147,7 +147,7 @@ def _render_state(df, highlight_gate=None, display_mode=None, backgate_mask=None
     from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
     from karcytics_plugins.flow_cytometry.analysis.transforms import TransformType
     from karcytics_plugins.flow_cytometry.ui.graph.canvas.data_layer import FlowRenderState
-    from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
+    from karcytics_plugins.flow_cytometry.ui.graph.canvas.modes import DisplayMode
 
     return FlowRenderState(
         current_data=df,
@@ -194,7 +194,7 @@ def test_compute_stage_backgates_the_masked_rows():
 
     from karcytics_plugins.flow_cytometry.analysis.gating import RangeGate
     from karcytics_plugins.flow_cytometry.ui.graph.canvas.data_layer import FlowDataComputeStage
-    from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
+    from karcytics_plugins.flow_cytometry.ui.graph.canvas.modes import DisplayMode
 
     df = pd.DataFrame({"FSC-A": [10.0, 20.0, 30.0, 40.0], "SSC-A": [1.0, 2.0, 3.0, 4.0]})
     mask = np.array([True, False, True, False])

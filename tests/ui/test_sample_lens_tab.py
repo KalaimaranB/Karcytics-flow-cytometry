@@ -405,7 +405,7 @@ def test_focus_mode_gives_the_plots_the_tab(lens, qtbot):
 def test_each_plot_switches_view_where_its_gate_allows(lens):
     from karcytics_plugins.flow_cytometry.analysis.gating import RangeGate
     from karcytics_plugins.flow_cytometry.tutorials.validators.lens import LensPlotViewValidator
-    from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
+    from karcytics_plugins.flow_cytometry.ui.graph.canvas.modes import DisplayMode
 
     tab, state, _ = lens
     ui = AcademyContext(sample_lens=tab)

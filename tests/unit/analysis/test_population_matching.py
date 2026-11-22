@@ -10,7 +10,9 @@ from karcytics_plugins.flow_cytometry.analysis.population_matching import (
     ALL_EVENTS_LABEL,
     build_row_order,
     compute_population_groups,
+    follow_name_path,
     label_path_index,
+    name_path,
 )
 
 
@@ -170,3 +172,27 @@ class TestBuildRowOrder:
         assert len(rows) == len(by_path) == 3
         assert by_path["Leukocytes / UMAP"].row.depth == 1
         assert not by_path["Leukocytes / UMAP"].is_shared
+
+
+# ── Name paths: the same population in another sample ─────────────────
+
+
+def test_a_name_path_runs_from_the_top_down():
+    sample = _make_sample("s", [("Lymphocytes", None), ("CD3+", "Lymphocytes")])
+    cd3 = sample.gate_tree.children[0].children[0]
+
+    assert name_path(cd3) == ["Lymphocytes", "CD3+"]
+    assert name_path(sample.gate_tree) == []
+
+
+def test_following_a_path_finds_the_same_population_or_says_where_it_stopped():
+    tree = _make_sample("t", [("Lymphocytes", None), ("CD3+", "Lymphocytes")]).gate_tree
+
+    node, complete = follow_name_path(tree, ["Lymphocytes", "CD3+"])
+    assert (node.name, complete) == ("CD3+", True)
+
+    node, complete = follow_name_path(tree, ["Lymphocytes", "CD19+"])
+    assert (node.name, complete) == ("Lymphocytes", False)  # the deepest shared population
+
+    node, complete = follow_name_path(tree, ["Monocytes"])
+    assert node is tree and not complete

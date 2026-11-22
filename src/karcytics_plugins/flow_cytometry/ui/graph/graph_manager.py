@@ -26,6 +26,10 @@ from PySide6.QtWidgets import (
 from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
+from karcytics_plugins.flow_cytometry.analysis.population_matching import (
+    follow_name_path,
+    name_path,
+)
 from karcytics_plugins.flow_cytometry.analysis.population_service import PopulationService
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
@@ -172,12 +176,6 @@ class GraphManager(QWidget):
             " background: transparent; margin-top: 16px;",
         )
 
-    def _apply_theme_styles(self) -> None:
-        """Pass a theme change on to the open graphs (their plots bake colours in)."""
-        for graph in self._graphs.values():
-            if hasattr(graph, "_apply_theme_styles"):
-                graph._apply_theme_styles()
-
     # ── Public API ────────────────────────────────────────────────────
 
     def open_graph_for_sample(self, sample_id: str, node_id: str | None = None) -> None:
@@ -200,7 +198,7 @@ class GraphManager(QWidget):
                 self._tabs.setCurrentIndex(idx)
                 # Ensure it's up to date
                 self._update_tab_label(idx)
-                graph._update_breadcrumb()
+                graph.refresh_breadcrumb()
             return
 
         # Create new graph window
@@ -355,7 +353,7 @@ class GraphManager(QWidget):
     def cancel_active_drawing(self) -> None:
         """Abandon any half-finished gate draw/drag in every open graph."""
         for graph in self._graphs.values():
-            graph.canvas._cancel_drawing()
+            graph.canvas.cancel_drawing()
 
     def reconcile_with_state(self) -> None:
         """Bring every open graph back in line after undo/redo replaced the model.
@@ -387,31 +385,12 @@ class GraphManager(QWidget):
         if not source_sample or not target_sample or not source_node_id:
             return None
 
-        curr_node = source_sample.gate_tree.find_node_by_id(source_node_id)
-        if not curr_node:
+        node = source_sample.gate_tree.find_node_by_id(source_node_id)
+        if node is None:
             return None
-
-        path = []
-        c = curr_node
-        while c and not c.is_root:
-            path.append(c.name)
-            c = c.parents[0] if c.parents else None  # type: ignore
-        path.reverse()
-
-        t_node = target_sample.gate_tree
-        for p_name in path:
-            matched = False
-            for child in t_node.children:
-                if child.name == p_name:
-                    t_node = child
-                    matched = True
-                    break
-            if not matched:
-                break
-
-        if t_node and not t_node.is_root:
-            return t_node.node_id
-        return None
+        # A partial match opens the deepest population both samples share.
+        match, _complete = follow_name_path(target_sample.gate_tree, name_path(node))
+        return None if match.is_root else match.node_id
 
     def navigate_active_graph(self, action: str) -> None:  # noqa: PLR0911
         """Handle Next/Prev/Parent navigation from a graph toolbar."""
@@ -515,7 +494,7 @@ class GraphManager(QWidget):
     def refresh(self) -> None:
         """Refresh all open graph windows."""
         for graph in self._graphs.values():
-            graph._update_breadcrumb()
+            graph.refresh_breadcrumb()
 
     def cleanup(self) -> None:
         """Explicitly release all graph resources."""

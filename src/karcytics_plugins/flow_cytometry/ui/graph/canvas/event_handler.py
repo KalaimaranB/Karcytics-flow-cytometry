@@ -6,39 +6,15 @@ from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin import get_logger
 from PySide6.QtCore import Qt
-from PySide6.QtCore import Qt as _Qt
 from PySide6.QtWidgets import QApplication
+
+from ..gate_drawing_fsm import DrawingState
+from .modes import GateDrawingMode
 
 if TYPE_CHECKING:
     from ..flow_canvas import FlowCanvas
 
 logger = get_logger(__name__, "flow_cytometry")
-
-
-class _PixelEvent:
-    """Minimal mouseevent-like object — Artist.contains() only reads .x/.y."""
-
-    __slots__ = ("x", "y")
-
-    def __init__(self, x: float, y: float) -> None:
-        self.x = x
-        self.y = y
-
-
-def artist_contains_point(artist, px: float, py: float) -> bool:
-    """Hit-test an arbitrary matplotlib artist at a pixel-space point.
-
-    ``Patch`` subclasses (Rectangle, Ellipse, Polygon) implement
-    ``contains_point((px, py))`` directly. ``Line2D`` — used as the overlay
-    ``patch`` for RangeGate and QuadrantGate, whose visuals are lines rather
-    than filled shapes — has no ``contains_point`` at all, only the generic
-    ``Artist.contains(mouseevent)``, which needs an object exposing pixel
-    ``.x``/``.y`` attributes rather than a raw coordinate pair.
-    """
-    if hasattr(artist, "contains_point"):
-        return bool(artist.contains_point((px, py)))
-    contained, _ = artist.contains(_PixelEvent(px, py))
-    return bool(contained)
 
 
 class CanvasEventHandler:
@@ -90,7 +66,7 @@ class CanvasEventHandler:
             # gesture — wiping FSM state here would discard an in-progress
             # polygon's vertices even though the press that placed them was
             # valid. Explicit cancellation is handled via the Escape key
-            # (see handle_key_press / _cancel_drawing).
+            # (see handle_key_press / cancel_drawing).
             return
 
         canvas._fsm.handle_release(event.xdata, event.ydata, canvas._drawing_mode.value)
@@ -106,15 +82,11 @@ class CanvasEventHandler:
         """Handle keyboard press."""
         canvas = self.canvas
 
-        from ..flow_canvas import GateDrawingMode
-
-        if event.key() == _Qt.Key.Key_Escape:
+        if event.key() == Qt.Key.Key_Escape:
             if canvas._drawing_mode != GateDrawingMode.NONE:
-                from ..gate_drawing_fsm import DrawingState
-
                 was_idle = getattr(canvas._fsm, "state", None) == DrawingState.IDLE
 
-                canvas._cancel_drawing()
+                canvas.cancel_drawing()
                 canvas.render_gates()
 
                 if was_idle:

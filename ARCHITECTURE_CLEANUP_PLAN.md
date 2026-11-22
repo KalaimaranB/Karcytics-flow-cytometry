@@ -378,7 +378,20 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       `update_gate_overlays`, `_render_data_layer`, `set_guide_polygon`). The right-click
       Copy/Download menu had never been connected: now wired (`canvas/plot_export.py`, user's call).
 - [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
-- [ ] `graph_window.py` (901; 896), `comparisons_viewer.py` (825; 795).
+- [x] `graph_window.py` (901 → 559). What a population opens on (drawn-on view, last viewed,
+      a sub-population's axes) and the parent-population scale fit are Qt-free in
+      `analysis/plot_view.py` (`opening_view`, `fitted_scales`; unit-tested), and the name-path
+      walk in `population_matching` (`name_path`, `follow_name_path`) replaces three copies (the
+      breadcrumb, `GraphManager` and `GroupPreview`'s parallel-node lookups).
+      `ui/services/bus_subscriptions.py` (`subscribe_while_alive`) replaces the window's three
+      try/except-RuntimeError handlers. Canvas-layer cycles: the mode enums moved to
+      `canvas/modes.py` and `artist_contains_point` to `gate_hit_tester`, so every canvas module
+      imports at the top. The canvas no longer walks up to its parent window to edit private
+      scales: zoom emits `scale_edit_requested`, F emits `auto_range_requested`, and the window
+      applies them. Never-emitted signals removed. The full-quality `RenderWindow` was
+      unreachable (its signal never emitted, ever): now "Render Full Quality" in the plot's
+      right-click menu (user's call), reworked onto the canvas's public API and `plot_export`.
+- [ ] `comparisons_viewer.py` (825; 795).
 - [x] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:
       `statistics_explorer`, `cluster_results_panel`, `cluster_map_view`,
       `compensation_preview`. They draw through `ui/widgets/figure_view.py` (`FigureView`: one

@@ -28,6 +28,10 @@ from karcytics_plugins.flow_cytometry.analysis.constants import (
     GATE_DRAWING_COLOR,
     PREVIEW_THUMBNAIL_SIZE,
 )
+from karcytics_plugins.flow_cytometry.analysis.population_matching import (
+    follow_name_path,
+    name_path,
+)
 from karcytics_plugins.flow_cytometry.analysis.population_service import population_events
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.graph.flow_services import CoordinateMapper
@@ -717,32 +721,13 @@ class GroupPreviewPanel(QWidget):
         if not source_sample or not target_sample:
             return None
 
-        curr_node = source_sample.gate_tree.find_node_by_id(source_node_id)
-        if not curr_node:
+        node = source_sample.gate_tree.find_node_by_id(source_node_id)
+        if node is None:
             return None
-
-        path = []
-        c = curr_node
-        while c and not c.is_root:
-            path.append(c.name)
-            c = c.parents[0] if c.parents else None  # type: ignore
-        path.reverse()
-
-        t_node = target_sample.gate_tree
-        for p_name in path:
-            matched = False
-            for child in t_node.children:
-                if child.name == p_name:
-                    t_node = child
-                    matched = True
-                    break
-            if not matched:
-                # No equivalent population on this peer (e.g. a gate that was
-                # never propagated). Falling through and returning the ancestor
-                # we got stuck at would silently render the WRONG population's
-                # data in the peer's tile, labeled as if it were this one.
-                return _NO_MATCH
-
-        if t_node and not t_node.is_root:
-            return t_node.node_id
-        return None
+        match, complete = follow_name_path(target_sample.gate_tree, name_path(node))
+        if not complete:
+            # No equivalent population on this peer (e.g. a gate that was never
+            # propagated): the ancestor we stopped at would show the WRONG
+            # population's data in the peer's tile, labelled as this one.
+            return _NO_MATCH
+        return None if match.is_root else match.node_id

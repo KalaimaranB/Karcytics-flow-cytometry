@@ -18,7 +18,7 @@ state machine that manages drawing, selection, and editing modes.
 
 from __future__ import annotations
 
-from enum import Enum
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -43,34 +43,16 @@ from .canvas.data_layer import FlowDataComputeStage, FlowDataRasterizeStage, Flo
 from .canvas.event_handler import CanvasEventHandler
 from .canvas.gate_hit_tester import GateHitTester, overlay_artists
 from .canvas.gate_layer import GateLayerRenderer
+from .canvas.modes import DisplayMode, GateDrawingMode
+from .canvas.overlay_manager import OverlayManager
 from .canvas.plot_export import install_plot_menu
 from .canvas.tutorial_guide import TutorialGuide
 from .canvas.zoom_handler import ZoomHandler
 from .flow_services import CoordinateMapper, GateFactory, GateOverlayRenderer
+from .gate_drawing_fsm import DrawingState, GateDrawingFSM
 from .gate_editor import GateEditor
 
 logger = get_logger(__name__, "flow_cytometry")
-
-
-class DisplayMode(Enum):
-    """Available plot display modes."""
-
-    PSEUDOCOLOR = "Pseudocolor"
-    DOT_PLOT = "Dot Plot"
-    CONTOUR = "Contour"
-    HISTOGRAM = "Histogram"
-    CDF = "CDF"
-
-
-class GateDrawingMode(Enum):
-    """Active gate drawing tool."""
-
-    NONE = "none"  # Default — pointer / selection mode
-    RECTANGLE = "rectangle"
-    POLYGON = "polygon"
-    ELLIPSE = "ellipse"
-    QUADRANT = "quadrant"
-    RANGE = "range"
 
 
 # ── Visual constants ─────────────────────────────────────────────────────────
@@ -103,23 +85,17 @@ DEFAULT_MARGINS = {"left": 0.12, "bottom": 0.12, "right": 0.95, "top": 0.95}
 class FlowCanvas(LayeredMatplotlibCanvas):
     """Interactive matplotlib canvas for flow cytometry plots.
 
-    Signals:
-        point_clicked(x, y):     Emitted on left-click with data coords.
-        region_selected(dict):   Emitted when a rectangular selection is made.
-        gate_created(Gate):      Emitted when a gate drawing is completed.
-        gate_modified(str):      Emitted when a gate is edited (gate_id).
-        gate_selected(str):      Emitted when a gate overlay is clicked (gate_id).
+    The canvas never changes its own axis ranges in response to the user:
+    a wheel zoom asks for new scales (``scale_edit_requested``) and the F key
+    for a fitted range (``auto_range_requested``); the window that owns the
+    scales decides, and calls ``set_scales``.
     """
 
-    point_clicked = Signal(float, float)
-    region_selected = Signal(object)
     gate_created = Signal(object)  # Gate instance
-    gate_modified = Signal(str)  # gate_id
     gate_selected = Signal(object)  # gate_id or None
-    render_requested = Signal()  # Emitted on context menu "Render"
-    quality_mode_changed = Signal(str)  # "optimized" or "transparent"
-    gate_preview_emitted = Signal(object)  # Temporary gate object
     drawing_cancelled = Signal()  # Emitted when user cancels drawing via Esc
+    scale_edit_requested = Signal(object, object)  # x AxisScale, y AxisScale (a wheel zoom)
+    auto_range_requested = Signal()  # the F key: fit the ranges to the data
 
     def __init__(  # noqa: PLR0913, PLR0915
         self,
@@ -138,7 +114,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._fig.set_facecolor(_PLOT_BG)
         super().__init__(self._fig, crash_reporter=crash_reporter, plugin_id="flow_cytometry")
         # First, so a resize or status message during the rest of __init__ has somewhere to go.
-        from .canvas.overlay_manager import OverlayManager
 
         self._overlay_manager = OverlayManager(self)
         self._batch_update = False  # set_batch_update: hold redraws until the batch ends
@@ -200,8 +175,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # ── Gate drawing state machine ────────────────────────────────
         self._drawing_mode = GateDrawingMode.NONE
 
-        from .gate_drawing_fsm import GateDrawingFSM
-
         self._fsm = GateDrawingFSM(self)
 
         # ── Gate overlays ─────────────────────────────────────────────
@@ -218,8 +191,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._use_cache: bool = True  # ENABLED for blitting
 
         # ── Signals ───────────────────────────────────────────────────
-
-        from ...analysis import events
 
         # Bound attributes, not lambdas: CentralEventBus unsubscribes by identity,
         # so _cleanup_events must pass the very same callable.
@@ -270,7 +241,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self.set_rasterize_stage(FlowDataRasterizeStage(self))
         self.data_layer_finished.connect(self._on_data_layer_finished)
         self.data_layer_failed.connect(self._on_data_layer_failed)
-        install_plot_menu(self, self._fig)
+        self._plot_actions: list[tuple[str, Callable[[], None]]] = []
+        install_plot_menu(self, self._fig, self._plot_actions)
         # Show empty state
         self._show_empty()
 
@@ -454,19 +426,31 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """
         self._x_scale = x_scale
         self._y_scale = y_scale
+        self._canvas_bitmap_cache = None  # drawn at the old ranges
         # Update services with new scales
         self._coordinate_mapper.update_scales(x_scale, y_scale)
         self._gate_factory.update_scales(x_scale, y_scale)
         self.redraw()
 
-    def set_display_mode(self, mode: DisplayMode) -> None:
-        """Change the plot display mode.
-
-        Args:
-            mode: One of the :class:`DisplayMode` values.
-        """
+    def set_display_mode(self, mode: DisplayMode, redraw: bool = True) -> None:
+        """Change the plot display mode (``redraw=False``: before the axes are set)."""
         self._display_mode = mode
-        self.redraw()
+        if redraw:
+            self.redraw()
+
+    def set_full_quality(self) -> None:
+        """Draw every event (no subsampling) on a grid twice as fine."""
+        self._max_events = None
+        self._quality_multiplier = 2.0
+
+    def add_plot_action(self, text: str, callback: Callable[[], None]) -> None:
+        """Add an entry to the plot's right-click menu, after Copy and Download."""
+        self._plot_actions.append((text, callback))
+
+    @property
+    def active_gates(self) -> list[Gate]:
+        """The gates drawn over this plot."""
+        return self._active_gates
 
     def set_backgate(self, mask: np.ndarray | None, color: str = "#ff7b72") -> None:
         """Draw the rows of the current data where ``mask`` is True on top, in ``color``.
@@ -493,12 +477,12 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # must not abort a gate that is being drawn.
         if mode == self._drawing_mode:
             return
-        self._cancel_drawing()
+        self.cancel_drawing()
         self._drawing_mode = mode
 
         if mode == GateDrawingMode.NONE:
             self.setCursor(Qt.CursorShape.ArrowCursor)
-            self._hide_instruction()
+            self._overlay_manager.hide_instruction()
         else:
             self.setCursor(Qt.CursorShape.CrossCursor)
             self._show_instruction(mode)
@@ -556,8 +540,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     @property
     def is_interacting(self) -> bool:
         """True while a gate is being drawn or dragged."""
-        from .gate_drawing_fsm import DrawingState
-
         return self._fsm.state is not DrawingState.IDLE
 
     def select_gate(self, gate_id: str | None) -> None:
@@ -565,8 +547,8 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         self._selected_gate_id = gate_id
         self._gate_renderer.render()
 
-    def _on_transform_changed(self) -> None:
-        """Called when a transform is modified (e.g. logicle params).
+    def refresh_transform(self) -> None:
+        """Re-render after a transform changed (e.g. logicle params).
 
         Invalidates the bitmap cache so the plot is fully re-rendered
         in the next frame with new scales applied to the data.
@@ -574,31 +556,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         logger.info("FlowCanvas: Transform changed, invalidating cache.")
         self._canvas_bitmap_cache = None
         self.redraw()
-
-    def _auto_range_axes(self) -> None:
-        """Request parent window to re-calculate auto-range for active axes."""
-        # This is typically called when switching to Full quality
-        # to ensure the plot is centered on the real data boundaries.
-        parent = self.parent()
-        while parent and not hasattr(parent, "_calculate_auto_range"):
-            parent = parent.parent()
-
-        if parent:
-            # We use the parent's logic to compute and apply new scales
-            x_min, x_max = parent._calculate_auto_range("x")
-            y_min, y_max = parent._calculate_auto_range("y")
-
-            # Update local scales (parent will also sync globally)
-            parent._x_scale.min_val = x_min
-            parent._x_scale.max_val = x_max
-            parent._y_scale.min_val = y_min
-            parent._y_scale.max_val = y_max
-
-            self.set_scales(parent._x_scale, parent._y_scale)
-            # Notify the system to refresh thumbnails and sidebar
-            parent._notify_axis_change()
-
-    # ── Batch update ───────────────────────────────────────────────
 
     def begin_update(self) -> None:
         """Start a batch update — suppress intermediate redraws."""
@@ -632,7 +589,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         )
         self._canvas_bitmap_cache = None  # Invalidate cached bitmap
 
-        self._show_loading()
+        self._overlay_manager.show_loading()
 
         # request_data_redraw() debounces internally (LayeredMatplotlibCanvas's
         # own _redraw_timer) — rapid successive redraw() calls (e.g. dragging
@@ -665,7 +622,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def _on_data_layer_finished(self) -> None:
         """The data layer finished computing+rasterizing — redraw gate overlays on top of it."""
-        self._hide_loading()
+        self._overlay_manager.hide_loading()
         self._gate_renderer.render()
         self.guide.redraw()  # the render's ax.clear() took it off
 
@@ -683,7 +640,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         way to reach LayeredMatplotlibCanvas's data_layer_failed signal at all).
         """
         logger.error("Canvas render failed: %s", message)
-        self._hide_loading()
+        self._overlay_manager.hide_loading()
         self._show_error(f"Render error: {message}")
 
     def set_loading_text(self, text: str) -> None:
@@ -693,15 +650,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
 
     def set_loading(self, on: bool) -> None:
         """Show or hide the loading pill, e.g. while a resize waits its turn."""
-        (self._show_loading if on else self._hide_loading)()
-
-    def _show_loading(self) -> None:
-        """Show the loading overlay, keeping it on top."""
-        self._overlay_manager.show_loading()
-
-    def _hide_loading(self) -> None:
-        """Hide the loading overlay."""
-        self._overlay_manager.hide_loading()
+        (self._overlay_manager.show_loading if on else self._overlay_manager.hide_loading)()
 
     def render_gates(self) -> None:
         """Redraw the gate overlays over the current data layer (cheap: no data render)."""
@@ -717,7 +666,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def _on_key_press(self, event) -> None:
         """Handle keyboard shortcuts for the canvas."""
         if getattr(event, "key", None) in ("f", "F"):
-            self._auto_range_axes()
+            self.auto_range_requested.emit()
 
     @property
     def has_blit_background(self) -> bool:
@@ -789,8 +738,6 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         been deleted".
         """
         try:
-            from ...analysis import events
-
             CentralEventBus.unsubscribe(events.GATE_MODIFIED, self._cb_gate_modified)
             CentralEventBus.unsubscribe(events.GATE_CREATED, self._cb_gate_created)
             CentralEventBus.unsubscribe(events.GATES_CREATED, self._cb_gates_created)
@@ -847,20 +794,14 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         else:
             self._gate_renderer.render()
 
-    def _cancel_drawing(self) -> None:
+    def cancel_drawing(self) -> None:
         """Cancel the active drawing operation."""
         self._fsm.cancel()
-        self._hide_instruction()
+        self._overlay_manager.hide_instruction()
         self._clear_previews()
 
     def _show_instruction(self, mode: GateDrawingMode) -> None:
         self._overlay_manager.show_instruction(mode)
-
-    def _update_instruction(self, text: str) -> None:
-        self._overlay_manager.update_instruction(text)
-
-    def _hide_instruction(self) -> None:
-        self._overlay_manager.hide_instruction()
 
     # ── Internal helpers ──────────────────────────────────────────────
 

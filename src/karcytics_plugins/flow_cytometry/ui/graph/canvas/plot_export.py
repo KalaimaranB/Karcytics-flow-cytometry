@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from functools import partial
 from typing import Any
@@ -21,8 +22,14 @@ FORMATS = {"png": 150, "pdf": 300, "svg": 150}  # file format -> dpi
 _CLIPBOARD_DPI = 96
 
 
-def install_plot_menu(canvas: QWidget, figure: Any) -> None:
-    """Right-click on ``canvas`` offers Copy to Clipboard and Download (``figure``)."""
+def install_plot_menu(
+    canvas: QWidget, figure: Any, extra: Sequence[tuple[str, Callable[[], None]]] = ()
+) -> None:
+    """Right-click on ``canvas`` offers Copy to Clipboard and Download (``figure``).
+
+    ``extra`` (text, callback) entries follow; it is read each time the menu
+    opens, so its owner can add to it later.
+    """
 
     def show_menu(pos: QPoint) -> None:
         menu = BioMenu(canvas)
@@ -31,6 +38,10 @@ def install_plot_menu(canvas: QWidget, figure: Any) -> None:
         download = menu.addMenu("💾  Download")
         for fmt in FORMATS:
             download.addAction(fmt.upper(), partial(save_plot, canvas, figure, fmt))
+        if extra:
+            menu.addSeparator()
+            for text, callback in extra:
+                menu.addAction(text, callback)
         menu.exec(canvas.mapToGlobal(pos))
 
     canvas.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -51,15 +62,18 @@ def copy_plot(figure: Any) -> None:
     QApplication.clipboard().setImage(image)
 
 
-def save_plot(parent: QWidget, figure: Any, fmt: str) -> str | None:
-    """Ask where, then save the plot as ``fmt``; the path saved to, or None."""
+def save_plot(parent: QWidget, figure: Any, fmt: str, dpi: int | None = None) -> str | None:
+    """Ask where, then save the plot as ``fmt``; the path saved to, or None.
+
+    ``dpi`` overrides the format's usual resolution (``FORMATS``).
+    """
     default = f"flow_plot_{datetime.now():%Y%m%d_%H%M%S}.{fmt}"
     path = get_save_path(parent, f"Save plot as {fmt.upper()}", default, f"{fmt.upper()} (*.{fmt})")
     if not path:
         return None
     try:
         with MPL_RASTER_LOCK:
-            figure.savefig(path, format=fmt, dpi=FORMATS[fmt], bbox_inches="tight")
+            figure.savefig(path, format=fmt, dpi=dpi or FORMATS[fmt], bbox_inches="tight")
     except Exception:  # noqa: BLE001 - a failed save is logged, never a crash
         logger.exception("Saving the plot to %s failed", path)
         return None

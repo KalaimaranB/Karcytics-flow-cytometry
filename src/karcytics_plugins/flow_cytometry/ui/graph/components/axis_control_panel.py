@@ -7,7 +7,7 @@ from karcytics_sdk.plugin.theme_fallback import Fonts, theme_manager
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QStackedWidget, QWidget
 
-from ..flow_canvas import DisplayMode
+from ..canvas.modes import DisplayMode
 
 # Item data of the trailing "＋ New derived parameter…" entry in X/Y combos.
 NEW_DERIVED_SENTINEL = "__new_derived__"

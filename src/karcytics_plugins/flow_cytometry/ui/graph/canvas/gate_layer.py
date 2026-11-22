@@ -8,6 +8,9 @@ from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from PySide6.QtCore import QTimer
 
+from ....analysis.gating import RangeGate
+from .modes import DisplayMode, GateDrawingMode
+
 if TYPE_CHECKING:
     from ..flow_canvas import FlowCanvas
 
@@ -42,7 +45,6 @@ class GateLayerRenderer:
             self._redraw_gate_overlays()
 
             # Re-show instruction text if a tool is active
-            from ..flow_canvas import GateDrawingMode
 
             if canvas._drawing_mode != GateDrawingMode.NONE:
                 canvas._show_instruction(canvas._drawing_mode)
@@ -59,16 +61,14 @@ class GateLayerRenderer:
         canvas._gate_overlay_artists.clear()
 
         recorded_geometries = set()
-        from ..flow_canvas import DisplayMode
 
         # Determine if we are in a 1D display mode
         _1d_modes = (DisplayMode.HISTOGRAM, DisplayMode.CDF)
         is_1d_mode = canvas._display_mode in _1d_modes
 
         # Only RangeGate makes sense on a 1D plot. Import lazily to avoid circular deps.
-        from ....analysis.gating import RangeGate
 
-        for gate in canvas._active_gates:
+        for gate in canvas.active_gates:
             # On 1D plots, skip any gate that isn't a RangeGate
             if is_1d_mode and not isinstance(gate, RangeGate):
                 continue
