@@ -373,13 +373,9 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons_viewer.py": {
       "KS210": 2,
-      "KS220": 1,
-      "KS242": 7,
       "KS250": 1,
-      "KS300": 795,
-      "KS302:ComparisonsViewer._setup_ui": 191,
-      "KS310": 4,
-      "KS342": 2
+      "KS302:ComparisonsViewer._setup_ui": 160,
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_editor.py": {
       "KS210": 2,

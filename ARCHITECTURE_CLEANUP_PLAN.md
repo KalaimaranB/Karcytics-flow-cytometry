@@ -391,7 +391,15 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       applies them. Never-emitted signals removed. The full-quality `RenderWindow` was
       unreachable (its signal never emitted, ever): now "Render Full Quality" in the plot's
       right-click menu (user's call), reworked onto the canvas's public API and `plot_export`.
-- [ ] `comparisons_viewer.py` (825; 795).
+- [x] `comparisons_viewer.py` (825 → 457). The channel checklist is `comparisons/channel_picker.py`
+      (`ChannelPicker`: single/multi mode, derived parameters only for one channel, a clean slate
+      on a mode change; one `itemChanged` handler instead of connect/disconnect per refresh), the
+      options stack is `comparisons/options_stack.py`, and the plot draws through `FigureView`
+      (new `natural_size`: shown at its own size in the scroll area, drawn once on arrival), so
+      the viewer's own worker, canvas swap and teardown wait are gone. Export uses the SDK's
+      save dialog. Theming: `apply_style` templates instead of a findChild/hasattr cascade that
+      called every child's private `_apply_theme_styles`; the options panels' unused colour-dict
+      argument is gone.
 - [x] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:
       `statistics_explorer`, `cluster_results_panel`, `cluster_map_view`,
       `compensation_preview`. They draw through `ui/widgets/figure_view.py` (`FigureView`: one

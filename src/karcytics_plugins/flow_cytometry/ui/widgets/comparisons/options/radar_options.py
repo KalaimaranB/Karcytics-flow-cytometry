@@ -85,7 +85,7 @@ class RadarOptionsPanel(IOptionsPanel):
         )
         layout.addWidget(self._fill_slider)
 
-        self.apply_theme({})
+        self.apply_theme()
 
     def get_config(self) -> dict:
         return {
@@ -94,7 +94,7 @@ class RadarOptionsPanel(IOptionsPanel):
             "fill_alpha": self._fill_slider.value() / 100.0,
         }
 
-    def apply_theme(self, colors: dict) -> None:
+    def apply_theme(self) -> None:
         fg = Colors.FG_PRIMARY
         sec = Colors.FG_SECONDARY
         self._norm_cb.setStyleSheet(checkbox_qss())

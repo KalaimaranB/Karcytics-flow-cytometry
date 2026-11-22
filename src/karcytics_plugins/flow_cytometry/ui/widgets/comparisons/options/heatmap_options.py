@@ -102,7 +102,7 @@ class HeatmapOptionsPanel(IOptionsPanel):
         annot_row.addStretch()
         layout.addLayout(annot_row)
 
-        self.apply_theme({})
+        self.apply_theme()
 
     def get_config(self) -> dict:
         return {
@@ -112,7 +112,7 @@ class HeatmapOptionsPanel(IOptionsPanel):
             "annotate": self._annot_cb.isChecked(),
         }
 
-    def apply_theme(self, colors: dict) -> None:
+    def apply_theme(self) -> None:
         sec = Colors.FG_SECONDARY
         for cb in (self._norm_cb, self._annot_cb):
             cb.setStyleSheet(checkbox_qss())

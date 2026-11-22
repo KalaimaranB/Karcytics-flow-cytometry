@@ -94,7 +94,7 @@ class PseudocolorOverlayOptionsPanel(IOptionsPanel):
         )
         layout.addWidget(self._pc_panel)
 
-        self.apply_theme({})
+        self.apply_theme()
 
     def _build_axis_pickers(self, layout: QVBoxLayout) -> None:
         x_row = QHBoxLayout()
@@ -226,7 +226,7 @@ class PseudocolorOverlayOptionsPanel(IOptionsPanel):
             "y_scale": self._y_transform_panel.scale.to_dict(),
         }
 
-    def apply_theme(self, colors: dict) -> None:
+    def apply_theme(self) -> None:
         sec = Colors.FG_SECONDARY
         for lbl in self.findChildren(QLabel):
             lbl.setStyleSheet(f"color: {sec}; font-size: 11px;")

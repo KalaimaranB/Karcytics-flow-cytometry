@@ -32,11 +32,10 @@ class IOptionsPanel(QWidget):
         """
         raise NotImplementedError
 
-    def apply_theme(self, colors: dict) -> None:
-        """Re-style all child widgets using the supplied color palette dict.
+    def apply_theme(self) -> None:
+        """Re-style the child widgets from the theme's colours (``Colors``).
 
         Called by ComparisonsViewer whenever the Karcytics theme changes.
-        Receives a flat dict of color hex strings (e.g. 'fg_primary', 'bg_dark').
         """
         raise NotImplementedError
 

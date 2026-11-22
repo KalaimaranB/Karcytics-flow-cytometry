@@ -167,7 +167,7 @@ class HistogramOverlayOptionsPanel(IOptionsPanel):
         leg_row.addStretch()
         layout.addLayout(leg_row)
 
-        self.apply_theme({})
+        self.apply_theme()
 
     # ── Slots ─────────────────────────────────────────────────────────
 
@@ -190,7 +190,7 @@ class HistogramOverlayOptionsPanel(IOptionsPanel):
             "line_width": self._lw_spin.value(),
         }
 
-    def apply_theme(self, colors: dict) -> None:
+    def apply_theme(self) -> None:
         fg = Colors.FG_PRIMARY
         sec = Colors.FG_SECONDARY
         spin_style = (

@@ -45,7 +45,7 @@ class ViolinOptionsPanel(IOptionsPanel):
         self._setup_box_overlay(layout)
         self._setup_individual_points(layout)
 
-        self.apply_theme({})
+        self.apply_theme()
 
     def _setup_orientation(self, layout: QVBoxLayout) -> None:
         orient_row = QHBoxLayout()
@@ -142,7 +142,7 @@ class ViolinOptionsPanel(IOptionsPanel):
         pts_row.addStretch()
         layout.addLayout(pts_row)
 
-        self.apply_theme({})
+        self.apply_theme()
 
     def _update_range_status(self, value: float) -> None:
         if value >= _RANGE_MAX_PCT:
@@ -158,7 +158,7 @@ class ViolinOptionsPanel(IOptionsPanel):
             "axis_range_pct": self._range_spin.value(),
         }
 
-    def apply_theme(self, colors: dict) -> None:
+    def apply_theme(self) -> None:
         sec = Colors.FG_SECONDARY
         for cb in (self._show_box_cb, self._show_pts_cb):
             cb.setStyleSheet(checkbox_qss())

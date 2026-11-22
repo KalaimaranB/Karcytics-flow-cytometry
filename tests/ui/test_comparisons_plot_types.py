@@ -11,6 +11,7 @@ registration-time dataclass error instead, and this test parametrizes over
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -20,6 +21,7 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating import RectangleGate
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.widgets import comparisons_viewer as viewer_module
 from karcytics_plugins.flow_cytometry.ui.widgets.comparisons.plot_spec import (
     ChannelMode,
     PlotType,
@@ -135,9 +137,7 @@ def _cycle_and_render(widget, plot_names) -> None:
         panel = widget._options_panels[plot_name]
         config = panel.get_config()
         pop_pairs = widget._selector.get_checked_populations()
-        channel_keys = (
-            widget._get_checked_channels() if spec.channel_mode != ChannelMode.NONE else []
-        )
+        channel_keys = widget._channels.checked() if spec.channel_mode != ChannelMode.NONE else []
 
         kwargs = spec.build_kwargs(
             widget._state, widget._extractor, config, sample_ids, pop_pairs, channel_keys
@@ -191,17 +191,15 @@ def test_generate_button_produces_a_visible_canvas(qtbot, two_sample_state, plot
     widget._plot_type_combo.setCurrentIndex(idx)
 
     widget._generate_btn.click()
-    worker = widget._worker
-    assert worker is not None, f"{plot_name}: Generate Plot did not spawn a worker"
+    assert widget._plot.is_rendering(), f"{plot_name}: Generate Plot started no render"
 
-    # Use waitUntil instead of waitSignal because the worker might finish
-    # and emit its signal before we even enter a waitSignal block, causing a timeout.
-    qtbot.waitUntil(lambda: widget._worker is None, timeout=30000)
+    # waitUntil, not waitSignal: the render may land before a waitSignal block starts.
+    qtbot.waitUntil(lambda: not widget._plot.is_rendering(), timeout=30000)
 
     assert "Plot ready" in widget._status_lbl.text(), f"{plot_name}: {widget._status_lbl.text()}"
-    canvas = widget._canvas_widget
+    canvas = widget._plot.canvas
     assert canvas is not None, f"{plot_name}: no canvas widget was created"
-    assert canvas.parent() is widget._canvas_container, (
+    assert canvas.parent() is widget._plot, (
         f"{plot_name}: canvas was never parented into the visible container"
     )
     assert canvas.isVisible(), f"{plot_name}: canvas exists but is not visible"
@@ -224,3 +222,48 @@ def test_cycling_through_every_plot_type_always_renders(qtbot, two_sample_state)
     plot_names = list(PLOT_REGISTRY.keys())
     _cycle_and_render(widget, plot_names)
     _cycle_and_render(widget, reversed(plot_names))
+
+
+def _generated(qtbot, two_sample_state, plot_type=PlotType.CHANNEL_HEATMAP):
+    widget = ComparisonsViewer(two_sample_state)
+    qtbot.addWidget(widget)
+    widget._plot_type_combo.setCurrentIndex(widget._plot_type_combo.findData(plot_type.value))
+    widget._generate_btn.click()
+    qtbot.waitUntil(lambda: widget._current_figure is not None, timeout=30000)
+    return widget
+
+
+@pytest.mark.ui
+def test_the_plot_is_shown_at_its_own_size_so_a_big_one_scrolls(qtbot, two_sample_state):
+    widget = _generated(qtbot, two_sample_state)
+    fig = widget._current_figure
+
+    assert widget._plot.canvas.minimumWidth() == int(fig.get_figwidth() * fig.dpi)
+    assert widget._last_generated_plot_type is PlotType.CHANNEL_HEATMAP
+
+
+@pytest.mark.ui
+def test_export_saves_the_plot_and_counts_for_the_academy(qtbot, two_sample_state, tmp_path):
+    widget = _generated(qtbot, two_sample_state)
+    path = tmp_path / "plot.svg"
+
+    with patch.object(viewer_module, "get_save_path", return_value=str(path)):
+        widget._export_btn.click()
+
+    assert path.read_text().startswith("<?xml")
+    assert widget.completed_exports == {"plot"}
+
+
+@pytest.mark.ui
+def test_a_failed_export_is_reported_not_counted(qtbot, two_sample_state, tmp_path):
+    widget = _generated(qtbot, two_sample_state)
+
+    with (
+        patch.object(viewer_module, "get_save_path", return_value=str(tmp_path / "x" / "p.png")),
+        patch.object(viewer_module.diagnostics, "report_error") as report_error,
+    ):
+        widget._export_btn.click()  # the folder does not exist
+
+    assert report_error.called
+    assert "Export failed" in widget._status_lbl.text()
+    assert widget.completed_exports == set()

@@ -33,13 +33,18 @@ class _Workers:
 
 
 class FigureView(QWidget):
-    """Shows the newest figure an `IPlotRenderer` drew for it, or a message."""
+    """Shows the newest figure an `IPlotRenderer` drew for it, or a message.
+
+    ``natural_size``: show each figure at least at its own size (for a view in
+    a scroll area, where a big heatmap should scroll rather than squash).
+    """
 
     figure_shown = Signal(object)  # the Figure, now on screen
     render_failed = Signal(str)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, natural_size: bool = False) -> None:
         super().__init__(parent)
+        self._natural_size = natural_size
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self._message = QLabel()
@@ -96,7 +101,17 @@ class FigureView(QWidget):
     def _on_rendered(self, figure: Figure) -> None:
         if self._finish() and self._running == self._wanted:
             self._message.hide()
-            self._replace_canvas(CopyableCanvas(figure))
+            canvas = CopyableCanvas(figure)
+            if self._natural_size:
+                dpi = figure.dpi
+                canvas.setMinimumSize(
+                    int(figure.get_figwidth() * dpi), int(figure.get_figheight() * dpi)
+                )
+            self._replace_canvas(canvas)
+            if self._natural_size:
+                # Added at its final size, it may never get a resize event, and
+                # an idle draw that came before layout is dropped for good.
+                canvas.draw()
             self.figure_shown.emit(figure)
 
     def _on_failed(self, message: str) -> None:

@@ -17,28 +17,24 @@ SOLID design:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
-from karcytics_sdk.plugin import BioSectionLabel, safe_disconnect
+from karcytics_sdk.plugin import BioSectionLabel
 from karcytics_sdk.plugin.components import (
     BioComboBox,
     BioHelpButton,
-    BioListWidget,
     PrimaryButton,
     SecondaryButton,
 )
+from karcytics_sdk.plugin.dialogs import get_save_path
 from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
 from karcytics_sdk.plugin.runtime_services import diagnostics
-from karcytics_sdk.plugin.theme_fallback import Colors
+from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib.figure import Figure
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QFileDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
-    QListWidgetItem,
     QProgressBar,
     QScrollArea,
     QSizePolicy,
@@ -47,67 +43,24 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from karcytics_plugins.flow_cytometry.analysis.fcs_io import (
-    derived_labels_of,
-    get_channel_marker_label,
-    get_fluorescence_channels,
-)
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
-    LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
-)
-from karcytics_plugins.flow_cytometry.ui.widgets.checkbox_style import checkbox_qss
 from karcytics_plugins.flow_cytometry.ui.widgets.selection.selector_panel import (
     SampleAndPopulationSelector,
 )
 
 from ...analysis.comparison_data import ComparisonsDataExtractor
 from ..academy_context import ComparisonsSnapshot, PopulationPicks
-from ..graph.figure_renderer import FigureRenderWorker
+from .comparisons.channel_picker import ChannelPicker
 from .comparisons.options.base import IOptionsPanel
+from .comparisons.options_stack import DynamicStackedWidget
 from .comparisons.plot_spec import ChannelMode, PlotType, PlotTypeSpec, PopulationMode, SampleMode
 from .comparisons.registry import PLOT_REGISTRY
-
-if TYPE_CHECKING:
-    pass
+from .figure_view import FigureView
 
 logger = logging.getLogger(__name__)
 
-
-class DynamicStackedWidget(QStackedWidget):
-    """QStackedWidget whose height dynamically matches only the current active widget."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        self.currentChanged.connect(self._on_current_changed)
-
-    def addWidget(self, widget: QWidget | None) -> int:
-        idx = super().addWidget(widget)  # type: ignore[arg-type]
-        if widget is not None:
-            if idx != self.currentIndex():
-                widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-            else:
-                widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-        return idx
-
-    def _on_current_changed(self, index: int) -> None:
-        for i in range(self.count()):
-            w = self.widget(i)
-            if w is not None:
-                if i == index:
-                    w.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
-                else:
-                    w.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
-        self.updateGeometry()
-
-    def sizeHint(self):
-        w = self.currentWidget()
-        return w.sizeHint() if w is not None else super().sizeHint()
-
-    def minimumSizeHint(self):
-        w = self.currentWidget()
-        return w.minimumSizeHint() if w is not None else super().minimumSizeHint()
+_SIDEBAR_WIDTH = 370
+_EXPORT_DPI = 300
 
 
 class ComparisonsViewer(QWidget):
@@ -141,21 +94,13 @@ class ComparisonsViewer(QWidget):
         self._state = state
         self._gate_coordinator = gate_coordinator
         self._extractor = ComparisonsDataExtractor()
-        self._worker: FigureRenderWorker | None = None
-        self._current_figure: Figure | None = None
         # Exports that actually succeeded ("plot"); read by the Academy's
         # export checklist (ExportDoneValidator).
         self.completed_exports: set[str] = set()
-        self._canvas_widget: FigureCanvasQTAgg | None = None
 
         # Build one options panel per plot type (instantiated once, reused)
         self._options_panels: dict[PlotType, IOptionsPanel] = {}
 
-        # Tracks the previous plot type's ChannelMode so _refresh_channels()
-        # can tell "still multi-channel, keep my checks" apart from "just
-        # switched from single- to multi-channel mode, my one checked channel
-        # isn't enough for this plot type anymore — reset to a full default."
-        self._last_channel_mode: ChannelMode | None = None
         # The plot type the last successful Generate Plot rendered (see
         # _on_generate), which can differ from the combo's current value.
         # ComparisonsPlotGeneratedValidator reads this, so a tutorial step
@@ -166,21 +111,15 @@ class ComparisonsViewer(QWidget):
         self._setup_ui()
         self.refresh_samples()
 
-        self.destroyed.connect(self._cleanup)
-
-    def _cleanup(self) -> None:
-        """Block on any in-flight render so its worker thread can't be torn
-        down mid-run (Qt aborts if a QThread is destroyed while still
-        running). This widget is tab-embedded, not a window, so
-        `closeEvent` never fires here -- `destroyed` (connected above) is
-        the one teardown hook Qt guarantees for it.
-        """
-        if self._worker is not None:
-            self._worker.stop_and_wait()
+    @property
+    def _current_figure(self) -> Figure | None:
+        """The plot on screen."""
+        return self._plot.figure
 
     # ── UI Construction ──────────────────────────────────────────────────────
 
     def _setup_ui(self) -> None:  # noqa: PLR0915
+        theme_manager.apply_style(self, "background-color: {BG_DARKEST};")
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)
         main.setSpacing(0)
@@ -188,7 +127,10 @@ class ComparisonsViewer(QWidget):
         # ── Left Sidebar ─────────────────────────────────────────────────────
         sidebar = QWidget()
         sidebar.setObjectName("cmp_sidebar")
-        sidebar.setFixedWidth(370)
+        sidebar.setFixedWidth(_SIDEBAR_WIDTH)
+        theme_manager.apply_style(
+            sidebar, "background-color: {BG_DARKEST}; border-right: 1px solid {BORDER};"
+        )
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
@@ -236,41 +178,9 @@ class ComparisonsViewer(QWidget):
         self._selector.population_edit_button.setObjectName("ComparisonsPopulationPickerButton")
         cl.addWidget(self._selector)
 
-        _mini = "QPushButton { padding: 3px 10px; min-height: 26px; }"
-
-        # 4. Channels (hidden for plot types that manage their own channel selection)
-        self._channel_section = QWidget()
-        self._channel_section.setObjectName("ComparisonsChannelSection")
-        csl = QVBoxLayout(self._channel_section)
-        csl.setContentsMargins(0, 0, 0, 0)
-        csl.setSpacing(6)
-
-        ch_hdr = QHBoxLayout()
-        self._channel_section_label = BioSectionLabel("Channels")
-        ch_hdr.addWidget(self._channel_section_label)
-        self._ch_help_btn = BioHelpButton()
-        ch_hdr.addWidget(self._ch_help_btn)
-        ch_hdr.addStretch()
-        csl.addLayout(ch_hdr)
-
-        self._channel_list = BioListWidget()
-        self._channel_list.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._channel_list.setMaximumHeight(180)
-        csl.addWidget(self._channel_list)
-
-        ch_btns = QHBoxLayout()
-        self._btn_all_ch = SecondaryButton("All")
-        self._btn_all_ch.setStyleSheet(_mini)
-        self._btn_all_ch.clicked.connect(lambda: self._check_all_list(self._channel_list, True))
-        self._btn_none_ch = SecondaryButton("None")
-        self._btn_none_ch.setStyleSheet(_mini)
-        self._btn_none_ch.clicked.connect(lambda: self._check_all_list(self._channel_list, False))
-        ch_btns.addWidget(self._btn_all_ch)
-        ch_btns.addWidget(self._btn_none_ch)
-        ch_btns.addStretch()
-        csl.addLayout(ch_btns)
-
-        cl.addWidget(self._channel_section)
+        # 4. Channels (hidden for plot types that take none)
+        self._channels = ChannelPicker()
+        cl.addWidget(self._channels)
 
         # 5. Per-plot options (DynamicStackedWidget — height dynamically follows current panel)
         opts_hdr = QHBoxLayout()
@@ -301,6 +211,7 @@ class ComparisonsViewer(QWidget):
         # ── Right Workspace ──────────────────────────────────────────────────
         right = QWidget()
         right.setObjectName("cmp_right")
+        theme_manager.apply_style(right, "background-color: {BG_DARK};")
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(16, 12, 16, 16)
         right_layout.setSpacing(10)
@@ -308,7 +219,7 @@ class ComparisonsViewer(QWidget):
         # Toolbar
         toolbar = QHBoxLayout()
         self._status_lbl = QLabel("Select samples and click Generate Plot.")
-        self._status_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 12px;")
+        theme_manager.apply_style(self._status_lbl, "color: {FG_SECONDARY}; font-size: 12px;")
         toolbar.addWidget(self._status_lbl)
         toolbar.addStretch()
 
@@ -348,28 +259,24 @@ class ComparisonsViewer(QWidget):
             "Select samples, populations and a plot type\nthen click Generate Plot."
         )
         self._ph_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._ph_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 14px;")
+        theme_manager.apply_style(self._ph_lbl, "color: {FG_SECONDARY}; font-size: 14px;")
         ph_layout.addWidget(self._ph_lbl)
         self._display_stack.addWidget(placeholder)
 
-        # Canvas placeholder (replaced when a figure is produced)
+        # The plot, drawn off the GUI thread at its own size (a big heatmap scrolls).
+        self._plot = FigureView(natural_size=True)
+        self._plot.figure_shown.connect(self._on_render_done)
+        self._plot.render_failed.connect(self._on_render_error)
         self._canvas_scroll = QScrollArea()
         self._canvas_scroll.setWidgetResizable(True)
         self._canvas_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self._canvas_scroll.setStyleSheet("background: transparent; border: none;")
-
-        self._canvas_container = QWidget()
-        canvas_container_layout = QVBoxLayout(self._canvas_container)
-        canvas_container_layout.setContentsMargins(0, 0, 0, 0)
-        canvas_container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._canvas_scroll.setWidget(self._canvas_container)
+        self._canvas_scroll.setWidget(self._plot)
         self._display_stack.addWidget(self._canvas_scroll)
 
         right_layout.addWidget(self._display_stack, stretch=1)
         main.addWidget(right, stretch=1)
 
-        # Apply initial styles and trigger first plot-type switch
-        self._apply_theme_styles()
         self._on_plot_type_changed(0)
 
     # ── Public API ───────────────────────────────────────────────────────────
@@ -391,34 +298,7 @@ class ComparisonsViewer(QWidget):
 
         self._plot_help_btn.setHelpText(spec.help_body, spec.help_title)
 
-        # Show/hide channel list
-        no_channels = spec.channel_mode == ChannelMode.NONE
-        self._channel_section.setVisible(not no_channels)
-
-        # Update channel help text based on mode
-        multi_ch = spec.channel_mode == ChannelMode.MULTI
-        if multi_ch:
-            self._ch_help_btn.setHelpText(
-                "Select multiple channels. Each channel becomes one column (heatmap) "
-                "or one spoke (radar). Choose channels relevant to the populations you are comparing.",
-                "Channels",
-            )
-        else:
-            self._ch_help_btn.setHelpText(
-                "Select a single channel to compare across samples. "
-                "For example, choose CD3 to compare T-cell expression, or CD19 for B cells.",
-                "Channel",
-            )
-
-        # Enforce single-channel selection for violin/FMO
-        if not multi_ch and not no_channels:
-            self._enforce_single_channel_selection()
-
-        # "All"/"None" only make sense when more than one channel can be
-        # checked — hide them in single-channel mode instead of leaving a
-        # control visible that silently does nothing useful.
-        self._btn_all_ch.setVisible(multi_ch)
-        self._btn_none_ch.setVisible(multi_ch)
+        self._channels.set_mode(spec.channel_mode)
 
         # Apply this plot type's sample/population constraints: force a
         # single checked sample (radio) when the renderer only supports one,
@@ -435,7 +315,7 @@ class ComparisonsViewer(QWidget):
 
     def _on_generate(self) -> None:
         """Validate inputs, extract data, spawn worker."""
-        if self._worker and self._worker.isRunning():
+        if self._plot.is_rendering():
             return
 
         plot_type = self.current_plot_type()
@@ -445,7 +325,7 @@ class ComparisonsViewer(QWidget):
 
         sample_ids = self._selector.get_checked_sample_ids()
         pop_pairs = self._selector.get_checked_populations()
-        channel_keys = self._get_checked_channels() if spec.channel_mode != ChannelMode.NONE else []
+        channel_keys = self._channels.checked() if spec.channel_mode != ChannelMode.NONE else []
 
         # Validate. Every plot type requires at least one population
         # (PlotTypeSpec.population_mode is always ONE_PER_SAMPLE or MULTI,
@@ -483,102 +363,48 @@ class ComparisonsViewer(QWidget):
         }.items():
             render_kwargs.setdefault(key, value)
 
-        renderer = spec.renderer_cls()
         self._pending_plot_type = plot_type
-        self._worker = FigureRenderWorker(renderer, render_kwargs, self)
-        self._worker.finished_ok.connect(self._on_render_done)
-        self._worker.finished_err.connect(self._on_render_error)
-        self._worker.start()
+        self._plot.draw(spec.renderer_cls(), render_kwargs)
 
         self._generate_btn.setEnabled(False)
         self._progress_bar.show()
         self._status_lbl.setText("⏳ Rendering…")
 
-    def _on_render_done(self, fig: Figure) -> None:
-        """Replace canvas with the new figure."""
-        self._current_figure = fig
+    def _on_render_done(self, _figure: Figure) -> None:
         self._generate_btn.setEnabled(True)
         self._progress_bar.hide()
-
-        # Remove old canvas. `is not None`, not truthiness: an empty QLayout is
-        # falsy in PySide6, which once left every plot unparented and invisible.
-        container_layout = self._canvas_container.layout()
-        if container_layout is not None:
-            while container_layout.count():
-                item = container_layout.takeAt(0)
-                if item:
-                    w_widget = item.widget()
-                    if w_widget:
-                        w_widget.deleteLater()
-
-        canvas = FigureCanvasQTAgg(fig)
-
-        # Ignore wheel events on the canvas so they propagate up to the QScrollArea
-        canvas.wheelEvent = lambda event: event.ignore()  # type: ignore[method-assign]
-
-        canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        canvas.setStyleSheet("background-color: transparent; border: none;")
-
-        w = int(fig.get_figwidth() * fig.dpi)
-        h = int(fig.get_figheight() * fig.dpi)
-        canvas.setMinimumSize(w, h)
-
-        if container_layout is not None:
-            container_layout.addWidget(canvas)
-        self._canvas_widget = canvas
-
-        self._display_stack.setCurrentIndex(1)
+        self._display_stack.setCurrentWidget(self._canvas_scroll)
         self._export_btn.setEnabled(True)
         self._last_generated_plot_type = self._pending_plot_type
-        self._worker = None
-
-        # A canvas added to an already-visible container can get its only
-        # draw_idle() before layout sizes it; that draw gives up for good and
-        # the plot never shows. One synchronous draw() has no size guard.
-        # Not silent: a failure must not leave "Plot ready" over a blank canvas.
-        try:
-            canvas.draw()
-        except Exception as e:
-            logger.exception("ComparisonsViewer: canvas.draw() failed after Generate Plot")
-            self._status_lbl.setText(f"⚠ Plot rendered but failed to display: {e}")
-            return
-
         self._status_lbl.setText("✓ Plot ready. Use Export to save.")
 
     def _on_render_error(self, msg: str) -> None:
         self._generate_btn.setEnabled(True)
         self._progress_bar.hide()
         self._status_lbl.setText(f"❌ Error: {msg}")
-        logger.error("ComparisonsViewer render error: %s", msg)
-        self._worker = None
 
     def _on_export(self) -> None:
-        if not self._current_figure:
+        figure = self._current_figure
+        if figure is None:
             return
-        path, _ = QFileDialog.getSaveFileName(
+        path = get_save_path(
             self,
             "Export Plot",
-            "",
+            "comparison.png",
             "PNG Image (*.png);;PDF Document (*.pdf);;SVG Vector (*.svg)",
         )
-        if path:
-            try:
-                # savefig() triggers a full Agg rasterization pass — must
-                # hold MPL_RASTER_LOCK or this can race a
-                # FigureRenderWorker/RenderTask drawing a different Figure
-                # on a background thread and corrupt matplotlib's shared
-                # C-level state.
-                with MPL_RASTER_LOCK:
-                    self._current_figure.savefig(path, dpi=300, bbox_inches="tight")
-                self._status_lbl.setText(f"✓ Exported to {path}")
-                self.completed_exports.add("plot")
-            except Exception as exc:  # noqa: BLE001 — report as a diagnostic, not a crash.
-                logger.exception("Comparisons plot export failed")
-                self._status_lbl.setText(f"❌ Export failed: {exc}")
-
-                diagnostics.report_error(
-                    "Comparisons plot export failed", exception=exc, fatal=False
-                )
+        if not path:
+            return
+        try:
+            with MPL_RASTER_LOCK:  # savefig rasterizes through the shared Agg backend
+                figure.savefig(path, dpi=_EXPORT_DPI, bbox_inches="tight")
+        except Exception as exc:  # noqa: BLE001 - reported as a diagnostic, not a crash
+            logger.exception("Comparisons plot export failed")
+            self._status_lbl.setText(f"❌ Export failed: {exc}")
+            diagnostics.report_error("Comparisons plot export failed", exception=exc, fatal=False)
+            return
+        self._status_lbl.setText(f"✓ Exported to {path}")
+        self.completed_exports.add("plot")
 
     # ── Data helpers ─────────────────────────────────────────────────────────
 
@@ -589,146 +415,30 @@ class ComparisonsViewer(QWidget):
     def _current_spec(self) -> PlotTypeSpec:
         return PLOT_REGISTRY[self.current_plot_type()]
 
-    def _is_multi_channel_mode(self) -> bool:
-        return self._current_spec().channel_mode == ChannelMode.MULTI
-
     def academy_snapshot(self) -> ComparisonsSnapshot:
         overlay = self._options_panels.get(PlotType.HISTOGRAM_OVERLAY)
         return ComparisonsSnapshot(
             PopulationPicks.of(self._selector),
             self._last_generated_plot_type,
             overlay.get_config()["layout"] if overlay is not None else "",
-            tuple(self._get_checked_channels()),
+            tuple(self._channels.checked()),
         )
-
-    def _get_checked_channels(self) -> list[str]:
-        result = []
-        for i in range(self._channel_list.count()):
-            item = self._channel_list.item(i)
-            if item and item.checkState() == Qt.CheckState.Checked:
-                result.append(item.data(Qt.ItemDataRole.UserRole))
-        return result
-
-    def _check_all_list(self, lst: BioListWidget, checked: bool) -> None:
-        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
-        lst.blockSignals(True)
-        is_channel_list = lst is self._channel_list
-        for i in range(lst.count()):
-            item = lst.item(i)
-            if not item:
-                continue
-            # In single-channel mode, only check the first item when "All" is pressed
-            if is_channel_list and not self._is_multi_channel_mode() and checked:
-                item.setCheckState(Qt.CheckState.Checked if i == 0 else Qt.CheckState.Unchecked)
-            else:
-                item.setCheckState(state)
-        lst.blockSignals(False)
-
-    def _enforce_single_channel_selection(self) -> None:
-        """Ensure only one channel is checked in single-channel plot modes."""
-        self._channel_list.blockSignals(True)
-        found_checked = False
-        for i in range(self._channel_list.count()):
-            item = self._channel_list.item(i)
-            if item and item.checkState() == Qt.CheckState.Checked:
-                if found_checked:
-                    item.setCheckState(Qt.CheckState.Unchecked)
-                else:
-                    found_checked = True
-        # If nothing is checked, check the first item
-        if not found_checked and self._channel_list.count() > 0:
-            first = self._channel_list.item(0)
-            if first:
-                first.setCheckState(Qt.CheckState.Checked)
-        self._channel_list.blockSignals(False)
 
     def refresh_channels(self) -> None:
         """Rebuild the channel list (e.g. after derived parameters change)."""
         self._refresh_channels()
 
     def _refresh_channels(self) -> None:
-        spec = self._current_spec()
-        # A channel checked under single-channel mode isn't a meaningful
-        # "keep this" signal once the plot type switches to multi-channel
-        # (or vice versa) — carrying it forward could leave a multi-channel
-        # plot type (e.g. Radar, which needs >=3) with only one checked
-        # channel and no way to tell from the UI that it's now invalid. On a
-        # mode change, start from a clean slate instead of the stale checks.
-        mode_changed = spec.channel_mode != self._last_channel_mode
-        self._last_channel_mode = spec.channel_mode
-
-        prev_checked = set()
-        if not mode_changed:
-            for i in range(self._channel_list.count()):
-                item = self._channel_list.item(i)
-                if item and item.checkState() == Qt.CheckState.Checked:
-                    prev_checked.add(item.data(Qt.ItemDataRole.UserRole))
-
-        self._channel_list.blockSignals(True)
-        self._channel_list.clear()
-        no_channels_mode = spec.channel_mode == ChannelMode.NONE
-
         sample_ids = self._selector.get_checked_sample_ids()
-        if not sample_ids:
-            self._channel_list.blockSignals(False)
-            return
-
-        channels = []
-        sample = self._state.data.experiment.samples.get(sample_ids[0])
-        if sample and sample.fcs_data:
-            fluo_channels = get_fluorescence_channels(sample.fcs_data)
-            if spec.channel_mode == ChannelMode.SINGLE:
-                # Derived parameters (ratios etc.) make sense on their own
-                # axis, but not side by side with raw intensities in the
-                # multi-channel heatmap/radar.
-                derived = derived_labels_of(sample.fcs_data)
-                fluo_channels += [ch for ch in sample.fcs_data.channels if ch in derived]
-            channels = [(get_channel_marker_label(sample.fcs_data, ch), ch) for ch in fluo_channels]
-
-        for label, key in channels:
-            item = QListWidgetItem(label)
-            item.setData(Qt.ItemDataRole.UserRole, key)
-
-            item.setForeground(QColor(Colors.FG_PRIMARY))
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-            item.setCheckState(
-                Qt.CheckState.Checked
-                if (key in prev_checked or not prev_checked)
-                else Qt.CheckState.Unchecked
-            )
-            self._channel_list.addItem(item)
-
-        row_h = self._channel_list.sizeHintForRow(0) if self._channel_list.count() > 0 else 24
-        self._channel_list.setFixedHeight(min(180, self._channel_list.count() * max(24, row_h) + 4))
-
-        # In single-channel mode, enforce only one item is checked after populating
-        if not self._is_multi_channel_mode() and not no_channels_mode:
-            self._enforce_single_channel_selection()
-
-        self._channel_list.blockSignals(False)
-
-        # Wire channel single-select enforcement
-        safe_disconnect(self._channel_list.itemChanged, self._on_channel_item_changed)
-        if not self._is_multi_channel_mode():
-            self._channel_list.itemChanged.connect(self._on_channel_item_changed)
-
-    def _on_channel_item_changed(self, item: QListWidgetItem) -> None:
-        """Single-channel enforcement: when a channel is checked, uncheck all others."""
-        if item.checkState() != Qt.CheckState.Checked:
-            return
-        self._channel_list.blockSignals(True)
-        for i in range(self._channel_list.count()):
-            ch_item = self._channel_list.item(i)
-            if ch_item and ch_item is not item:
-                ch_item.setCheckState(Qt.CheckState.Unchecked)
-        self._channel_list.blockSignals(False)
+        sample = self._state.data.experiment.samples.get(sample_ids[0]) if sample_ids else None
+        self._channels.refresh(sample.fcs_data if sample is not None else None)
 
     def _refresh_pseudocolor_overlay_options(self) -> None:
         """Populate the Pseudocolor Overlay panel's X/Y channel combos from
         the first checked sample (it's a single-sample plot type, like FMO).
         """
         panel = self._options_panels.get(PlotType.PSEUDOCOLOR_OVERLAY)
-        if not panel or not hasattr(panel, "populate_channels"):
+        if panel is None:
             return
         sample_ids = self._selector.get_checked_sample_ids()
         if not sample_ids:
@@ -738,58 +448,10 @@ class ComparisonsViewer(QWidget):
 
     # ── Theme ────────────────────────────────────────────────────────────────
 
-    def _apply_theme_styles(self) -> None:  # noqa: PLR0912
-        self.setStyleSheet(f"background-color: {Colors.BG_DARKEST};")
-
-        sidebar = self.findChild(QWidget, "cmp_sidebar")
-        if sidebar:
-            sidebar.setStyleSheet(
-                f"background-color: {Colors.BG_DARKEST}; border-right: 1px solid {Colors.BORDER};"
-            )
-        right = self.findChild(QWidget, "cmp_right")
-        if right:
-            right.setStyleSheet(f"background-color: {Colors.BG_DARK};")
-
-        fg_color = QColor(Colors.FG_PRIMARY)
-
-        # Note: the sample checklist and population tree (self._selector) are
-        # themed by MainPanel's own findChildren cascade reaching them
-        # directly, not by this method — see ui/widgets/selection/.
-        if self._channel_list:
-            self._channel_list.setStyleSheet(
-                f"QListWidget {{ background: {Colors.BG_DARKEST}; border: 1px solid {Colors.BORDER};"
-                f" border-radius: 4px; color: {Colors.FG_PRIMARY}; }}"
-                f"QListWidget::item {{ color: {Colors.FG_PRIMARY}; padding: 2px 4px; }}"
-                f"QListWidget::item:hover {{ background: {Colors.BG_DARK}; color: {Colors.FG_PRIMARY}; }}"
-                f"QListWidget::item:selected {{ background: {Colors.BG_MEDIUM}; color: {Colors.FG_PRIMARY}; }}"
-                + checkbox_qss()
-            )
-            for i in range(self._channel_list.count()):
-                item = self._channel_list.item(i)
-                if item is not None:
-                    item.setForeground(fg_color)
-
-        self._status_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 12px;")
-        self._ph_lbl.setStyleSheet(f"color: {Colors.FG_SECONDARY}; font-size: 14px;")
-
-        # Re-theme all options panels and their dropdowns
-        color_dict = {
-            "fg_primary": Colors.FG_PRIMARY,
-            "fg_secondary": Colors.FG_SECONDARY,
-            "bg_dark": Colors.BG_DARK,
-            "bg_darkest": Colors.BG_DARKEST,
-            "border": Colors.BORDER,
-            "accent": Colors.ACCENT_PRIMARY,
-        }
+    def _apply_theme_styles(self) -> None:
+        """MainPanel calls this on a theme change: the stylesheets set by hand, and the plot."""
+        self._channels.apply_theme()
         for panel in self._options_panels.values():
-            if hasattr(panel, "apply_theme"):
-                panel.apply_theme(color_dict)
-            if hasattr(panel, "_apply_theme_styles"):
-                panel._apply_theme_styles()
-            for combo in panel.findChildren(QWidget):
-                if hasattr(combo, "_apply_theme_styles"):
-                    combo._apply_theme_styles()
-
-        # Re-render current plot with new theme colours
+            panel.apply_theme()
         if self._current_figure is not None:
-            self._on_generate()
+            self._on_generate()  # its colours are drawn into the figure
