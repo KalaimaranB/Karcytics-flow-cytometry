@@ -9,14 +9,11 @@ that stands apart, often rare and worth a look.
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
-from karcytics_sdk.plugin.theme_fallback import Colors
-from matplotlib.collections import LineCollection
 from PySide6.QtCore import Signal
 
 from ..academy_context import GraphClusterSnapshot
+from .cluster_map_renderer import MapLines
 from .cluster_map_view import ClusterMapView
 
 GUIDE = (
@@ -92,21 +89,14 @@ class PhenographGraphView(ClusterMapView):
     def _circle_values(self, marker: int) -> np.ndarray:
         return self._medians[:, marker]
 
-    def _draw_lines(self, ax: Any, layout: np.ndarray) -> None:
+    def _lines(self, layout: np.ndarray) -> MapLines | None:
         edges = self._array("cluster_edges").reshape(-1, 2)
         if not len(edges):
-            return
+            return None
         strength = self._array("cluster_connectivity")
         share = strength / max(float(strength.max()), 1e-12)
-        ax.add_collection(
-            LineCollection(
-                layout[edges],
-                colors=Colors.FG_SECONDARY,
-                alpha=0.35 + 0.45 * share,
-                linewidths=LINE_WIDTH[0] + (LINE_WIDTH[1] - LINE_WIDTH[0]) * share,
-                zorder=1,
-            )
-        )
+        widths = LINE_WIDTH[0] + (LINE_WIDTH[1] - LINE_WIDTH[0]) * share
+        return MapLines(layout[edges], widths=widths, alphas=0.35 + 0.45 * share)
 
     def _title(self) -> str:
         n = len(self._counts)

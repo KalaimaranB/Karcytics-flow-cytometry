@@ -13,11 +13,10 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from karcytics_sdk.plugin.theme_fallback import Colors
-from matplotlib.collections import LineCollection
 from PySide6.QtCore import Signal
 
-from .cluster_map_view import RECUT_DELAY_MS, SIDE_WIDTH, ClusterMapView, cluster_colors
+from .cluster_map_renderer import MapLines
+from .cluster_map_view import ClusterMapView
 
 GUIDE = (
     "<b>How to read this.</b> Each circle is a <b>node</b>, a small group of very similar "
@@ -29,10 +28,6 @@ GUIDE = (
     "<b>3.</b> Check k: one branch split into several colours means k is probably too high; "
     "one colour across unrelated branches, too low."
 )
-K_RANGE = (2, 40)
-metacluster_colors = cluster_colors
-
-__all__ = ["K_RANGE", "RECUT_DELAY_MS", "SIDE_WIDTH", "FlowsomTreeView", "metacluster_colors"]
 
 
 class FlowsomTreeView(ClusterMapView):
@@ -68,13 +63,8 @@ class FlowsomTreeView(ClusterMapView):
     def _circle_values(self, marker: int) -> np.ndarray:
         return self._array("codes")[:, marker]
 
-    def _draw_lines(self, ax: Any, layout: np.ndarray) -> None:
-        edges = self._array("mst_edges")
-        ax.add_collection(
-            LineCollection(
-                layout[edges], colors=Colors.FG_SECONDARY, alpha=0.55, linewidths=1.2, zorder=1
-            )
-        )
+    def _lines(self, layout: np.ndarray) -> MapLines:
+        return MapLines(layout[self._array("mst_edges")], widths=1.2, alphas=0.55)
 
     def _title(self) -> str:
         n = len(self._array("layout"))

@@ -305,7 +305,7 @@ class CompensationEditor(QWidget):
         self._all_preview = CompensationPreviewGrid(self._scheduler)
         self._preview_stack = QStackedWidget()
         self._preview_stack.setObjectName("CompensationPreviewArea")
-        self._preview_stack.addWidget(self._preview.canvas)
+        self._preview_stack.addWidget(self._preview)
         self._preview_stack.addWidget(self._all_preview)
         right_layout.addWidget(self._preview_stack, stretch=1)
 
@@ -580,7 +580,7 @@ class CompensationEditor(QWidget):
             self._all_timer.start()
             return
         self._all_timer.stop()
-        self._preview_stack.setCurrentWidget(self._preview.canvas)
+        self._preview_stack.setCurrentWidget(self._preview)
         sample_id = self._sample_combo.currentData()
         request = (
             self._request_for(sample_id) if sample_id else "Load a sample to preview the matrix."
@@ -588,7 +588,7 @@ class CompensationEditor(QWidget):
         if isinstance(request, str):
             self._preview.show_message(request)
         else:
-            self._preview.render(request)
+            self._preview.show_request(request)
 
     def _render_all_samples(self) -> None:
         samples = self._state.data.experiment.samples

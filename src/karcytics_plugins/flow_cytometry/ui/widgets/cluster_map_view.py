@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import matplotlib as mpl
 import numpy as np
 from karcytics_sdk.plugin.components import (
     BioComboBox,
@@ -19,27 +18,26 @@ from karcytics_sdk.plugin.components import (
     BioListWidget,
     BioSpinBox,
 )
-from karcytics_sdk.plugin.rendering.lock import MPL_RASTER_LOCK
-from karcytics_sdk.plugin.rendering.mpl_canvas import LockedFigureCanvas
 from karcytics_sdk.plugin.theme_fallback import Colors
-from matplotlib import patheffects
-from matplotlib.figure import Figure
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QListWidgetItem, QVBoxLayout, QWidget
 
-from ...analysis.clustering import call, method_of, short_marker, summarize_clusters
+from ...analysis.clustering import method_of, short_marker, summarize_clusters
 from ..academy_context import ClusterMapSnapshot
+from .cluster_map_renderer import (
+    ClusterMapPicture,
+    ClusterMapRenderer,
+    MapLabel,
+    MapLines,
+    MapTheme,
+    PhenotypeHeatmapRenderer,
+    cluster_colors,
+)
+from .figure_view import FigureView
 
-MIN_SIZE, MAX_SIZE = 30.0, 520.0  # circle area range, points²
 RECUT_DELAY_MS = 350
 SIDE_WIDTH = 330
-
-
-def cluster_colors(n: int) -> list[tuple[float, ...]]:
-    """The same per-cluster colours the scatter plots use (tab20)."""
-    cmap = mpl.colormaps["tab20"]
-    return [cmap(i % 20) for i in range(n)]
 
 
 def _dot(rgba: tuple[float, ...], size: int = 12) -> QIcon:
@@ -94,7 +92,8 @@ class ClusterMapView(QWidget):
         """Each circle's median ``marker`` value, for colouring by it."""
         raise NotImplementedError
 
-    def _draw_lines(self, ax: Any, layout: np.ndarray) -> None:
+    def _lines(self, layout: np.ndarray) -> MapLines | None:
+        """The lines joining the circles at ``layout``."""
         raise NotImplementedError
 
     def _title(self) -> str:
@@ -118,12 +117,11 @@ class ClusterMapView(QWidget):
         layout.addLayout(self._build_toolbar())
 
         body = QHBoxLayout()
-        self._figure = Figure(facecolor=Colors.BG_DARK)
-        self._canvas = LockedFigureCanvas(self._figure)
-        self._canvas.setObjectName(self.CANVAS_NAME)
-        self._canvas.setMinimumHeight(380)
-        self._canvas.mpl_connect("motion_notify_event", self._on_hover)
-        body.addWidget(self._canvas, stretch=3)
+        self._map = FigureView()  # drawn off the GUI thread
+        self._map.setObjectName(self.CANVAS_NAME)
+        self._map.setMinimumHeight(380)
+        self._map.figure_shown.connect(self._on_map_shown)
+        body.addWidget(self._map, stretch=3)
         body.addWidget(self._build_side())
         layout.addLayout(body, stretch=1)
 
@@ -135,7 +133,7 @@ class ClusterMapView(QWidget):
         self._color_combo.addItem(self._method.cluster_noun.capitalize(), None)
         for i, marker in enumerate(self._markers):
             self._color_combo.addItem(f"Marker: {marker}", i)
-        self._color_combo.currentIndexChanged.connect(lambda _i: self._draw())
+        self._color_combo.currentIndexChanged.connect(lambda _i: self._draw_map())
         toolbar.addWidget(self._color_combo)
         toolbar.addSpacing(16)
         setting = self._method.recut
@@ -184,11 +182,10 @@ class ClusterMapView(QWidget):
         heat_title = QLabel("Phenotype heatmap")
         heat_title.setStyleSheet(f"color: {Colors.FG_PRIMARY}; font-weight: bold;")
         side.addWidget(heat_title)
-        self._heat_figure = Figure(facecolor=Colors.BG_DARK)
-        self._heat_canvas = LockedFigureCanvas(self._heat_figure)
-        self._heat_canvas.setObjectName(self.HEATMAP_NAME)
-        self._heat_canvas.setMinimumHeight(220)
-        side.addWidget(self._heat_canvas, stretch=1)
+        self._heatmap = FigureView()
+        self._heatmap.setObjectName(self.HEATMAP_NAME)
+        self._heatmap.setMinimumHeight(220)
+        side.addWidget(self._heatmap, stretch=1)
         self._hover_lbl = QLabel("Hover a circle to see its cells.")
         self._hover_lbl.setObjectName(self.HOVER_NAME)
         self._hover_lbl.setWordWrap(True)
@@ -251,7 +248,8 @@ class ClusterMapView(QWidget):
             self._array("intensities"), self._array("clusters"), self._labels
         )
         self._fill_legend()
-        self._draw()
+        self._draw_map()
+        self._draw_heatmap()
 
     def _legend_note(self, cluster: int) -> str:  # noqa: ARG002 - a hook for subclasses
         return ""
@@ -268,112 +266,78 @@ class ClusterMapView(QWidget):
             item.setToolTip(text)
             self._legend.addItem(item)
 
-    # ── Drawing ───────────────────────────────────────────────────────
+    # ── Drawing (off the GUI thread) ─────────────────────────────────
 
-    def _draw(self) -> None:
-        # Agg is shared with the gallery's background renders: build under the lock.
-        with MPL_RASTER_LOCK:
-            self._draw_figure()
-            self._draw_heatmap()
-        self._canvas.draw_idle()
-        self._heat_canvas.draw_idle()
-
-    def _colors(self, clusters: np.ndarray) -> tuple[Any, Any]:
-        """Each circle's colour, and the marker scale (None when colouring by cluster).
-
-        A marker's scale spans the circles' own range, dimmest to brightest,
-        so differences show even when they are small.
-        """
-        marker = self._color_combo.currentData()
-        if marker is None:
-            palette = cluster_colors(int(clusters.max()) + 1 if len(clusters) else 0)
-            return [palette[c] for c in clusters], None
-        values = self._circle_values(marker)
-        norm = mpl.colors.Normalize(float(values.min()), float(values.max()) or 1.0)
-        return mpl.colormaps["viridis"](norm(values)), norm
-
-    def _draw_figure(self) -> None:
-        self._figure.clear()
-        ax = self._figure.add_subplot(111)
-        ax.set_facecolor(Colors.BG_DARK)
-        ax.set_axis_off()
-        layout, counts, clusters = self._circles()
-        self._draw_lines(ax, layout)
-        sizes = MIN_SIZE + (MAX_SIZE - MIN_SIZE) * np.sqrt(counts / max(counts.max(), 1))
-        colors, norm = self._colors(clusters)
-        ax.scatter(
-            layout[:, 0],
-            layout[:, 1],
-            s=sizes,
-            c=colors,
-            edgecolors=Colors.BG_DARKEST,
-            linewidths=0.8,
-            zorder=2,
+    @staticmethod
+    def _theme() -> MapTheme:
+        return MapTheme(
+            background=Colors.BG_DARK,
+            outline=Colors.BG_DARKEST,
+            foreground=Colors.FG_PRIMARY,
+            secondary=Colors.FG_SECONDARY,
+            missing=Colors.BG_MEDIUM,
         )
-        if norm is not None:
-            marker = self._markers[self._color_combo.currentData()]
-            mappable = mpl.cm.ScalarMappable(cmap="viridis", norm=norm)
-            cbar = self._figure.colorbar(mappable, ax=ax, fraction=0.04, pad=0.02)
-            cbar.set_label(f"{marker}: dimmest to brightest", color=Colors.FG_SECONDARY, fontsize=8)
-            cbar.ax.yaxis.set_tick_params(colors=Colors.FG_SECONDARY, labelsize=7)
-        else:
-            self._label_clusters(ax, layout, counts, clusters)
-        ax.set_title(self._title(), color=Colors.FG_PRIMARY, fontsize=10, fontweight="bold")
-        ax.set_aspect("equal", "datalim")
-        self._figure.tight_layout()
 
-    def _label_clusters(
-        self, ax: Any, layout: np.ndarray, counts: np.ndarray, clusters: np.ndarray
-    ) -> None:
-        """Name each cluster at its biggest circle, so colours read without the legend."""
+    def picture(self) -> ClusterMapPicture:
+        """What the map shows now, for the colour chosen."""
+        layout, counts, clusters = self._circles()
+        marker = self._color_combo.currentData()
+        if marker is not None:
+            return ClusterMapPicture(
+                layout,
+                counts,
+                clusters,
+                self._lines(layout),
+                self._title(),
+                marker=self._markers[marker],
+                marker_values=self._circle_values(marker),
+            )
+        return ClusterMapPicture(
+            layout,
+            counts,
+            clusters,
+            self._lines(layout),
+            self._title(),
+            labels=self._cluster_labels(layout, counts, clusters),
+        )
+
+    def _cluster_labels(
+        self, layout: np.ndarray, counts: np.ndarray, clusters: np.ndarray
+    ) -> tuple[MapLabel, ...]:
+        """Each cluster's name at its biggest circle, so colours read without the legend."""
+        labels = []
         for c in np.unique(clusters):
             members = np.flatnonzero(clusters == c)
             anchor = members[np.argmax(counts[members])]
-            ax.annotate(
-                self._name(int(c)),
-                layout[anchor],
-                xytext=(0, 9),
-                textcoords="offset points",
-                ha="center",
-                color=Colors.FG_PRIMARY,
-                fontsize=8,
-                fontweight="bold",
-                zorder=3,
-                path_effects=[patheffects.withStroke(linewidth=3, foreground=Colors.BG_DARKEST)],
-            )
+            labels.append(MapLabel(self._name(int(c)), tuple(layout[anchor])))
+        return tuple(labels)
+
+    def _draw_map(self) -> None:
+        self._map.draw(ClusterMapRenderer(), {"picture": self.picture(), "theme": self._theme()})
 
     def _draw_heatmap(self) -> None:
-        """Clusters × markers, coloured by where each median sits in the marker's range."""
-        self._heat_figure.clear()
-        ax = self._heat_figure.add_subplot(111)
-        rows = [self._name(s.cluster) for s in self._summaries]
-        levels = np.array([s.level for s in self._summaries])
+        levels = np.array([s.level for s in self._summaries], dtype=float)
         if self._summaries:  # markers that don't differ: blank, as in the legend
             levels[:, ~np.array(self._summaries[0].informative)] = np.nan
-        cmap = mpl.colormaps["viridis"].with_extremes(bad=Colors.BG_MEDIUM)
-        if levels.size:
-            ax.imshow(levels, cmap=cmap, vmin=0, vmax=1, aspect="auto")
-        for (r, c), v in np.ndenumerate(levels):
-            if np.isnan(v):
-                continue
-            ax.text(
-                c,
-                r,
-                call(v),
-                ha="center",
-                va="center",
-                fontsize=7,
-                color="black" if v >= 0.5 else "white",  # noqa: PLR2004 (viridis midpoint)
-            )
-        ax.set_xticks(range(len(self._markers)), self._markers, rotation=45, ha="right")
-        ax.set_yticks(range(len(rows)), rows)
-        ax.tick_params(colors=Colors.FG_SECONDARY, labelsize=7, length=0)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        self._heat_figure.tight_layout()
+        self._heatmap.draw(
+            PhenotypeHeatmapRenderer(),
+            {
+                "rows": [self._name(s.cluster) for s in self._summaries],
+                "markers": self._markers,
+                "levels": levels,
+                "theme": self._theme(),
+            },
+        )
+
+    def _on_map_shown(self, _figure: Any) -> None:
+        canvas = self._map.canvas
+        assert canvas is not None
+        canvas.mpl_connect("motion_notify_event", self._on_hover)
 
     def _on_hover(self, event: Any) -> None:
-        if event.inaxes is None or event.xdata is None:
+        figure = self._map.figure
+        # The map's own axes, not the colourbar's (its data units are the marker's).
+        if figure is None or event.inaxes is not figure.axes[0] or event.xdata is None:
             return
         layout, _counts, _clusters = self._circles()
         if not len(layout):

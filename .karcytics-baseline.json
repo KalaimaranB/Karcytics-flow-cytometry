@@ -411,8 +411,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_preview.py": {
       "KS240": 3,
-      "KS310": 1,
-      "KS320": 1
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_preview_grid.py": {
       "KS211": 1,
@@ -490,8 +489,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/method_illustration.py": {
       "KS240": 6,
-      "KS310": 1,
-      "KS320": 1
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/method_setup_panel.py": {
       "KS210": 2

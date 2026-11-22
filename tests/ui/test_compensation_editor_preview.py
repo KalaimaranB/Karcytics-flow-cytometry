@@ -62,6 +62,13 @@ def dialog(qtbot, state):
     return widget
 
 
+def _drawn(dialog, qtbot) -> list:
+    """The preview's plots, once the newest background render has landed."""
+    preview = dialog._preview
+    qtbot.waitUntil(lambda: not preview.is_rendering() and preview.figure is not None)
+    return preview.axes
+
+
 def _tinted(dialog) -> set[tuple[int, int]]:
     """Off-diagonal cells carrying a highlight."""
     table = dialog._table
@@ -86,7 +93,7 @@ LIGHT = {
 DARK = {"BG_DARKEST": "#0d1117", "BG_DARK": "#161b22"}
 
 
-def test_a_theme_change_recolours_the_table_and_the_preview(dialog, monkeypatch):
+def test_a_theme_change_recolours_the_table_and_the_preview(dialog, monkeypatch, qtbot):
     from matplotlib.colors import to_hex
 
     for token, value in DARK.items():
@@ -102,8 +109,9 @@ def test_a_theme_change_recolours_the_table_and_the_preview(dialog, monkeypatch)
 
     assert LIGHT["BG_DARKEST"] in dialog._table.styleSheet()
     assert LIGHT["FG_SECONDARY"] in dialog._pair_help.styleSheet()
-    assert to_hex(dialog._preview._fig.get_facecolor()) == LIGHT["BG_DARKEST"]
-    assert dialog._preview._left.title.get_color() == LIGHT["FG_PRIMARY"]
+    left = _drawn(dialog, qtbot)[0]
+    assert to_hex(dialog._preview.figure.get_facecolor()) == LIGHT["BG_DARKEST"]
+    assert left.title.get_color() == LIGHT["FG_PRIMARY"]
     assert item.foreground().color().name() != edited_on_dark
     assert dialog._table.item(1, 1).background().color().name() == LIGHT["BG_DARK"]
 
@@ -167,10 +175,10 @@ def test_sample_selector_lists_loaded_samples_and_starts_on_the_open_one(dialog)
 
 
 def test_preview_compares_raw_events_with_the_edited_matrix(dialog, state):
-    dialog._preview.render = MagicMock()
+    dialog._preview.show_request = MagicMock()
     dialog._table.item(0, 1).setText("0.1")
 
-    request = dialog._preview.render.call_args.args[0]
+    request = dialog._preview.show_request.call_args.args[0]
     raw = state.data.experiment.samples["fl1"].fcs_data.raw_events
     expected = raw.to_numpy() @ np.linalg.inv(dialog._matrix.matrix)
 
@@ -181,11 +189,11 @@ def test_preview_compares_raw_events_with_the_edited_matrix(dialog, state):
 
 
 def test_switching_sample_re_renders_with_that_sample(dialog):
-    dialog._preview.render = MagicMock()
+    dialog._preview.show_request = MagicMock()
 
     dialog._sample_combo.setCurrentIndex(0)
 
-    assert dialog._preview.render.call_args.args[0].caption.startswith("Blank")
+    assert dialog._preview.show_request.call_args.args[0].caption.startswith("Blank")
 
 
 def test_singular_matrix_shows_a_message_instead_of_raising(dialog):
@@ -205,11 +213,12 @@ def test_no_loaded_sample_shows_a_message(qtbot):
     dialog.load(state.data.compensation)
 
     assert dialog._sample_combo.count() == 0
-    assert any("Load a sample" in t.get_text() for t in dialog._preview._fig.texts)
+    assert "Load a sample" in dialog._preview._message.text()
+    assert dialog._preview.figure is None
 
 
-def test_scatter_view_labels_both_sides(dialog):
-    left, right = dialog._preview._left, dialog._preview._right
+def test_scatter_view_labels_both_sides(dialog, qtbot):
+    left, right = _drawn(dialog, qtbot)[:2]
 
     assert (left.get_title(), right.get_title()) == (
         "Before — raw signal",
@@ -220,9 +229,9 @@ def test_scatter_view_labels_both_sides(dialog):
     assert left.get_xlim() == right.get_xlim() and left.get_ylim() == right.get_ylim()
 
 
-def test_histogram_view_overlays_before_and_after_per_channel(dialog):
+def test_histogram_view_overlays_before_and_after_per_channel(dialog, qtbot):
     dialog._view_combo.setCurrentIndex(dialog._view_combo.findData(VIEW_HISTOGRAM))
-    left, right = dialog._preview._left, dialog._preview._right
+    left, right = _drawn(dialog, qtbot)
 
     assert (left.get_title(), right.get_title()) == (
         "FL1-A — before vs after",
@@ -262,17 +271,19 @@ def test_load_discards_edits_and_none_clears_the_table(dialog, state):
 # ── Scatter and histograms together ───────────────────────────────────
 
 
-def test_both_view_shows_the_scatter_pair_above_the_two_histograms(dialog):
+def test_both_view_shows_the_scatter_pair_above_the_two_histograms(dialog, qtbot):
     dialog._view_combo.setCurrentIndex(dialog._view_combo.findData(VIEW_BOTH))
+    axes = _drawn(dialog, qtbot)
+    dialog._preview.figure.canvas.draw()  # constrained layout places the axes at draw time
 
-    titles = [ax.get_title() for ax in dialog._preview.axes]
+    titles = [ax.get_title() for ax in axes]
     assert titles == [
         "Before — raw signal",
         "After — with this matrix",
         "FL1-A — before vs after",
         "FL2-A — before vs after",
     ]
-    rows = {round(ax.get_position().y0, 2) for ax in dialog._preview.axes}
+    rows = {round(ax.get_position().y0, 2) for ax in axes}
     assert len(rows) == 2  # two rows of two
 
 
@@ -372,7 +383,7 @@ def test_leaving_all_samples_goes_back_to_the_live_canvas(all_samples):
 
     editor._sample_combo.setCurrentIndex(editor._sample_combo.findData("fl1"))
 
-    assert editor._preview_stack.currentWidget() is editor._preview.canvas
+    assert editor._preview_stack.currentWidget() is editor._preview
     assert not editor._all_timer.isActive()
 
 
@@ -434,11 +445,11 @@ def test_population_selector_previews_only_the_events_in_that_gate(dialog, state
     dialog.refresh_samples()
     combo = dialog._population_combo
     assert [combo.itemData(i) for i in range(combo.count())] == [None, "FL1 high"]
-    dialog._preview.render = MagicMock()
+    dialog._preview.show_request = MagicMock()
 
     combo.setCurrentIndex(combo.findData("FL1 high"))
 
-    request = dialog._preview.render.call_args.args[0]
+    request = dialog._preview.show_request.call_args.args[0]
     raw = sample.fcs_data.raw_events
     assert len(request.before) == 200  # the upper half of 400 events
     assert request.before["FL1-A"].min() >= raw["FL1-A"].median()
@@ -449,11 +460,11 @@ def test_a_sample_without_the_population_is_previewed_whole_and_says_so(dialog, 
     _gate_fl1_high(state.data.experiment.samples["fl1"])
     dialog.refresh_samples()
     dialog._population_combo.setCurrentIndex(dialog._population_combo.findData("FL1 high"))
-    dialog._preview.render = MagicMock()
+    dialog._preview.show_request = MagicMock()
 
     dialog._sample_combo.setCurrentIndex(dialog._sample_combo.findData("blank"))
 
-    caption = dialog._preview.render.call_args.args[0].caption
+    caption = dialog._preview.show_request.call_args.args[0].caption
     assert caption == "Blank · 400 of 400 events (no 'FL1 high' gate: all events)"
 
 
@@ -475,11 +486,12 @@ def test_an_empty_population_shows_a_message(dialog, state):
 # ── Plot shape and size ───────────────────────────────────────────────
 
 
-def test_every_preview_plot_is_square(dialog):
+def test_every_preview_plot_is_square(dialog, qtbot):
     dialog._view_combo.setCurrentIndex(dialog._view_combo.findData(VIEW_BOTH))
+    axes = _drawn(dialog, qtbot)
 
-    assert len(dialog._preview.axes) == 4
-    assert all(ax.get_box_aspect() == 1 for ax in dialog._preview.axes)
+    assert len(axes) == 4
+    assert all(ax.get_box_aspect() == 1 for ax in axes)
 
 
 def test_all_samples_rows_are_sized_for_square_plots(all_samples):

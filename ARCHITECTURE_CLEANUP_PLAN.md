@@ -379,9 +379,14 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       Copy/Download menu had never been connected: now wired (`canvas/plot_export.py`, user's call).
 - [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
 - [ ] `graph_window.py` (901; 896), `comparisons_viewer.py` (825; 795).
-- [ ] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:
+- [x] Charts built inline on the GUI thread move onto `IPlotRenderer` as their widget is split:
       `statistics_explorer`, `cluster_results_panel`, `cluster_map_view`,
-      `compensation_preview`.
+      `compensation_preview`. They draw through `ui/widgets/figure_view.py` (`FigureView`: one
+      render at a time, the newest request wins, a message wins over a render in flight). The
+      map's renderers are in `cluster_map_renderer.py` (subclasses describe their lines as
+      `MapLines` data); the preview carries its theme colours (`PreviewColors`) and plans in
+      `prepare()`, outside the raster lock. The SIGBUS it exposed was the one-shot worker's
+      512 KB macOS stack (SDK `c36f1f0`).
 
 ## B8. Composition root and typing — done
 

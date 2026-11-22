@@ -52,8 +52,7 @@ from ...analysis.statistics_table import (
     write_csv,
 )
 from ..academy_context import PopulationPicks, StatisticsSnapshot
-from ..graph.figure_renderer import FigureRenderWorker
-from .copyable import CopyableCanvas
+from .figure_view import FigureView
 from .selection.selector_panel import SampleAndPopulationSelector
 from .stat_picker import StatPicker
 from .statistics_chart_renderer import CHART_TYPES, StatisticsChartRenderer
@@ -83,9 +82,6 @@ class StatisticsExplorer(QWidget):
         self._gate_coordinator = gate_coordinator
         self._table: StatisticsTable | None = None  # the last computed results
         self._computing = False
-        self._figure: Figure | None = None  # the chart on screen
-        self._chart_worker: FigureRenderWorker | None = None
-        self._chart_stale = False  # the chart's settings changed while it rendered
         # Exports that succeeded ("csv", "copy", "plot"); the Academy's export
         # checklist (ExportDoneValidator) reads it.
         self.completed_exports: set[str] = set()
@@ -238,11 +234,10 @@ class StatisticsExplorer(QWidget):
         table_layout.addWidget(self._estimated_caption)
         self._display_stack.addWidget(table_page)
 
-        self._chart_page = QWidget()
+        self._chart_page = FigureView()  # drawn off the GUI thread
         self._chart_page.setObjectName("StatsChartCanvas")
         theme_manager.apply_style(self._chart_page, "background: {BG_DARKEST}; border-radius: 8px;")
-        self._chart_layout = QVBoxLayout(self._chart_page)
-        self._chart_layout.setContentsMargins(0, 0, 0, 0)
+        self._chart_page.render_failed.connect(self._on_chart_failed)
         self._display_stack.addWidget(self._chart_page)
 
         layout.addWidget(self._display_stack, stretch=1)
@@ -383,12 +378,8 @@ class StatisticsExplorer(QWidget):
         stat = self._chart_stat_combo.currentData()
         if self._table is None or stat is None or self._display_stack.currentIndex() != _CHART:
             return
-        if self._chart_worker is not None and self._chart_worker.isRunning():
-            self._chart_stale = True  # redrawn with the new settings when this one lands
-            return
-        self._chart_stale = False
         values, estimated = self._table.values(stat)
-        worker = FigureRenderWorker(
+        self._chart_page.draw(
             StatisticsChartRenderer(),
             {
                 "chart_type": self._chart_type_combo.currentText(),
@@ -406,34 +397,20 @@ class StatisticsExplorer(QWidget):
                 "accent": Colors.ACCENT_PRIMARY,
                 "warning": Colors.ACCENT_WARNING,
             },
-            self,
         )
-        worker.finished_ok.connect(self._on_chart_rendered)
-        worker.finished_err.connect(self._on_chart_failed)
-        # Qt aborts if a running QThread is destroyed with its parent: wait it out.
-        self.destroyed.connect(lambda *_: worker.stop_and_wait())
-        self._chart_worker = worker
-        worker.start()
-
-    def _on_chart_rendered(self, figure: Figure) -> None:
-        self._figure = figure
-        while (item := self._chart_layout.takeAt(0)) is not None:
-            if (old := item.widget()) is not None:
-                old.deleteLater()
-        self._chart_layout.addWidget(CopyableCanvas(figure))
-        if self._chart_stale:
-            self._redraw_chart()
 
     def _on_chart_failed(self, message: str) -> None:
-        logger.error("Statistics chart failed: %s", message)
         self._status_lbl.setText(f"❌ The chart could not be drawn: {message}")
-        if self._chart_stale:
-            self._redraw_chart()
 
     def _apply_theme_styles(self) -> None:
         self._redraw_chart()  # the theme's colours are drawn into the figure
 
     # ── Export ───────────────────────────────────────────────────────────
+
+    @property
+    def _figure(self) -> Figure | None:
+        """The chart on screen."""
+        return self._chart_page.figure
 
     def _on_export_plot(self) -> None:
         if self._figure is None:

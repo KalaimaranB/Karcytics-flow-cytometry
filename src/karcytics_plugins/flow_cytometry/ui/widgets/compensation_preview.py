@@ -7,13 +7,15 @@ so the transforms, tick labels and render settings match the workspace plots.
 
 Two steps, so many previews can be produced off the UI thread:
 ``plan_preview`` does the number work, ``draw_preview`` the matplotlib work.
-``CompensationPreview`` runs both on a live canvas for one sample;
-``render_preview_image`` runs both into an image, for a worker thread.
+``CompensationPreview`` shows one sample, drawn in the background by
+``CompensationPreviewRenderer``; ``render_preview_image`` draws one row into
+an image, for the all-samples grid's worker threads. Neither reads the theme:
+a request carries its colours (``PreviewColors``), read on the GUI thread.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
 
@@ -26,17 +28,16 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Patch
 
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale, calculate_auto_range
-from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
-    LockedFigureCanvas,  # thread-safe vs RenderTask's Agg rasterization
-)
 from karcytics_plugins.flow_cytometry.ui.graph.canvas.axis_formatter import AxisFormatter
 from karcytics_plugins.flow_cytometry.ui.graph.canvas.data_layer import (
     FlowDataComputeStage,
     FlowRenderData,
     FlowRenderState,
 )
+from karcytics_plugins.flow_cytometry.ui.graph.figure_renderer import IPlotRenderer
 from karcytics_plugins.flow_cytometry.ui.graph.flow_canvas import DisplayMode
 from karcytics_plugins.flow_cytometry.ui.graph.flow_services import CoordinateMapper
+from karcytics_plugins.flow_cytometry.ui.widgets.figure_view import FigureView
 
 VIEW_SCATTER = "scatter"
 VIEW_HISTOGRAM = "histogram"
@@ -45,6 +46,28 @@ VIEW_BOTH = "both"
 _PLOT_BG = "#FFFFFF"
 _BEFORE_COLOR = "#888888"
 _IMAGE_DPI = 100
+
+
+@dataclass(frozen=True)
+class PreviewColors:
+    """The theme colours drawn into a preview."""
+
+    background: str
+    foreground: str
+    secondary: str
+    accent: str  # the "after" histogram, when its strategy names none
+    border: str
+
+    @classmethod
+    def current(cls) -> PreviewColors:
+        """The theme's colours now (call on the GUI thread)."""
+        return cls(
+            Colors.BG_DARKEST,
+            Colors.FG_PRIMARY,
+            Colors.FG_SECONDARY,
+            Colors.ACCENT_PRIMARY,
+            Colors.BORDER,
+        )
 
 
 @dataclass
@@ -60,6 +83,7 @@ class PreviewRequest:
     view: str  # VIEW_SCATTER | VIEW_HISTOGRAM | VIEW_BOTH
     caption: str  # which sample and how many events
     render_config: Any | None = None
+    colors: PreviewColors = field(default_factory=PreviewColors.current)
 
 
 @dataclass
@@ -152,8 +176,9 @@ def draw_preview(fig: Figure, plan: PreviewPlan, single_row: bool = False) -> li
     Scatter pair first, then one histogram per channel. With both views they
     stack as two rows, unless ``single_row`` (a row in the all-samples list).
     """
+    colors = plan.request.colors
     fig.clear()
-    fig.set_facecolor(Colors.BG_DARKEST)  # the theme may have changed since the last draw
+    fig.set_facecolor(colors.background)
     count = plan.plot_count
     rows = 1 if single_row or count <= 2 else 2  # noqa: PLR2004
     axes = [fig.add_subplot(rows, count // rows, index + 1) for index in range(count)]
@@ -177,19 +202,24 @@ def draw_preview(fig: Figure, plan: PreviewPlan, single_row: bool = False) -> li
                 ax.set_ylim(limits[1])
                 ax.set_title(title)
             ax.set_ylabel(request.y_param)
-            _style(ax, DisplayMode.PSEUDOCOLOR, plan.x_scale, plan.y_scale, limits)
+            _style(ax, colors, DisplayMode.PSEUDOCOLOR, plan.x_scale, plan.y_scale, limits)
     for param, scale, before, after in plan.histograms:
-        _draw_histogram(next(remaining), param, scale, before, after)
+        _draw_histogram(next(remaining), colors, param, scale, before, after)
 
-    fig.suptitle(request.caption, color=Colors.FG_SECONDARY, fontsize=9)
+    fig.suptitle(request.caption, color=colors.secondary, fontsize=9)
     return axes
 
 
 def _draw_histogram(
-    ax: Any, param: str, scale: AxisScale, before: FlowRenderData, after: FlowRenderData
+    ax: Any,
+    colors: PreviewColors,
+    param: str,
+    scale: AxisScale,
+    before: FlowRenderData,
+    after: FlowRenderData,
 ) -> None:
     """``param`` before (grey) and after (the histogram colour), on shared bins."""
-    after_color = after.strategy_kwargs.get("color", Colors.ACCENT_PRIMARY)
+    after_color = after.strategy_kwargs.get("color", colors.accent)
     before.strategy_kwargs = {
         **before.strategy_kwargs,
         "color": _BEFORE_COLOR,
@@ -207,7 +237,7 @@ def _draw_histogram(
         fontsize=8,
         loc="upper right",
     )
-    _style(ax, DisplayMode.HISTOGRAM, scale, scale, (after.xlim, None))
+    _style(ax, colors, DisplayMode.HISTOGRAM, scale, scale, (after.xlim, None))
 
 
 def _draw(ax: Any, data: FlowRenderData) -> bool:
@@ -231,7 +261,12 @@ def _draw(ax: Any, data: FlowRenderData) -> bool:
 
 
 def _style(
-    ax: Any, mode: DisplayMode, x_scale: AxisScale, y_scale: AxisScale, limits: tuple
+    ax: Any,
+    colors: PreviewColors,
+    mode: DisplayMode,
+    x_scale: AxisScale,
+    y_scale: AxisScale,
+    limits: tuple,
 ) -> None:
     """Tick labels and theme colours; ``limits`` (xlim, ylim) are re-applied
     last because drawing and tick formatting both nudge the view.
@@ -246,14 +281,14 @@ def _style(
             _display_mode=mode,
         )
     ).apply_formatting()
-    ax.tick_params(colors=Colors.FG_PRIMARY, labelsize=8)
+    ax.tick_params(colors=colors.foreground, labelsize=8)
     for label in (ax.xaxis.label, ax.yaxis.label, ax.title):
-        label.set_color(Colors.FG_PRIMARY)
+        label.set_color(colors.foreground)
     ax.xaxis.label.set_fontsize(9)
     ax.yaxis.label.set_fontsize(9)
     ax.title.set_fontsize(10)
     for spine in ax.spines.values():
-        spine.set_color(Colors.BORDER)
+        spine.set_color(colors.border)
     xlim, ylim = limits
     if xlim is not None:
         ax.set_xlim(xlim)
@@ -273,7 +308,7 @@ def render_preview_image(
     fig = Figure(
         figsize=(width / _IMAGE_DPI, height / _IMAGE_DPI),
         dpi=_IMAGE_DPI * pixel_ratio,
-        facecolor=Colors.BG_DARKEST,
+        facecolor=request.colors.background,
         layout="constrained",
     )
     canvas = FigureCanvasAgg(fig)
@@ -286,33 +321,30 @@ def render_preview_image(
     return {"image_data": buffer, "width": pixel_width, "height": pixel_height}
 
 
-class CompensationPreview:
-    """Owns the live preview figure for one sample, redrawn from a ``PreviewRequest``."""
+class CompensationPreviewRenderer(IPlotRenderer):
+    """kwargs: ``request`` (`PreviewRequest`). The number work runs outside the raster lock."""
+
+    def prepare(self, **kwargs) -> dict:
+        return {"plan": plan_preview(kwargs["request"])}
+
+    def render(self, **kwargs) -> Figure:
+        plan: PreviewPlan = kwargs["plan"]
+        fig = Figure(figsize=(8, 4), facecolor=plan.request.colors.background, layout="constrained")
+        draw_preview(fig, plan)
+        return fig
+
+
+class CompensationPreview(FigureView):
+    """One sample's preview, redrawn in the background from each new request."""
 
     def __init__(self) -> None:
-        self._fig = Figure(figsize=(8, 4), facecolor=Colors.BG_DARKEST, layout="constrained")
-        self.canvas = LockedFigureCanvas(self._fig)
-        self.axes: list[Any] = []
+        super().__init__()
         self.show_message("Select a sample to preview the matrix.")
 
-    # The first two plots: the scatter pair, or the two histograms.
     @property
-    def _left(self) -> Any:
-        return self.axes[0]
+    def axes(self) -> list[Any]:
+        """The plots on screen: the scatter pair first, then the histograms."""
+        return list(self.figure.axes) if self.figure is not None else []
 
-    @property
-    def _right(self) -> Any:
-        return self.axes[1]
-
-    def render(self, request: PreviewRequest) -> None:
-        self.axes = draw_preview(self._fig, plan_preview(request))
-        self.canvas.draw_idle()
-
-    def show_message(self, message: str) -> None:
-        self._fig.clear()
-        self._fig.set_facecolor(Colors.BG_DARKEST)
-        self.axes = []
-        self._fig.text(
-            0.5, 0.5, message, ha="center", va="center", color=Colors.FG_SECONDARY, fontsize=10
-        )
-        self.canvas.draw_idle()
+    def show_request(self, request: PreviewRequest) -> None:
+        self.draw(CompensationPreviewRenderer(), {"request": request})
