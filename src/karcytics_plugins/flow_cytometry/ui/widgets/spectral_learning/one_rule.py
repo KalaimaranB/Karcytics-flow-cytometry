@@ -16,6 +16,7 @@ from .slide import AnswerBox, Slide, choices, heading, hint, label_axes, task
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
+    from .deck import SpectralLearningTab
     from .scenes import TeachingPair
 
 FLOOR = 40.0  # autofluorescence: where a cell with none of the second dye sits
@@ -114,7 +115,7 @@ def plot_cells(
 class OneRuleSlide(Slide):
     title = "One Rule for Every Cell"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.rule_found = False  # picked "in proportion to its first-dye brightness"
         self.wrong_hint: str | None = None

@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
 
+    from .deck import SpectralLearningTab
+
 CROSSHAIR_START = 800.0  # far past the cloud: the learner drags it in
 CROSSHAIR_DONE = 200.0  # where a finished slide shows it
 CLEAR_OF_CLOUD = (150.0, 250.0)  # the threshold has to land in here on both axes
@@ -28,7 +30,7 @@ WRONG_HINT = (
 class ZeroSlide(Slide):
     title = "Setting the Zero"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.predicted = False
         self.wrong_hint: str | None = None

@@ -1,4 +1,4 @@
-"""What a Learning Compensation slide is, what the deck gives it, and its shared pieces.
+"""What a Learning Compensation slide is, and the pieces several slides share.
 
 A slide renders its plot and returns the explanation panel's HTML, then reacts
 to the learner: a link in the panel, a press, drag or release on the plot, an
@@ -8,8 +8,7 @@ task is done lives on the deck, which the Academy reads.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from karcytics_sdk.plugin.components import BioLineEdit, PrimaryButton
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
@@ -19,41 +18,9 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-    from .scenes import TeachingPair
+    from .deck import SpectralLearningTab
 
 SCATTER_RANGE = (0, 1000)  # both detectors' range on the simulated-cell slides
-
-
-class DeckHost(Protocol):
-    """The deck, as its slides see it."""
-
-    @property
-    def fluors(self) -> dict[str, dict[str, Any]]: ...
-
-    @property
-    def pair(self) -> TeachingPair: ...
-
-    def is_done(self, slide: Slide) -> bool: ...
-
-    def complete(self, slide: Slide) -> None:
-        """Mark ``slide``'s task done (the deck then lets the learner move on)."""
-
-    def refresh(self) -> None:
-        """Render the current slide again: plot, explanation and controls."""
-
-    def redraw(self) -> None:
-        """Repaint the plot after a slide moved its own artists (a drag)."""
-
-    def ask(self, placeholder: str, on_submit: Callable[[AnswerBox], None]) -> AnswerBox: ...
-
-    def add_button(self, text: str, on_click: Callable[[], None]) -> None: ...
-
-    def set_readout(self, text: str) -> None: ...
-
-    def start_ticks(self, interval_ms: int) -> None:
-        """Call the current slide's ``on_tick`` every ``interval_ms`` until ``stop_ticks``."""
-
-    def stop_ticks(self) -> None: ...
 
 
 class Slide:
@@ -61,7 +28,7 @@ class Slide:
 
     title: ClassVar[str] = ""
 
-    def __init__(self, deck: DeckHost) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         self.deck = deck
 
     @property

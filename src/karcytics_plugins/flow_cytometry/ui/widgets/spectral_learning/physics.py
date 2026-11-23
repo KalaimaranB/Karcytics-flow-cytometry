@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.text import Text
 
+    from .deck import SpectralLearningTab
     from .scenes import TeachingPair
 
 WAVELENGTHS = np.linspace(350, 800, 451)  # nm
@@ -31,7 +32,7 @@ TOP = 1.1
 class PhysicsSlide(Slide):
     title = "The Physics of Overlap"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.filter_placed = False
         self.wrong_hint: str | None = None

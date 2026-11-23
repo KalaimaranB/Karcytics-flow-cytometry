@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.collections import PathCollection
 
+    from .deck import SpectralLearningTab
+
 SCENE_SEED = 99
 LANDING = (600.0, 100.0)  # where the single-positive population really ends up
 FLOOR_Y = 100.0  # its compensated level on the second detector
@@ -27,7 +29,7 @@ STEP = 0.02  # of the animation per tick: 50 ticks, about 1.5 s
 class CompensateSlide(Slide):
     title = "Compensate All"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.prediction: tuple[float, float] | None = None
         self.progress = 0.0  # 0 → 1 through the animation

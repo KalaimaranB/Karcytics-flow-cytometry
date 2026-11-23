@@ -357,8 +357,8 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
 - [x] `spectral_learning_tab.py` (1,382; 1,331 → the `spectral_learning/` package, largest file
       `deck.py` at 275): `deck.SpectralLearningTab` pages, renders and routes plot events; each
       slide is a `Slide` (`physics`, `zero`, `ruler`, `one_rule` (with the old `spectral_slide4`),
-      `compensate`, `gate`, `matrix`) that owns its task's state and sees the deck through the
-      `DeckHost` protocol; `scenes` holds the Qt-free numbers (`teaching_pair`, `overlap_matrix`).
+      `compensate`, `gate`, `matrix`) that owns its task's state and calls the deck's small
+      "what the slides use" section (a type-only import, no Protocol: one implementation); `scenes` holds the Qt-free numbers (`teaching_pair`, `overlap_matrix`).
       An `AnswerBox` (SDK line edit and button; Enter submits) replaces three copies of the
       typed-answer handling, and controls are `deleteLater`'d, so the `_defer` dance is gone.
       Drags and the animation move their own artists instead of re-rendering the slide on every

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
 
+    from .deck import SpectralLearningTab
     from .scenes import TeachingPair
 
 PCT_TOLERANCE = 4.0  # percentage points a typed answer may be off what the ruler implies
@@ -30,7 +31,7 @@ FAR_OFF = "Not quite — try placing your points closer to the dim and bright en
 class RulerSlide(Slide):
     title = "Measure the Leak"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.points: list[tuple[float, float]] = []  # the ruler's ends, as placed
         self.measured = False  # the ruler's slope is close to the real spillover

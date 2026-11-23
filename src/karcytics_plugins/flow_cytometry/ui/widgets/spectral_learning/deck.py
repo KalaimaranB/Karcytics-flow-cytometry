@@ -158,7 +158,7 @@ class SpectralLearningTab(QWidget):
         super().showEvent(event)
         self.update_view()
 
-    # ── what the slides use (``slide.DeckHost``) ──
+    # ── what the slides use ──
 
     @property
     def fluors(self) -> dict[str, dict[str, Any]]:
@@ -174,12 +174,15 @@ class SpectralLearningTab(QWidget):
         return self.slides.index(slide) in self._completed_steps
 
     def complete(self, slide: Slide) -> None:
+        """Mark ``slide``'s task done (Next then lets the learner move on)."""
         self._completed_steps.add(self.slides.index(slide))
 
     def refresh(self) -> None:
+        """Render the current slide again: plot, explanation and controls."""
         self.update_view()
 
     def redraw(self) -> None:
+        """Repaint the plot after a slide moved its own artists (a drag, a tick)."""
         self._canvas.draw_idle()
 
     def ask(self, placeholder: str, on_submit: Callable[[AnswerBox], None]) -> AnswerBox:
@@ -197,6 +200,7 @@ class SpectralLearningTab(QWidget):
         self._readout.setText(text)
 
     def start_ticks(self, interval_ms: int) -> None:
+        """Call the current slide's ``on_tick`` every ``interval_ms`` until ``stop_ticks``."""
         self._ticker.start(interval_ms)
 
     def stop_ticks(self) -> None:

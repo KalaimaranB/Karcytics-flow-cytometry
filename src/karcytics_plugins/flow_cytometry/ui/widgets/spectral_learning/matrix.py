@@ -15,6 +15,7 @@ from .slide import AnswerBox, Slide, choices, heading, hint, task
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
+    from .deck import SpectralLearningTab
     from .scenes import TeachingPair
 
 TUBE_HINTS = {
@@ -31,7 +32,7 @@ TUBE_HINTS = {
 class MatrixSlide(Slide):
     title = "Building the Compensation Matrix"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.tube_found = False  # picked the single-stain tube
         self.wrong_hint: str | None = None

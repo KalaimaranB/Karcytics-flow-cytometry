@@ -13,6 +13,8 @@ from .slide import Slide, heading, label_axes, scatter_frame, task
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
+    from .deck import SpectralLearningTab
+
 SCENE_SEED = 99
 DOUBLE_POSITIVES = (600.0, 600.0)  # the population's centre: the gate must hold it
 BACKGROUND = (100.0, 100.0)  # and must leave this out
@@ -22,7 +24,7 @@ THRESHOLD = 200.0
 class GateSlide(Slide):
     title = "Gate the Cleaned Data"
 
-    def __init__(self, deck) -> None:
+    def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.gate: tuple[float, float, float, float] | None = None  # x0, y0, x1, y1
         self._dragging = False
