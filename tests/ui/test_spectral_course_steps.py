@@ -19,11 +19,12 @@ from karcytics_plugins.flow_cytometry.ui.academy_context import (
     SPECTRAL_TAB_HIGHLIGHT_KEY,
     AcademyContext,
 )
-from karcytics_plugins.flow_cytometry.ui.widgets.spectral_slide4 import (
-    grade_slide4_answer,
-    slide4_cells,
-    slide4_expected_dp,
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.one_rule import (
+    compensated_dp,
+    grade_dp_answer,
+    three_cells,
 )
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.slide import AnswerBox
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer import SpectralViewer
 
 
@@ -82,43 +83,41 @@ def test_the_viewer_cites_fpbase(viewer):
 @pytest.mark.ui
 def test_step_4_needs_the_proportional_rule_then_the_double_positive(viewer):
     deck = viewer.learning_tab
-    deck._current_step = 3
-    deck.update_view()
+    deck._go_to(3)
+    slide = deck.slides[3]
 
-    deck._on_html_link_clicked(QUrl("s4_same"))
-    assert not deck._slide4_mc_correct
-    assert deck._slide4_mc_hint
+    deck._on_link(QUrl("s4_same"))
+    assert not slide.rule_found
+    assert slide.wrong_hint
 
-    deck._on_html_link_clicked(QUrl("s4_proportional"))
-    assert deck._slide4_mc_correct
+    deck._on_link(QUrl("s4_proportional"))
+    assert slide.rule_found
     assert 3 not in deck._completed_steps
 
-    _a, _b, pct = deck._teaching_pair()
-    expected = slide4_expected_dp(pct, slide4_cells(pct))
-    assert deck._answer_error.wordWrap()
-    deck._answer_input.setText(f"{expected:.0f}")
-    deck._check_slide4_answer()
-    deck._finish_slide4()  # what the deferred callback runs
+    box = deck.findChild(AnswerBox)
+    assert box.error.wordWrap()
+    box.input.setText(f"{compensated_dp(deck.pair.pct, three_cells(deck.pair.pct)):.0f}")
+    box.submitted.emit()
     assert 3 in deck._completed_steps
 
 
 def test_step_4_grading_names_the_likely_mistake():
     pct = 30.0
-    cells = slide4_cells(pct)
+    cells = three_cells(pct)
     (x3, y3) = cells[2]
-    expected = slide4_expected_dp(pct, cells)
+    expected = compensated_dp(pct, cells)
 
-    assert grade_slide4_answer(expected, pct, cells) is None
-    assert grade_slide4_answer(expected + 8, pct, cells) is None
-    assert "raw reading" in grade_slide4_answer(y3, pct, cells)
-    assert "floor" in grade_slide4_answer(40, pct, cells)
-    assert "subtracted all" in grade_slide4_answer(y3 - x3, pct, cells)
-    assert "subtract" in grade_slide4_answer(expected + 100, pct, cells)
+    assert grade_dp_answer(expected, pct, cells) is None
+    assert grade_dp_answer(expected + 8, pct, cells) is None
+    assert "raw reading" in grade_dp_answer(y3, pct, cells)
+    assert "floor" in grade_dp_answer(40, pct, cells)
+    assert "subtracted all" in grade_dp_answer(y3 - x3, pct, cells)
+    assert "subtract" in grade_dp_answer(expected + 100, pct, cells)
 
 
 def test_cell_3_stays_positive_after_compensation():
     for pct in (5.0, 38.0, 72.0):
-        cells = slide4_cells(pct)
+        cells = three_cells(pct)
         for x, y in cells[:2]:
             assert abs((y - pct / 100 * x) - 40) <= 1  # pure leak lands on the floor
-        assert slide4_expected_dp(pct, cells) > 300  # noqa: PLR2004
+        assert compensated_dp(pct, cells) > 300  # noqa: PLR2004

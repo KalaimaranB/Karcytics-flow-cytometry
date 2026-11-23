@@ -1,0 +1,260 @@
+"""The Learning Compensation deck, played through slide by slide with real plot events."""
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
+import numpy as np
+import pytest
+from karcytics_sdk.plugin.components import PrimaryButton
+from PySide6.QtCore import QUrl
+
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.one_rule import (
+    compensated_dp,
+    three_cells,
+)
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.scenes import (
+    overlap_matrix,
+    teaching_pair,
+)
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.slide import AnswerBox
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer import SpectralViewer
+
+pytestmark = pytest.mark.ui
+
+
+def _em(peak: float) -> list[list[float]]:
+    return [[float(x), float(np.exp(-(((x - peak) / 30) ** 2)))] for x in np.arange(350, 800)]
+
+
+TWO_DYES = {
+    "fitc": {"em_data": _em(520), "display_label": "FITC"},
+    "pe": {"em_data": _em(560), "display_label": "PE"},
+}
+
+
+@pytest.fixture
+def deck(qtbot):
+    viewer = SpectralViewer(FlowState(), MagicMock(), None)
+    qtbot.addWidget(viewer)
+    viewer._active_fluors = dict(TWO_DYES)
+    deck = viewer.learning_tab
+    deck.update_view()
+    return deck
+
+
+def _press(deck, x, y):
+    deck._on_press(SimpleNamespace(inaxes=deck._ax, xdata=x, ydata=y))
+
+
+def _drag(deck, x, y):
+    deck._on_move(SimpleNamespace(inaxes=deck._ax, xdata=x, ydata=y))
+
+
+def _release(deck):
+    deck._on_release(SimpleNamespace(inaxes=None, xdata=None, ydata=None))
+
+
+def _answer(deck, text: str) -> AnswerBox:
+    box = next(b for b in deck.findChildren(AnswerBox) if b.isVisibleTo(deck))
+    box.input.setText(text)
+    box.submitted.emit()
+    return box
+
+
+def _next(deck):
+    assert deck._btn_next.isEnabled()
+    deck._btn_next.click()
+
+
+def _done(deck) -> bool:
+    return deck._current_step in deck._completed_steps
+
+
+def test_with_one_dye_the_deck_waits_and_ignores_clicks(deck):
+    deck._viewer._active_fluors = {"fitc": TWO_DYES["fitc"]}
+    deck.update_view()
+
+    assert deck._step_label.text() == "Waiting for Selection..."
+    _press(deck, 0.5, 0.5)  # no slide to pass it to
+    _release(deck)
+
+
+def test_step_1_drag_the_filter_onto_the_peak_then_pick_the_leaking_dye(deck):
+    slide = deck.slides[0]
+    assert not deck._btn_next.isEnabled()
+
+    _press(deck, 575, 0.5)  # the band starts mid-wavelength
+    _drag(deck, 521, 0.5)
+    _release(deck)
+    assert slide.filter_placed
+
+    _press(deck, 700, 0.5)
+    assert slide.wrong_hint == "Click inside the shaded detector band."
+    _press(deck, slide._peak_x, slide._heights["pe"])
+
+    assert _done(deck)
+    assert "Correct!" in deck._explanation.toPlainText()
+
+
+def test_step_1_a_filter_dropped_off_the_peak_stays_unplaced(deck):
+    _press(deck, 575, 0.5)
+    _drag(deck, 700, 0.5)
+    _release(deck)
+
+    assert not deck.slides[0].filter_placed
+
+
+def test_step_2_predict_first_then_clear_the_cloud(deck):
+    deck._go_to(1)
+    slide = deck.slides[1]
+
+    deck._on_link(QUrl("predict_wrong"))
+    assert slide.wrong_hint and not slide.predicted
+    deck._on_link(QUrl("predict_correct"))
+
+    _press(deck, 800, 800)
+    _drag(deck, 600, 600)
+    _release(deck)
+    assert not _done(deck)  # inside the cloud's reach: try again from where it was dropped
+    assert slide._at == (600, 600)
+
+    _press(deck, 600, 600)
+    _drag(deck, 200, 210)
+    _release(deck)
+    assert _done(deck)
+
+
+def test_step_3_measure_the_slope_then_type_what_it_implies(deck):
+    deck._go_to(2)
+    slide = deck.slides[2]
+    slope = deck.pair.pct / 100
+
+    _press(deck, 700, 700 * slope)
+    _drag(deck, 760, 760 * slope)
+    _release(deck)
+    assert slide.wrong_hint == "Drag your two points further apart for a reliable reading."
+
+    _press(deck, 650, 650 * slope)
+    _drag(deck, 950, 950 * slope)
+    assert "Slope:" in deck._readout.text()
+    _release(deck)
+    assert slide.measured
+
+    box = _answer(deck, "999")
+    assert box.error.isVisibleTo(box)
+    assert not _done(deck)
+    _answer(deck, f"{deck.pair.pct:.1f}%")
+    assert _done(deck)
+
+
+def test_step_4_the_double_positive_keeps_its_own_signal(deck):
+    deck._go_to(3)
+    deck._on_link(QUrl("s4_proportional"))
+    box = _answer(deck, "lots")
+    assert box.error.text() == "Enter a number, e.g. 250"
+
+    _answer(deck, f"{compensated_dp(deck.pair.pct, three_cells(deck.pair.pct)):.0f}")
+
+    assert _done(deck)
+
+
+def test_step_5_predict_then_watch_compensation_land(deck, qtbot):
+    deck._go_to(4)
+    slide = deck.slides[4]
+    _press(deck, 600, 120)
+    assert slide.prediction == (600, 120)
+
+    button = next(
+        b
+        for b in deck.findChildren(PrimaryButton)
+        if b.text() == "⚙️ Compensate All" and b.isVisibleTo(deck)
+    )
+    button.click()
+    assert slide.animating and deck._ticker.isActive()
+
+    qtbot.waitUntil(lambda: _done(deck), timeout=5000)
+    assert not deck._ticker.isActive()
+    assert slide.progress == 1.0
+
+
+def test_leaving_step_5_mid_animation_starts_it_over(deck):
+    deck._go_to(4)
+    slide = deck.slides[4]
+    _press(deck, 600, 120)
+    slide._start()
+    slide.on_tick()
+
+    deck._go_to(3)
+
+    assert not deck._ticker.isActive()
+    assert (slide.animating, slide.progress) == (False, 0.0)
+
+
+def test_step_6_a_gate_released_off_the_plot_still_counts(deck):
+    deck._go_to(5)
+    _press(deck, 50, 50)  # takes in the background too
+    _drag(deck, 900, 900)
+    _release(deck)
+    assert not _done(deck)
+
+    _press(deck, 420, 420)
+    _drag(deck, 850, 850)
+    _release(deck)  # off the plot: judged on the gate as last drawn
+
+    assert _done(deck)
+
+
+def test_step_7_the_single_stain_tube_then_one_tube_per_dye_plus_unstained(deck):
+    deck._go_to(6)
+    slide = deck.slides[6]
+    deck._on_link(QUrl("mc_full"))
+    assert "isolate" in slide.wrong_hint
+    deck._on_link(QUrl("mc_single"))
+
+    assert _answer(deck, "2.5").error.text() == "Enter a whole number."
+    _answer(deck, "3")
+
+    assert _done(deck)
+    snapshot = deck.academy_snapshot()
+    assert snapshot.step == snapshot.last_step
+    assert snapshot.last_step in snapshot.completed
+
+
+def test_next_unlocks_only_once_the_slide_is_done(deck):
+    deck._go_to(1)
+    deck._on_link(QUrl("predict_correct"))
+    assert not deck._btn_next.isEnabled()
+    _press(deck, 800, 800)
+    _drag(deck, 200, 200)
+    _release(deck)
+
+    _next(deck)
+
+    assert deck._current_step == 2  # noqa: PLR2004 - the ruler slide
+
+
+def test_new_dyes_bring_a_new_teaching_pair(deck):
+    assert {deck.pair.dye_a, deck.pair.dye_b} == {"fitc", "pe"}
+
+    deck._viewer._active_fluors = {
+        "bv421": {"em_data": _em(421), "display_label": "BV421"},
+        "bv510": {"em_data": _em(470), "display_label": "BV510"},
+    }
+    deck.update_view()
+
+    assert {deck.pair.dye_a, deck.pair.dye_b} == {"bv421", "bv510"}
+
+
+def test_the_matrix_is_symmetric_with_100_on_the_diagonal():
+    names = list(TWO_DYES)
+    matrix = overlap_matrix(TWO_DYES, names)
+
+    assert np.allclose(np.diag(matrix), 100)
+    assert matrix[0, 1] == matrix[1, 0] == teaching_pair(TWO_DYES).pct
+
+
+def test_a_dye_without_a_spectrum_cannot_make_a_pair():
+    assert teaching_pair({"fitc": TWO_DYES["fitc"], "x": {"display_label": "X"}}) is None

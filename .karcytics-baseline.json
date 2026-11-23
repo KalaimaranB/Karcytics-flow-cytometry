@@ -529,14 +529,6 @@
       "KS242": 1,
       "KS320": 1
     },
-    "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_learning_tab.py": {
-      "KS210": 3,
-      "KS240": 51,
-      "KS242": 1,
-      "KS300": 1331,
-      "KS301:SpectralLearningTab": 53,
-      "KS310": 22
-    },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/spectral_viewer.py": {
       "KS240": 4,
       "KS242": 8,

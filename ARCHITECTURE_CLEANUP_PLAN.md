@@ -354,7 +354,21 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       way: the table's cluster swatches used `tab20(id)` while the map used `tab20(id - lowest)`,
       so they disagreed as soon as HDBSCAN noise or a drawn population made an id -1 (one
       `cluster_rgb` now); drawing a population left the map coloured by the old clusters.
-- [ ] `spectral_learning_tab.py` (1,382; 1,331).
+- [x] `spectral_learning_tab.py` (1,382; 1,331 → the `spectral_learning/` package, largest file
+      `deck.py` at 275): `deck.SpectralLearningTab` pages, renders and routes plot events; each
+      slide is a `Slide` (`physics`, `zero`, `ruler`, `one_rule` (with the old `spectral_slide4`),
+      `compensate`, `gate`, `matrix`) that owns its task's state and sees the deck through the
+      `DeckHost` protocol; `scenes` holds the Qt-free numbers (`teaching_pair`, `overlap_matrix`).
+      An `AnswerBox` (SDK line edit and button; Enter submits) replaces three copies of the
+      typed-answer handling, and controls are `deleteLater`'d, so the `_defer` dance is gone.
+      Drags and the animation move their own artists instead of re-rendering the slide on every
+      mouse move or tick. All 51 hard-coded colours are theme tokens (the HTML too, which ignored
+      the light theme), and the deck redraws on a theme change. Fixed on the way: the teaching pair
+      was cached for good, so changing the loaded dyes could raise a KeyError; a gate released off
+      the plot raised a TypeError; a dye without a spectrum could make the deck index an empty
+      pair list; the filter's dashed border and grip label stayed behind when it was dragged; the
+      animation's easing was computed but never used. Tests play every slide through with plot
+      events (`test_spectral_learning_deck.py`).
 - [x] `statistics_explorer.py` (1,378 → 518): the results are Qt-free in
       `analysis/statistics_table.py` (`StatisticsRequest` → `compute_table` → a table of
       `StatCell`s holding the number as well as the text, so the chart no longer parses "1,234"

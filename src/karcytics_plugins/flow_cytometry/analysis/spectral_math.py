@@ -2,7 +2,7 @@
 
 Shared between the Spectral Viewer's overlap-highlighting (`spectral_viewer.py`)
 and the interactive "Learning Compensation" teaching widget
-(`spectral_learning_tab.py`), so both surfaces report the same number for the
+(`ui/widgets/spectral_learning/`), so both surfaces report the same number for the
 same pair of dyes.
 
 The overlap % is a Bhattacharyya-style normalized integral of two dyes'

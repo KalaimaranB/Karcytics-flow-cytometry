@@ -46,7 +46,7 @@ from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
 
-from .spectral_learning_tab import SpectralLearningTab
+from .spectral_learning.deck import SpectralLearningTab
 from .spectral_parts import CitationLabel, DropCanvas, toggle_button
 
 if TYPE_CHECKING:
