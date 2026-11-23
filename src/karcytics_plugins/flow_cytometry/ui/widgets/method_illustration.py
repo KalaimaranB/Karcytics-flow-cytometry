@@ -15,7 +15,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QWheelEvent
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from karcytics_plugins.flow_cytometry.analysis.compensation_sources import FitIllustration
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.base import FitIllustration
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import LockedFigureCanvas
 
 STEP_RECORDED, STEP_PLAIN_FIT, STEP_ROBUST_FIT, STEP_REMOVED = range(4)

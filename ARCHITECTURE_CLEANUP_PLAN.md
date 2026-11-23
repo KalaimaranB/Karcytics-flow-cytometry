@@ -377,7 +377,21 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       (`_finalize_rectangle/_ellipse/_range`, `_clear_drawing_state`, `_setup_axis_ticks`,
       `update_gate_overlays`, `_render_data_layer`, `set_guide_polygon`). The right-click
       Copy/Download menu had never been connected: now wired (`canvas/plot_export.py`, user's call).
-- [ ] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
+- [x] `analysis/compensation_sources.py` (995, moved in B3): one module per matrix source.
+      Now a package: `base` (what a method tells the view, shared helpers), `fcs_metadata`,
+      `single_stain`, `fmo` (485: placement by signal or name, the fits, the illustration),
+      `csv_import`, `manual`, and `registry` (`MATRIX_SOURCES`); importers name the module (no
+      re-exporting `__init__`). Three copies of "same matrix to the four decimals shown" (the
+      FCS source, the library panel, a Course 1 validator) are one `compensation.same_matrix`;
+      `calculate_spillover_matrix`'s two median loops are one `_channel_medians`.
+- [x] The last analysis cycles. Gates no longer build `GateNode`s: `Gate.populations(name)` says
+      which populations a gate makes (four for a quadrant) and `GateNode.add_gate` attaches them,
+      so `gating/base`/`quadrant` never import `gate_node` and `gate_node` imports `gate_factory`
+      at the top. `workspace_document.apply_view` takes its defaults from `type(view)()`, so it
+      needs `state` only for typing and `FlowState.to_dict/from_dict` (the SDK's undo contract)
+      import it at the top. The last 2 KS343 in main_panel: the footer probe guarded nothing
+      (its bus lambdas, never unsubscribed, are now `subscribe_while_alive` on the footer) and
+      the save button starts as `None`.
 - [x] `graph_window.py` (901 → 559). What a population opens on (drawn-on view, last viewed,
       a sub-population's axes) and the parent-population scale fit are Qt-free in
       `analysis/plot_view.py` (`opening_view`, `fitted_scales`; unit-tested), and the name-path

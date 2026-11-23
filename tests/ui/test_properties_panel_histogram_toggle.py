@@ -90,7 +90,7 @@ def test_histogram_tracks_displayed_population_and_selection(make_panel, flow_st
 
     root = flow_state.data.experiment.samples[SAMPLE_ID].gate_tree
     gate = RectangleGate("FSC-A", "SSC-A", x_min=1, x_max=2, y_min=1, y_max=2)
-    selected = gate.create_nodes(root, "Cells")[0]
+    selected = root.add_gate(gate, "Cells")[0]
     panel = make_panel()
     panel._btn_histogram.click()
 

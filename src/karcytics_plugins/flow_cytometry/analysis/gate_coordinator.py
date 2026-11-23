@@ -119,7 +119,7 @@ class GateCoordinator:
             return None
 
         self._record_derived_formulas(gate)
-        nodes = gate.create_nodes(parent, name or self.unique_name(sample_id))
+        nodes = parent.add_gate(gate, name or self.unique_name(sample_id))
         if not nodes:
             return None
         self.recompute_all_stats(sample_id, node_ids=[n.node_id for n in nodes])

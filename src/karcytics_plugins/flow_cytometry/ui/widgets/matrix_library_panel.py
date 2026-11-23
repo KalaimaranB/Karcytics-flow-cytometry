@@ -11,7 +11,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 from karcytics_sdk.plugin import get_logger, repopulate_combo
 from karcytics_sdk.plugin.components import BioComboBox, PrimaryButton, SecondaryButton
 from karcytics_sdk.plugin.dialogs import show_error
@@ -34,9 +33,11 @@ from PySide6.QtWidgets import (
 )
 
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
+    SAME_MATRIX_TOLERANCE,
     CompensationMatrix,
     SavedMatrix,
     export_matrix_to_csv,
+    same_matrix,
 )
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -56,7 +57,6 @@ _LOWER_COLOR = "#2188FF"
 _FULL_TINT_DIFFERENCE = 0.05
 _MAX_TINT_ALPHA = 150
 # Below this two cells count as equal (four decimals are shown).
-_SAME_VALUE = 5e-5
 
 
 @dataclass(frozen=True)
@@ -65,17 +65,6 @@ class _Entry:
     title: str
     matrix: CompensationMatrix
     saved: SavedMatrix | None  # None for the editor's matrix
-
-
-def same_values(a: CompensationMatrix | None, b: CompensationMatrix | None) -> bool:
-    """Same channels and, to the four decimals shown, the same numbers."""
-    if a is None or b is None:
-        return a is b
-    return (
-        a.channel_names == b.channel_names
-        and a.matrix.shape == b.matrix.shape
-        and np.allclose(a.matrix, b.matrix, rtol=0.0, atol=_SAME_VALUE)
-    )
 
 
 class MatrixLibraryPanel(QWidget):
@@ -219,7 +208,7 @@ class MatrixLibraryPanel(QWidget):
         self._list.blockSignals(True)
         self._list.clear()
         for entry in self._entries:
-            mark = _IN_USE_MARK if in_use is not None and same_values(entry.matrix, in_use) else ""
+            mark = _IN_USE_MARK if in_use is not None and same_matrix(entry.matrix, in_use) else ""
             item = QListWidgetItem(f"{entry.title}{mark}\n{self._describe(entry.matrix)}")
             item.setData(Qt.ItemDataRole.UserRole, entry.key)
             self._list.addItem(item)
@@ -295,7 +284,7 @@ class MatrixLibraryPanel(QWidget):
                     item.setBackground(QColor(Colors.BG_DARK))
                 elif comparable and other is not None:
                     delta = value - float(other.matrix.matrix[i, j])
-                    if abs(delta) > _SAME_VALUE:
+                    if abs(delta) > SAME_MATRIX_TOLERANCE:
                         differences.append((delta, i, j))
                         item.setText(f"{value:.4f}  ({delta:+.4f})")
                         item.setBackground(_tint(delta))

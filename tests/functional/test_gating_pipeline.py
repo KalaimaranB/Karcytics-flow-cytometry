@@ -96,7 +96,7 @@ def _build_tree() -> GateNode:
     root = GateNode(name="All Events")
     cells = root.add_child(RectangleGate("FSC-A", "SSC-A", **CELLS), name="Cells")
     apc = cells.add_child(RangeGate("APC-A", low=APC_LOW, high=UPPER), name="APC+")
-    QuadrantGate("FITC-A", "PE-A", x_mid=FITC_MID, y_mid=PE_MID).create_nodes(apc)
+    apc.add_gate(QuadrantGate("FITC-A", "PE-A", x_mid=FITC_MID, y_mid=PE_MID))
     fitc = cells.add_child(RangeGate("FITC-A", low=FITC_MID, high=UPPER), name="FITC+")
     pe = cells.add_child(RangeGate("PE-A", low=PE_MID, high=UPPER), name="PE+")
     both = GateNode(

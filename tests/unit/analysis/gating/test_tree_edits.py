@@ -104,7 +104,7 @@ def test_modify_gate_rejects_invalid_geometry(sample, gate, edit, attribute, unc
 def test_modify_quadrant_subgate_moves_the_shared_crosshair(sample):
     """A quadrant leaf's gate is a QuadrantSubGate: the edit lands on its parent QuadrantGate."""
     quadrant = QuadrantGate("FSC-A", "SSC-A", x_mid=50, y_mid=50, gate_id="quad_1")
-    nodes = quadrant.create_nodes(sample.gate_tree)
+    nodes = sample.gate_tree.add_gate(quadrant)
 
     assert tree_edits.modify_gate(sample, nodes[0].gate.gate_id, x_mid=75, y_mid=25)
 

@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 import numpy as np
 import pandas as pd
 from karcytics_sdk.plugin import get_logger
-
-if TYPE_CHECKING:
-    from .gate_node import GateNode
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -131,25 +128,13 @@ class Gate(ABC):
             gate_id=data.get("gate_id"),
         )
 
-    def create_nodes(self, parent_node: GateNode, name: str | None = None) -> list[GateNode]:
-        """Create and attach GateNodes for this gate to a parent node.
+    def populations(self, name: str | None = None) -> list[tuple[Gate, str]]:
+        """The populations this gate makes, as (gate, name): one, here.
 
-        Most gates create a single node, but some (like QuadrantGate) create multiple.
-
-        Args:
-            parent_node: The node to attach the new nodes to.
-            name: Optional human-readable name for the population.
-
-        Returns:
-            list[GateNode]: The created nodes.
+        A quadrant makes four (``QuadrantGate.populations``). ``name`` defaults
+        to the start of the gate id. ``GateNode.add_gate`` turns these into nodes.
         """
-        # Note: To avoid circular imports, GateNode is imported here
-        from .gate_node import GateNode
-
-        node_name = name or (self.gate_id[:8] if self.gate_id else "Unknown")
-        child = GateNode(gate=self, name=node_name, parents=[parent_node])
-        parent_node.children.append(child)
-        return [child]
+        return [(self, name or (self.gate_id[:8] if self.gate_id else "Unknown"))]
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} on {self.x_param}/{self.y_param}>"

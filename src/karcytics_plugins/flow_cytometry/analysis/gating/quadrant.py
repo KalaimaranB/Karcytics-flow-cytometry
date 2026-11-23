@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 import pandas as pd
-
-if TYPE_CHECKING:
-    from .gate_node import GateNode
 
 from .._utils import ScaleFactory, ScaleSerializer, project_to_display
 from ..scaling import AxisScale
@@ -85,19 +80,14 @@ class QuadrantGate(Gate):
             return (x_disp >= mid_x_disp) & (y_disp < mid_y_disp)
         raise ValueError(f"Invalid quadrant: {quadrant!r}")
 
-    def create_nodes(self, parent_node: GateNode, _name: str | None = None) -> list[GateNode]:
-        """Create and attach 4 GateNodes for the four quadrants to a parent node."""
-        from .gate_node import GateNode
-
-        q_names = ["Q1", "Q2", "Q3", "Q4"]
-        nodes = []
-        for q_name in q_names:
-            child_gate = QuadrantSubGate(self, q_name)
-            child_gate.derived_formulas = dict(self.derived_formulas)
-            node = GateNode(gate=child_gate, name=q_name, parents=[parent_node])
-            parent_node.children.append(node)
-            nodes.append(node)
-        return nodes
+    def populations(self, name: str | None = None) -> list[tuple[Gate, str]]:  # noqa: ARG002 - named by position
+        """The four quadrants, Q1-Q4 (a quadrant's populations are named by position)."""
+        children: list[tuple[Gate, str]] = []
+        for q_name in ("Q1", "Q2", "Q3", "Q4"):
+            child = QuadrantSubGate(self, q_name)
+            child.derived_formulas = dict(self.derived_formulas)
+            children.append((child, q_name))
+        return children
 
     def to_dict(self) -> dict:
         d = super().to_dict()

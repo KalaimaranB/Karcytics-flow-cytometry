@@ -76,7 +76,7 @@ def _rendered(panel):
 
 def _add_gate(flow_state, gate, name="Cells"):
     root = flow_state.data.experiment.samples[SAMPLE_ID].gate_tree
-    return gate.create_nodes(root, name)[0]
+    return root.add_gate(gate, name)[0]
 
 
 def _rectangle():

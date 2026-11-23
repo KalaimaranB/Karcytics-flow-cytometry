@@ -515,7 +515,7 @@ class TestFlowCanvasEditState:
         canvas = FlowCanvas(parent=None)
         root = GateNode(name="All Events")
         quadrant = QuadrantGate("FSC-A", "SSC-A", x_mid=50, y_mid=50)
-        sub_nodes = quadrant.create_nodes(root)
+        sub_nodes = root.add_gate(quadrant)
         root.children.extend(sub_nodes)
         subgates = [n.gate for n in sub_nodes]  # Q1, Q2, Q3, Q4 order
 

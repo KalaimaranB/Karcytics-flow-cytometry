@@ -5,15 +5,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Any
 
-import numpy as np
-
-from ...analysis.compensation import CELL_EDITED, extract_spill_from_fcs
+from ...analysis.compensation import CELL_EDITED, extract_spill_from_fcs, same_matrix
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
 from ...ui.widgets.method_illustration import STEP_REMOVED
 from .base import FlowUIValidator, FlowValidator
-
-_SAME_MATRIX_TOLERANCE = 5e-5  # the files store the matrix to four decimals
 
 
 class _CompensationTabValidator(FlowUIValidator):
@@ -199,9 +195,7 @@ class EmbeddedMatrixInUseValidator(_CompensationTabValidator):
         )
         if embedded is None:
             return "No loaded file carries a matrix."
-        if in_use.channel_names != embedded.channel_names or not np.allclose(
-            in_use.matrix, embedded.matrix, atol=_SAME_MATRIX_TOLERANCE
-        ):
+        if not same_matrix(in_use, embedded):
             return "The matrix in use isn't the one embedded in the FCS files."
         if not view.samples_match_matrix or not all(s.is_compensated for s in samples):
             return "The embedded matrix is selected but not applied to every sample."

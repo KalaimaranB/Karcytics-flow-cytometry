@@ -244,3 +244,21 @@ def test_fmo_fit_detail_is_the_same_fit_the_estimate_runs():
     fits = []
     calculate_spillover_from_fmo(controls, channels, fits)
     assert fits[1].down_weighted == pytest.approx(detail.largely_ignored.mean())
+
+
+def test_matrices_match_to_the_four_decimals_shown():
+    from karcytics_plugins.flow_cytometry.analysis.compensation import same_matrix
+
+    a = CompensationMatrix(matrix=np.array([[1.0, 0.12341], [0.0, 1.0]]), channel_names=["A", "B"])
+    rounded = CompensationMatrix(
+        matrix=np.array([[1.0, 0.1234], [0.0, 1.0]]), channel_names=["A", "B"]
+    )
+    other = CompensationMatrix(
+        matrix=np.array([[1.0, 0.1235], [0.0, 1.0]]), channel_names=["A", "B"]
+    )
+    renamed = CompensationMatrix(matrix=a.matrix.copy(), channel_names=["A", "C"])
+
+    assert same_matrix(a, rounded)
+    assert not same_matrix(a, other)
+    assert not same_matrix(a, renamed)
+    assert same_matrix(None, None) and not same_matrix(a, None)

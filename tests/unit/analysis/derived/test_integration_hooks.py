@@ -211,7 +211,7 @@ def test_plain_gate_serialization_unchanged():
 def test_quadrant_subgates_inherit_formula_record():
     quad = QuadrantGate("derived:q0000001", "FSC-A", x_mid=1.0, y_mid=1.0)
     quad.derived_formulas = {"derived:q0000001": RATIO_FORMULA}
-    nodes = quad.create_nodes(GateNode())
+    nodes = GateNode().add_gate(quad)
     assert all(n.gate.derived_formulas == quad.derived_formulas for n in nodes)
 
 

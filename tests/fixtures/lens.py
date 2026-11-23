@@ -112,7 +112,7 @@ class TreeController:
     def add_gate(self, gate, sample_id, name=None, parent_node_id=None):
         root = self._state.data.experiment.samples[sample_id].gate_tree
         parent = root.find_node_by_id(parent_node_id) if parent_node_id else root
-        nodes = gate.create_nodes(parent, name)
+        nodes = parent.add_gate(gate, name)
         self.added.append((name, parent_node_id))
         return nodes[0].node_id
 

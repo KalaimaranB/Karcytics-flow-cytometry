@@ -12,6 +12,7 @@ from karcytics_sdk.plugin import get_logger
 
 from ..constants import LOGIC_GATE_MIN_PARENTS
 from .base import Gate
+from .gate_factory import gate_from_dict
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -81,6 +82,10 @@ class GateNode:
         child = GateNode(gate=gate, name=node_name, parents=[self])
         self.children.append(child)
         return child
+
+    def add_gate(self, gate: Gate, name: str | None = None) -> list[GateNode]:
+        """Attach a child node for each population ``gate`` makes (four for a quadrant)."""
+        return [self.add_child(child, child_name) for child, child_name in gate.populations(name)]
 
     def remove_child(self, node_id: str) -> bool:
         """Remove a child population by node ID.
@@ -253,8 +258,6 @@ class GateNode:
     @staticmethod
     def from_dict(data: dict) -> GateNode | None:
         """Reconstruct a population DAG from a serialized dictionary."""
-        from .gate_factory import gate_from_dict
-
         # Flat DAG format
         if "nodes" in data:
             nodes_by_id = {}

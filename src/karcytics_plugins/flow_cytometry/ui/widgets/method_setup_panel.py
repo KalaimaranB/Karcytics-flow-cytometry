@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.base import (
     Inputs,
     MatrixSource,
     MethodOptions,

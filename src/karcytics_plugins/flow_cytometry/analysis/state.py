@@ -23,6 +23,7 @@ from .compensation import CompensationMatrix, SavedMatrix
 from .config import FlowConfig, RenderConfig
 from .constants import PROPERTIES_VIEW_PROPERTIES
 from .experiment import Experiment
+from .workspace_document import apply_workspace, serialize_workspace
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -86,15 +87,11 @@ class FlowState(PluginState):
 
     def to_dict(self) -> dict:
         """The workflow document for this state (see ``workspace_document``)."""
-        from .workspace_document import serialize_workspace
-
         return serialize_workspace(self)
 
     @classmethod
     def from_dict(cls, data: dict) -> FlowState:
         """A new state loaded from a workflow document (no event data)."""
-        from .workspace_document import apply_workspace
-
         state = cls()
         apply_workspace(state, data)
         return state

@@ -11,9 +11,10 @@ widgets as a `WorkspaceViews`.
 from __future__ import annotations
 
 from collections.abc import Callable
+from functools import partial
 from typing import TYPE_CHECKING, Any
 
-from karcytics_sdk.plugin import CentralEventBus, PluginBase, PluginDaemon, get_logger
+from karcytics_sdk.plugin import PluginBase, PluginDaemon, get_logger
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
@@ -26,6 +27,7 @@ from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
 from karcytics_plugins.flow_cytometry.ui.academy_context import AcademyContext
 from karcytics_plugins.flow_cytometry.ui.composition_root import build_services
+from karcytics_plugins.flow_cytometry.ui.services.bus_subscriptions import subscribe_while_alive
 from karcytics_plugins.flow_cytometry.ui.services.workflow_loader import WorkflowLoader
 from karcytics_plugins.flow_cytometry.ui.startup_sequencer import StartupSequencer
 from karcytics_plugins.flow_cytometry.ui.workspace_theme import (
@@ -71,7 +73,6 @@ class FlowCytometryPanel(PluginBase):
 
     # Dynamically injected UI components from WorkspaceBuilder
     _tab_bar: Any
-    _btn_smart_save: Any
     _btn_academy: Any
     _ribbon_stack: Any
     _workspace_ribbon: Any
@@ -133,6 +134,9 @@ class FlowCytometryPanel(PluginBase):
         self._deferred_workflow_metadata: dict[str, Any] | None = None
         self._startup = StartupSequencer(self.panel_ready, self.data_ready, self)
         self._themed_palette: Any = None
+        self._btn_smart_save: Any = (
+            None  # WorkspaceBuilder.build_skeleton; dirtiness can come first
+        )
         self._workflow_autosave_controller: Any = None  # end of _setup_services
 
         # ── Services ──────────────────────────────────────────────────
@@ -205,24 +209,23 @@ class FlowCytometryPanel(PluginBase):
         )
 
     def _setup_footer_events(self) -> None:
-        """Subscribe to events to update the footer message."""
-
-        def update_footer(msg: str) -> None:
-            if hasattr(self, "_footer"):
-                self._footer.show_message(msg)
-
-        CentralEventBus.subscribe(events.SAMPLE_LOADED, lambda _: update_footer("Samples loaded."))
-        CentralEventBus.subscribe(events.GATE_CREATED, lambda _: update_footer("Gate created."))
-        CentralEventBus.subscribe(events.GATES_CREATED, lambda _: update_footer("Gates created."))
-        CentralEventBus.subscribe(events.GATE_DELETED, lambda _: update_footer("Gate deleted."))
-        CentralEventBus.subscribe(
-            events.UMAP_COMPLETED, lambda _: update_footer("UMAP computation complete.")
-        )
-        CentralEventBus.subscribe(
-            events.COMPENSATION_APPLIED, lambda _: update_footer("Compensation applied.")
-        )
-        CentralEventBus.subscribe(
-            events.STATS_COMPUTED, lambda _: update_footer("Statistics updated.")
+        """Say in the footer what just happened (the footer is built by then)."""
+        messages = {
+            events.SAMPLE_LOADED: "Samples loaded.",
+            events.GATE_CREATED: "Gate created.",
+            events.GATES_CREATED: "Gates created.",
+            events.GATE_DELETED: "Gate deleted.",
+            events.UMAP_COMPLETED: "UMAP computation complete.",
+            events.COMPENSATION_APPLIED: "Compensation applied.",
+            events.STATS_COMPUTED: "Statistics updated.",
+        }
+        footer = self._footer
+        subscribe_while_alive(
+            footer,
+            {
+                topic: partial(_show_footer_message, footer, message)
+                for topic, message in messages.items()
+            },
         )
 
     def closeEvent(self, event) -> None:
@@ -252,7 +255,7 @@ class FlowCytometryPanel(PluginBase):
         Driven by ``FlowStore`` (which alone decides dirtiness — see
         ``FlowStore.is_dirty``); also safe to call to re-sync the button.
         """
-        if hasattr(self, "_btn_smart_save"):
+        if self._btn_smart_save is not None:
             has_wf = bool(self.services.document.filename or self.services.document.path)
             self._btn_smart_save.set_workflow_active(has_wf)
             self._btn_smart_save.set_dirty(dirty)
@@ -589,3 +592,7 @@ class FlowCytometryPanel(PluginBase):
     def _refresh_all(self) -> None:
         if self._refresher is not None:
             self._refresher.refresh_all()
+
+
+def _show_footer_message(footer: Any, message: str, _data: Any) -> None:
+    footer.show_message(message)

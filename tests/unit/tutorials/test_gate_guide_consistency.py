@@ -45,7 +45,7 @@ def _gate_matching_guide(metadata: dict):
     if "guide_quadrant" in metadata:
         x_mid, y_mid = metadata["guide_quadrant"]
         # Wrapped in a QuadrantSubGate, matching what's actually stored as
-        # node.gate at runtime: QuadrantGate.create_nodes() only ever attaches
+        # node.gate at runtime: QuadrantGate.populations() only ever attaches
         # QuadrantSubGate leaves (see quadrant.py), never the parent
         # QuadrantGate directly, and GateCoordinator.add_gate() selects
         # one of those leaves after creation. A bare QuadrantGate here would

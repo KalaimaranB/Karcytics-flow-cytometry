@@ -35,21 +35,19 @@ from karcytics_plugins.flow_cytometry.analysis import events
 from karcytics_plugins.flow_cytometry.analysis.compensation import (
     CompensationMatrix,
     SavedMatrix,
+    same_matrix,
 )
-from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
-    MATRIX_SOURCES,
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.base import (
     MatrixSource,
     MatrixSourceError,
     MethodOptions,
     Table,
 )
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.registry import MATRIX_SOURCES
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import CompensationEditor
-from karcytics_plugins.flow_cytometry.ui.widgets.matrix_library_panel import (
-    MatrixLibraryPanel,
-    same_values,
-)
+from karcytics_plugins.flow_cytometry.ui.widgets.matrix_library_panel import MatrixLibraryPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -267,14 +265,14 @@ class CompensationView(QWidget):
 
     @property
     def has_unapplied_edits(self) -> bool:
-        return not same_values(self._editor.matrix, self._state.data.compensation)
+        return not same_matrix(self._editor.matrix, self._state.data.compensation)
 
     def refresh(self) -> None:
         """Re-read the workspace. Unapplied edits survive (the tab can be left
         and come back to) unless the workspace's matrix was replaced under them.
         """
         workspace = self._state.data.compensation
-        if not self.has_unapplied_edits or not same_values(self._draft_base, workspace):
+        if not self.has_unapplied_edits or not same_matrix(self._draft_base, workspace):
             self._load(workspace)
         self._editor.refresh_samples()
         if not self._method_picked:
@@ -367,11 +365,11 @@ class CompensationView(QWidget):
         current: str | None = None
         if workspace is not None:
             choices.append((f"In use · {self._describe_matrix(workspace)}", _WORKSPACE_KEY))
-            if same_values(in_editor, workspace):
+            if same_matrix(in_editor, workspace):
                 current = _WORKSPACE_KEY
         for saved in self._state.data.matrix_library:
             choices.append((saved.name, saved.saved_id))
-            if current is None and same_values(in_editor, saved.matrix):
+            if current is None and same_matrix(in_editor, saved.matrix):
                 current = saved.saved_id
         if in_editor is not None and current is None:
             self._set_aside = in_editor  # edits that exist nowhere else
@@ -438,7 +436,7 @@ class CompensationView(QWidget):
     # ── Actions ───────────────────────────────────────────────────────
 
     def _set_workspace_matrix(self, matrix: CompensationMatrix, undo_label: str) -> None:
-        if not same_values(matrix, self._state.data.compensation):
+        if not same_matrix(matrix, self._state.data.compensation):
             self._data_stale = True
         experiment_edits.set_compensation(self._state, matrix, undo_label)
         self._load(matrix)
@@ -476,7 +474,7 @@ class CompensationView(QWidget):
         Not when that exact result is already there (e.g. re-reading the FCS files).
         """
         if any(
-            saved.matrix.source == matrix.source and same_values(saved.matrix, matrix)
+            saved.matrix.source == matrix.source and same_matrix(saved.matrix, matrix)
             for saved in self._state.data.matrix_library
         ):
             return

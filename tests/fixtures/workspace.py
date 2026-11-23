@@ -79,9 +79,7 @@ def build_gate_tree(root: GateNode) -> dict[str, GateNode]:
     nodes["FITC+"] = nodes["Singlets"].add_child(
         RangeGate("FITC-A", low=300.0, high=900.0), name="FITC+"
     )
-    for q in QuadrantGate("FITC-A", "APC-A", x_mid=500.0, y_mid=500.0).create_nodes(
-        nodes["Singlets"]
-    ):
+    for q in nodes["Singlets"].add_gate(QuadrantGate("FITC-A", "APC-A", x_mid=500.0, y_mid=500.0)):
         nodes[q.name] = q
     ratio_gate = RangeGate(RATIO_ID, low=0.5, high=2.0)
     ratio_gate.derived_formulas = {RATIO_ID: "[FITC-A] / [APC-A]"}

@@ -8,18 +8,23 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from karcytics_plugins.flow_cytometry.analysis import compensation_sources as matrix_sources
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
-from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
-    MATRIX_SOURCES,
-    FcsMetadataSource,
-    FmoSource,
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import fcs_metadata
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources import fmo as fmo_source
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.base import (
     MatrixSource,
     MatrixSourceError,
     MethodOptions,
     Readiness,
-    SingleStainSource,
     SourceResult,
+)
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.fcs_metadata import (
+    FcsMetadataSource,
+)
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.fmo import FmoSource
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.registry import MATRIX_SOURCES
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.single_stain import (
+    SingleStainSource,
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
@@ -225,7 +230,7 @@ def test_a_cancelled_source_changes_nothing(make_view, state):
 
 def test_fcs_source_reports_which_file_the_matrix_came_from(state, monkeypatch):
     monkeypatch.setattr(
-        matrix_sources,
+        fcs_metadata,
         "extract_spill_from_fcs",
         lambda fcs: _matrix() if fcs is state.data.experiment.samples["b"].fcs_data else None,
     )
@@ -235,7 +240,7 @@ def test_fcs_source_reports_which_file_the_matrix_came_from(state, monkeypatch):
     assert result.undo_label == "Extract Compensation Matrix"
     assert "B" in result.summary
 
-    monkeypatch.setattr(matrix_sources, "extract_spill_from_fcs", lambda fcs: None)
+    monkeypatch.setattr(fcs_metadata, "extract_spill_from_fcs", lambda fcs: None)
     with pytest.raises(MatrixSourceError, match="SPILL"):
         FcsMetadataSource().obtain(state, None, MethodOptions())
 
@@ -318,7 +323,7 @@ def test_a_missing_dye_found_from_the_data_is_kept_on_the_tube(state, monkeypatc
     assert state.data.experiment.samples["c"].fmo_minus is None
 
     # From then on the data isn't read again.
-    monkeypatch.setattr(matrix_sources, "_signal_levels", lambda *_: pytest.fail("re-detected"))
+    monkeypatch.setattr(fmo_source, "_signal_levels", lambda *_: pytest.fail("re-detected"))
     del state.data.experiment.samples["c"]
     assert _fmo_inputs(state)["a"].cells[2] == "from its data (dim in this channel)"
 
@@ -451,7 +456,7 @@ def test_the_dye_named_in_a_tube_name_is_recognised(tube, expected):
     channels = ["FITC-A", "PE-A", "Pacific Blue-A", "APC-Cy7-A", "APC-A"]
     fcs = MagicMock(channels=channels, markers=["B220", "CD4", "CD3", "CD8", "CD45"])
 
-    assert matrix_sources._named_channel(tube, fcs, channels) == expected
+    assert fmo_source._named_channel(tube, fcs, channels) == expected
 
 
 def test_fmo_tubes_are_placed_by_their_signal(state):
@@ -501,7 +506,7 @@ def test_the_missing_dye_must_stand_out_from_the_tubes_other_channels(tube, expe
     """Levels are relative to three other FMOs that all read 1000 everywhere."""
     levels = np.array([[1000.0 * level for level in tube], *[[1000.0] * 4] * 3])
 
-    found = matrix_sources._dimmest_channel(levels, 0)
+    found = fmo_source._dimmest_channel(levels, 0)
 
     assert (found[0] if found else None) == expected
 
@@ -565,7 +570,7 @@ def _three_colour_sample() -> Sample:
 
 def test_manual_entry_starts_from_a_matrix_with_no_spill(make_view):
     from karcytics_plugins.flow_cytometry.analysis.compensation import CELL_DEFAULT
-    from karcytics_plugins.flow_cytometry.analysis.compensation_sources import ManualSource
+    from karcytics_plugins.flow_cytometry.analysis.compensation_sources.manual import ManualSource
 
     state = FlowState()
     source = ManualSource()

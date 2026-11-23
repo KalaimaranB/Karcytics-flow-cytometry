@@ -82,7 +82,7 @@ def test_population_service_finds_nodes_until_they_are_removed():
 
     assert service.get_root_node("s1") is sample.gate_tree
     gate = RectangleGate("FSC-A", "SSC-A", x_min=0, x_max=1, y_min=0, y_max=2)
-    [node] = gate.create_nodes(sample.gate_tree, "rect")
+    [node] = sample.gate_tree.add_gate(gate, "rect")
 
     assert service.find_node("s1", node.node_id) is node
     assert tree_edits.remove_subtree(sample, node.node_id) == {node.node_id}
@@ -93,7 +93,7 @@ def test_quadrant_gate_creates_four_gated_children():
     sample = Sample(sample_id="s1", display_name="Sample 1")
     quad = QuadrantGate("FSC-A", "SSC-A", x_mid=0.0, y_mid=0.0)
 
-    nodes = quad.create_nodes(sample.gate_tree, "quadrants")
+    nodes = sample.gate_tree.add_gate(quad, "quadrants")
 
     assert [n.name for n in nodes] == ["Q1", "Q2", "Q3", "Q4"]
     assert all(child.gate is not None for child in nodes)
@@ -108,9 +108,9 @@ def test_get_gated_events_applies_gate_hierarchy_correctly():
     )
     service = PopulationService(state)
 
-    [node] = RectangleGate(
-        "FSC-A", "SSC-A", x_min=0.0, x_max=1.0, y_min=0.0, y_max=1.5
-    ).create_nodes(sample.gate_tree, "rect")
+    [node] = sample.gate_tree.add_gate(
+        RectangleGate("FSC-A", "SSC-A", x_min=0.0, x_max=1.0, y_min=0.0, y_max=1.5), "rect"
+    )
 
     gated = service.get_gated_events("s1", node.node_id)
     assert list(gated["FSC-A"]) == [0.0, 0.5]

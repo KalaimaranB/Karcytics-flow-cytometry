@@ -9,11 +9,11 @@ import pandas as pd
 import pytest
 from karcytics_sdk.plugin.components import BioComboBox
 
-from karcytics_plugins.flow_cytometry.analysis.compensation_sources import (
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.base import MethodOptions
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.fcs_metadata import (
     FcsMetadataSource,
-    FmoSource,
-    MethodOptions,
 )
+from karcytics_plugins.flow_cytometry.analysis.compensation_sources.fmo import FmoSource
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import FCSData
 from karcytics_plugins.flow_cytometry.analysis.gating.rectangle import RectangleGate

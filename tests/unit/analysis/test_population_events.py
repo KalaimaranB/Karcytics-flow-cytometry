@@ -25,7 +25,7 @@ def sample():
 
 def test_population_events_applies_every_gate_down_to_the_node(sample):
     gate = RectangleGate("FSC-A", "SSC-A", x_min=0, x_max=1, y_min=0, y_max=1)
-    [node] = gate.create_nodes(sample.gate_tree, "Small")
+    [node] = sample.gate_tree.add_gate(gate, "Small")
 
     assert list(population_events(Experiment(), sample, node)["FSC-A"]) == [0.5]
     assert len(population_events(Experiment(), sample)) == 3

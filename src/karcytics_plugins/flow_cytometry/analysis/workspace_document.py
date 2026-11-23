@@ -88,9 +88,7 @@ def apply_view(view: ViewState, data: dict[str, Any]) -> None:
     Defaults come from a fresh ``ViewState`` rather than literals here, so a
     load and a brand-new workspace always agree on them.
     """
-    from .state import ViewState
-
-    defaults = ViewState()
+    defaults = type(view)()
     for name in PERSISTED_VIEW_FIELDS:
         setattr(view, name, copy.deepcopy(data.get(name, getattr(defaults, name))))
     view.render_config = RenderConfig.from_dict(data.get("render_config") or {})

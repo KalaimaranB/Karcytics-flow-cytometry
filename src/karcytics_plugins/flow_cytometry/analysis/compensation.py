@@ -142,6 +142,29 @@ class SavedMatrix:
 # ── Computation from single-stain controls ───────────────────────────────────
 
 
+SAME_MATRIX_TOLERANCE = 5e-5  # four decimals are shown; files round the last digits differently
+
+
+def same_matrix(a: CompensationMatrix | None, b: CompensationMatrix | None) -> bool:
+    """Same channels and, to the four decimals shown, the same numbers (two Nones match)."""
+    if a is None or b is None:
+        return a is b
+    return (
+        a.channel_names == b.channel_names
+        and a.matrix.shape == b.matrix.shape
+        and np.allclose(a.matrix, b.matrix, rtol=0.0, atol=SAME_MATRIX_TOLERANCE)
+    )
+
+
+def _channel_medians(events: pd.DataFrame, channels: list[str]) -> np.ndarray:
+    """Each channel's median in ``events`` (0 for a channel it lacks)."""
+    medians = np.zeros(len(channels), dtype=np.float64)
+    present = [i for i, ch in enumerate(channels) if ch in events.columns]
+    if present:
+        medians[present] = np.median(events[[channels[i] for i in present]].values, axis=0)
+    return medians
+
+
 def calculate_spillover_matrix(  # noqa: C901, PLR0912
     single_stains: Sequence[FCSData | ControlEvents],
     unstained: FCSData | ControlEvents | None = None,
@@ -184,15 +207,9 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
     n = len(fluorescence_channels)
     spillover = np.eye(n, dtype=np.float64)
 
-    # Background subtraction: median of unstained control per channel
-    bg = np.zeros(n, dtype=np.float64)
+    bg = np.zeros(n)  # the unstained control's median per channel: autofluorescence
     if unstained is not None and unstained.events is not None:
-        idxs = [i for i, ch in enumerate(fluorescence_channels) if ch in unstained.events.columns]
-        if idxs:
-            cols = [fluorescence_channels[i] for i in idxs]
-            bg[idxs] = np.median(unstained.events[cols].values, axis=0)
-
-    # Process each single-stain sample
+        bg = _channel_medians(unstained.events, fluorescence_channels)
     channels_assigned: set[int] = set()
 
     for ss in single_stains:
@@ -200,14 +217,7 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
             logger.warning("Skipping single-stain sample with no events: %s", ss.file_path)
             continue
 
-        # Compute median for each fluorescence channel
-        medians = np.zeros(n, dtype=np.float64)
-        idxs = [i for i, ch in enumerate(fluorescence_channels) if ch in ss.events.columns]
-        if idxs:
-            cols = [fluorescence_channels[i] for i in idxs]
-            medians[idxs] = np.median(ss.events[cols].values, axis=0) - bg[idxs]
-
-        # The primary channel = the one with the highest median
+        medians = _channel_medians(ss.events, fluorescence_channels) - bg
         primary_idx = int(np.argmax(medians))
         primary_median = medians[primary_idx]
         primary_ch = fluorescence_channels[primary_idx]
@@ -232,19 +242,14 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
             primary_median,
         )
 
-        # Compute spillover ratios
-        for j in range(n):
-            if j == primary_idx:
-                spillover[primary_idx, j] = 1.0
-            else:
-                ratio = max(0.0, medians[j]) / primary_median
-                spillover[primary_idx, j] = ratio
-                if ratio > SPILLOVER_SIGNIFICANCE_THRESHOLD:
-                    logger.debug("  -> into %s: %.2f%%", fluorescence_channels[j], ratio * 100)
-
+        ratios = np.maximum(medians, 0.0) / primary_median
+        ratios[primary_idx] = 1.0
+        spillover[primary_idx] = ratios
+        for j in np.flatnonzero(ratios > SPILLOVER_SIGNIFICANCE_THRESHOLD):
+            if j != primary_idx:
+                logger.debug("  -> into %s: %.2f%%", fluorescence_channels[j], ratios[j] * 100)
         channels_assigned.add(primary_idx)
 
-    # Warn about unassigned channels
     for i in range(n):
         if i not in channels_assigned:
             logger.warning(
@@ -252,12 +257,7 @@ def calculate_spillover_matrix(  # noqa: C901, PLR0912
                 fluorescence_channels[i],
             )
 
-    logger.info(
-        "Computed spillover matrix (%d×%d) from %d single-stain controls.",
-        n,
-        n,
-        len(single_stains),
-    )
+    logger.info("Computed a %d×%d spillover matrix from %d controls.", n, n, len(single_stains))
 
     # A dye without a single-stain control keeps its identity row, unmeasured.
     origin = np.full((n, n), CELL_DEFAULT, dtype=np.int8)

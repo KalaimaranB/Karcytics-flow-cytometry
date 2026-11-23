@@ -59,7 +59,7 @@ def modify_gate(sample: Sample, gate_id: str, **kwargs: Any) -> list[GateNode]:
     if gate is None:
         return []
 
-    # QuadrantGate.create_nodes() only ever creates QuadrantSubGate-
+    # QuadrantGate.populations() only ever creates QuadrantSubGate-
     # wrapping nodes — there is no node wrapping the bare parent
     # QuadrantGate — so the geometry that actually needs mutating
     # (x_mid/y_mid) lives on gate.parent, shared by all 4 quadrant

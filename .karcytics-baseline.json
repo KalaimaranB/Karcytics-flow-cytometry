@@ -22,11 +22,8 @@
     },
     "src/karcytics_plugins/flow_cytometry/analysis/compensation.py": {
       "KS300": 630,
-      "KS302:calculate_spillover_matrix": 128,
+      "KS302:calculate_spillover_matrix": 105,
       "KS310": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/compensation_sources.py": {
-      "KS300": 995
     },
     "src/karcytics_plugins/flow_cytometry/analysis/daemon_worker.py": {
       "KS302:handle_load_fcs_batch": 97,
@@ -45,21 +42,14 @@
       "KS302:_load_with_fcsparser": 241,
       "KS310": 6
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/gating/base.py": {
-      "KS360": 1
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/ellipse.py": {
       "KS310": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/gating/gate_node.py": {
-      "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/polygon.py": {
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/quadrant.py": {
-      "KS310": 1,
-      "KS360": 1
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/range.py": {
       "KS310": 1
@@ -86,9 +76,6 @@
     "src/karcytics_plugins/flow_cytometry/analysis/scaling.py": {
       "KS310": 1
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/state.py": {
-      "KS360": 2
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/statistics.py": {
       "KS310": 1
     },
@@ -98,9 +85,6 @@
     "src/karcytics_plugins/flow_cytometry/analysis/umap_analysis.py": {
       "KS302:UmapAnalysis.run": 108,
       "KS310": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/workspace_document.py": {
-      "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/core_intro_handoff.py": {
       "KS310": 7,
@@ -303,8 +287,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
       "KS242": 4,
-      "KS301:FlowCytometryPanel": 37,
-      "KS343": 2
+      "KS301:FlowCytometryPanel": 37
     },
     "src/karcytics_plugins/flow_cytometry/ui/ribbons/pipeline_ribbon.py": {
       "KS210": 1,
