@@ -142,7 +142,7 @@ class _HeatCell(QWidget):
         self._value = value
         self.setFixedSize(col_width, 30)
 
-    def paintEvent(self, _event) -> None:  # noqa: N802
+    def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 

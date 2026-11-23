@@ -275,7 +275,7 @@ class PreviewThumbnail(QFrame):
             return None
         return self._axis_manager.calculate_range(sample_events[param], param, sample_id)
 
-    def request_render(  # noqa: PLR0912, PLR0915
+    def request_render(  # noqa: PLR0915
         self,
         active_sample_id: str | None = None,
         active_node_id: str | None = None,

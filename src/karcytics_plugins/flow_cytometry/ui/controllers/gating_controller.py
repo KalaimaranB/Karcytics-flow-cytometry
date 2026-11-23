@@ -169,7 +169,7 @@ class GatingController:
 
         self.delete_gate_with_dialog(graph.sample_id, node_id, force_silent=force_silent)
 
-    def delete_gate_with_dialog(  # noqa: PLR0915 - resolve scope, close graphs, delete, report
+    def delete_gate_with_dialog(
         self, sample_id: str, node_id: str, force_silent: bool = False
     ) -> None:
         """Prompt the user and delete a gate and its children."""

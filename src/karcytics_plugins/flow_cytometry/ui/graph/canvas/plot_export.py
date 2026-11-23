@@ -54,7 +54,7 @@ def copy_plot(figure: Any) -> None:
     try:
         with MPL_RASTER_LOCK:  # savefig rasterizes through the shared Agg backend
             figure.savefig(buffer, format="png", dpi=_CLIPBOARD_DPI, bbox_inches="tight")
-    except Exception:  # noqa: BLE001 - a failed copy is logged, never a crash
+    except Exception:
         logger.exception("Copying the plot failed")
         return
     image = QImage()
@@ -74,7 +74,7 @@ def save_plot(parent: QWidget, figure: Any, fmt: str, dpi: int | None = None) ->
     try:
         with MPL_RASTER_LOCK:
             figure.savefig(path, format=fmt, dpi=dpi or FORMATS[fmt], bbox_inches="tight")
-    except Exception:  # noqa: BLE001 - a failed save is logged, never a crash
+    except Exception:
         logger.exception("Saving the plot to %s failed", path)
         return None
     return path

@@ -207,7 +207,7 @@ class GatingTreePanel(QWidget):
         self._focus_id = focus
         QTimer.singleShot(0, self._fit)
 
-    def sizeHint(self) -> QSize:  # noqa: N802 - Qt override
+    def sizeHint(self) -> QSize:
         return QSize(PREFERRED_WIDTH, super().sizeHint().height())
 
     def _fit(self) -> None:
@@ -224,6 +224,6 @@ class GatingTreePanel(QWidget):
             return
         self.population_clicked.emit(None if node_id == self._root_id else node_id)
 
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802 - Qt override
+    def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         QTimer.singleShot(0, self._fit)

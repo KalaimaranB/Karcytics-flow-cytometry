@@ -151,7 +151,7 @@ core_intro_module = Course(
         InfoStep(
             id="handoff_welcome",
             text=(
-                "🧬 Welcome to **Flow Cytometry**! Every module gets a workspace built just for what it does."  # noqa: E501
+                "🧬 Welcome to **Flow Cytometry**! Every module gets a workspace built just for what it does."
             ),
             cyto_emotion="surprised",
             next_step_id="handoff_data_integrity",
@@ -159,7 +159,7 @@ core_intro_module = Course(
         InfoStep(
             id="handoff_data_integrity",
             text=(
-                "One thing before you import anything: Karcytics never touches your raw files. On import, it hashes the file (SHA-256) and copies it into this project's `` `assets/` `` folder — your original stays exactly where it was."  # noqa: E501
+                "One thing before you import anything: Karcytics never touches your raw files. On import, it hashes the file (SHA-256) and copies it into this project's `` `assets/` `` folder — your original stays exactly where it was."
             ),
             cyto_emotion="talking",
             next_step_id="handoff_consent",
@@ -190,8 +190,8 @@ core_intro_module = Course(
         InteractionStep(
             id="handoff_import_action",
             text=(
-                "I've dropped a demo file (`` `demo_tutorial.fcs` ``) in your Downloads folder.\n\n"  # noqa: E501
-                "Click **➕ Add Samples** (highlighted) and pick it. When it asks whether to copy the file into your workspace, say yes."  # noqa: E501
+                "I've dropped a demo file (`` `demo_tutorial.fcs` ``) in your Downloads folder.\n\n"
+                "Click **➕ Add Samples** (highlighted) and pick it. When it asks whether to copy the file into your workspace, say yes."
             ),
             target_widget_names=["ImportDataButton"],
             target_widget_name="WorkspaceRibbon",
@@ -202,7 +202,7 @@ core_intro_module = Course(
         InfoStep(
             id="handoff_workflow_intro",
             text=(
-                "Loaded! A **Workflow** is a snapshot of everything right now — settings, gates, parameters — so you can pick this exact session back up later."  # noqa: E501
+                "Loaded! A **Workflow** is a snapshot of everything right now — settings, gates, parameters — so you can pick this exact session back up later."
             ),
             cyto_emotion="talking",
             next_step_id="handoff_save_action",
@@ -243,7 +243,7 @@ core_intro_module = Course(
         VerificationStep(
             id="handoff_prefs_autosave",
             text=(
-                "Tick **Autosave workflows every 15 minutes** and Karcytics will quietly re-save your workflow for you. "  # noqa: E501
+                "Tick **Autosave workflows every 15 minutes** and Karcytics will quietly re-save your workflow for you. "
                 "It only kicks in once a workflow has been saved manually — which you just did. "
                 "Leave it off and you'll get a gentle reminder every 15 minutes instead.\n\n"
                 "Close **Preferences** whenever you're ready to continue."
@@ -257,7 +257,7 @@ core_intro_module = Course(
         InfoStep(
             id="handoff_return_home",
             text=(
-                "All set! Close this window (File → Close, or the OS close button) to head back to Karcytics — Cyto's waiting for you there."  # noqa: E501
+                "All set! Close this window (File → Close, or the OS close button) to head back to Karcytics — Cyto's waiting for you there."
             ),
             cyto_emotion="happy",
         ),

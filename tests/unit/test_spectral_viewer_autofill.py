@@ -69,7 +69,7 @@ def test_refresh_sources_populates_without_a_current_sample():
     assert any("CD4" in label for label in labels)
     assert any("CD45" in label for label in labels)
     # FSC/SSC/Time are excluded, and duplicates across the two samples are deduped
-    assert viewer._source_list.count() == 3  # noqa: PLR2004
+    assert viewer._source_list.count() == 3
 
 
 def test_refresh_sources_queries_direct_dyes_by_marker():
@@ -115,7 +115,7 @@ def test_autofill_plots_every_detected_channel_once():
     while getattr(viewer, "_autofill_timer", None) and viewer._autofill_timer.isActive():
         viewer._autofill_next()
 
-    assert len(viewer._active_fluors) == 3  # noqa: PLR2004
+    assert len(viewer._active_fluors) == 3
     assert viewer._autofilled is True
 
     # A later manual removal shouldn't be silently undone by a second showEvent.
@@ -127,4 +127,4 @@ def test_autofill_plots_every_detected_channel_once():
     while getattr(viewer, "_autofill_timer", None) and viewer._autofill_timer.isActive():
         viewer._autofill_next()
 
-    assert len(viewer._active_fluors) == 2  # noqa: PLR2004
+    assert len(viewer._active_fluors) == 2

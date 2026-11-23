@@ -69,23 +69,21 @@ def test_a_valley_sits_in_the_middle_of_an_empty_gap():
     rng = np.random.default_rng(0)
     values = np.concatenate((rng.normal(0, 1, 5000), rng.normal(10, 1, 5000)))
     valley = find_valley(values)
-    assert valley is not None and valley.depth > 0.95  # noqa: PLR2004
-    assert 4 < valley.position < 6  # noqa: PLR2004
+    assert valley is not None and valley.depth > 0.95
+    assert 4 < valley.position < 6
 
 
 def test_one_peak_has_no_clear_valley_and_no_separation():
     rng = np.random.default_rng(0)
     valley = find_valley(rng.normal(0, 1, 10_000))
-    assert (
-        valley is None or valley.depth < 0.2
-    )  # noise dips are far below any threshold  # noqa: PLR2004
-    assert separation(rng.normal(0, 1, 10_000), rng.normal(0, 1, 10_000)) < 0.2  # noqa: PLR2004
+    assert valley is None or valley.depth < 0.2  # noise dips are far below any threshold
+    assert separation(rng.normal(0, 1, 10_000), rng.normal(0, 1, 10_000)) < 0.2
 
 
 def test_bic_finds_two_groups_and_one():
     rng = np.random.default_rng(0)
     two = np.vstack((rng.normal((0, 0), 1, (3000, 2)), rng.normal((8, 8), 1, (2000, 2))))
-    assert len(fit_mixture(two, 0.3).components) == 2  # noqa: PLR2004
+    assert len(fit_mixture(two, 0.3).components) == 2
     assert len(fit_mixture(rng.normal(0, 1, (4000, 2)), 0.3).components) == 1
 
 
@@ -96,20 +94,20 @@ def test_a_skewed_population_is_one_population_however_many_components_fit_it():
     dead = rng.normal((8, 3), 0.3, (400, 2))
     mixture = fit_mixture(np.vstack((skewed, dead)), 0.3)
 
-    assert mixture.fitted > 2  # noqa: PLR2004 - BIC wants several components
-    assert len(mixture.components) == 2  # noqa: PLR2004 - but there are two populations
+    assert mixture.fitted > 2
+    assert len(mixture.components) == 2
     outline = MplPath(envelope(mixture.parts[0]))
-    assert outline.contains_points(skewed).mean() > 0.9  # noqa: PLR2004 - not squeezed
+    assert outline.contains_points(skewed).mean() > 0.9
     assert not outline.contains_points(dead).any()  # nor bridging to the other group
 
 
 def test_noise_has_no_2d_valley_at_any_size_but_a_small_group_does():
     rng = np.random.default_rng(0)
     for n in (500, 2000, 20_000):
-        assert valley_2d(*rng.normal(0, 1, (2, n))) < 0.2  # noqa: PLR2004
-        assert valley_2d(*rng.lognormal(0, 0.6, (2, n))) < 0.2  # noqa: PLR2004
+        assert valley_2d(*rng.normal(0, 1, (2, n))) < 0.2
+        assert valley_2d(*rng.lognormal(0, 0.6, (2, n))) < 0.2
     with_group = np.hstack((rng.normal(0, 1, (2, 1900)), rng.normal(5, 0.5, (2, 100))))
-    assert valley_2d(*with_group) > 0.9  # noqa: PLR2004
+    assert valley_2d(*with_group) > 0.9
 
 
 def test_events_piled_on_a_detector_limit_are_off_scale():
@@ -146,7 +144,7 @@ def test_a_proposal_shows_exactly_what_its_gates_will_hold(lens, info):
     for region in proposal.gated:
         # Not exact: the biexponential display transform varies by ~5e-5 between calls,
         # so an event sitting on a gate's edge can fall either way.
-        assert np.mean(region.gate.contains(events) == region.mask) > 0.995  # noqa: PLR2004
+        assert np.mean(region.gate.contains(events) == region.mask) > 0.995
         assert region.fraction == pytest.approx(region.mask.mean())
 
 
@@ -166,7 +164,7 @@ def test_an_ellipse_gate_keeps_the_shape_it_was_fitted_as(lens):
     assert ellipses
     for component, piece in ellipses:
         shape = inside(xy, component)
-        assert np.mean(piece.gate.contains(events) == shape) > 0.99  # noqa: PLR2004 - edge rounding
+        assert np.mean(piece.gate.contains(events) == shape) > 0.99
 
 
 def test_pca_axes_are_formulas_that_reproduce_the_components(lens):
@@ -175,7 +173,7 @@ def test_pca_axes_are_formulas_that_reproduce_the_components(lens):
     view = proposal.context.view
 
     assert all(a.name.startswith("PC") for a in proposal.pending_axes)
-    assert len(proposal.pending_axes) == 2  # noqa: PLR2004
+    assert len(proposal.pending_axes) == 2
     for axis in (view.x, view.y):
         values = parse_formula(axis.pending.formula).evaluate(proposal.context.data.events)
         assert np.allclose(values, axis.values, equal_nan=True)
@@ -212,7 +210,7 @@ def test_the_group_preview_flags_the_sample_that_drifted(lens):
     assert set(by_sample) == {"S0", "S1", "S2", "S3"}
     assert not by_sample["S0"].flagged and not by_sample["S1"].flagged
     assert by_sample["S2"].flagged  # dimmer CD4
-    assert abs(sum(by_sample["S1"].percents.values()) - 100) < 2  # noqa: PLR2004
+    assert abs(sum(by_sample["S1"].percents.values()) - 100) < 2
 
 
 def test_compare_scores_every_method_against_your_gates(lens):
@@ -221,7 +219,7 @@ def test_compare_scores_every_method_against_your_gates(lens):
 
     assert [o.label for o in outcomes] == ["Your gates", *(m.name for m in METHODS)]
     assert set(outcomes[0].percents) == {"CD4+", "CD8+"}
-    assert all(o.agreement and max(o.agreement.values()) > 0.8 for o in outcomes[1:])  # noqa: PLR2004
+    assert all(o.agreement and max(o.agreement.values()) > 0.8 for o in outcomes[1:])
 
 
 def test_accepting_adds_named_gates_with_their_record_and_pc_parameters(lens):
@@ -236,7 +234,7 @@ def test_accepting_adds_named_gates_with_their_record_and_pc_parameters(lens):
     new = [c for c in t_cells.children if c.node_id in added]
     assert [c.name for c in new] == list(proposal.plot.main_names)
     params = {d.param_id for d in derived.definitions}
-    assert len(params) == 2  # noqa: PLR2004 - PC1 and PC2
+    assert len(params) == 2
     assert {new[0].gate.x_param, new[0].gate.y_param} == params
     restored = gate_from_dict(new[0].gate.to_dict())
     assert restored.provenance["population"] == new[0].name
@@ -249,7 +247,7 @@ def test_accepting_twice_reuses_the_same_pc_parameters(lens):
     committer = ProposalCommitter(TreeController(state), derived)
     committer.accept(engine.propose(_request(state, "pca")))
     committer.accept(engine.propose(_request(state, "pca")))
-    assert len(derived.definitions) == 2  # noqa: PLR2004
+    assert len(derived.definitions) == 2
 
 
 def test_a_gate_drawn_by_hand_has_no_story(lens):
@@ -274,8 +272,8 @@ def test_the_cells_split_comes_first_whatever_the_method(lens):
     cells = proposal.gated[0]
     rows = (proposal.context.data.events.index.to_numpy() - 7) // 3  # row i is labelled 3i + 7
     debris = rows < 480  # the fixture plants 8% debris first
-    assert cells.mask[debris].mean() < 0.05  # noqa: PLR2004 - the debris corner is left out
-    assert cells.mask[~debris].mean() > 0.93  # noqa: PLR2004 - the cells' outline holds them
+    assert cells.mask[debris].mean() < 0.05
+    assert cells.mask[~debris].mean() > 0.93
     assert {proposal.gated[0].gate.x_param} == {"FSC-A"}
     assert proposal.provenance["convention"] == "cells"
 
@@ -327,7 +325,7 @@ def test_singlets_follow_the_cells_gate(lens):
     rows = (events.index.to_numpy() - 7) // 3  # the fixture labels row i as 3i + 7
     kept_doublets = double[rows][singlets.mask].mean()
     assert singlets.fraction == pytest.approx(1 - 0.06, abs=0.03)
-    assert kept_doublets < 0.01  # noqa: PLR2004
+    assert kept_doublets < 0.01
     restored = gate_from_dict(singlets.gate.to_dict())
     assert restored.provenance == {} and restored.x_param == "FSC-A"
 

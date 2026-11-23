@@ -86,7 +86,7 @@ class PhenographResult:
         return len(self.layout)
 
 
-def fit_phenograph(  # noqa: PLR0913
+def fit_phenograph(
     x: np.ndarray,
     *,
     k: int = 30,
@@ -106,7 +106,7 @@ def fit_phenograph(  # noqa: PLR0913
     return result
 
 
-def build_graph(  # noqa: PLR0913
+def build_graph(
     x: np.ndarray,
     k: int,
     seed: int,

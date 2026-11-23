@@ -212,7 +212,7 @@ class UmapAnimatorWidget(QWidget):
         self._caption_lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self._caption_lbl.hide()  # shown once animation starts
 
-        self._canvas.resizeEvent = self._on_canvas_resize  # type: ignore
+        self._canvas.resizeEvent = self._on_canvas_resize
 
     def _apply_theme_styles(self) -> None:
         self._figure.patch.set_facecolor(Colors.BG_DARK)

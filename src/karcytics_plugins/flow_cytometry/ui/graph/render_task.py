@@ -95,7 +95,7 @@ class RenderTask(AnalysisBase):
             else True,
         }
 
-    def run(self, state: typing.Any | None = None) -> dict:  # noqa: PLR0912, PLR0915
+    def run(self, state: typing.Any | None = None) -> dict:  # noqa: PLR0915
         """Execute the render — called by TaskScheduler."""
         import matplotlib  # karcytics: allow KS360 - heavy library
 
@@ -256,7 +256,7 @@ class RenderTask(AnalysisBase):
             if ylim is not None and c["plot_type"] != "Histogram":
                 ax.set_ylim(ylim)
 
-            strategy.draw(ax, render_data, **kwargs)  # type: ignore
+            strategy.draw(ax, render_data, **kwargs)
 
             # 6. Render gate overlays (Identical to main FlowCanvas)
             if c.get("gates"):

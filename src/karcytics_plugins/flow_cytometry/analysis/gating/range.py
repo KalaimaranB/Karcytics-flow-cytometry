@@ -12,7 +12,7 @@ from .base import Gate
 class RangeGate(Gate):
     """1-D range gate for histograms."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         x_param: str,
         *,

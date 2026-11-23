@@ -13,7 +13,7 @@ class DynamicStackedWidget(QStackedWidget):
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         self.currentChanged.connect(self._on_current_changed)
 
-    def addWidget(self, widget: QWidget) -> int:  # noqa: N802 - Qt override
+    def addWidget(self, widget: QWidget) -> int:
         idx = super().addWidget(widget)
         if idx != self.currentIndex():
             widget.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)

@@ -54,7 +54,7 @@ def _fake_submit(task, _state):
     """
     try:
         return _FakeWorker("finished", task.run())
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return _FakeWorker("error", str(exc))
 
 
@@ -94,7 +94,7 @@ def handler(document, parent_widget):
 class TestHandleAutosave:
     def test_never_shows_a_blocking_dialog_on_success(
         self, handler, document, parent_widget, fake_task_scheduler
-    ):  # noqa: ARG002
+    ):
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
             return_value="wf_123.json",
@@ -112,7 +112,7 @@ class TestHandleAutosave:
 
     def test_on_success_marks_what_the_save_started_with_as_saved(
         self, handler, document, parent_widget, fake_task_scheduler
-    ):  # noqa: ARG002
+    ):
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
             return_value="wf_123.json",
@@ -130,7 +130,7 @@ class TestHandleAutosave:
 
     def test_never_shows_a_blocking_dialog_on_failure(
         self, handler, document, parent_widget, fake_task_scheduler
-    ):  # noqa: ARG002
+    ):
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
             side_effect=RuntimeError("disk full"),
@@ -149,7 +149,7 @@ class TestHandleAutosave:
 
     def test_reports_failure_without_saving_when_nothing_saved_yet(
         self, handler, document, parent_widget, fake_task_scheduler
-    ):  # noqa: ARG002
+    ):
         document.filename = None
         results = []
 
@@ -160,7 +160,7 @@ class TestHandleAutosave:
 
     def test_reports_failure_without_saving_when_no_project_manager(
         self, handler, document, parent_widget, fake_task_scheduler
-    ):  # noqa: ARG002
+    ):
         document.project_manager.return_value = None
         results = []
 
@@ -177,7 +177,7 @@ class TestHandleUpdateStillShowsDialogs:
 
     def test_shows_the_updated_info_dialog_on_success(
         self, handler, document, parent_widget, fake_task_scheduler
-    ):  # noqa: ARG002
+    ):
         with patch(
             "karcytics_plugins.flow_cytometry.ui.services.workspace_save_service.WorkspaceSaveService.save_to_pm",
             return_value="wf_123.json",

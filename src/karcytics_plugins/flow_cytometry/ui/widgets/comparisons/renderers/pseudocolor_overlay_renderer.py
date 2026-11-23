@@ -86,7 +86,7 @@ class PseudocolorOverlayRenderer(IPlotRenderer):
     stays usable/testable standalone, e.g. in unit tests.
     """
 
-    def render(self, **kwargs) -> Figure:  # noqa: PLR0913
+    def render(self, **kwargs) -> Figure:
         base_x: np.ndarray = kwargs["base_x"]
         base_y: np.ndarray = kwargs["base_y"]
         base_label: str = kwargs.get("base_label", "All Events")

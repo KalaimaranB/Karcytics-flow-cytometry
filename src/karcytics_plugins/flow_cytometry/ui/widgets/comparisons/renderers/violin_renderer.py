@@ -110,9 +110,7 @@ class ViolinRenderer(IPlotRenderer):
         return fig
 
     def _color_violins(self, parts, palette, border_color, fg_color):
-        for _i, (body, colour) in enumerate(
-            zip(parts["bodies"], palette * 10, strict=False)  # type: ignore
-        ):
+        for _i, (body, colour) in enumerate(zip(parts["bodies"], palette * 10, strict=False)):
             body.set_facecolor(colour)
             body.set_alpha(0.75)
             body.set_edgecolor(border_color)

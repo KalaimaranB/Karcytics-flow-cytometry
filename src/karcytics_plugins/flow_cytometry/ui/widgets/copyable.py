@@ -37,7 +37,7 @@ class CopyableCanvas(LockedFigureCanvas):
         super().__init__(figure)
         install_copy_menu(self, self.grab)
 
-    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
+    def wheelEvent(self, event) -> None:
         event.ignore()  # let the enclosing scroll area scroll
 
 
@@ -65,5 +65,5 @@ class CopyablePixmapLabel(QLabel):
         )
         install_copy_menu(self, lambda: self._original_pixmap)
 
-    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
+    def wheelEvent(self, event) -> None:
         event.ignore()  # let the enclosing scroll area scroll

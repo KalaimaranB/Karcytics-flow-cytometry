@@ -75,7 +75,7 @@ class GraphWindow(QWidget):
     tool_change_requested = Signal(str)  # a key of _TOOL_MODE_MAP
     derived_editor_requested = Signal(object, str)  # this GraphWindow, "x" | "y"
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         state: FlowState,
         sample_id: str,

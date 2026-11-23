@@ -284,7 +284,7 @@ class SpectralViewer(QWidget):
         if self._tabs.widget(index) is self._learning_tab:
             self._learning_tab.update_view()
 
-    def _apply_theme_styles(self):  # noqa: PLR0912
+    def _apply_theme_styles(self):
         self.setStyleSheet(f"background: {Colors.BG_DARKEST};")
         style_axes(self._ax, AxesColors.from_theme(), open_frame=True)
 

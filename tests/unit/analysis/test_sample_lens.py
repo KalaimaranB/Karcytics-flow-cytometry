@@ -121,13 +121,13 @@ def test_check_across_skips_samples_without_the_population(planted):
 def test_proposed_gates_recover_the_missed_cluster(planted, transform):
     sample, events, truth, scope = planted
     run_events = events.iloc[scope.rows]
-    target = scope.clusters == 4  # noqa: PLR2004
+    target = scope.clusters == 4
     scales = {ch: AxisScale(transform_type=transform, logicle_t=TOP) for ch in CHANNELS}
 
     proposal = propose_gates(run_events, target, scales)
 
     assert proposal
-    assert proposal[-1].f1 > 0.95  # noqa: PLR2004
+    assert proposal[-1].f1 > 0.95
     # The gates, applied as a chain to the raw events, select what was scored.
     selected = np.ones(len(run_events), dtype=bool)
     for step in proposal:
@@ -154,7 +154,7 @@ def test_a_cut_is_blamed_on_the_gate_that_loses_the_cells():
     cuts = {f.clusters[0]: f for f in audit(scope) if f.kind is FindingKind.CUTS}
 
     assert cuts[1].population == "Lymphocytes / T cells"
-    assert 0.3 < cuts[1].shares[0] < 0.7  # noqa: PLR2004
+    assert 0.3 < cuts[1].shares[0] < 0.7
 
 
 def test_gate_extent_covers_each_gate_type():

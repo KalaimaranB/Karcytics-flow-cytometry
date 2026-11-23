@@ -32,8 +32,8 @@ def test_separate_groups_stay_apart_and_a_speck_between_them_does_not_join_them(
     )
     found = density_regions(xy[:, 0], xy[:, 1], 0.3)
     assert found is not None
-    big = [r for r in found.regions if r.weight > 0.05]  # noqa: PLR2004
-    assert len(big) == 2  # noqa: PLR2004
+    big = [r for r in found.regions if r.weight > 0.05]
+    assert len(big) == 2
     assert abs(big[0].peak[0]) < 1 and abs(big[1].peak[0] - 9) < 1
 
 
@@ -47,7 +47,7 @@ def test_an_outline_follows_a_lopsided_population():
     from matplotlib.path import Path
 
     path = Path(shape)
-    assert path.contains_points(xy).mean() > 0.9  # noqa: PLR2004
+    assert path.contains_points(xy).mean() > 0.9
     assert not path.contains_point((6, 6))  # the empty corner of the L stays out
 
 

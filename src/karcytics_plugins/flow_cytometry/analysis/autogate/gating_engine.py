@@ -248,7 +248,7 @@ class GatingEngine:
         )
 
     @staticmethod
-    def _reason(  # noqa: PLR0913 - everything the sentence names
+    def _reason(
         key: str,
         rank: int,
         view: View,

@@ -21,7 +21,7 @@ class LayoutEngine:
     Y_SPACING = 330
 
     @classmethod
-    def compute_layout(  # noqa: PLR0912
+    def compute_layout(
         cls, root_node: Any, items_dict: dict[str, Any], orientation: str = "vertical"
     ) -> None:
         if not root_node or not root_node.children:

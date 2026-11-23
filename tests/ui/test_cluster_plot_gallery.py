@@ -35,7 +35,7 @@ class _FakeScheduler(QObject):
         def run_and_emit():
             try:
                 results = analyzer.run(state)
-            except Exception as exc:  # noqa: BLE001 - reported like the real scheduler does
+            except Exception as exc:
                 self.task_error.emit(task_id, str(exc))
             else:
                 self.task_finished.emit(task_id, results)
@@ -82,7 +82,7 @@ def _gallery(qtbot, run: dict) -> ClusterPlotGallery:
 def test_every_tile_shows_a_placeholder_before_it_renders(scheduler, qtbot):
     gallery = _gallery(qtbot, _run(n_channels=3))
 
-    assert len(scheduler.submitted) == 3  # noqa: PLR2004
+    assert len(scheduler.submitted) == 3
     for cell in ((0, 0), (0, 1), (1, 0)):
         assert _tile(gallery, *cell).text() == "Rendering…"
 

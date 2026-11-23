@@ -25,7 +25,7 @@ def planted():
 
 def test_metaclusters_recover_the_planted_cell_types(planted):
     _x, truth, result = planted
-    assert adjusted_rand_score(truth, result.clusters) > 0.95  # noqa: PLR2004
+    assert adjusted_rand_score(truth, result.clusters) > 0.95
 
 
 def test_every_event_has_a_node_and_no_event_is_noise(planted):
@@ -74,7 +74,7 @@ def test_a_million_events_fit_in_seconds():
     x = np.random.default_rng(0).normal(size=(1_000_000, 12))
     start = time.perf_counter()
     fit_flowsom(x)
-    assert time.perf_counter() - start < 30  # noqa: PLR2004
+    assert time.perf_counter() - start < 30
 
 
 def test_runs_saved_before_the_choice_are_umap_hdbscan():

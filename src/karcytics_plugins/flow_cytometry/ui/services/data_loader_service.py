@@ -154,7 +154,7 @@ class DataLoaderService:
 
         return {"loaded": loaded, "failed": failed}
 
-    def load_samples_async(  # noqa: PLR0913 - one keyword per load option callers pass
+    def load_samples_async(
         self,
         paths: list[str | Path],
         state: PluginState | None,

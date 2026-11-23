@@ -182,7 +182,7 @@ def _population_cells(
                     total_count=total,
                 )
                 cell = StatCell(format_statistic(stat, value), value)
-        except Exception as exc:  # noqa: BLE001 - one failed cell must not lose the table
+        except Exception as exc:
             logger.warning("Stat %s failed for %s/%s: %s", stat, sample.sample_id, node_id, exc)
             cell = _FAILED
         cells.append((stat, cell))

@@ -92,11 +92,11 @@ _startup_t0 = time.monotonic()
 sys.stderr.write("[startup] importing Phase 2 view modules (matplotlib/scipy chain)...\n")
 sys.stderr.flush()
 
-import karcytics_plugins.flow_cytometry.ui.graph.graph_manager  # noqa: E402, F401
-import karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer  # noqa: E402, F401
-import karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.canvas_view  # noqa: E402, F401
-import karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer  # noqa: E402, F401
-import karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer  # noqa: E402, F401
+import karcytics_plugins.flow_cytometry.ui.graph.graph_manager  # noqa: E402
+import karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer  # noqa: E402
+import karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.canvas_view  # noqa: E402
+import karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer  # noqa: E402
+import karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer  # noqa: E402
 import karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer  # noqa: E402, F401
 
 _startup_elapsed = time.monotonic() - _startup_t0

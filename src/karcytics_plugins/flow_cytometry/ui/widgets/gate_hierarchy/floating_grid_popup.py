@@ -77,13 +77,13 @@ class BranchLabel(QWidget):
             self.setCursor(Qt.CursorShape.PointingHandCursor)
             self.setToolTip("Click to toggle for every sample")
 
-    def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if self._on_clicked is not None:
             self._on_clicked()
         elif event is not None:
             super().mousePressEvent(event)
 
-    def paintEvent(self, _event) -> None:  # noqa: N802
+    def paintEvent(self, _event) -> None:
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -169,21 +169,21 @@ class FloatingGridPopup(QFrame):
 
     # ── Outside-click dismissal ──────────────────────────────────────
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         if self._dismiss_on_outside_click:
             app = QApplication.instance()
             if app is not None:
                 app.installEventFilter(self)
 
-    def hideEvent(self, event) -> None:  # noqa: N802
+    def hideEvent(self, event) -> None:
         super().hideEvent(event)
         if self._dismiss_on_outside_click:
             app = QApplication.instance()
             if app is not None:
                 app.removeEventFilter(self)
 
-    def eventFilter(self, obj, event) -> bool:  # noqa: N802
+    def eventFilter(self, obj, event) -> bool:
         if (
             self._dismiss_on_outside_click
             and event is not None
@@ -234,7 +234,7 @@ class FloatingGridPopup(QFrame):
         # whatever's now under the pointer and can crash the whole process
         # (EXC_BREAKPOINT in QImage::toCGImage/CGImageCreate). Deferring by
         # one event-loop tick lets that native dispatch finish first.
-        btn.mousePressEvent = lambda _e: QTimer.singleShot(0, self.hide)  # type: ignore[method-assign, assignment]
+        btn.mousePressEvent = lambda _e: QTimer.singleShot(0, self.hide)  # type: ignore[method-assign]
         self._btn_close = btn
         return btn
 
@@ -267,9 +267,9 @@ class FloatingGridPopup(QFrame):
         title_layout.addSpacing(8)
         title_layout.addWidget(self._build_close_button())
 
-        self._title_bar.mousePressEvent = self._on_title_bar_press  # type: ignore[method-assign, assignment]
-        self._title_bar.mouseMoveEvent = self._on_title_bar_move  # type: ignore[method-assign, assignment]
-        self._title_bar.mouseReleaseEvent = self._on_title_bar_release  # type: ignore[method-assign, assignment]
+        self._title_bar.mousePressEvent = self._on_title_bar_press  # type: ignore[method-assign]
+        self._title_bar.mouseMoveEvent = self._on_title_bar_move  # type: ignore[method-assign]
+        self._title_bar.mouseReleaseEvent = self._on_title_bar_release  # type: ignore[method-assign]
         return self._title_bar
 
     def _on_title_bar_press(self, event: QMouseEvent | None) -> None:
@@ -400,7 +400,7 @@ class FloatingGridPopup(QFrame):
         self._split_layout.addWidget(self._scroll, stretch=1)
         return bottom_row
 
-    def resizeEvent(self, event: QResizeEvent | None) -> None:  # noqa: N802
+    def resizeEvent(self, event: QResizeEvent | None) -> None:
         super().resizeEvent(event)  # type: ignore[arg-type]
         if self._size_grip is not None:
             self._size_grip.move(
@@ -559,7 +559,7 @@ class FloatingGridPopup(QFrame):
 
                     return _handler
 
-                header.mousePressEvent = _make_press_handler(_sid)  # type: ignore[method-assign, assignment]
+                header.mousePressEvent = _make_press_handler(_sid)  # type: ignore[method-assign]
             self._header_grid.addWidget(header, 0, col_i)
 
         for row_i, row in enumerate(rows):
@@ -582,7 +582,7 @@ class FloatingGridPopup(QFrame):
 
     # ── Dismiss logic ─────────────────────────────────────────────────
 
-    def keyPressEvent(self, event: QKeyEvent | None) -> None:  # noqa: N802
+    def keyPressEvent(self, event: QKeyEvent | None) -> None:
         if event is None:
             return
         if event.key() == Qt.Key.Key_Escape:

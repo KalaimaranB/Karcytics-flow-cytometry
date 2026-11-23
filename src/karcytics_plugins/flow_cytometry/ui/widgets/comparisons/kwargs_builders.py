@@ -229,7 +229,7 @@ def build_pseudocolor_overlay_kwargs(
     config: dict,
     sample_ids: list[str],
     pop_pairs: list[tuple],
-    channel_keys: list[str],  # noqa: ARG001 — this plot type owns its own X/Y pickers
+    channel_keys: list[str],
 ) -> dict:
     x_channel = config.get("x_channel")
     y_channel = config.get("y_channel")

@@ -247,7 +247,7 @@ class AxisTransformPanel(QWidget):
 
         layout.addStretch()
 
-    def _add_slider_row(  # noqa: PLR0913
+    def _add_slider_row(
         self,
         form: QFormLayout,
         label: str,

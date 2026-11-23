@@ -69,7 +69,7 @@ SHOW_DELAY_MS = 30  # let the tab paint before catching up
 
 
 class SampleLensTab(QWidget):
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         state: FlowState,
         population_service: PopulationService,
@@ -308,7 +308,7 @@ class SampleLensTab(QWidget):
 
     # ── Lifecycle ──────────────────────────────────────────────────────
 
-    def showEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+    def showEvent(self, event: Any) -> None:
         super().showEvent(event)
         # Catch up after the tab has painted, so switching to it is instant
         # (the audit and the plots take a moment; plots show "Loading plot…").
@@ -320,7 +320,7 @@ class SampleLensTab(QWidget):
         self._populate_samples()
         self._model.set_active(True)
 
-    def hideEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+    def hideEvent(self, event: Any) -> None:
         self._model.set_active(False)
         super().hideEvent(event)
 

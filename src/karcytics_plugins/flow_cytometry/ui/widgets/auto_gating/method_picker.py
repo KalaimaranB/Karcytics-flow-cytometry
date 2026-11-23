@@ -54,12 +54,12 @@ class _MethodCard(QFrame):
         template = _ON if on else _OFF
         theme_manager.apply_style(self, template.format(name=self.objectName()))
 
-    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt override
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
         super().mousePressEvent(event)
 
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: N802 - Qt override
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() in (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.clicked.emit()
             return

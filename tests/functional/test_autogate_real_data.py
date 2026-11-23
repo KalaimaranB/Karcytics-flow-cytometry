@@ -49,8 +49,8 @@ def test_dead_cells_are_found_in_a_stained_sample(fcs_test_data_dir, method_key)
 
     assert not isinstance(proposal, str), proposal
     dead = [r for r in proposal.gated if "PI+" in r.name]
-    assert dead and 0.03 < dead[0].fraction < 0.2  # noqa: PLR2004
-    assert len(proposal.gated) >= 2  # noqa: PLR2004
+    assert dead and 0.03 < dead[0].fraction < 0.2
+    assert len(proposal.gated) >= 2
 
 
 def test_debris_is_cut_off_on_forward_scatter(fcs_test_data_dir):
@@ -59,7 +59,7 @@ def test_debris_is_cut_off_on_forward_scatter(fcs_test_data_dir):
 
     assert not isinstance(proposal, str), proposal
     cells = max(proposal.gated, key=lambda r: r.fraction)
-    assert cells.name.startswith("FSC-Amid") and cells.fraction > 0.8  # noqa: PLR2004
+    assert cells.name.startswith("FSC-Amid") and cells.fraction > 0.8
 
 
 def test_an_unstained_tube_has_no_marker_split(fcs_test_data_dir):
@@ -74,7 +74,7 @@ def test_cells_come_first_from_all_events(fcs_test_data_dir):
 
     assert not isinstance(proposal, str), proposal
     assert [r.name for r in proposal.gated] == ["Cells"]
-    assert 0.8 < proposal.gated[0].fraction < 0.98  # noqa: PLR2004
+    assert 0.8 < proposal.gated[0].fraction < 0.98
 
 
 def test_the_cells_gate_follows_the_cells_and_leaves_out_saturated_events(fcs_test_data_dir):
@@ -89,7 +89,7 @@ def test_the_cells_gate_follows_the_cells_and_leaves_out_saturated_events(fcs_te
     assert cells.gate.__class__.__name__ == "PolygonGate"
     events = proposal.context.data.events
     saturated = events["FSC-A"].to_numpy() >= events["FSC-A"].max()
-    assert saturated.sum() > 50 and cells.mask[saturated].mean() < 0.05  # noqa: PLR2004
+    assert saturated.sum() > 50 and cells.mask[saturated].mean() < 0.05
 
 
 def _template_plan(fcs_test_data_dir, name: str):
@@ -118,7 +118,7 @@ def test_a_template_finds_live_b_and_t_cells_in_a_stained_sample(fcs_test_data_d
     steps = _template_plan(fcs_test_data_dir, "Sample C")
     for name in ("Cells", "Live", "B cells", "T cells"):
         assert steps[name].proposal is not None, steps[name].message
-    assert 0.5 < steps["B cells"].proposal.gated[0].fraction < 0.9  # noqa: PLR2004
+    assert 0.5 < steps["B cells"].proposal.gated[0].fraction < 0.9
 
 
 def test_a_template_finds_no_stained_populations_in_an_unstained_tube(fcs_test_data_dir):
@@ -164,7 +164,7 @@ def test_an_fmo_tube_places_the_positive_line(fcs_test_data_dir):
     t_cells = steps["T cells"].proposal
     assert t_cells is not None, steps["T cells"].message
     assert t_cells.provenance["control_lines"]["CD3"]["control"] == "FMO e450"
-    assert 0.05 < t_cells.gated[0].fraction < 0.4  # noqa: PLR2004
+    assert 0.05 < t_cells.gated[0].fraction < 0.4
 
 
 def test_an_fmo_line_with_only_a_tail_beyond_it_is_not_taken_for_a_population(

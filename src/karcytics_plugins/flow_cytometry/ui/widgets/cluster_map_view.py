@@ -251,7 +251,7 @@ class ClusterMapView(QWidget):
         self._draw_map()
         self._draw_heatmap()
 
-    def _legend_note(self, cluster: int) -> str:  # noqa: ARG002 - a hook for subclasses
+    def _legend_note(self, cluster: int) -> str:
         return ""
 
     def _fill_legend(self) -> None:

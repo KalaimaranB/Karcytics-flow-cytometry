@@ -65,7 +65,7 @@ def test_every_registry_entry_has_a_complete_spec():
     a plot type literally cannot be registered without every field —
     including build_kwargs — being supplied.
     """
-    assert len(PLOT_REGISTRY) >= 5  # noqa: PLR2004
+    assert len(PLOT_REGISTRY) >= 5
     for name, spec in PLOT_REGISTRY.items():
         assert callable(spec.build_kwargs), f"{name} has no kwargs builder"
         assert spec.renderer_cls is not None, f"{name} has no renderer"

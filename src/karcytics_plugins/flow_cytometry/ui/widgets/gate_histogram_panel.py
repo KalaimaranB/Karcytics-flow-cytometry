@@ -286,7 +286,7 @@ class GateHistogramPanel(QWidget):
     def _on_model_changed(self, _data: dict | None = None) -> None:
         self.refresh()
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         if self._stale:
             self._schedule_render()

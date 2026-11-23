@@ -336,7 +336,7 @@ class GatingPathStrip(QWidget):
             )
             self._scroll.setVerticalScrollBarPolicy(policy)
 
-    def resizeEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+    def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
         self._fit_sizes()
 

@@ -65,12 +65,12 @@ def test_choosing_flowsom_shows_its_settings_and_uses_every_event(viewer):
     choose_flowsom(viewer)
     assert viewer._setup._flowsom_params.isVisibleTo(viewer)
     assert not viewer._setup._umap_params.isVisibleTo(viewer)
-    assert viewer._setup._n_events_slider.value() == 100  # noqa: PLR2004
+    assert viewer._setup._n_events_slider.value() == 100
     assert "3,000 events" in viewer._setup._n_events_title_lbl.text()
 
     viewer._setup._algo_combo.setCurrentIndex(viewer._setup._algo_combo.findData("umap_hdbscan"))
     assert viewer._setup._umap_params.isVisibleTo(viewer)
-    assert viewer._setup._n_events_slider.value() == 10  # noqa: PLR2004
+    assert viewer._setup._n_events_slider.value() == 10
 
 
 @pytest.mark.ui
@@ -78,7 +78,7 @@ def test_the_slider_can_lower_the_events_to_compare_with_umap(viewer):
     choose_flowsom(viewer)
     viewer._setup._n_events_slider.setValue(25)
     run_flowsom(viewer)
-    assert viewer._umap_service.params.n_events == 750  # noqa: PLR2004
+    assert viewer._umap_service.params.n_events == 750
 
 
 @pytest.mark.ui
@@ -87,11 +87,11 @@ def test_a_run_is_stored_and_opens_on_its_tree(viewer):
 
     runs = viewer._state.data.umap_results["s1::root"]
     assert runs[-1]["method"] == "flowsom"
-    assert runs[-1]["n_events"] == 3000  # noqa: PLR2004
+    assert runs[-1]["n_events"] == 3000
     assert "FlowSOM k=5" in viewer._history_combo.currentText()
     panel = viewer._results_panel
     assert panel._tabs.tabText(0) == "FlowSOM Tree"
-    assert panel._tree_view._legend.count() == 5  # noqa: PLR2004
+    assert panel._tree_view._legend.count() == 5
     assert not viewer._replay_anim_btn.isVisibleTo(viewer)
 
 
@@ -104,9 +104,9 @@ def test_changing_k_recuts_the_tree_and_the_statistics(viewer):
     panel._tree_view._recut_timer.timeout.emit()
 
     run = viewer._state.data.umap_results["s1::root"][-1]
-    assert run["k"] == 3  # noqa: PLR2004
-    assert len(run["cluster_stats"]["data"]) == 3  # noqa: PLR2004
-    assert panel._tree_view._legend.count() == 3  # noqa: PLR2004
+    assert run["k"] == 3
+    assert len(run["cluster_stats"]["data"]) == 3
+    assert panel._tree_view._legend.count() == 3
     assert [panel._tabs.tabText(i) for i in range(panel._tabs.count())] == [
         "FlowSOM Tree",
         "Plot Gallery",
@@ -127,7 +127,7 @@ def test_reopening_a_run_from_history_shows_flowsom_and_its_settings(viewer):
     viewer._history_combo.setCurrentIndex(1)
 
     assert viewer._setup._algo_combo.currentData() == "flowsom"
-    assert viewer._setup._flowsom_params.values()["k"] == 7  # noqa: PLR2004
+    assert viewer._setup._flowsom_params.values()["k"] == 7
     assert not viewer._setup._flowsom_params._spins["k"].isEnabled()
 
 

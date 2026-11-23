@@ -20,6 +20,7 @@ select = [
     "C4",     # flake8-comprehensions
     "ARG",    # flake8-unused-arguments
     "TID251", # banned imports (PySide6 in analysis layer)
+    "RUF100", # unused noqa: a suppression must suppress something
     "T20",    # flake8-print — stdout is the isolated-process msgpack IPC channel; a stray
               # print() corrupts the frame protocol (see ui_daemon.py / ui_daemon_runtime.py)
 ]

@@ -54,11 +54,11 @@ def test_a_umap_run_uses_the_sidebar_settings_and_is_stored_with_them(viewer, qt
 
     qtbot.waitUntil(lambda: viewer.academy_snapshot().has_results, timeout=60_000)
     params = viewer._umap_service.params
-    assert params.n_neighbors == 12  # noqa: PLR2004
-    assert params.n_events == 300  # 10% of 3,000  # noqa: PLR2004
+    assert params.n_neighbors == 12
+    assert params.n_events == 300  # 10% of 3,000
     (run,) = viewer._state.data.umap_results["s1::root"]
     assert run["name"] == "Overview"
-    assert run["n_neighbors"] == 12  # noqa: PLR2004
+    assert run["n_neighbors"] == 12
     snapshot = viewer.academy_snapshot()
     assert not snapshot.is_running
     assert not snapshot.new_run_selected  # the finished run is selected in the history

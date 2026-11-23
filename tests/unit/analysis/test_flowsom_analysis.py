@@ -50,7 +50,7 @@ def test_the_metaclusters_find_the_cell_types(planted):
     _state, events, truth, run = planted
     by_label = dict(zip(events.index, truth, strict=True))
     expected = [by_label[i] for i in run["indices"]]
-    assert adjusted_rand_score(expected, run["clusters"]) > 0.9  # noqa: PLR2004
+    assert adjusted_rand_score(expected, run["clusters"]) > 0.9
 
 
 def test_the_run_has_a_map_and_the_usual_tables(planted):
@@ -91,7 +91,7 @@ def test_recut_keeps_custom_population_cells_out(planted):
     *_, run = planted
     run = dict(run, custom_clusters=[{"name": "Mine", "mask": [0, 1, 2]}], cluster_names={"0": "x"})
     recut_run(run, 3)
-    assert run["k"] == 3  # noqa: PLR2004
+    assert run["k"] == 3
     assert (run["clusters"][:3] == -1).all()
     assert set(run["clusters"][3:]) == {0, 1, 2}
     assert run["cluster_names"] == {}

@@ -536,9 +536,7 @@ class PopulationAnalysisViewer(QWidget):
         if panel is self._results_panel:  # still the run on screen
             panel.apply_recluster(arrays)
 
-    def _on_analysis_done(  # noqa: PLR0912, PLR0915
-        self, results: dict[str, Any], params: UmapParams | None = None
-    ) -> None:
+    def _on_analysis_done(self, results: dict[str, Any], params: UmapParams | None = None) -> None:
         self._progress_bar.setRange(0, 100)
         self._progress_bar.hide()
         self._is_analysis_running = False

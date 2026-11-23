@@ -35,14 +35,14 @@ class TestUIDaemonIsolatedProcess:
         frame = daemon.io.wait_for_event("ready", NO_READY)
         elapsed = time.monotonic() - start
 
-        assert len(frame["payload"]["geometry"]) == 4  # noqa: PLR2004 - x, y, width, height
+        assert len(frame["payload"]["geometry"]) == 4
         # The Phase 2 view modules' imports (matplotlib/scipy) run at module
         # level in ui_daemon.py, before 'ready': importing them once a stdin
         # reader thread exists hangs on Windows. 'ready' carries that cost, so
         # guard it with margin under the Hub's 45 s Ready Gate.
         assert elapsed < 40.0, (
             f"'ready' took {elapsed:.1f}s — approaching the Hub's 45s Ready Gate."
-        )  # noqa: PLR2004 - see comment
+        )
 
     def test_exit_request_shuts_the_process_down_cleanly(self, daemon):
         daemon.io.wait_for_event("ready", NO_READY)

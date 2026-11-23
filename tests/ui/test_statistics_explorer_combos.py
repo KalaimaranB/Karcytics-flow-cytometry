@@ -59,5 +59,5 @@ def test_computed_results_fill_the_chart_statistic_picker(widget):
 
     widget.show_table(compute_table(widget._state.data.experiment, request))
 
-    assert widget._chart_stat_combo.count() == 2  # noqa: PLR2004
+    assert widget._chart_stat_combo.count() == 2
     assert widget._chart_stat_combo.itemData(0) == StatType.COUNT

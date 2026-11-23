@@ -428,7 +428,7 @@ class StatisticsExplorer(QWidget):
                 self._figure.savefig(
                     path, dpi=300, bbox_inches="tight", facecolor=self._figure.get_facecolor()
                 )
-        except Exception as exc:  # noqa: BLE001 - reported as a diagnostic, not a crash
+        except Exception as exc:
             self._report_export_failure("Statistics plot export failed", exc)
             return
         self._status_lbl.setText(f"✓ Plot exported to {path}")
@@ -456,7 +456,7 @@ class StatisticsExplorer(QWidget):
             return
         try:
             write_csv(path, self._table)
-        except Exception as exc:  # noqa: BLE001 - a failed export reports, never crashes the button
+        except Exception as exc:
             self._report_export_failure("Statistics CSV export failed", exc)
             return
         self._status_lbl.setText(f"✓ Exported to {path}")

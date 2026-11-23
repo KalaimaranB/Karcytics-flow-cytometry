@@ -97,7 +97,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     scale_edit_requested = Signal(object, object)  # x AxisScale, y AxisScale (a wheel zoom)
     auto_range_requested = Signal()  # the F key: fit the ranges to the data
 
-    def __init__(  # noqa: PLR0913, PLR0915
+    def __init__(  # noqa: PLR0915
         self,
         state: FlowState | None = None,
         controller: GateCoordinator | None = None,
@@ -531,7 +531,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         """
         self._local_selection = local
 
-    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt override
+    def wheelEvent(self, event) -> None:
         if not self._wheel_zoom:
             event.ignore()  # let the enclosing scroll area have it
             return

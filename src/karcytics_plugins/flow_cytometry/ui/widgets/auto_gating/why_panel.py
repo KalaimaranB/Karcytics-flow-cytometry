@@ -40,7 +40,7 @@ class _DensityStrip(QWidget):
         self._density, self._valley, self._axis = density, valley, axis
         self.update()
 
-    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802 - Qt override
+    def paintEvent(self, _event: QPaintEvent) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor(Colors.BG_DARKEST))

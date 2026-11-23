@@ -44,7 +44,7 @@ def _majority_type(truth, clusters):
 
 def test_clusters_recover_the_planted_cell_types(planted):
     _x, truth, result = planted
-    assert adjusted_rand_score(truth, result.clusters) > 0.95  # noqa: PLR2004
+    assert adjusted_rand_score(truth, result.clusters) > 0.95
     sizes = np.bincount(result.clusters[result.clusters >= 0])
     assert list(sizes) == sorted(sizes, reverse=True)  # 0 is the largest
 
@@ -92,7 +92,7 @@ def test_events_beyond_the_graph_take_their_neighbours_cluster(planted, monkeypa
     assert result.base.graph.shape == (2000, 2000)
     assert result.base.hosts.shape == (len(x) - 2000, phenograph.VOTE)
     assert result.clusters.shape == (len(x),)
-    assert adjusted_rand_score(truth, result.clusters) > 0.9  # noqa: PLR2004
+    assert adjusted_rand_score(truth, result.clusters) > 0.9
 
 
 def test_a_cancelled_run_returns_nothing(planted):
@@ -123,5 +123,5 @@ def test_more_events_than_the_graph_holds_cluster_in_under_a_minute():
     x = np.random.default_rng(0).normal(size=(300_000, 8))
     start = time.perf_counter()
     result = fit_phenograph(x)
-    assert result is not None and (result.clusters >= 0).mean() > 0.99  # noqa: PLR2004
-    assert time.perf_counter() - start < 60  # noqa: PLR2004
+    assert result is not None and (result.clusters >= 0).mean() > 0.99
+    assert time.perf_counter() - start < 60

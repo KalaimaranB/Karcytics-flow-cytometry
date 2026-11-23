@@ -7,17 +7,17 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ.setdefault("KARCYTICS_PLUGIN_ID", "flow_cytometry_tests")
 
-from unittest.mock import MagicMock  # noqa: E402
+from unittest.mock import MagicMock
 
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-import pytest  # noqa: E402
-from karcytics_sdk.plugin import ui_daemon_runtime  # noqa: E402
+import numpy as np
+import pandas as pd
+import pytest
+from karcytics_sdk.plugin import ui_daemon_runtime
 
-from karcytics_plugins.flow_cytometry.analysis.experiment import Experiment, Sample  # noqa: E402
-from karcytics_plugins.flow_cytometry.analysis.state import FlowState  # noqa: E402
+from karcytics_plugins.flow_cytometry.analysis.experiment import Experiment, Sample
+from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 
-from .fixtures import *  # noqa: F403, E402
+from .fixtures import *  # noqa: F403
 
 # Outside the UI daemon there is no Hub on stdout: keep the frames the SDK
 # would send it (event_bus.emit, diagnostics) instead of writing them.

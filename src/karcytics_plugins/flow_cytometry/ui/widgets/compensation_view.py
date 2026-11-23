@@ -423,7 +423,7 @@ class CompensationView(QWidget):
         if self._is_alive:
             self.refresh()
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         self.refresh()
 

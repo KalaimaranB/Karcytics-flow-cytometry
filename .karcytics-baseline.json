@@ -15,7 +15,7 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/clustering/phenograph.py": {
-      "KS310": 3
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/clustering/run_input.py": {
       "KS310": 1
@@ -29,9 +29,6 @@
       "KS302:handle_load_fcs_batch": 97,
       "KS310": 1,
       "KS360": 3
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/derived/expression.py": {
-      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/derived/preview.py": {
       "KS310": 1
@@ -49,9 +46,6 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/quadrant.py": {
-      "KS310": 1
-    },
-    "src/karcytics_plugins/flow_cytometry/analysis/gating/range.py": {
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/gating/rectangle.py": {
@@ -79,15 +73,11 @@
     "src/karcytics_plugins/flow_cytometry/analysis/statistics.py": {
       "KS310": 1
     },
-    "src/karcytics_plugins/flow_cytometry/analysis/transforms.py": {
-      "KS310": 1
-    },
     "src/karcytics_plugins/flow_cytometry/analysis/umap_analysis.py": {
       "KS302:UmapAnalysis.run": 108,
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/core_intro_handoff.py": {
-      "KS310": 7,
       "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/course1.py": {
@@ -117,7 +107,6 @@
       "KS310": 3
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/tutorial_assets.py": {
-      "KS310": 4,
       "KS360": 1
     },
     "src/karcytics_plugins/flow_cytometry/tutorials/validators/clustering.py": {
@@ -170,7 +159,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/data_layer.py": {
       "KS240": 11,
       "KS302:FlowDataComputeStage._compute_2d": 120,
-      "KS310": 4,
+      "KS310": 1,
       "KS342": 12
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/event_handler.py": {
@@ -178,7 +167,6 @@
       "KS342": 32
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/gate_layer.py": {
-      "KS310": 1,
       "KS342": 21
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/canvas/overlay_manager.py": {
@@ -198,7 +186,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/graph/components/transform_widgets.py": {
       "KS210": 9,
       "KS302:AxisTransformPanel._setup_ui": 183,
-      "KS310": 3
+      "KS310": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/flow_canvas.py": {
       "KS240": 11,
@@ -218,22 +206,21 @@
       "KS302:GateDrawingFSM._draw_polygon_progress": 94,
       "KS302:GateDrawingFSM._draw_rubber_band": 108,
       "KS302:GateDrawingFSM._draw_rubber_band._action": 95,
-      "KS310": 30,
+      "KS310": 24,
       "KS342": 97
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/graph_manager.py": {
-      "KS310": 2,
+      "KS310": 1,
       "KS320": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/graph_window.py": {
-      "KS301:GraphWindow": 35,
-      "KS310": 1
+      "KS301:GraphWindow": 35
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/render_panels/_utils.py": {
       "KS210": 2,
       "KS211": 1,
       "KS240": 1,
-      "KS310": 2
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/render_panels/contour_panel.py": {
       "KS302:ContourSettingsPanel._build_ui": 85
@@ -256,7 +243,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/graph/render_task.py": {
       "KS240": 4,
       "KS302:RenderTask.run": 235,
-      "KS310": 5
+      "KS310": 4
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/render_window.py": {
       "KS310": 1
@@ -276,14 +263,13 @@
       "KS250": 1,
       "KS302:HistogramStrategy.compute": 87,
       "KS302:HistogramStrategy.draw": 83,
-      "KS310": 3
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/renderers/pseudocolor.py": {
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/graph/transform_dialog.py": {
-      "KS242": 3,
-      "KS310": 1
+      "KS242": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/main_panel.py": {
       "KS242": 4,
@@ -299,7 +285,6 @@
       "KS342": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/services/workflow_service.py": {
-      "KS310": 1,
       "KS342": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/checkbox_style.py": {
@@ -342,7 +327,7 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons/renderers/pseudocolor_overlay_renderer.py": {
       "KS240": 9,
-      "KS310": 2
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons/renderers/radar_renderer.py": {
       "KS240": 11,
@@ -352,7 +337,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons/renderers/violin_renderer.py": {
       "KS240": 11,
       "KS302:ViolinRenderer.render": 84,
-      "KS310": 6
+      "KS310": 5
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/comparisons_viewer.py": {
       "KS210": 2,
@@ -365,20 +350,18 @@
       "KS240": 5,
       "KS242": 1,
       "KS300": 657,
-      "KS310": 2
+      "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_preview.py": {
       "KS240": 3,
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_preview_grid.py": {
-      "KS211": 1,
-      "KS310": 1
+      "KS211": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/compensation_view.py": {
       "KS210": 3,
-      "KS301:CompensationView": 37,
-      "KS310": 1
+      "KS301:CompensationView": 37
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/derived_formula_editor.py": {
       "KS300": 601,
@@ -386,14 +369,14 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_hierarchy/all_samples_popup.py": {
       "KS240": 1,
-      "KS310": 3
+      "KS310": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_hierarchy/floating_grid_popup.py": {
       "KS210": 3,
       "KS240": 6,
       "KS242": 3,
       "KS302:FloatingGridPopup._populate_grid": 111,
-      "KS310": 14
+      "KS310": 7
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_hierarchy/hover_card.py": {
       "KS240": 6,
@@ -416,12 +399,11 @@
       "KS210": 2,
       "KS220": 1,
       "KS302:GateHierarchy._setup_ui": 104,
-      "KS310": 1,
       "KS320": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/gate_histogram_panel.py": {
       "KS240": 3,
-      "KS310": 2,
+      "KS310": 1,
       "KS342": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/group_preview.py": {
@@ -455,7 +437,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/node_canvas/canvas_manager.py": {
       "KS300": 714,
       "KS302:CanvasManager._request_render": 220,
-      "KS310": 14,
+      "KS310": 9,
       "KS321": 1,
       "KS342": 1
     },
@@ -474,8 +456,7 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/node_canvas/layout_engine.py": {
-      "KS302:LayoutEngine.compute_layout": 88,
-      "KS310": 1
+      "KS302:LayoutEngine.compute_layout": 88
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/panel_style.py": {
       "KS240": 10
@@ -484,9 +465,9 @@
       "KS210": 1,
       "KS242": 7,
       "KS250": 1,
-      "KS300": 632,
+      "KS300": 630,
       "KS301:PopulationAnalysisViewer": 34,
-      "KS310": 2,
+      "KS310": 1,
       "KS342": 2
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/properties_panel.py": {
@@ -508,20 +489,18 @@
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/sample_lens/sample_lens_tab.py": {
       "KS210": 1,
-      "KS302:SampleLensTab._build_sidebar": 83,
-      "KS310": 1
+      "KS302:SampleLensTab._build_sidebar": 83
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/sample_list.py": {
       "KS220": 1,
       "KS240": 4,
       "KS302:SampleList._on_context_menu": 87,
-      "KS310": 5,
+      "KS310": 3,
       "KS320": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/population_selection_popup.py": {
       "KS210": 1,
       "KS240": 1,
-      "KS310": 4,
       "KS342": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/selector_panel.py": {
@@ -532,7 +511,7 @@
       "KS240": 4,
       "KS242": 8,
       "KS300": 673,
-      "KS310": 4,
+      "KS310": 3,
       "KS320": 1
     },
     "src/karcytics_plugins/flow_cytometry/ui/widgets/statistics_explorer.py": {
@@ -541,7 +520,7 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/umap_animator_widget.py": {
       "KS240": 1,
       "KS250": 1,
-      "KS310": 2,
+      "KS310": 1,
       "KS342": 3
     },
     "src/karcytics_plugins/flow_cytometry/ui_daemon.py": {

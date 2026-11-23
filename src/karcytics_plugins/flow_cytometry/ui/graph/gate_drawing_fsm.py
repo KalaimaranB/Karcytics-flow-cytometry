@@ -246,7 +246,7 @@ class GateDrawingFSM:
         if gate is not None and anchor is not None and canvas._gate_editor.changed(gate, anchor):
             canvas._commit_gate_edit(gate, anchor)
 
-    def _apply_edit_preview(self, x: float, y: float) -> None:  # noqa: PLR0912, PLR0915
+    def _apply_edit_preview(self, x: float, y: float) -> None:
         """Live-drag preview: mutate the real Gate object in place and redraw
         only its overlay via the blit fast-path — never calls modify_gate(),
         which is the entire performance strategy (the expensive recompute
@@ -297,12 +297,12 @@ class GateDrawingFSM:
                 canvas._gate_artists.extend(overlay_artists(new_artists))
 
             if canvas.has_blit_background:
-                canvas._fig.canvas.restore_region(canvas._canvas_bitmap_cache)  # type: ignore
+                canvas._fig.canvas.restore_region(canvas._canvas_bitmap_cache)
                 if new_artists:
                     for artist in overlay_artists(new_artists):
-                        ax.draw_artist(artist)  # type: ignore
-                canvas._fig.canvas.blit(ax.bbox)  # type: ignore
-                canvas._fig.canvas.flush_events()  # type: ignore
+                        ax.draw_artist(artist)
+                canvas._fig.canvas.blit(ax.bbox)
+                canvas._fig.canvas.flush_events()
             else:
                 canvas.draw_idle()
 
@@ -315,7 +315,7 @@ class GateDrawingFSM:
 
     # ── Internal Drawing Helpers ──────────────────────────────────────
 
-    def _draw_rubber_band(self, x0: float, y0: float, x1: float, y1: float, mode: str):  # noqa: PLR0912, PLR0915
+    def _draw_rubber_band(self, x0: float, y0: float, x1: float, y1: float, mode: str):  # noqa: PLR0915
         self._last_rubber_args = (x0, y0, x1, y1, mode)
 
         def _on_busy() -> None:
@@ -455,7 +455,7 @@ class GateDrawingFSM:
 
         self.canvas.raster_lock.try_run(_action, _on_busy)
 
-    def _draw_quadrant_crosshair(self, x: float, y: float):  # noqa: PLR0915
+    def _draw_quadrant_crosshair(self, x: float, y: float):
         """Live preview of where a Quadrant gate's threshold lines would sit."""
 
         def _on_busy() -> None:

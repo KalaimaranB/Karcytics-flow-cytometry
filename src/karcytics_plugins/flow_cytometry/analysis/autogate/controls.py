@@ -79,7 +79,7 @@ def control_for(samples: list[Sample], channel: str, label: str) -> tuple[Sample
     return None
 
 
-def control_line(  # noqa: PLR0913 - the control and where its line goes
+def control_line(
     control: Sample,
     kind: str,
     events: pd.DataFrame | None,

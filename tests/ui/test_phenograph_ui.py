@@ -72,7 +72,7 @@ def test_choosing_phenograph_shows_its_settings_and_uses_every_event(viewer):
     assert viewer._setup._phenograph_params.isVisibleTo(viewer)
     assert not viewer._setup._umap_params.isVisibleTo(viewer)
     assert not viewer._setup._flowsom_params.isVisibleTo(viewer)
-    assert viewer._setup._n_events_slider.value() == 100  # noqa: PLR2004
+    assert viewer._setup._n_events_slider.value() == 100
     values = viewer._setup._phenograph_params.values()
     assert values == {"n_neighbors": 30, "resolution": 1.0, "min_cluster_size": 10}
 
@@ -81,8 +81,8 @@ def test_choosing_phenograph_shows_its_settings_and_uses_every_event(viewer):
 def test_a_run_is_stored_and_opens_on_its_cluster_graph(viewer):
     run_phenograph(viewer)
     params = viewer._umap_service.params
-    assert params.resolution == 0.1  # noqa: PLR2004
-    assert params.n_neighbors == 30  # noqa: PLR2004
+    assert params.resolution == 0.1
+    assert params.n_neighbors == 30
 
     runs = viewer._state.data.umap_results["s1::root"]
     assert len(runs) == 1 and runs[0]["method"] == "phenograph"
@@ -104,8 +104,8 @@ def test_a_new_resolution_reclusters_and_refreshes_everything(viewer):
     panel._graph_view._recut_spin.setValue(2.0)
     panel._graph_view._recut_timer.timeout.emit()
 
-    assert viewer._umap_service.reclustered == 2.0  # noqa: PLR2004
-    assert run["resolution"] == 2.0  # noqa: PLR2004
+    assert viewer._umap_service.reclustered == 2.0
+    assert run["resolution"] == 2.0
     after = int(run["clusters"].max()) + 1
     assert after > before
     assert panel._graph_view._legend.count() == after
@@ -132,7 +132,7 @@ def test_past_phenograph_runs_show_their_own_settings_not_umaps(viewer):
     neighbours = viewer.findChild(QSlider, "UmapNeighborsSlider")
     umap_neighbours = neighbours.value()
     viewer._history_combo.setCurrentIndex(1)
-    assert viewer._setup._phenograph_params._spins["resolution"].value() == 0.1  # noqa: PLR2004
+    assert viewer._setup._phenograph_params._spins["resolution"].value() == 0.1
     assert neighbours.value() == umap_neighbours  # PhenoGraph's 30 isn't UMAP's
 
 

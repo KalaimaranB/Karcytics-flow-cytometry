@@ -53,7 +53,7 @@ class GateLayerRenderer:
         finally:
             MPL_RASTER_LOCK.release()
 
-    def _redraw_gate_overlays(self) -> None:  # noqa: PLR0912
+    def _redraw_gate_overlays(self) -> None:
         """Draw all active gate overlays on the axes."""
         canvas = self.canvas
         ax = canvas._ax

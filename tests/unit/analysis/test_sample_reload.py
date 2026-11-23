@@ -29,7 +29,7 @@ def test_reloaded_data_is_compensated_only_if_the_sample_was(was_compensated):
     assert data.is_compensated is was_compensated
     # PE-A carries half of FITC's signal; compensation takes it back out.
     assert data.events["PE-A"].iloc[0] == pytest.approx(100.0 if was_compensated else 150.0)
-    assert data.events["FSC-A"].iloc[0] == 10.0  # noqa: PLR2004 - scatter is never touched
+    assert data.events["FSC-A"].iloc[0] == 10.0
 
 
 def test_data_compensated_in_the_file_is_left_alone():
@@ -39,4 +39,4 @@ def test_data_compensated_in_the_file_is_left_alone():
 
     sample.adopt_reloaded_data(data, MATRIX)
 
-    assert data.events["PE-A"].iloc[0] == 150.0  # noqa: PLR2004 - the file's own values
+    assert data.events["PE-A"].iloc[0] == 150.0

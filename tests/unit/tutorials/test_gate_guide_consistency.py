@@ -105,7 +105,7 @@ class TestNoGateDrawingStepsAreSilentlyOrphaned:
 
 
 @pytest.mark.parametrize("case_id, metadata, validator", _CASES, ids=[c[0] for c in _CASES])
-def test_gate_matching_the_shown_guide_box_is_accepted(case_id, metadata, validator):  # noqa: ARG001
+def test_gate_matching_the_shown_guide_box_is_accepted(case_id, metadata, validator):
     gate = _gate_matching_guide(metadata)
     assert gate is not None, f"unrecognized guide metadata keys: {metadata.keys()}"
 
@@ -127,7 +127,7 @@ _QUADRANT_CASES = [
 @pytest.mark.parametrize(
     "case_id, metadata, validator", _QUADRANT_CASES, ids=[c[0] for c in _QUADRANT_CASES]
 )
-def test_quadrant_gate_far_from_the_guide_is_rejected(case_id, metadata, validator):  # noqa: ARG001
+def test_quadrant_gate_far_from_the_guide_is_rejected(case_id, metadata, validator):
     """A gate drawn to match the guide box is asserted accepted above, but that
     alone can pass vacuously if shape checking is silently a no-op for this
     gate type (exactly what happened when GateShapeValidator's

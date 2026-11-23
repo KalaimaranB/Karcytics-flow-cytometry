@@ -106,7 +106,7 @@ def make_float_row(  # noqa: PLR0913
     return spin
 
 
-def make_int_row(  # noqa: PLR0913
+def make_int_row(
     form_layout,
     label: str,
     tooltip: str,

@@ -228,7 +228,7 @@ class SampleList(QWidget):
         return [experiment.samples[sid] for sid in group.sample_ids if sid in experiment.samples]
 
     def _create_sample_item(self, sample: Sample) -> QTreeWidgetItem:
-        badge = _ROLE_BADGES.get(sample.role, "○")  # type: ignore
+        badge = _ROLE_BADGES.get(sample.role, "○")
         comp_prefix = "✦ " if (sample.fcs_data and sample.fcs_data.is_compensated) else ""
         name = f"{comp_prefix}{badge} {sample.display_name}"
 
@@ -244,7 +244,7 @@ class SampleList(QWidget):
         item.setData(0, Qt.ItemDataRole.UserRole, sample.sample_id)
         item.setToolTip(0, name)
 
-        color = _get_role_color(sample.role)  # type: ignore
+        color = _get_role_color(sample.role)
         item.setForeground(0, QColor(color))
 
         font = item.font(0)

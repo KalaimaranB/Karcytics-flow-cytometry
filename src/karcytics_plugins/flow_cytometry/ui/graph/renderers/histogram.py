@@ -45,7 +45,7 @@ _BACKDROP_COLOR = "#888888"
 class HistogramStrategy(DisplayStrategy):
     """1D Histogram renderer with optional KDE overlay."""
 
-    def compute(  # noqa: PLR0915
+    def compute(
         self, x: np.ndarray, y: np.ndarray | None = None, *, xlim=None, ylim=None, **kwargs
     ) -> HistogramRenderData | None:
         """Compute bin edges, FMO threshold, and KDE curve for the histogram."""
@@ -133,7 +133,7 @@ class HistogramStrategy(DisplayStrategy):
             kde_vals=kde_vals,
         )
 
-    def draw(self, ax, data: HistogramRenderData | None, **kwargs) -> None:  # noqa: PLR0915
+    def draw(self, ax, data: HistogramRenderData | None, **kwargs) -> None:
         """Draw the histogram, optional FMO overlay, threshold, and KDE curve."""
         if data is None:
             return

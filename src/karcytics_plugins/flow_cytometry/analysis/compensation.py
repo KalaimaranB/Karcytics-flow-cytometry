@@ -166,7 +166,7 @@ def _channel_medians(events: pd.DataFrame, channels: list[str]) -> np.ndarray:
     return medians
 
 
-def calculate_spillover_matrix(  # noqa: C901, PLR0912
+def calculate_spillover_matrix(  # noqa: C901
     single_stains: Sequence[FCSData | ControlEvents],
     unstained: FCSData | ControlEvents | None = None,
     fluorescence_channels: list[str] | None = None,

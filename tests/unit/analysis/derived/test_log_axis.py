@@ -110,7 +110,7 @@ class TestDecadeTicks:
 
     def test_caps_the_number_of_decades(self):
         values, _ = log_decade_tick_values(1e-30, 1e5)
-        assert len(values) <= 13  # noqa: PLR2004
+        assert len(values) <= 13
 
 
 class TestPreviewReference:
@@ -144,7 +144,7 @@ class TestPreviewReference:
     def test_linear_ticks_are_round_numbers(self):
         df = pd.DataFrame({"A": np.linspace(0.0, 1.0, 200)})
         s = compute_preview(parse_formula("[A]"), df, positive_denominators=True, log_scale=False)
-        assert 2 <= len(s.ticks) <= 6  # noqa: PLR2004
+        assert 2 <= len(s.ticks) <= 6
         assert all(float(label) * 10 % 1 == 0 for _, label in s.ticks)
 
     def test_no_reference_by_default(self):

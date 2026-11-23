@@ -600,7 +600,7 @@ class CompensationEditor(QWidget):
             ]
         )
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         if self._sample_combo.currentData() == ALL_SAMPLES:
             self._all_timer.start()

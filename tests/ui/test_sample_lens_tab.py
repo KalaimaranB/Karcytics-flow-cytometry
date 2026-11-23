@@ -50,7 +50,7 @@ def test_opens_on_the_current_sample_and_its_clustered_run(lens):
     assert model.sample_id == "s0"
     assert model.run_ref is not None and model.run_ref.key == "s0::root"
     assert {f.kind for f in model.findings} == set(FindingKind)
-    assert len(_visible_cards(tab)) == 3  # noqa: PLR2004
+    assert len(_visible_cards(tab)) == 3
     assert "Judging 2 final populations" in tab._scope_caption.text()
 
 
@@ -65,7 +65,7 @@ def test_selecting_a_population_shows_its_path_and_every_sample(lens):
         "T cells  →  CD4+",
     ]
     table = tab._across._table
-    assert table.rowCount() == 4  # noqa: PLR2004
+    assert table.rowCount() == 4
     assert "outlier" in table.item(2, 4).text()  # s2 has dimmer CD4
 
 
@@ -111,8 +111,8 @@ def test_backgating_works_without_a_run(lens):
     assert "Backgating and Across samples work" in tab._scope_caption.text()
 
     tab._model.select(_cd4_node(state, "s1").node_id)
-    assert len(_shown(tab)) == 3  # noqa: PLR2004 - the CD4+ path
-    assert len(tab._model.checks) == 4  # noqa: PLR2004 - every sample
+    assert len(_shown(tab)) == 3
+    assert len(tab._model.checks) == 4
 
 
 def test_running_umap_stores_the_run_and_switches_to_it(lens, qtbot):
@@ -157,7 +157,7 @@ def test_proposing_gates_previews_them_then_adds_the_chain(lens):
     assert not tab._proposal_bar.isHidden()
     proposal = tab._proposal
     assert proposal is not None and proposal.steps
-    assert proposal.steps[-1].f1 > 0.9  # noqa: PLR2004
+    assert proposal.steps[-1].f1 > 0.9
     shown = [p for p in tab._path._plots if not p.isHidden()]
     assert len(shown) == len(proposal.steps)
     assert tab._path._title.text() == f"Proposed gates · cluster {missed.clusters[0]}"
@@ -259,7 +259,7 @@ def test_a_flowsom_run_gets_a_k_control_that_recuts_the_audit(qtbot):
     tab._k_spin.setValue(8)
     tab._k_timer.timeout.emit()
 
-    assert tab._model.run["k"] == 8  # noqa: PLR2004
+    assert tab._model.run["k"] == 8
     assert "(FlowSOM, k = 8)" in tab._scope_caption.text()
     missed = next(f for f in tab._model.findings if f.kind.value == "missed")
     tab._on_fix_requested(missed)
@@ -395,7 +395,7 @@ def test_focus_mode_gives_the_plots_the_tab(lens, qtbot):
     qtbot.waitUntil(lambda: not tab._path._resizing)
     assert not any(p.target for p in _shown(tab))
     assert plot.canvas.width() > small  # bigger, same shape
-    assert plot.canvas.height() > plot.canvas.width() * 0.8  # noqa: PLR2004
+    assert plot.canvas.height() > plot.canvas.width() * 0.8
 
     tab._path.set_focus(False)
     assert not tab._sidebar.isHidden() and not tab._lower.isHidden()
@@ -474,7 +474,7 @@ def test_a_phenograph_run_gets_a_resolution_control_that_reclusters_the_audit(qt
     tab._k_timer.timeout.emit()
 
     assert ("recluster", 2.0) in umap.calls
-    assert tab._model.run["resolution"] == 2.0  # noqa: PLR2004
+    assert tab._model.run["resolution"] == 2.0
     assert int(tab._model.run["clusters"].max()) + 1 > before
     assert "(PhenoGraph, res = 2.0)" in tab._scope_caption.text()
     assert tab._run_status.text() == ""
@@ -501,7 +501,7 @@ def test_a_failed_recluster_says_so_and_keeps_the_run(qtbot, monkeypatch):
     tab._k_timer.timeout.emit()
     assert "daemon gone" in tab._run_status.text()
     assert (tab._model.run["clusters"] == clusters).all()
-    assert tab._res_spin.value() == 0.1  # noqa: PLR2004 - back to the run's own setting
+    assert tab._res_spin.value() == 0.1
 
 
 def test_findings_say_whether_another_run_of_the_population_agrees(lens):

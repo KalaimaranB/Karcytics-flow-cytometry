@@ -66,7 +66,7 @@ def test_ensure_tutorial_files_retries_whole_batch_on_transient_failure(tmp_path
 
     def fake_download(folder, progress_cb=None):
         attempts["n"] += 1
-        if attempts["n"] < 2:  # noqa: PLR2004
+        if attempts["n"] < 2:
             raise ConnectionError("simulated transient network failure")
         _make_valid_files(folder)
         if progress_cb:
@@ -88,7 +88,7 @@ def test_ensure_tutorial_files_retries_whole_batch_on_transient_failure(tmp_path
     assert status.done
     assert status.error is None
     assert status.retry_count == 1
-    assert attempts["n"] == 2  # noqa: PLR2004
+    assert attempts["n"] == 2
 
 
 def test_ensure_tutorial_files_gives_up_after_max_attempts_but_still_marks_done(tmp_path):
@@ -212,4 +212,4 @@ def test_start_provisioning_does_not_reset_a_healthy_in_progress_run(tmp_path):
     ta.start_provisioning(panel)
 
     status = ta.get_status()
-    assert status.current_file_index == 4  # untouched — no reset happened  # noqa: PLR2004
+    assert status.current_file_index == 4  # untouched — no reset happened

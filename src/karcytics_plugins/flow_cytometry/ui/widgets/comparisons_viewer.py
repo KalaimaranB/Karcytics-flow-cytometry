@@ -398,7 +398,7 @@ class ComparisonsViewer(QWidget):
         try:
             with MPL_RASTER_LOCK:  # savefig rasterizes through the shared Agg backend
                 figure.savefig(path, dpi=_EXPORT_DPI, bbox_inches="tight")
-        except Exception as exc:  # noqa: BLE001 - reported as a diagnostic, not a crash
+        except Exception as exc:
             logger.exception("Comparisons plot export failed")
             self._status_lbl.setText(f"❌ Export failed: {exc}")
             diagnostics.report_error("Comparisons plot export failed", exception=exc, fatal=False)

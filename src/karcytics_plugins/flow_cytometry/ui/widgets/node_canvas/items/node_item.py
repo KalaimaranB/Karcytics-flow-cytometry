@@ -125,7 +125,7 @@ class NodeItem(QGraphicsObject):
             return QRectF(0, -self.PORT_RADIUS, self.WIDTH, self.HEIGHT + self.PORT_RADIUS * 2)
         return QRectF(-self.PORT_RADIUS, 0, self.WIDTH + self.PORT_RADIUS * 2, self.HEIGHT)
 
-    def paint(  # noqa: PLR0912, PLR0915
+    def paint(  # noqa: PLR0915
         self,
         painter: QPainter | None,
         option: QStyleOptionGraphicsItem | None,

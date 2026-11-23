@@ -82,7 +82,7 @@ def test_every_guide_shape_is_drawn_and_cleared(canvas):
             guide_quadrant=(3.0, 3.0),  # two lines
         )
     )
-    assert len(canvas.guide.artists) == 7  # noqa: PLR2004
+    assert len(canvas.guide.artists) == 7
     assert all(artist.axes is canvas._ax for artist in canvas.guide.artists)
 
     canvas.set_tutorial_guide(None)

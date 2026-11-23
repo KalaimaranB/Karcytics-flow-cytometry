@@ -66,11 +66,11 @@ class DropCanvas(QFrame):
         lay.setContentsMargins(0, 0, 0, 0)
         self.canvas_layout = lay
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802 - Qt override
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.source() is self._source:
             event.acceptProposedAction()
 
-    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802 - Qt override
+    def dropEvent(self, event: QDropEvent) -> None:
         if event.source() is self._source:
             item = self._source.currentItem()
             if item:

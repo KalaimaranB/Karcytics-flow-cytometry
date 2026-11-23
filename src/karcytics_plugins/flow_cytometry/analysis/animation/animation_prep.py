@@ -33,7 +33,7 @@ class UmapAnimationDataPrep:
         self.knn_edges: list[tuple[int, int]] = []  # List of connected index pairs
         self.color_data: np.ndarray | None = None  # (N,) intensity values for coloring
 
-    def prepare(  # noqa: C901, PLR0912, PLR0913, PLR0915
+    def prepare(  # noqa: C901, PLR0912, PLR0915
         self,
         events_df: pd.DataFrame,
         fluo_channels: list[str],

@@ -62,10 +62,7 @@ class DensityRegions:
         if not mask.any():
             return None
         z = np.pad(mask.astype(np.float64).T, 1)  # rows: y bins; padded so it closes
-        lines: list[np.ndarray] = [
-            np.asarray(c)
-            for c in contour_generator(z=z).lines(0.5)  # type: ignore[union-attr]  # typed as object
-        ]
+        lines: list[np.ndarray] = [np.asarray(c) for c in contour_generator(z=z).lines(0.5)]
         if not lines:
             return None
         line = max(lines, key=len)

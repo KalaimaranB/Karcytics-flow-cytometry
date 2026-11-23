@@ -79,7 +79,7 @@ class GateHierarchy(QWidget):
 
     # ── UI construction ───────────────────────────────────────────────
 
-    def _setup_ui(self) -> None:  # noqa: PLR0915
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)

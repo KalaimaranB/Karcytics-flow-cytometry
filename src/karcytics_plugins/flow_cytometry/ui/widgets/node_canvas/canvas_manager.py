@@ -307,11 +307,11 @@ class CanvasManager(QObject):
                 item.parent_names = []
 
             if is_root:
-                item.x_param, item.y_param = "FSC-A", "SSC-A"  # type: ignore
+                item.x_param, item.y_param = "FSC-A", "SSC-A"
             elif node.gate:
                 x_p, y_p = node.gate.x_param, node.gate.y_param
-                item.x_param = labels.get(x_p, x_p)  # type: ignore
-                item.y_param = labels.get(y_p, y_p) if y_p else y_p  # type: ignore
+                item.x_param = labels.get(x_p, x_p)
+                item.y_param = labels.get(y_p, y_p) if y_p else y_p
 
             self.scene.addItem(item)
             self._node_items[node.node_id] = item
@@ -455,7 +455,7 @@ class CanvasManager(QObject):
             return (gate.low, gate.high)
         return None  # type: ignore
 
-    def _request_render(  # noqa: PLR0911, PLR0912, PLR0915
+    def _request_render(  # noqa: PLR0915
         self, node: GateNode, item: NodeItem, is_root: bool = False
     ) -> None:
         """Asynchronously render a mini plot for the node item."""
@@ -547,7 +547,7 @@ class CanvasManager(QObject):
             # NOTE: y_param may be None for range/histogram gates — that is valid;
             # only fall back to FSC-A/SSC-A if x_param itself is unusable.
             x_param = node.children[0].gate.x_param
-            y_param = node.children[0].gate.y_param  # type: ignore
+            y_param = node.children[0].gate.y_param
             if not x_param or x_param == "Subset":
                 x_param, y_param = "FSC-A", "SSC-A"
         # No children, show the axes of the gate that created it (or default for root)
@@ -555,7 +555,7 @@ class CanvasManager(QObject):
             x_param, y_param = "FSC-A", "SSC-A"
         else:
             assert gate is not None
-            x_param, y_param = gate.x_param, gate.y_param  # type: ignore
+            x_param, y_param = gate.x_param, gate.y_param
             # y_param is None for range gates — keep x_param; only fall back
             # if x_param itself is missing or is a Subset placeholder.
             if not x_param or x_param == "Subset":

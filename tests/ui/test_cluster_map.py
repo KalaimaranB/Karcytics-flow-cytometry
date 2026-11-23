@@ -42,7 +42,7 @@ def test_coloured_by_cluster_the_map_names_clusters_and_has_no_scale():
     (ax,) = fig.axes
     assert ax.get_title() == "Three clusters"
     assert [t.get_text() for t in ax.texts] == ["A", "B"]
-    assert len(ax.collections) == 2  # the lines, then the circles  # noqa: PLR2004
+    assert len(ax.collections) == 2  # the lines, then the circles
     assert isinstance(ax.collections[0], LineCollection)
     sizes = ax.collections[1].get_sizes()
     assert sizes[1] == sizes.max()  # the biggest cluster draws the biggest circle
@@ -67,7 +67,7 @@ def test_the_heatmap_leaves_markers_that_barely_differ_blank():
     )
 
     ax = fig.axes[0]
-    assert len(ax.texts) == 2  # one call per informative cell  # noqa: PLR2004
+    assert len(ax.texts) == 2  # one call per informative cell
     assert [t.get_text() for t in ax.get_xticklabels()] == ["CD3", "CD4"]
 
 

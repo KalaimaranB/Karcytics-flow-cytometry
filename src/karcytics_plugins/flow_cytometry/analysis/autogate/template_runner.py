@@ -104,7 +104,7 @@ class TemplateRunner:
         self._state = state
         self._axis_manager = axis_manager
 
-    def run(  # noqa: PLR0913 - the template and the stopping rules
+    def run(
         self,
         template: GatingTemplate,
         sample_id: str,

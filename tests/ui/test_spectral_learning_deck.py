@@ -233,7 +233,7 @@ def test_next_unlocks_only_once_the_slide_is_done(deck):
 
     _next(deck)
 
-    assert deck._current_step == 2  # noqa: PLR2004 - the ruler slide
+    assert deck._current_step == 2
 
 
 def test_new_dyes_bring_a_new_teaching_pair(deck):

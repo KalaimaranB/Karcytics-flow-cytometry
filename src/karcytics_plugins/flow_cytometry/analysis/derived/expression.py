@@ -207,7 +207,7 @@ class _Compiler:
         self._placeholders = placeholders
         self.has_division = False
 
-    def compile(self, node: ast.AST, depth: int) -> _Node:  # noqa: PLR0911
+    def compile(self, node: ast.AST, depth: int) -> _Node:
         if depth > MAX_NESTING_DEPTH:
             raise FormulaError("Formula is nested too deeply", _pos(node))
 

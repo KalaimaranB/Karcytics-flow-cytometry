@@ -120,4 +120,4 @@ def test_cell_3_stays_positive_after_compensation():
         cells = three_cells(pct)
         for x, y in cells[:2]:
             assert abs((y - pct / 100 * x) - 40) <= 1  # pure leak lands on the floor
-        assert compensated_dp(pct, cells) > 300  # noqa: PLR2004
+        assert compensated_dp(pct, cells) > 300

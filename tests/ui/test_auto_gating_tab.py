@@ -59,7 +59,7 @@ def test_the_sidebar_fills_from_the_experiment(tab):
     ]
     assert populations[:3] == ["All Events", "Lymphocytes", "T cells"]
     assert sidebar.channels() == ("CD3", "CD4", "CD8", "CD56")  # scatter listed, unticked
-    assert sidebar._channels.count() == 6  # noqa: PLR2004 - FSC-A and SSC-A too
+    assert sidebar._channels.count() == 6
     assert sidebar.axes() == ("FSC-A", "SSC-A")  # the usual first split
     assert sidebar.cells_first() and tab._request().cells_first  # on by default
 
@@ -119,13 +119,13 @@ def test_the_group_and_compare_pages_fill_when_shown(tab):
     _propose_on_t_cells(tab, "valleys")
     tab._tabs.setCurrentIndex(APPLY)
     table = tab._apply._table
-    assert table.rowCount() == 4  # noqa: PLR2004
+    assert table.rowCount() == 4
     statuses = [table.item(r, table.columnCount() - 1).text() for r in range(4)]
     assert "control" in statuses[3]
     assert statuses[2].startswith("Review")  # S2's CD4 is dimmer
 
     tab._tabs.setCurrentIndex(COMPARE)
-    assert tab._compare._columns.count() == 4  # noqa: PLR2004
+    assert tab._compare._columns.count() == 4
 
 
 def test_the_why_page_starts_empty(tab):
@@ -149,8 +149,8 @@ def test_the_tab_never_widens_the_panel(tab):
     Without its scroll area this tab demanded ~1550 px, which opened the module
     in a huge window with squeezed sidebars on every other tab.
     """
-    assert tab.minimumSizeHint().width() < 300  # noqa: PLR2004
-    assert tab.minimumSizeHint().height() < 300  # noqa: PLR2004
+    assert tab.minimumSizeHint().width() < 300
+    assert tab.minimumSizeHint().height() < 300
 
 
 def test_a_template_builds_the_tree_it_describes(tab):
@@ -177,9 +177,9 @@ def test_a_template_builds_the_tree_it_describes(tab):
     sidebar.propose_clicked.emit()
 
     build = tab._build
-    assert build._steps.isVisibleTo(build) and build._steps.count() == 2  # noqa: PLR2004
+    assert build._steps.isVisibleTo(build) and build._steps.count() == 2
     assert build._title.text() == "CD4 T in T cells"
-    assert len(tab._tree._view._proposed) == 2  # noqa: PLR2004 - both, dashed
+    assert len(tab._tree._view._proposed) == 2
     tab._tree.proposed_clicked.emit("8")
     assert build._title.text() == "CD8 T in T cells"
 

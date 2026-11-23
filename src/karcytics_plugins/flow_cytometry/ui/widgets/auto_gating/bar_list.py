@@ -27,7 +27,7 @@ class _Bars(QWidget):
         self.setMinimumWidth(LABEL_WIDTH + VALUE_WIDTH + 60)
         theme_manager.connect(self.update)
 
-    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802 - Qt override
+    def paintEvent(self, _event: QPaintEvent) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         s = self._section

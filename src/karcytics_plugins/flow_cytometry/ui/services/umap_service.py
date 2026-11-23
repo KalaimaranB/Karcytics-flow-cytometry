@@ -151,7 +151,7 @@ class UmapService:
             PhenographReclusterAnalysis(run, resolution, self._daemon), on_done, on_error_cb, None
         )
 
-    def _submit(  # noqa: C901 - the finished/error/cancelled handlers share the worker
+    def _submit(
         self,
         analyzer: AnalysisBase,
         on_done: Callable[[dict], None],

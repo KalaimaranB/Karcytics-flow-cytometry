@@ -259,7 +259,7 @@ def log_transform(
 DITHER_SEED = 0
 
 
-def biexponential_transform(  # noqa: PLR0913
+def biexponential_transform(
     data: np.ndarray,
     *,
     enable_dithering: bool = True,

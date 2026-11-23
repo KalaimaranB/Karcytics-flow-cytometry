@@ -84,7 +84,7 @@ class WorkflowService(QObject):
 
         return payload
 
-    def load_workflow(  # noqa: PLR0915
+    def load_workflow(
         self,
         payload: dict,
         context=None,

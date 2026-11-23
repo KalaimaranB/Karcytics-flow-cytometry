@@ -104,7 +104,7 @@ def frame_of(view: View) -> Frame:
     return Frame.around(view.x.values, view.y.values)
 
 
-def record_of(  # noqa: PLR0913 - everything the record keeps
+def record_of(
     key: str,
     data: PopulationData,
     view: View,

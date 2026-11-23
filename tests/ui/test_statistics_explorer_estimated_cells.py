@@ -77,7 +77,7 @@ def test_compute_runs_in_the_background_and_shows_the_table(widget, qtbot):
     widget._compute_btn.click()
 
     qtbot.waitUntil(lambda: widget._table is not None, timeout=5000)
-    assert widget._table_view.rowCount() >= 2  # noqa: PLR2004 - both gates, maybe All Events
+    assert widget._table_view.rowCount() >= 2
     assert widget._export_btn.isEnabled()
     assert widget._compute_btn.isVisibleTo(widget)
 
@@ -102,7 +102,7 @@ def test_copy_selected_rows_puts_tab_separated_lines_on_the_clipboard(widget):
     widget._table_view._copy_selected()
 
     lines = QApplication.clipboard().text().split("\n")
-    assert len(lines) == 2  # noqa: PLR2004 - the header and the one row
+    assert len(lines) == 2
     assert lines[0].split("\t") == ["Population", "", "Sample 1 Count"]
     assert lines[1].split("\t") == ["UMAP B Cells", "", "12*"]
 

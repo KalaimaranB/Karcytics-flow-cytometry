@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from ..scaling import AxisScale
 
 
-def rectangle_from_display(  # noqa: PLR0913 - a gate is two axes, their scales and a shape
+def rectangle_from_display(
     x: str,
     y: str,
     bounds: tuple[float, float, float, float],
@@ -54,7 +54,7 @@ def rectangle_from_display(  # noqa: PLR0913 - a gate is two axes, their scales 
     )
 
 
-def ellipse_from_display(  # noqa: PLR0913 - a gate is two axes, their scales and a shape
+def ellipse_from_display(
     x: str,
     y: str,
     center: tuple[float, float],

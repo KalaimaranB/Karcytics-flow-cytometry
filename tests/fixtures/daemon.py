@@ -9,8 +9,8 @@ def in_process_daemon(
     method: str,
     kwargs: dict[str, Any],
     *,
-    cancel_poll: Any = None,  # noqa: ARG001 - DaemonCall's signature
-    timeout: float = 120.0,  # noqa: ARG001
+    cancel_poll: Any = None,
+    timeout: float = 120.0,
 ) -> dict[str, Any]:
     """`analysis.daemon_port.DaemonCall`: same handlers (and PhenoGraph graph cache), no process."""
     return daemon_worker.dispatch(method, kwargs)

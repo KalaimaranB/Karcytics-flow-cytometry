@@ -105,7 +105,7 @@ class FlowDataComputeStage(RenderComputeStage):
     def __init__(self, plugin_id: str = "flow_cytometry") -> None:
         super().__init__(plugin_id)
 
-    def compute(self, state: Any | None) -> FlowRenderData:  # noqa: PLR0912
+    def compute(self, state: Any | None) -> FlowRenderData:
         """`raw_state` must be a `FlowRenderState`; typed `Any` to satisfy
         `RenderComputeStage`'s `PluginState | None` signature — this stage is
         only ever paired with `FlowCanvas.request_data_redraw()`, which
@@ -141,7 +141,7 @@ class FlowDataComputeStage(RenderComputeStage):
 
             fmo_data_x = None
             if state.fmo_sample_id and state.flow_state is not None:
-                experiment = state.flow_state.data.experiment  # type: ignore[union-attr]
+                experiment = state.flow_state.data.experiment
                 fmo_raw_x = channel_values(
                     experiment, experiment.samples.get(state.fmo_sample_id), state.x_param
                 )
@@ -230,7 +230,7 @@ class FlowDataComputeStage(RenderComputeStage):
 
     def _compute_2d(
         self, state: FlowRenderState, df: pd.DataFrame, x_raw: np.ndarray
-    ) -> FlowRenderData:  # noqa: PLR0912
+    ) -> FlowRenderData:
         if state.y_param not in df.columns:
             return FlowRenderData(
                 mode="error", error_message=f"Channel '{state.y_param}' not found"

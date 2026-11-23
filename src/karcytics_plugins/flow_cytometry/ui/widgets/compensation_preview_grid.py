@@ -127,7 +127,7 @@ class CompensationPreviewGrid(QScrollArea):
         height = width // plots + _PLOT_CHROME_HEIGHT
         return width, int(min(max(height, _MIN_ROW_HEIGHT), _MAX_ROW_HEIGHT))
 
-    def resizeEvent(self, event) -> None:  # noqa: N802
+    def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         if self._requests and self._row_width() != self._rendered_width:
             self._resize_timer.start()

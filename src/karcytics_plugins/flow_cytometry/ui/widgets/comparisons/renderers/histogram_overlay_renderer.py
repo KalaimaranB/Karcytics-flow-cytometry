@@ -404,7 +404,7 @@ def _render_overlay(  # noqa: PLR0913
 # ── Ridge (waterfall) layout ───────────────────────────────────────────────────
 
 
-def _render_ridge(  # noqa: PLR0913, PLR0915
+def _render_ridge(  # noqa: PLR0913
     curves: list[_Curve],
     x_min: float,
     x_max: float,

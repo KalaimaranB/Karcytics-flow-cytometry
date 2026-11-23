@@ -29,7 +29,7 @@ def call_flow_daemon(
 def _start_daemon() -> None:
     try:
         PluginDaemon.start_instance(PLUGIN_ID)
-    except Exception as exc:  # noqa: BLE001 - the first real call starts it again
+    except Exception as exc:
         logger.warning("FCS daemon warm-up failed (will retry lazily on first load): %s", exc)
 
 

@@ -135,7 +135,7 @@ def _download_single_file(name: str, dest: Path, ssl_context: Any) -> None:
                 "Permission denied. Does Karcytics have access to your Downloads folder?"
             )
             logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last_exc = Exception(f"Unexpected error: {exc}")
             logger.warning(f"Download attempt {attempt} for {name!r} failed: {exc}")
 
@@ -270,7 +270,7 @@ def ensure_tutorial_files(project_assets_dir: Path | None) -> None:
                     _status.error = None
                     _status.done = True
                 return
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.exception(f"Tutorial file provisioning attempt {attempt} failed")
                 with _status.lock:
                     _status.error = str(exc)
@@ -314,7 +314,7 @@ def describe_files_location() -> str:
     return f"your 10 tutorial files are waiting in Downloads → '{TUTORIAL_FOLDER_NAME}'"
 
 
-def start_provisioning(panel) -> None:  # noqa: ANN001
+def start_provisioning(panel) -> None:
     """ActionStep entry point — resolves the project's assets dir (if any) and
     kicks off ``ensure_tutorial_files``. Any failure resolving the project
     manager just falls back to the Downloads-only check.
@@ -337,6 +337,6 @@ def start_provisioning(panel) -> None:  # noqa: ANN001
         pm = getattr(panel.window(), "project_manager", None)
         if pm is not None:
             assets_dir = pm.assets_dir
-    except Exception:  # noqa: BLE001
+    except Exception:
         assets_dir = None
     ensure_tutorial_files(assets_dir)

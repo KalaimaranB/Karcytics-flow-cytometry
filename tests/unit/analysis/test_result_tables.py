@@ -132,7 +132,7 @@ def test_export_adds_picked_clusters_under_a_method_parent(experiment):
         run, experiment, ExportPicks(clusters={0: "T cells", 1: ""}, drawn=[(drawn, "")])
     )
 
-    assert created == 3  # noqa: PLR2004
+    assert created == 3
     root = experiment.samples["s1"].gate_tree
     parent = next(c for c in root.children if c.name == "UMAP Reduction")
     assert run["exported_node_id"] == parent.node_id  # double-clicking it reopens the run

@@ -77,7 +77,7 @@ class _FindingCard(ModuleCard):
             text.addWidget(fix, 0, Qt.AlignmentFlag.AlignLeft)
         layout.addLayout(text, 1)
 
-    def mousePressEvent(self, event: Any) -> None:  # noqa: N802 - Qt override
+    def mousePressEvent(self, event: Any) -> None:
         if self._finding is not None:
             self.clicked.emit(self._finding)
         super().mousePressEvent(event)

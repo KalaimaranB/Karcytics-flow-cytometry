@@ -48,7 +48,7 @@ class ProposalPlot(QWidget):
         top, right = (6, 6) if self._compact else (10, 12)
         return QRectF(left, top, self.width() - left - right, self.height() - top - bottom)
 
-    def paintEvent(self, _event: QPaintEvent) -> None:  # noqa: N802 - Qt override
+    def paintEvent(self, _event: QPaintEvent) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         p.fillRect(self.rect(), QColor(Colors.BG_DARKEST))

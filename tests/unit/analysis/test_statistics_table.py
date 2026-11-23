@@ -71,7 +71,7 @@ def test_estimated_count_and_percent_total_use_the_corrected_value(experiment):
     assert manual.cell("s1", StatType.COUNT).shown == "5"
     assert not any(cell.scale for cell in manual.cells.values())
     assert exported.cell("s1", StatType.COUNT).shown == "12*"
-    assert exported.cell("s1", StatType.COUNT).scale == 4.0  # noqa: PLR2004
+    assert exported.cell("s1", StatType.COUNT).scale == 4.0
     assert exported.cell("s1", StatType.PERCENT_TOTAL).shown == "120.00%*"
     assert exported.cell("s1", StatType.CV).scale is None  # computed from its own events
     assert table.has_estimates

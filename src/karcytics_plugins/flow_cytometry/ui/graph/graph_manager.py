@@ -440,7 +440,7 @@ class GraphManager(QWidget):
         target_node_id = self._get_parallel_node(
             current_sample_id,
             current_node_id,
-            target_sample.sample_id,  # type: ignore
+            target_sample.sample_id,
         )
         self.open_graph_for_sample(target_sample.sample_id, target_node_id)
 

@@ -60,7 +60,7 @@ def stable_subsample_mask(n: int, k: int, seed: int = 42) -> np.ndarray:
     return rng.random(n) < frac
 
 
-def compute_pseudocolor_base_density(  # noqa: PLR0913, PLR0917
+def compute_pseudocolor_base_density(  # noqa: PLR0913
     x: np.ndarray,
     y: np.ndarray,
     max_events: int,
@@ -262,7 +262,7 @@ def histogram_curve(
     return 0.5 * (edges[:-1] + edges[1:]), counts.astype(float)
 
 
-def density_grid(  # noqa: PLR0913 - two arrays, their ranges, and two tuning knobs
+def density_grid(
     x: np.ndarray,
     y: np.ndarray,
     x_range: tuple[float, float],

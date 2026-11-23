@@ -269,7 +269,7 @@ class _ToggleCell(QWidget):
             self._checked = checked
             self.update()
 
-    def mousePressEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if (
             self._enabled
             and self._controller is not None
@@ -281,21 +281,21 @@ class _ToggleCell(QWidget):
         elif event is not None:
             super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+    def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
         if event is None or self._controller is None:
             return
         widget = QApplication.widgetAt(event.globalPosition().toPoint())
         if isinstance(widget, _ToggleCell) and widget._enabled:
             self._controller._drag_enter_cell(widget._sample_id, widget._label)
 
-    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:  # noqa: N802
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
         if self._controller is not None:
             self.releaseMouse()
             self._controller._end_cell_drag()
         elif event is not None:
             super().mouseReleaseEvent(event)
 
-    def paintEvent(self, _event) -> None:  # noqa: N802
+    def paintEvent(self, _event) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 

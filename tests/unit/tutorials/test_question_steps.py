@@ -60,7 +60,7 @@ def test_correct_answer_position_varies(course):
         for s in course.steps
         if isinstance(s, QuestionStep) and s.kind == "check"
     ]
-    if len(slots) >= 3:  # noqa: PLR2004
+    if len(slots) >= 3:
         assert len(set(slots)) > 1, slots
 
 

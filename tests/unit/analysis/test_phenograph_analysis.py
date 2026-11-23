@@ -44,14 +44,14 @@ def test_a_run_covers_the_population_and_finds_the_cell_types(planted):
     assert "error" not in run
     assert method_of(run) is PHENOGRAPH
     assert run["n_events"] == run["parent_total_events"] == len(events)
-    assert adjusted_rand_score(_expected(events, truth, run), run["clusters"]) > 0.9  # noqa: PLR2004
+    assert adjusted_rand_score(_expected(events, truth, run), run["clusters"]) > 0.9
 
 
 def test_the_run_has_a_cluster_graph_a_map_and_the_usual_tables(planted):
     *_, run = planted
     n_clusters = int(run["clusters"].max()) + 1
     assert run["layout"].shape == (n_clusters, 2)
-    assert run["cluster_edges"].shape[1] == 2  # noqa: PLR2004
+    assert run["cluster_edges"].shape[1] == 2
     assert len(run["cluster_connectivity"]) == len(run["cluster_edges"])
     assert run["embedding"].shape == (run["n_events"], 2)
     assert run["embedding_kind"] == "graph"
@@ -59,21 +59,21 @@ def test_the_run_has_a_cluster_graph_a_map_and_the_usual_tables(planted):
     assert run["run_uid"]
 
 
-def test_reclustering_at_a_higher_resolution_gives_more_clusters(planted):  # noqa: ARG001
+def test_reclustering_at_a_higher_resolution_gives_more_clusters(planted):
     *_, run = planted
     run = dict(run, custom_clusters=[{"name": "Mine", "mask": [0, 1, 2]}], cluster_names={"0": "x"})
     before = int(run["clusters"].max()) + 1
     arrays = PhenographReclusterAnalysis(run, 2.0, in_process_daemon).run()
     assert "error" not in arrays
     apply_clusters(run, arrays)
-    assert run["resolution"] == 2.0  # noqa: PLR2004
+    assert run["resolution"] == 2.0
     assert int(run["clusters"].max()) + 1 > before
     assert (run["clusters"][:3] == -1).all()  # custom population cells stay out
     assert run["cluster_names"] == {}
     assert len(run["layout"]) == int(run["clusters"].max()) + 1
 
 
-def test_a_saved_run_loads_back_and_reclusters_without_its_graph(planted, tmp_path):  # noqa: ARG001
+def test_a_saved_run_loads_back_and_reclusters_without_its_graph(planted, tmp_path):
     state, events, truth, run = planted
     manager = AttachmentManager(AxisManager(state))
     manager.temp_dir = tmp_path
@@ -96,7 +96,7 @@ def test_a_saved_run_loads_back_and_reclusters_without_its_graph(planted, tmp_pa
     again["run_uid"] = "not-in-the-cache"  # as after a restart: the graph is rebuilt
     arrays = PhenographReclusterAnalysis(again, again["resolution"], in_process_daemon).run()
     # A rebuilt graph can differ by a neighbour or two: the same clusters, near enough.
-    assert adjusted_rand_score(arrays["clusters"], run["clusters"]) > 0.95  # noqa: PLR2004
+    assert adjusted_rand_score(arrays["clusters"], run["clusters"]) > 0.95
 
 
 def test_too_few_events_for_the_neighbours_is_refused(planted):

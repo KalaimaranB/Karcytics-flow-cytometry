@@ -100,7 +100,7 @@ def subsample(events: pd.DataFrame, max_events: int = MAX_EVENTS) -> pd.DataFram
     return events.iloc[rows]
 
 
-def load_population(  # noqa: PLR0913 - the request, unpacked
+def load_population(
     state: FlowState,
     axis_manager: AxisManager,
     sample_id: str,
