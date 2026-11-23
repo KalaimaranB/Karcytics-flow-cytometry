@@ -181,7 +181,7 @@ Each phase also ratchets the baseline down once it lands.
 - [x] `attachment_manager.py` and `scope_resolution.py` moved into `analysis/`.
 - [x] KS331 on for flow: `analysis_only = ["apply_hierarchy", "fcs_data.events",
       "fcs_data.raw_events"]`.
-- [ ] **Moved out of B3:** the 7 KS205 hits (Qt-backed SDK objects in `analysis/`: the
+- [x] **Moved out of B3:** the 7 KS205 hits (0 left: B8 moved the scheduling to `ui/services/`; Qt-backed SDK objects in `analysis/`: the
       propagator's `Debouncer`, the FCS/UMAP/PhenoGraph `PluginDaemon` use, `UmapService`'s
       `AnalysisWorker`). Fixing them means moving scheduling out of `analysis/`; do it with B8's
       composition-root work.
