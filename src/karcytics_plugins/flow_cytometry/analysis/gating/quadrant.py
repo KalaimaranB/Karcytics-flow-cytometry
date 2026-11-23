@@ -34,6 +34,7 @@ class QuadrantGate(Gate):
         self.y_scale: AxisScale = ScaleFactory.parse(y_scale)
 
     def copy(self) -> QuadrantGate:
+        """A copy with the same crosshair, scales and gate id."""
         if self.y_param is None:
             raise ValueError(f"{self.__class__.__name__} requires a y_param")
         return QuadrantGate(
@@ -90,6 +91,7 @@ class QuadrantGate(Gate):
         return children
 
     def to_dict(self) -> dict:
+        """Serialize, the crosshair and its scales included."""
         d = super().to_dict()
         d.update(x_mid=self.x_mid, y_mid=self.y_mid)
         d["x_scale"] = ScaleSerializer.to_dict(self.x_scale)
@@ -98,6 +100,7 @@ class QuadrantGate(Gate):
 
     @classmethod
     def from_dict(cls, data: dict) -> QuadrantGate:
+        """Rebuild a quadrant gate from ``to_dict``'s output."""
         return cls(
             x_param=data["x_param"],
             y_param=data["y_param"],
@@ -131,14 +134,17 @@ class QuadrantSubGate(Gate):
         return self.parent.get_quadrant(events, self.quadrant)
 
     def copy(self) -> QuadrantSubGate:
+        """A copy of this quadrant, over a copy of its parent gate."""
         return QuadrantSubGate(self.parent.copy(), self.quadrant, gate_id=self.gate_id)
 
     def to_dict(self) -> dict:
+        """Serialize, the parent quadrant gate included."""
         d = super().to_dict()
         d.update({"parent_gate": self.parent.to_dict(), "quadrant": self.quadrant})
         return d
 
     @classmethod
     def from_dict(cls, data: dict) -> QuadrantSubGate:
+        """Rebuild a quadrant from ``to_dict``'s output."""
         parent = QuadrantGate.from_dict(data["parent_gate"])
         return cls(parent, data["quadrant"], gate_id=data.get("gate_id"))

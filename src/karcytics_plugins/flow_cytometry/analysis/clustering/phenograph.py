@@ -82,6 +82,7 @@ class PhenographResult:
 
     @property
     def n_clusters(self) -> int:
+        """How many clusters the run found."""
         return len(self.layout)
 
 

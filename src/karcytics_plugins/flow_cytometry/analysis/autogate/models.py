@@ -56,6 +56,7 @@ PICKABLE: tuple[MethodInfo, ...] = (*METHODS, TEMPLATE)
 
 
 def method(key: str) -> MethodInfo:
+    """The method with ``key`` (PCA for an unknown one)."""
     return next((m for m in PICKABLE if m.key == key), PCA)
 
 
@@ -78,6 +79,8 @@ class StepRequest:
 
 @dataclass(frozen=True)
 class Bar:
+    """One bar of a ranking chart."""
+
     label: str
     value: float  # 0-1, or -1..1 for a signed list
     text: str  # the number as shown, "46%", "+0.68"
@@ -151,6 +154,7 @@ class Proposal:
 
     @property
     def gated(self) -> tuple[Region, ...]:
+        """The main regions that became gates."""
         return tuple(r for r in self.plot.regions if r.is_main and r.gate is not None)
 
 
@@ -168,6 +172,8 @@ class SampleOutcome:
 
 @dataclass(frozen=True, eq=False)
 class GroupPreview:
+    """A proposal's gates on every sample of the group, one row each."""
+
     populations: tuple[str, ...]
     rows: tuple[SampleOutcome, ...]
 

@@ -105,6 +105,8 @@ def edge_fraction(gate: Gate, parent_events: pd.DataFrame, seed: int = 0) -> flo
 
 @dataclass
 class SampleCheck:
+    """One sample's share of a population, and how much of it sits at the gate's edge."""
+
     sample_id: str
     sample_name: str
     pct_parent: float

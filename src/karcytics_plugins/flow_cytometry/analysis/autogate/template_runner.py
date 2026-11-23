@@ -65,6 +65,8 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, eq=False)
 class StepOutcome:
+    """What one template step found, or why it found nothing."""
+
     step: TemplateStep
     proposal: Proposal | None  # None: not found (``message`` says why)
     message: str = ""
@@ -72,6 +74,8 @@ class StepOutcome:
 
 @dataclass(frozen=True, eq=False)
 class TemplatePlan:
+    """A template run on one sample: each step's outcome."""
+
     template: GatingTemplate
     sample_id: str
     start_id: str | None
@@ -80,6 +84,7 @@ class TemplatePlan:
 
     @property
     def found(self) -> tuple[StepOutcome, ...]:
+        """The steps that found their population."""
         return tuple(o for o in self.outcomes if o.proposal is not None)
 
 
@@ -93,6 +98,8 @@ class _Parent:
 
 
 class TemplateRunner:
+    """Runs a gating template step by step on one sample."""
+
     def __init__(self, state: FlowState, axis_manager: AxisManager) -> None:
         self._state = state
         self._axis_manager = axis_manager
@@ -105,6 +112,7 @@ class TemplateRunner:
         min_events: int = 500,
         min_valley: float = 0.3,
     ) -> TemplatePlan | str:
+        """Find each step's population, parents first; a reason if nothing can start."""
         sample = self._state.data.experiment.samples.get(sample_id)
         if sample is None or sample.fcs_data is None:
             return "Pick a reference sample with events loaded."

@@ -88,6 +88,8 @@ class _Context:
 
 
 class GatingEngine:
+    """Proposes splits of a population and previews them on the rest of the group."""
+
     def __init__(self, state: FlowState, axis_manager: AxisManager) -> None:
         self._state = state
         self._axis_manager = axis_manager

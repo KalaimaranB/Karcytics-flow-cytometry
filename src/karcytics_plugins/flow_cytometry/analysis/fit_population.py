@@ -30,6 +30,7 @@ class FitEvents:
     gated: bool  # ``events`` is the requested gate's population, not everything
 
     def describe(self, gate: str | None) -> str:
+        """The events used, as a phrase (``1,234 of 5,000 (in 'Cells')``)."""
         if self.gated:
             return f"{len(self.events):,} of {self.total:,} (in '{gate}')"
         if gate is not None:

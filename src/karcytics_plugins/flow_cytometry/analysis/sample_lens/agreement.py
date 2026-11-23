@@ -34,6 +34,8 @@ class OtherRun:
 
 @dataclass(frozen=True)
 class Agreement:
+    """Which other runs report a finding, of how many compared."""
+
     found_by: tuple[str, ...]  # the other runs that report it
     compared: int  # how many other runs there were
 

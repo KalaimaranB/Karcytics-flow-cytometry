@@ -12,6 +12,8 @@ from .models import GateStory, GroupPreview, MethodOutcome, Proposal, StepReques
 
 
 class AutoGateEngine(Protocol):
+    """What the Auto Gating tab asks of a gating engine."""
+
     def propose(self, request: StepRequest) -> Proposal | str:
         """The next split of the population, or why there isn't one."""
         ...

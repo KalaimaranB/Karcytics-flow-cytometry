@@ -105,6 +105,7 @@ class HistoryRecorder:
     # ── Lifecycle ─────────────────────────────────────────────────────
 
     def start(self) -> None:
+        """Subscribe to the events that make undo steps (once)."""
         if self._subscriptions:
             return
         for topic, label in STEP_EVENTS.items():
@@ -115,6 +116,7 @@ class HistoryRecorder:
             self._add(topic, self._on_display)
 
     def stop(self) -> None:
+        """Unsubscribe, dropping any step not yet committed."""
         for topic, handler in self._subscriptions:
             self._unsubscribe(topic, handler)
         self._subscriptions.clear()
@@ -159,4 +161,5 @@ class HistoryRecorder:
 
     @property
     def has_pending(self) -> bool:
+        """Whether a step is waiting to be committed at the end of this turn."""
         return self._pending_label is not None

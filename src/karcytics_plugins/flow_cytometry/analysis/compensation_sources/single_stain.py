@@ -37,6 +37,8 @@ _MIN_SINGLE_STAINS = 2
 
 
 class SingleStainSource(MatrixSource):
+    """A matrix computed from single-stain controls."""
+
     key = "computed"
     label = "Single-stain controls"
     action = "🔬 Calculate Matrix"
@@ -58,6 +60,7 @@ class SingleStainSource(MatrixSource):
     )
 
     def readiness(self, state: FlowState, _options: MethodOptions) -> Readiness:
+        """Ready with at least two single-stain controls loaded."""
         found = len(loaded_samples(state, SampleRole.SINGLE_STAIN))
         return Readiness(
             found >= _MIN_SINGLE_STAINS,
@@ -68,6 +71,7 @@ class SingleStainSource(MatrixSource):
     def obtain(
         self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
+        """The matrix from the single stains (and the unstained control, if any)."""
         stains = loaded_samples(state, SampleRole.SINGLE_STAIN)
         if len(stains) < _MIN_SINGLE_STAINS:
             raise MatrixSourceError(
@@ -99,10 +103,12 @@ class SingleStainSource(MatrixSource):
         )
 
     def gate_choices(self, state: FlowState) -> list[str] | None:
+        """The scatter gates the controls have."""
         controls = loaded_samples(state, SampleRole.SINGLE_STAIN, SampleRole.UNSTAINED)
         return gate_names([sample for sample, _ in controls])
 
     def inputs(self, state: FlowState, options: MethodOptions) -> Inputs | None:
+        """The single-stain and unstained controls, and the events each fit uses."""
         rows = [
             InputRow(
                 sample.sample_id,

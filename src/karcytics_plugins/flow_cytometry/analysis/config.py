@@ -27,26 +27,31 @@ class FlowConfig:
 
     @classmethod
     def set_properties_histogram_view(cls, value: bool):
+        """Remember whether the Properties panel shows a histogram."""
         cls._config.set(cls.PROPERTIES_HISTOGRAM_VIEW, value)
         cls._config.save()
 
     @classmethod
     def get_auto_range(cls) -> bool:
+        """Whether new plots fit their axis range to the data."""
         return cls._config.get(cls.AUTO_RANGE, True)
 
     @classmethod
     def set_auto_range(cls, value: bool):
+        """Remember whether new plots fit their axis range to the data."""
         cls._config.set(cls.AUTO_RANGE, value)
         cls._config.save()
 
     @classmethod
     def get_last_params(cls) -> tuple[str, str]:
+        """The x and y channels last plotted (FSC-A, SSC-A at first)."""
         x = cls._config.get(cls.LAST_X_PARAM, "FSC-A")
         y = cls._config.get(cls.LAST_Y_PARAM, "SSC-A")
         return x, y
 
     @classmethod
     def set_last_params(cls, x: str, y: str):
+        """Remember the x and y channels last plotted."""
         cls._config.set(cls.LAST_X_PARAM, x)
         cls._config.set(cls.LAST_Y_PARAM, y)
         cls._config.save()
@@ -95,6 +100,7 @@ class PseudocolorConfig:
     opacity: float = 0.6
 
     def to_dict(self) -> dict:
+        """Serialize to a JSON-compatible dictionary."""
         return {
             "colormap": self.colormap,
             "max_events": self.max_events,
@@ -109,6 +115,7 @@ class PseudocolorConfig:
 
     @classmethod
     def from_dict(cls, d: dict) -> PseudocolorConfig:
+        """Rebuild from ``d``, defaulting what it lacks."""
         return cls(
             colormap=d.get("colormap", "jet"),
             max_events=d.get("max_events", constants.MAIN_PLOT_MAX_EVENTS_OPTIMIZED),
@@ -132,6 +139,7 @@ class DotPlotConfig:
     max_events: int = constants.MAIN_PLOT_MAX_EVENTS_OPTIMIZED
 
     def to_dict(self) -> dict:
+        """Serialize to a JSON-compatible dictionary."""
         return {
             "dot_color": self.dot_color,
             "dot_size": self.dot_size,
@@ -141,6 +149,7 @@ class DotPlotConfig:
 
     @classmethod
     def from_dict(cls, d: dict) -> DotPlotConfig:
+        """Rebuild from ``d``, defaulting what it lacks."""
         return cls(
             dot_color=d.get("dot_color", "#2196F3"),
             dot_size=d.get("dot_size", 2.0),
@@ -166,6 +175,7 @@ class HistogramConfig:
     fmo_threshold_color: str = "#ff4444"  # color of the threshold line
 
     def to_dict(self) -> dict:
+        """Serialize to a JSON-compatible dictionary."""
         return {
             "bar_color": self.bar_color,
             "bins": self.bins,
@@ -181,6 +191,7 @@ class HistogramConfig:
 
     @classmethod
     def from_dict(cls, d: dict) -> HistogramConfig:
+        """Rebuild from ``d``, defaulting what it lacks."""
         return cls(
             bar_color=d.get("bar_color", "#2196F3"),
             bins=d.get("bins", 256),
@@ -207,6 +218,7 @@ class ContourConfig:
     show_dot_underlay: bool = False  # scatter dots under contours
 
     def to_dict(self) -> dict:
+        """Serialize to a JSON-compatible dictionary."""
         return {
             "num_levels": self.num_levels,
             "smoothing": self.smoothing,
@@ -218,6 +230,7 @@ class ContourConfig:
 
     @classmethod
     def from_dict(cls, d: dict) -> ContourConfig:
+        """Rebuild from ``d``, defaulting what it lacks."""
         return cls(
             num_levels=d.get("num_levels", 10),
             smoothing=d.get("smoothing", 1.5),
@@ -244,29 +257,36 @@ class RenderConfig:
     # ── Backward-compatible flat properties (used by legacy rendering paths) ──
     @property
     def max_events(self) -> int:
+        """The pseudocolor plot's event cap."""
         return self.pseudocolor.max_events
 
     @property
     def nbins_scaling(self) -> float:
+        """The pseudocolor plot's bin-count scaling (population detail)."""
         return self.pseudocolor.population_detail
 
     @property
     def sigma_scaling(self) -> float:
+        """The pseudocolor plot's smoothing scaling."""
         return self.pseudocolor.population_smoothing
 
     @property
     def density_threshold(self) -> float:
+        """The pseudocolor plot's background-suppression density threshold."""
         return self.pseudocolor.background_suppression
 
     @property
     def vibrancy_min(self) -> float:
+        """The pseudocolor plot's lowest colour vibrancy."""
         return self.pseudocolor.vibrancy_min
 
     @property
     def vibrancy_range(self) -> float:
+        """The pseudocolor plot's vibrancy range."""
         return self.pseudocolor.vibrancy_range
 
     def to_dict(self) -> dict:
+        """Serialize every plot type's settings to a JSON-compatible dictionary."""
         return {
             "pseudocolor": self.pseudocolor.to_dict(),
             "dot_plot": self.dot_plot.to_dict(),
@@ -277,6 +297,7 @@ class RenderConfig:
     @classmethod
     def from_dict(cls, data: dict) -> RenderConfig:
         # Support both the new nested format and the old flat format
+        """Rebuild from ``data``, nested (current) or flat (older saves)."""
         if "pseudocolor" in data:
             return cls(
                 pseudocolor=PseudocolorConfig.from_dict(data.get("pseudocolor", {})),

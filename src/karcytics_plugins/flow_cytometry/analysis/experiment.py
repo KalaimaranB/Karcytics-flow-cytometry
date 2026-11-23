@@ -156,6 +156,7 @@ class Group:
 
     @property
     def size(self) -> int:
+        """How many samples the group holds."""
         return len(self.sample_ids)
 
 

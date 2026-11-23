@@ -21,6 +21,8 @@ from .base import (
 
 
 class CsvImportSource(MatrixSource):
+    """A matrix read from a CSV or TSV file."""
+
     key = "imported"
     label = "Import from a file"
     action = "📥 Import CSV"
@@ -33,6 +35,7 @@ class CsvImportSource(MatrixSource):
     )
 
     def readiness(self, _state: FlowState, _options: MethodOptions) -> Readiness:
+        """Always ready: the file is asked for when the matrix is."""
         return Readiness(
             True, "A matrix saved as CSV/TSV, e.g. exported from other analysis software."
         )
@@ -40,6 +43,7 @@ class CsvImportSource(MatrixSource):
     def obtain(
         self, _state: FlowState, ask_path: AskPath | None, _options: MethodOptions
     ) -> SourceResult | None:
+        """Ask for a file and read its matrix (None if cancelled)."""
         path = (
             ask_path("Import Spillover Matrix", "CSV Files (*.csv *.tsv *.txt);;All Files (*)")
             if ask_path

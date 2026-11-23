@@ -90,6 +90,7 @@ class DerivedParameter:
         return f"ƒ {self.name}"
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize to a JSON-compatible dictionary."""
         return {
             "schema_version": SCHEMA_VERSION,
             "param_id": self.param_id,
@@ -101,6 +102,7 @@ class DerivedParameter:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DerivedParameter:
+        """Rebuild from ``data``, defaulting what older saves lack."""
         return cls(
             param_id=data["param_id"],
             name=data.get("name", data["param_id"]),

@@ -77,6 +77,7 @@ class RectangleGate(Gate):
         return mask
 
     def copy(self) -> RectangleGate:
+        """A copy with the same bounds, scales and gate id."""
         return RectangleGate(
             self.x_param,
             self.y_param,
@@ -91,6 +92,7 @@ class RectangleGate(Gate):
         )
 
     def to_dict(self) -> dict:
+        """Serialize, the bounds and their scales included."""
         d = super().to_dict()
         d.update(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max)
         d["x_scale"] = ScaleSerializer.to_dict(self.x_scale)
@@ -99,6 +101,7 @@ class RectangleGate(Gate):
 
     @classmethod
     def from_dict(cls, data: dict) -> RectangleGate:
+        """Rebuild a rectangle gate from ``to_dict``'s output."""
         return cls(
             x_param=data["x_param"],
             y_param=data.get("y_param"),

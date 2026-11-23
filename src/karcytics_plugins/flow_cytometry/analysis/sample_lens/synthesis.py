@@ -36,6 +36,8 @@ OPEN_EDGE = 0.995  # a box edge past this quantile of the data is left open
 
 @dataclass(frozen=True)
 class ProposedGate:
+    """A rectangle gate proposed for a cluster, and how well it matches it."""
+
     gate: RectangleGate
     f1: float
     precision: float

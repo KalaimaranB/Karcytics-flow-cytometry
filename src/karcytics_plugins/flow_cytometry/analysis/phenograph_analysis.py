@@ -86,6 +86,7 @@ class PhenographAnalysis(AnalysisBase):
         self.channels: list[str] = []
 
     def validate(self, state: Any) -> tuple[bool, str]:
+        """Whether the target sample exists and has events loaded."""
         sample = state.data.experiment.samples.get(self.target_sample_id)
         if sample is None:
             return False, f"Sample '{self.target_sample_id}' not found."
@@ -94,6 +95,7 @@ class PhenographAnalysis(AnalysisBase):
         return True, ""
 
     def run(self, state: PluginState | None = None) -> dict[str, Any]:
+        """Run PhenoGraph on the target population and return the run's arrays."""
         if state is None:
             return {"error": "No state provided"}
 
@@ -171,9 +173,11 @@ class PhenographReclusterAnalysis(AnalysisBase):
         self.resolution = resolution
 
     def validate(self, state: Any) -> tuple[bool, str]:  # noqa: ARG002 - nothing to check
+        """Nothing to check: the run carries its own events."""
         return True, ""
 
     def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: ARG002
+        """Cluster a finished run's graph again at the new resolution."""
         run = self.run_dict
         run.setdefault("run_uid", uuid.uuid4().hex)  # older saves: the daemon rebuilds the graph
         self.signals.analysis_progress.emit(10)

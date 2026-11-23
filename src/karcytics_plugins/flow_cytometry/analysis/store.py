@@ -139,6 +139,7 @@ class FlowStore:
 
     @property
     def is_recording(self) -> bool:
+        """Whether changes are recorded now (not paused or restoring)."""
         return not (self._suspended or self._restoring)
 
     def reset(self, clean: bool = True) -> None:
@@ -194,6 +195,7 @@ class FlowStore:
         self._suspended += 1
 
     def resume(self) -> None:
+        """Undo one ``pause``."""
         self._suspended = max(0, self._suspended - 1)
 
     @contextmanager
@@ -298,6 +300,7 @@ class FlowStore:
 
     @property
     def is_dirty(self) -> bool:
+        """Whether there are changes since the last save."""
         return self._untracked_dirty or not self.history.is_clean
 
     def mark_unsaved_change(self) -> None:

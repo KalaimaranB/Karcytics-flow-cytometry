@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 
 
 class ProposalCommitter:
+    """Turns an accepted proposal into gates in the sample's tree."""
+
     def __init__(self, coordinator: GateCoordinator, derived: DerivedParameterService) -> None:
         self._coordinator = coordinator
         self._derived = derived

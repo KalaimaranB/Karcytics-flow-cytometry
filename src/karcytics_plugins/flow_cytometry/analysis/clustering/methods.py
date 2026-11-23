@@ -58,6 +58,8 @@ RESOLUTION_SETTING = RecutSetting(
 
 @dataclass(frozen=True)
 class ClusteringMethod:
+    """A clustering method, as the tabs and the lens talk about it."""
+
     key: str
     name: str
     cluster_noun: str  # what one cluster is called in sentences ("cluster", "metacluster")
@@ -70,6 +72,7 @@ class ClusteringMethod:
 
     @property
     def recuttable(self) -> bool:
+        """Whether a finished run can be cut again without rerunning it."""
         return self.recut is not None
 
     def setting_text(self, run: dict[str, Any]) -> str:
@@ -142,4 +145,5 @@ METHODS = {m.key: m for m in (UMAP_HDBSCAN, FLOWSOM, PHENOGRAPH)}
 
 
 def method_of(run: dict[str, Any]) -> ClusteringMethod:
+    """The method that made ``run`` (UMAP + HDBSCAN for older saves)."""
     return METHODS.get(run.get("method") or UMAP_HDBSCAN.key, UMAP_HDBSCAN)

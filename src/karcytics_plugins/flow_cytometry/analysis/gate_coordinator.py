@@ -62,10 +62,12 @@ class GateCoordinator:
         logger.info("Propagation %s", "enabled" if enabled else "disabled")
 
     def request_propagation(self, gate_id: str, source_sample_id: str) -> None:
+        """Spread a gate change from ``source_sample_id`` to its group (if propagation is on)."""
         if self._propagation_enabled and self._propagator is not None:
             self._propagator.request_propagation(gate_id, source_sample_id)
 
     def propagate_to_all_groups(self, sample_id: str, node_id: str) -> None:
+        """Copy a population to every group's samples."""
         if self._propagator is not None:
             self._propagator.request_cross_group_propagation(node_id, sample_id)
 
@@ -78,6 +80,7 @@ class GateCoordinator:
     def get_gates_for_display(
         self, sample_id: str, parent_node_id: str | None = None
     ) -> tuple[list[Gate], list[GateNode]]:
+        """The gates drawn on a plot of ``parent_node_id`` (the whole sample if None), with their nodes."""
         sample = self._sample(sample_id)
         return tree_edits.gates_for_display(sample, parent_node_id) if sample else ([], [])
 
@@ -196,6 +199,7 @@ class GateCoordinator:
         }
 
     def modify_gate(self, gate_id: str, sample_id: str, **kwargs: Any) -> bool:
+        """Change a gate's geometry; recompute, announce and propagate. False if nothing changed."""
         sample = self._sample(sample_id)
         nodes = tree_edits.modify_gate(sample, gate_id, **kwargs) if sample else []
         if not nodes:
@@ -208,6 +212,7 @@ class GateCoordinator:
         return True
 
     def split_population(self, sample_id: str, node_id: str) -> str | None:
+        """Add the population's complement as a sibling; returns its node id."""
         sample = self._sample(sample_id)
         sibling = tree_edits.split_population(sample, node_id) if sample else None
         if sibling is None or sibling.gate is None:
@@ -288,6 +293,7 @@ class GateCoordinator:
         return renamed_any
 
     def copy_gates_to_group(self, source_sample_id: str) -> int:
+        """Copy a sample's gate tree to the rest of its group; returns how many samples got it."""
         targets = tree_edits.copy_gates_to_group(self._state.data.experiment, source_sample_id)
         for target in targets:
             self.recompute_all_stats(target.sample_id)
@@ -304,6 +310,7 @@ class GateCoordinator:
     # ── Logic nodes ─────────────────────────────────────────────────────
 
     def add_logic_node(self, sample_id: str, operator: str, name: str | None = None) -> str | None:
+        """Add an unwired AND/OR/NOT node; returns its id."""
         sample = self._sample(sample_id)
         if sample is None:
             return None
@@ -324,6 +331,7 @@ class GateCoordinator:
         return node.node_id
 
     def add_connection(self, sample_id: str, source_node_id: str, target_node_id: str) -> bool:
+        """Wire ``source`` into ``target`` as a parent; False for the root or a cycle."""
         sample = self._sample(sample_id)
         if sample is None:
             return False
@@ -352,6 +360,7 @@ class GateCoordinator:
         return True
 
     def remove_connection(self, sample_id: str, source_node_id: str, target_node_id: str) -> bool:
+        """Unwire ``source`` from ``target``; an orphaned node falls back under the root."""
         sample = self._sample(sample_id)
         if sample is None:
             return False
@@ -476,6 +485,7 @@ class GateCoordinator:
         logger.info("Applied background stats for sample %s", sample_id)
 
     def cleanup(self) -> None:
+        """Stop the propagator."""
         if self._propagator is not None:
             self._propagator.cleanup()
         logger.info("GateCoordinator cleaned up")

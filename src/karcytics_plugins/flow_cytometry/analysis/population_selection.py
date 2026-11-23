@@ -110,6 +110,7 @@ class PopulationSelection:
         return self.active_sample() or (self.sample_ids[0] if self.sample_ids else None)
 
     def summary(self, display_names: dict[str, str]) -> str:
+        """A line for the panel: how many picks, or which sample is being compared."""
         if self.single_sample:
             active = self.active_sample()
             if active is None:
@@ -212,6 +213,7 @@ class PopulationSelection:
         return self.checked != before
 
     def toggle_cell(self, sid: str, label: str) -> bool:
+        """Flip one cell, within the modes."""
         self.touched = True
         return self._set(sid, label, (sid, label) not in self.checked)
 
@@ -263,6 +265,7 @@ class PopulationSelection:
         return self.drag_over(sid, label)
 
     def drag_over(self, sid: str, label: str) -> bool:
+        """The drag crossed a cell: give it the drag's state (once per drag)."""
         cell = (sid, label)
         if not self.dragging or cell in self._drag_visited:
             return False
@@ -276,6 +279,7 @@ class PopulationSelection:
         return was
 
     def is_checked(self, sid: str, label: str) -> bool:
+        """Whether the cell is checked."""
         return (sid, label) in self.checked
 
     def _set(self, sid: str, label: str, checked: bool) -> bool:

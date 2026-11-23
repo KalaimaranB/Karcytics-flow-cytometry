@@ -33,6 +33,8 @@ FMO, UNSTAINED = "FMO", "unstained"
 
 @dataclass(frozen=True)
 class ControlLine:
+    """Where a control says a marker's positives start, on one axis."""
+
     channel: str
     marker: str
     position: float  # display units
@@ -42,6 +44,7 @@ class ControlLine:
 
     @property
     def text(self) -> str:
+        """The line's explanation for the gate's story."""
         weaker = (
             " (autofluorescence only: an FMO would also show the other dyes' spread)"
             if self.kind == UNSTAINED
@@ -53,6 +56,7 @@ class ControlLine:
         )
 
     def record(self) -> dict[str, object]:
+        """The line, for the gate's record."""
         return {
             "control": self.control,
             "kind": self.kind,

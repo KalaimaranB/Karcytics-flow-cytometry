@@ -35,9 +35,11 @@ class FormulaTemplate:
     hint: str
 
     def formula(self, channel_a: str, channel_b: str) -> str:
+        """The formula with ``channel_a`` and ``channel_b`` filled in."""
         return self.pattern.format(a=channel_a, b=channel_b)
 
     def suggested_name(self, label_a: str, label_b: str) -> str:
+        """A name for the parameter from its markers (``CD4/CD8``)."""
         return self.name_pattern.format(a=short_label(label_a), b=short_label(label_b))
 
 
@@ -86,6 +88,7 @@ TEMPLATES: tuple[FormulaTemplate, ...] = (
 
 
 def get_template(key: str) -> FormulaTemplate | None:
+    """The template with ``key``, if there is one."""
     return next((t for t in TEMPLATES if t.key == key), None)
 
 

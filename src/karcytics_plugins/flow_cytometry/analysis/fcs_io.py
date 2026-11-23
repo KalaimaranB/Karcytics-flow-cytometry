@@ -211,6 +211,7 @@ class FCSData:
 
     @property
     def num_channels(self) -> int:
+        """How many channels the file records."""
         return len(self.channels)
 
 
@@ -304,18 +305,10 @@ def _call_daemon_batch(
         "load_fcs_batch",
         {"paths": [str(p) for p in valid_paths]},
         cancel_poll=cancel_poll,
-        # Deliberately tighter than it looks like it should be: the
-        # daemon itself now bounds handle_load_fcs_batch to well under a
-        # minute (see _batch_deadline_seconds), so under normal
-        # conditions this returns in well under a second. A generous
-        # client-side timeout here doesn't add safety margin — it adds
-        # risk, because PluginDaemon.call() retries up to 3x on timeout,
-        # killing and respawning the daemon each time, all on a plain
-        # (non-daemon) thread. A 300s timeout could mean up to 15
-        # minutes before daemon.call() ever returns control — and since
-        # that thread is still alive, the whole app won't exit cleanly
-        # even after the UI has long since moved on (this is what was
-        # causing Karcytics to hang on quit rather than close promptly).
+        # Tight on purpose: the daemon bounds the batch to under a minute
+        # (_batch_deadline_seconds). PluginDaemon.call() retries 3x on timeout,
+        # respawning the daemon each time on a non-daemon thread, so a 300 s
+        # timeout could keep the app from quitting for 15 minutes.
         timeout=min(90.0, max(45.0, 10.0 * len(valid_paths))),
     )
     logger.info(

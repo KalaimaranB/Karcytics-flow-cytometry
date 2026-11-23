@@ -1,3 +1,5 @@
+"""Which transform a channel opens on: by its name, or a derived parameter's choice."""
+
 from collections.abc import Callable, Iterable
 from typing import Protocol
 
@@ -8,13 +10,15 @@ from .transforms import TransformType
 class ChannelInferenceStrategy(Protocol):
     """Strategy for inferring the default transformation for a channel."""
 
-    def infer_transform(self, channel: str) -> TransformType: ...
+    def infer_transform(self, channel: str) -> TransformType:
+        """The transform ``channel`` opens on."""
 
 
 class DefaultChannelInference:
     """Default logic: Linear for Scatter/Time, Biexponential for Fluorescence."""
 
     def infer_transform(self, channel: str) -> TransformType:
+        """Linear for scatter, time and an empty name; biexponential otherwise."""
         if not channel:
             return TransformType.LINEAR
 
@@ -43,6 +47,7 @@ class DerivedAwareChannelInference:
         self._fallback = fallback or DefaultChannelInference()
 
     def infer_transform(self, channel: str) -> TransformType:
+        """A derived parameter's own preferred transform; other channels go to the fallback."""
         if not is_derived_key(channel):
             return self._fallback.infer_transform(channel)
         for defn in self._definitions():

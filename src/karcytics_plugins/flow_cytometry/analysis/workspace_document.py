@@ -77,6 +77,7 @@ def detached(value: Any) -> Any:
 
 
 def serialize_view(view: ViewState) -> dict[str, Any]:
+    """The view settings a workflow saves."""
     data = {name: copy.deepcopy(getattr(view, name)) for name in PERSISTED_VIEW_FIELDS}
     data["render_config"] = view.render_config.to_dict()
     return data
@@ -99,18 +100,22 @@ def apply_view(view: ViewState, data: dict[str, Any]) -> None:
 
 
 def serialize_compensation(comp: CompensationMatrix | None) -> dict[str, Any] | None:
+    """The applied matrix, as saved (None when there's none)."""
     return comp.to_dict() if comp is not None else None
 
 
 def deserialize_compensation(data: dict[str, Any] | None) -> CompensationMatrix | None:
+    """The applied matrix from a saved workflow."""
     return CompensationMatrix.from_dict(data) if data else None
 
 
 def serialize_matrix_library(library: list[SavedMatrix]) -> list[dict[str, Any]]:
+    """The matrix library, as saved."""
     return [saved.to_dict() for saved in library]
 
 
 def deserialize_matrix_library(data: list[dict[str, Any]] | None) -> list[SavedMatrix]:
+    """The matrix library from a saved workflow."""
     return [SavedMatrix.from_dict(item) for item in data or []]
 
 

@@ -41,6 +41,8 @@ class Density:
 
 @dataclass(frozen=True)
 class Valley:
+    """The emptiest dip between two density peaks."""
+
     position: float  # in the values' units
     depth: float  # 0 (no dip) to 1 (empty between the peaks)
     density: Density
@@ -65,6 +67,7 @@ def on_scale(values: np.ndarray) -> np.ndarray:
 
 
 def robust_range(values: np.ndarray) -> tuple[float, float]:
+    """The values' range without their extreme tails (0-1 when there are none)."""
     finite = values[np.isfinite(values)]
     if finite.size == 0:
         return 0.0, 1.0
@@ -75,6 +78,7 @@ def robust_range(values: np.ndarray) -> tuple[float, float]:
 
 
 def density(values: np.ndarray) -> Density:
+    """The smoothed histogram of the on-scale values, peak-normalised."""
     values = values[on_scale(values)]
     lo, hi = robust_range(values)
     counts, _ = np.histogram(values, bins=BINS, range=(lo, hi))

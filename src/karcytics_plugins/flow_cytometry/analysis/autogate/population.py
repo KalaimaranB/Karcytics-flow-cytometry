@@ -34,6 +34,8 @@ SEED = 0
 
 @dataclass(eq=False)
 class PopulationData:
+    """A population's events, subsampled, with their scales and labels."""
+
     sample: Sample
     parent_id: str | None
     parent_name: str
@@ -45,6 +47,7 @@ class PopulationData:
     rescaled: frozenset[str] = frozenset()  # channels searched on biexponential, not linear
 
     def on_display(self, channel: str) -> np.ndarray:
+        """``channel`` in display units (computed once, then cached)."""
         if channel not in self.display:
             self.display[channel] = project_to_display(
                 self.events[channel].to_numpy(dtype=np.float64), self.scales[channel]
@@ -52,6 +55,7 @@ class PopulationData:
         return self.display[channel]
 
     def plot_rows(self) -> np.ndarray:
+        """The rows drawn on a plot (see ``plot_rows``)."""
         return plot_rows(len(self.events))
 
 
@@ -89,6 +93,7 @@ def same_population(
 
 
 def subsample(events: pd.DataFrame, max_events: int = MAX_EVENTS) -> pd.DataFrame:
+    """At most ``max_events`` rows, picked with a fixed seed and kept in order."""
     if len(events) <= max_events:
         return events
     rows = np.sort(np.random.default_rng(SEED).choice(len(events), max_events, replace=False))
@@ -138,9 +143,11 @@ class Frame:
 
     @classmethod
     def around(cls, x: np.ndarray, y: np.ndarray) -> Frame:
+        """The frame around ``x`` and ``y`` (robust range on each)."""
         return cls(*robust_range(x), *robust_range(y))
 
     def unit(self, xy: np.ndarray) -> np.ndarray:
+        """``xy`` (n, 2) in display units, mapped to the frame's unit square."""
         return np.column_stack(
             (
                 (xy[:, 0] - self.x_lo) / (self.x_hi - self.x_lo),
@@ -149,6 +156,7 @@ class Frame:
         )
 
     def span(self, axis: str) -> float:
+        """The frame's width (axis x) or height (y), in display units."""
         return (self.x_hi - self.x_lo) if axis == "x" else (self.y_hi - self.y_lo)
 
 

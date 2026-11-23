@@ -103,6 +103,8 @@ class _Seating:
 
 
 class FmoSource(MatrixSource):
+    """A matrix estimated from fluorescence-minus-one controls."""
+
     key = "fmo"
     label = "FMO controls"
     action = "🧮 Estimate from FMOs"
@@ -184,6 +186,7 @@ class FmoSource(MatrixSource):
         return channels, [placements[index] for index in sorted(placements)]
 
     def readiness(self, state: FlowState, _options: MethodOptions) -> Readiness:
+        """Ready when FMO controls are loaded and their missing dyes are known."""
         channels, placements = self._placements(state)
         if not placements:
             return Readiness(
@@ -200,6 +203,7 @@ class FmoSource(MatrixSource):
     def obtain(
         self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
+        """Fit each used control's missing detector and build the matrix."""
         channels, placements = self._placements(state)
         used = {p.channel: p for p in placements if p.used and p.channel is not None}
         fitted = {
@@ -243,9 +247,11 @@ class FmoSource(MatrixSource):
         )
 
     def gate_choices(self, state: FlowState) -> list[str] | None:
+        """The scatter gates the FMO controls have."""
         return gate_names([sample for sample, _ in loaded_samples(state, SampleRole.FMO_CONTROL)])
 
     def inputs(self, state: FlowState, options: MethodOptions) -> Inputs | None:
+        """Each FMO control, the dye it lacks, and the events its fit uses."""
         channels, placements = self._placements(state)
         if not placements:
             return Inputs(_FMO_INPUT_HEADERS, ())
@@ -278,9 +284,11 @@ class FmoSource(MatrixSource):
         return Inputs(_FMO_INPUT_HEADERS, tuple(rows), choice_header="Missing dye")
 
     def set_choice(self, state: FlowState, sample_id: str, value: str | None) -> None:
+        """Record which dye an FMO control lacks."""
         experiment_edits.set_fmo_minus(state, sample_id, value)
 
     def illustration_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
+        """The controls whose fits can be drawn (a worked example when none can)."""
         _channels, placements = self._placements(state)
         tubes = [
             (f"{p.sample.display_name} (no {p.channel})", p.channel)
@@ -292,6 +300,7 @@ class FmoSource(MatrixSource):
     def illustration(
         self, state: FlowState, options: MethodOptions, key: str
     ) -> FitIllustration | None:
+        """The fit for one control's missing detector, or the worked example."""
         if key == _EXAMPLE_KEY:
             return _example_illustration()
         channels, placements = self._placements(state)

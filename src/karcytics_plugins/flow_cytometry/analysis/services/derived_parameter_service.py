@@ -77,9 +77,11 @@ class DerivedParameterService:
 
     @property
     def definitions(self) -> list[DerivedParameter]:
+        """The experiment's derived parameters."""
         return self._experiment.derived_parameters
 
     def get(self, param_id: str) -> DerivedParameter | None:
+        """The derived parameter ``param_id``, if it exists."""
         return next((d for d in self.definitions if d.param_id == param_id), None)
 
     def available_channels(self) -> dict[str, str]:
@@ -173,6 +175,7 @@ class DerivedParameterService:
     # ── Mutations ─────────────────────────────────────────────────────────
 
     def create(self, draft: DerivedParameterDraft) -> DerivedParameter:
+        """Validate ``draft`` and add it as a new derived parameter."""
         canonical = self.validate(draft)
         defn = DerivedParameter(
             param_id=new_param_id(),
@@ -186,6 +189,7 @@ class DerivedParameterService:
         return defn
 
     def update(self, param_id: str, draft: DerivedParameterDraft) -> DerivedParameter:
+        """Validate ``draft`` and apply it to ``param_id`` (recomputed if its values change)."""
         defn = self._require(param_id)
         canonical = self.validate(draft, exclude_id=param_id)
         affects_display = (

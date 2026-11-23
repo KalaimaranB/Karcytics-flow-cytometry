@@ -40,10 +40,8 @@ CELL_ESTIMATED = 0  # the method measured it
 CELL_DEFAULT = 1  # the method had no control for it; left at its default
 CELL_EDITED = 2  # set by hand
 
-# FMO fit: events used per control, and the Huber tuning constant (95%
-# efficiency on clean data).
-_FMO_FIT_MAX_EVENTS = 100_000
-_HUBER_K = 1.345
+_FMO_FIT_MAX_EVENTS = 100_000  # events an FMO fit uses per control
+_HUBER_K = 1.345  # Huber tuning constant: 95% efficiency on clean data
 _ROBUST_FIT_ITERATIONS = 30
 _LARGELY_IGNORED_WEIGHT = 0.5
 
@@ -95,6 +93,7 @@ class CompensationMatrix:
 
     @property
     def n_channels(self) -> int:
+        """How many channels the matrix covers."""
         return len(self.channel_names)
 
     def to_dict(self) -> dict:
@@ -128,10 +127,12 @@ class SavedMatrix:
     saved_id: str = field(default_factory=lambda: uuid.uuid4().hex)
 
     def to_dict(self) -> dict:
+        """Serialize to a JSON-compatible dictionary."""
         return {"name": self.name, "saved_id": self.saved_id, "matrix": self.matrix.to_dict()}
 
     @classmethod
     def from_dict(cls, data: dict) -> SavedMatrix:
+        """Rebuild a saved matrix (an id is minted for older files without one)."""
         return cls(
             name=data["name"],
             matrix=CompensationMatrix.from_dict(data["matrix"]),
@@ -413,6 +414,7 @@ class FmoFitDetail:
 
     @property
     def largely_ignored(self) -> np.ndarray:
+        """Which events the robust fit counted for little (weight under the cut-off)."""
         return self.event_weights < _LARGELY_IGNORED_WEIGHT
 
 
@@ -585,18 +587,15 @@ def compensate_events(df: pd.DataFrame, comp: CompensationMatrix) -> pd.DataFram
     """Compensate ``df``'s matrix channels in place (raw values in) and return it."""
     channels = comp.channel_names
 
-    # Only compensate channels that exist in the data
     present = [ch for ch in channels if ch in df.columns]
     if not present:
         logger.warning("No matching channels found for compensation.")
         return df
 
     idx = [channels.index(ch) for ch in present]
-    # Invert the submatrix for the present channels rather than subsetting the
-    # full inverse: inv(M)[idx, idx] != inv(M[idx, idx]) whenever channels are
-    # missing, which silently produced wrong compensated values.
-    sub_spillover = comp.matrix[np.ix_(idx, idx)]
-    sub_matrix = np.linalg.inv(sub_spillover)
+    # Invert the present channels' submatrix, not a subset of the full inverse:
+    # inv(M)[idx, idx] != inv(M[idx, idx]) whenever a channel is missing.
+    sub_matrix = np.linalg.inv(comp.matrix[np.ix_(idx, idx)])
 
     logger.debug("Compensating %d/%d channels of %d events.", len(present), len(channels), len(df))
     df[present] = df[present].values @ sub_matrix  # compensated = raw @ inverse spillover

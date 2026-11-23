@@ -45,6 +45,8 @@ SINGLETS, DOUBLETS = "Singlets", "Doublets"
 
 @dataclass(frozen=True, eq=False)
 class Piece:
+    """One part of a split: its events, outline and gate."""
+
     mask: np.ndarray
     outline: np.ndarray  # (k, 2) display units
     gate: Gate
@@ -53,6 +55,8 @@ class Piece:
 
 @dataclass(frozen=True, eq=False)
 class Split:
+    """A population split into pieces, and why."""
+
     pieces: list[Piece]
     cuts: list[tuple[str, float]]  # ("x"/"y", display position)
     reason: str
@@ -163,6 +167,7 @@ def _rectangles(view: View, cuts: dict[str, float]) -> list[Piece]:
 
 
 def by_mixture(view: View, min_valley: float, means_init: np.ndarray | None = None) -> Split | str:
+    """Split ``view`` along the valleys of a Gaussian mixture; a reason if there's one group."""
     xy = np.column_stack((view.x.values, view.y.values))
     mixture = fit_mixture(xy, min_valley, means_init)
     if len(mixture.components) < 2:  # noqa: PLR2004 - a split needs two groups

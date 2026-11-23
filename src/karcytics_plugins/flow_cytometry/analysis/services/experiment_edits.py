@@ -63,6 +63,7 @@ def announce_unsaved_change(publish: Publish | None = None) -> None:
 def rename_sample(
     state: FlowState, sample_id: str, name: str, publish: Publish | None = None
 ) -> bool:
+    """Rename a sample; False when nothing changed."""
     sample = state.data.experiment.samples.get(sample_id)
     new_name = name.strip()
     if sample is None or not new_name or new_name == sample.display_name:
@@ -79,6 +80,7 @@ def rename_sample(
 def remove_samples(
     state: FlowState, sample_ids: Iterable[str], publish: Publish | None = None
 ) -> int:
+    """Remove samples (unknown ids skipped); returns how many went."""
     exp = state.data.experiment
     removed = 0
     for sid in sample_ids:
@@ -156,6 +158,7 @@ def record_detected_fmo_minus(state: FlowState, sample_id: str, channel: str) ->
 
 
 def create_group(state: FlowState, name: str, publish: Publish | None = None) -> Group | None:
+    """Add an empty custom group (None for a blank name)."""
     clean = name.strip()
     if not clean:
         return None
@@ -168,6 +171,7 @@ def create_group(state: FlowState, name: str, publish: Publish | None = None) ->
 def rename_group(
     state: FlowState, group_id: str, name: str, publish: Publish | None = None
 ) -> bool:
+    """Rename a group; False when nothing changed."""
     group = state.data.experiment.groups.get(group_id)
     clean = name.strip()
     if group is None or not clean or clean == group.name:
@@ -182,6 +186,7 @@ def rename_group(
 
 
 def delete_group(state: FlowState, group_id: str, publish: Publish | None = None) -> bool:
+    """Delete a group, taking it off its samples; False if it doesn't exist."""
     exp = state.data.experiment
     group = exp.groups.get(group_id)
     if group is None:
@@ -208,6 +213,7 @@ def add_samples_to_group(
     publish: Publish | None = None,
     source: str = "SampleList",
 ) -> int:
+    """Add samples to a group; returns how many joined."""
     exp = state.data.experiment
     group = exp.groups.get(group_id)
     if group is None:
@@ -235,6 +241,7 @@ def remove_samples_from_group(
     sample_ids: Iterable[str],
     publish: Publish | None = None,
 ) -> int:
+    """Take samples out of a group; returns how many left."""
     exp = state.data.experiment
     group = exp.groups.get(group_id)
     if group is None:
@@ -297,6 +304,7 @@ def save_matrix(
 def rename_matrix(
     state: FlowState, saved_id: str, name: str, publish: Publish | None = None
 ) -> bool:
+    """Rename a saved matrix (kept unique); False when nothing changed."""
     saved = _saved_matrix(state, saved_id)
     clean = name.strip()
     if saved is None or not clean or clean == saved.name:
@@ -307,6 +315,7 @@ def rename_matrix(
 
 
 def delete_matrix(state: FlowState, saved_id: str, publish: Publish | None = None) -> bool:
+    """Delete a saved matrix; False if it doesn't exist."""
     saved = _saved_matrix(state, saved_id)
     if saved is None:
         return False
@@ -321,6 +330,8 @@ def _saved_matrix(state: FlowState, saved_id: str) -> SavedMatrix | None:
 
 @dataclass(frozen=True)
 class CompensationResult:
+    """How many samples a compensation pass changed, skipped as done, or had no data."""
+
     changed: int = 0
     already_compensated: int = 0
     no_data: int = 0
@@ -422,6 +433,7 @@ def add_umap_run(state: FlowState, results: dict[str, Any], publish: Publish | N
 def delete_umap_run(
     state: FlowState, key: str, run_index: int, publish: Publish | None = None
 ) -> bool:
+    """Delete one run of a population's UMAP runs; False if there's no such run."""
     runs = state.data.umap_results.get(key)
     if runs is None or not 0 <= run_index < len(runs):
         return False

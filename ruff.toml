@@ -26,10 +26,6 @@ select = [
 ignore = [
     "E501",  # Line too long (handled by formatter)
     "E722",  # Bare excepts (utilised in AI connection retry fallbacks)
-    "D100",  # Missing docstring in public module
-    "D101",  # Missing docstring in public class
-    "D102",  # Missing docstring in public method
-    "D103",  # Missing docstring in public function
     "D104",  # Missing docstring in public package
     "D105",  # Missing docstring in magic method
     "D106",  # Missing docstring in public nested class
@@ -57,6 +53,9 @@ known-first-party = ["karcytics_plugins"]
 "PySide6" = { msg = "Do not import PySide6. The analysis layer must not depend on UI frameworks." }
 
 [lint.extend-per-file-ignores]
+# Public modules, classes, methods and functions need docstrings in analysis/
+# (the plugin's model, read by the UI, the daemon and the Academy) and nowhere else.
+"!src/karcytics_plugins/flow_cytometry/analysis/**" = ["D100", "D101", "D102", "D103"]
 # UI files: Qt uses camelCase overrides and optional event args — relax naming/arg rules
 "**/ui/**/*.py" = [
     "TID251",   # PySide6 allowed in UI

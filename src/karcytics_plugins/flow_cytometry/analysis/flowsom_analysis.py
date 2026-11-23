@@ -38,9 +38,11 @@ class FlowsomAnalysis(AnalysisBase):
 
     @property
     def min_events(self) -> int:
+        """The fewest events the SOM grid can train on (one per node)."""
         return self.xdim * self.ydim
 
     def validate(self, state: Any) -> tuple[bool, str]:
+        """Whether the target sample exists and has events loaded."""
         sample = state.data.experiment.samples.get(self.target_sample_id)
         if sample is None:
             return False, f"Sample '{self.target_sample_id}' not found."
@@ -49,6 +51,7 @@ class FlowsomAnalysis(AnalysisBase):
         return True, ""
 
     def run(self, state: PluginState | None = None) -> dict[str, Any]:
+        """Run FlowSOM on the target population and return the run's arrays."""
         if state is None:
             return {"error": "No state provided"}
 

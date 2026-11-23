@@ -86,6 +86,7 @@ class AxisScale:
             )
 
     def copy(self) -> AxisScale:
+        """An independent copy."""
         return AxisScale(
             transform_type=self.transform_type,
             min_val=self.min_val,

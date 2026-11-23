@@ -27,11 +27,14 @@ NOISE = -1  # HDBSCAN's label for events in no cluster
 
 @dataclass(frozen=True)
 class LensPopulation:
+    """A final population the lens compares the run with."""
+
     path: str  # full label path, e.g. "Lymphocytes / T cells / CD4+"
     node: GateNode
 
     @property
     def name(self) -> str:
+        """The population's own name (the path's last part)."""
         return self.path.rsplit(PATH_SEP, 1)[-1]
 
 
@@ -52,10 +55,12 @@ class RunScope:
 
     @property
     def n(self) -> int:
+        """How many events the run covers."""
         return len(self.rows)
 
     @property
     def has_clusters(self) -> bool:
+        """Whether the run clustered its events."""
         return self.clusters is not None
 
 

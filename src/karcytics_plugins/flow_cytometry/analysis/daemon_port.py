@@ -16,6 +16,8 @@ import numpy as np
 
 
 class DaemonCall(Protocol):
+    """Calls a method in the analysis worker process and returns its result."""
+
     def __call__(
         self,
         method: str,
@@ -30,10 +32,12 @@ class DaemonCall(Protocol):
 
 # The wire format for arrays (daemon_worker.py, a standalone script, has its own copy).
 def encode_array(array: np.ndarray) -> str:
+    """``array`` as text for the worker protocol (.npy bytes, base64)."""
     buf = io.BytesIO()
     np.save(buf, np.asarray(array), allow_pickle=False)
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def decode_array(text: str) -> np.ndarray:
+    """The array ``encode_array`` wrote."""
     return np.load(io.BytesIO(base64.b64decode(text.encode("ascii"))), allow_pickle=False)

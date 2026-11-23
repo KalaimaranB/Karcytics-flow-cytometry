@@ -13,11 +13,16 @@ if TYPE_CHECKING:
 
 
 class Propagation(Protocol):
-    def request_propagation(self, gate_id: str, source_sample_id: str) -> None: ...
+    """What the gate coordinator asks of gate propagation."""
 
-    def request_cross_group_propagation(self, gate_id: str, source_sample_id: str) -> None: ...
+    def request_propagation(self, gate_id: str, source_sample_id: str) -> None:
+        """Copy a gate change from ``source_sample_id`` to its group."""
 
-    def cleanup(self) -> None: ...
+    def request_cross_group_propagation(self, gate_id: str, source_sample_id: str) -> None:
+        """Copy a population from ``source_sample_id`` to every group."""
+
+    def cleanup(self) -> None:
+        """Stop any propagation still running."""
 
 
 def propagation_targets(

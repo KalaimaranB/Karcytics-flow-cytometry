@@ -21,16 +21,21 @@ KIND_WORDS = {"scatter": CELLS, "cells": CELLS, "singlets": SINGLETS}
 
 @dataclass(frozen=True)
 class Call:
+    """One marker level a template step asks for (``CD3+``)."""
+
     marker: str  # a marker name ("CD3") or a channel ("PE-A")
     level: str  # "+", "lo" or "−"
 
     @property
     def text(self) -> str:
+        """The call as written (``CD3+``)."""
         return f"{self.marker}{self.level}"
 
 
 @dataclass(frozen=True)
 class TemplateStep:
+    """One population a template finds, under its parent step."""
+
     step_id: str
     name: str
     parent_id: str | None  # None: straight under the start population
@@ -39,6 +44,7 @@ class TemplateStep:
 
     @property
     def calls_text(self) -> str:
+        """The step's markers as written (``CD3+ CD4lo``), or its scatter kind."""
         if self.kind != MARKERS:
             return "scatter" if self.kind == CELLS else SINGLETS
         return " ".join(c.text for c in self.calls)
@@ -46,6 +52,8 @@ class TemplateStep:
 
 @dataclass(frozen=True)
 class GatingTemplate:
+    """A named gating hierarchy written as marker calls."""
+
     name: str
     steps: tuple[TemplateStep, ...] = field(default=())
 
@@ -63,6 +71,7 @@ class GatingTemplate:
         return out
 
     def to_dict(self) -> dict[str, Any]:
+        """The template as saved: each step's markers as text."""
         return {
             "name": self.name,
             "steps": [
@@ -73,6 +82,7 @@ class GatingTemplate:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> GatingTemplate:
+        """A saved template; ``ValueError`` names a step whose markers don't parse."""
         steps = []
         for raw in data.get("steps", []):
             parsed = parse_calls(str(raw.get("markers", "")))

@@ -28,6 +28,8 @@ SEED = 0
 
 @dataclass(frozen=True, eq=False)
 class Component:
+    """One Gaussian of a fitted mixture, in display units."""
+
     mean: np.ndarray  # (2,)
     cov: np.ndarray  # (2, 2)
     weight: float
@@ -35,6 +37,8 @@ class Component:
 
 @dataclass(frozen=True, eq=False)
 class Mixture:
+    """A Gaussian mixture fitted to a 2-D view, as populations."""
+
     components: tuple[Component, ...]  # populations, largest first (seeded: in the seeds' order)
     parts: tuple[tuple[Component, ...], ...]  # each population's fitted components
     bic: tuple[float, ...]  # for 1..MAX_COMPONENTS components (only the fitted count when seeded)

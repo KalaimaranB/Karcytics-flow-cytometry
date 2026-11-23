@@ -39,6 +39,8 @@ MAX_POINTS = 120  # an outline is thinned to at most this many vertices
 
 @dataclass(frozen=True, eq=False)
 class DensityRegion:
+    """One density region: a set of grid bins around a peak."""
+
     mask: np.ndarray  # (BINS, BINS) bins in this population
     peak: tuple[float, float]  # display units
     height: float  # of its tallest peak, 0-1
@@ -47,6 +49,8 @@ class DensityRegion:
 
 @dataclass(frozen=True, eq=False)
 class DensityRegions:
+    """A view's density regions, on one grid."""
+
     grid: Grid
     regions: tuple[DensityRegion, ...]  # largest first
     peaks: int  # found before merging

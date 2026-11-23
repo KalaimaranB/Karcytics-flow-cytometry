@@ -65,21 +65,27 @@ _FAILED = StatCell("Err")
 
 @dataclass(frozen=True)
 class StatisticsRow:
+    """One population's row: a cell per (sample, statistic)."""
+
     population: str
     cells: dict[tuple[str, StatType], StatCell]  # (sample id, statistic) -> cell
 
     def cell(self, sample_id: str, stat: StatType) -> StatCell:
+        """The row's cell for ``sample_id`` and ``stat`` (not gated if missing)."""
         return self.cells.get((sample_id, stat), _NOT_GATED)
 
 
 @dataclass(frozen=True)
 class StatisticsTable:
+    """The computed statistics: a row per population, a column per sample."""
+
     request: StatisticsRequest
     sample_names: tuple[str, ...]  # display names, in ``request.sample_ids`` order
     rows: tuple[StatisticsRow, ...]
 
     @property
     def has_estimates(self) -> bool:
+        """Whether any cell is an estimate (scaled from a subsample)."""
         return any(cell.scale for row in self.rows for cell in row.cells.values())
 
     def values(self, stat: StatType) -> tuple[np.ndarray, np.ndarray]:

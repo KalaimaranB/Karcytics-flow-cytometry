@@ -44,6 +44,7 @@ class EllipseGate(Gate):
         self.y_scale = ScaleFactory.parse(y_scale)
 
     def copy(self) -> EllipseGate:
+        """A copy with the same ellipse and gate id."""
         if self.y_param is None:
             raise ValueError(f"{self.__class__.__name__} requires a y_param")
         return EllipseGate(
@@ -103,6 +104,7 @@ class EllipseGate(Gate):
         return (x_rot / width_disp) ** 2 + (y_rot / height_disp) ** 2 <= 1.0
 
     def to_dict(self) -> dict:
+        """Serialize, the ellipse's centre, axes and angle included."""
         d = super().to_dict()
         d.update(
             center=list(self.center),
@@ -116,6 +118,7 @@ class EllipseGate(Gate):
 
     @classmethod
     def from_dict(cls, data: dict) -> EllipseGate:
+        """Rebuild an ellipse gate from ``to_dict``'s output."""
         return cls(
             x_param=data["x_param"],
             y_param=data["y_param"],

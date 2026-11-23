@@ -33,6 +33,8 @@ _MIN_MATRIX_CHANNELS = 2
 
 
 class ManualSource(MatrixSource):
+    """A blank matrix (no spill) to fill in by hand."""
+
     key = "manual"
     label = "Manual entry"
     action = "✍ Start a blank matrix"
@@ -69,6 +71,7 @@ class ManualSource(MatrixSource):
         return next(iter(chosen or loaded), None)
 
     def readiness(self, state: FlowState, options: MethodOptions) -> Readiness:
+        """Ready when a loaded sample has at least two fluorescence channels."""
         picked = self._sample(state, options)
         if picked is None:
             return Readiness(False, "Load a sample first: its channels define the matrix.")
@@ -82,6 +85,7 @@ class ManualSource(MatrixSource):
     def obtain(
         self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
+        """An identity matrix over the picked sample's fluorescence channels."""
         picked = self._sample(state, options)
         channels = get_fluorescence_channels(picked[1]) if picked else []
         if len(channels) < _MIN_MATRIX_CHANNELS:
@@ -102,6 +106,7 @@ class ManualSource(MatrixSource):
         )
 
     def sample_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
+        """Every loaded sample (its channels define the matrix)."""
         return [
             (s.display_name, s.sample_id)
             for s in state.data.experiment.samples.values()
@@ -109,6 +114,7 @@ class ManualSource(MatrixSource):
         ]
 
     def inputs(self, state: FlowState, options: MethodOptions) -> Inputs | None:
+        """The picked sample's fluorescence channels and their markers."""
         picked = self._sample(state, options)
         if picked is None:
             return Inputs(("Channel", "Marker"), ())

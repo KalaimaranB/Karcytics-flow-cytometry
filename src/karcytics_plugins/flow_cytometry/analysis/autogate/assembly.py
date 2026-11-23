@@ -78,6 +78,7 @@ def regions_of(
 def plot_of(
     view: View, frame: Frame, data: PopulationData, regions: list[Region], split: Split
 ) -> PlotData:
+    """What a proposal's plot draws: the events, regions and cuts in the frame's unit square."""
     rows = data.plot_rows()
     points = frame.unit(np.column_stack((view.x.values[rows], view.y.values[rows])))
     cuts = tuple(
@@ -99,6 +100,7 @@ def scale_note(data: PopulationData, view: View) -> str:
 
 
 def frame_of(view: View) -> Frame:
+    """The plotting frame around a view's events (robust range on each axis)."""
     return Frame.around(view.x.values, view.y.values)
 
 

@@ -31,6 +31,8 @@ MERGE_MIN_SHARE = 0.1  # a cluster this big a part of a population counts as one
 
 
 class FindingKind(Enum):
+    """What a finding says about the gates."""
+
     MISSED = "missed"
     MERGES = "merges"
     CUTS = "cuts"
@@ -38,6 +40,8 @@ class FindingKind(Enum):
 
 @dataclass(frozen=True)
 class Finding:
+    """One way the clustering disagrees with the gates."""
+
     kind: FindingKind
     clusters: tuple[int, ...]
     population: str | None = None  # label path of the population involved, if any
@@ -54,6 +58,7 @@ class Finding:
 
     @property
     def title(self) -> str:
+        """The finding as a headline."""
         name = self.population.rsplit(PATH_SEP, 1)[-1] if self.population else ""
         which = self.method.clusters_label(self.clusters)
         noun = self.method.cluster_noun
@@ -68,6 +73,7 @@ class Finding:
 
     @property
     def detail(self) -> str:
+        """The finding's numbers, as a sentence."""
         noun = self.method.cluster_noun
         if self.kind is FindingKind.MISSED:
             phenotype = f" ({self.phenotypes[0]})" if any(self.phenotypes) else ""

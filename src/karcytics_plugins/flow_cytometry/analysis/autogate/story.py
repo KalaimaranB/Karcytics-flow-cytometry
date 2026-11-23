@@ -116,6 +116,7 @@ def _controls_text(lines: dict[str, dict[str, Any]]) -> str:
 
 
 def story_of(gate: str, record: dict[str, Any]) -> GateStory:
+    """The gate's story, told from its record."""
     info = method(str(record.get("method", "")))
     share = record.get("share")
     facts = [

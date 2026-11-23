@@ -1,3 +1,5 @@
+"""Recomputes a sample's gate statistics after a propagated change (in the worker)."""
+
 from typing import Any
 
 from karcytics_sdk.plugin import AnalysisBase, PluginState, get_logger

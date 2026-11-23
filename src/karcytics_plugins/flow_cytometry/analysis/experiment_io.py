@@ -24,6 +24,7 @@ class ExperimentSerializer:
 
     @classmethod
     def serialize_marker_mapping(cls, mapping: MarkerMapping) -> dict[str, Any]:
+        """Serialize a marker mapping to a JSON-compatible dictionary."""
         return {
             "marker_name": mapping.marker_name,
             "fluorophore": mapping.fluorophore,
@@ -33,6 +34,7 @@ class ExperimentSerializer:
 
     @classmethod
     def deserialize_marker_mapping(cls, data: dict[str, Any]) -> MarkerMapping:
+        """Rebuild a marker mapping."""
         return MarkerMapping(**data)
 
     @classmethod
@@ -77,6 +79,7 @@ class ExperimentSerializer:
 
     @classmethod
     def serialize_group(cls, group: Group) -> dict[str, Any]:
+        """Serialize a group, its channel scales included."""
         return {
             "group_id": group.group_id,
             "name": group.name,
@@ -88,6 +91,7 @@ class ExperimentSerializer:
 
     @classmethod
     def deserialize_group(cls, data: dict[str, Any]) -> Group:
+        """Rebuild a group, defaulting what older saves lack."""
         group = Group(
             group_id=data["group_id"],
             name=data["name"],

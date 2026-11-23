@@ -28,6 +28,7 @@ class RangeGate(Gate):
         self.x_scale = ScaleFactory.parse(x_scale)
 
     def copy(self) -> RangeGate:
+        """A copy with the same bounds, scale and gate id."""
         return RangeGate(
             self.x_param,
             low=self.low,
@@ -53,6 +54,7 @@ class RangeGate(Gate):
         return (x_disp >= low_disp) & (x_disp <= high_disp)
 
     def to_dict(self) -> dict:
+        """Serialize, the bounds and their scale included."""
         d = super().to_dict()
         d.update(low=self.low, high=self.high)
         d["x_scale"] = ScaleSerializer.to_dict(self.x_scale)
@@ -60,6 +62,7 @@ class RangeGate(Gate):
 
     @classmethod
     def from_dict(cls, data: dict) -> RangeGate:
+        """Rebuild a range gate from ``to_dict``'s output."""
         return cls(
             x_param=data["x_param"],
             low=data.get("low", -np.inf),

@@ -43,6 +43,7 @@ class MarkerScale:
 
     @classmethod
     def from_clusters(cls, x: np.ndarray, clusters: np.ndarray, labels: list[str]) -> MarkerScale:
+        """The scale spanned by the clusters' median per marker (noise left out)."""
         ids = [c for c in np.unique(clusters) if c >= 0]
         medians = np.array([np.median(x[clusters == c], axis=0) for c in ids])
         low = medians.min(axis=0)
@@ -76,6 +77,8 @@ class MarkerScale:
 
 @dataclass(frozen=True)
 class ClusterSummary:
+    """One cluster: its share of the events and where it sits on each marker."""
+
     cluster: int
     share: float  # of all events in the run
     scale: MarkerScale
@@ -83,14 +86,17 @@ class ClusterSummary:
 
     @property
     def markers(self) -> tuple[str, ...]:
+        """Short marker names, in column order."""
         return self.scale.markers
 
     @property
     def informative(self) -> tuple[bool, ...]:
+        """Per marker, whether the clusters differ on it enough to describe."""
         return self.scale.informative
 
     @property
     def phenotype(self) -> str:
+        """The cluster as markers and levels (``CD3+ CD4− CD8+``)."""
         return self.scale.phenotype(self.level)
 
 

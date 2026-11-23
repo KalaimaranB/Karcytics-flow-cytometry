@@ -44,6 +44,7 @@ class PolygonGate(Gate):
         self.y_scale = ScaleFactory.parse(y_scale)
 
     def copy(self) -> PolygonGate:
+        """A copy with the same vertices, scales and gate id."""
         if self.y_param is None:
             raise ValueError(f"{self.__class__.__name__} requires a y_param")
         return PolygonGate(
@@ -84,6 +85,7 @@ class PolygonGate(Gate):
         return poly_path.contains_points(points)
 
     def to_dict(self) -> dict:
+        """Serialize, the vertices and the scales they were drawn on included."""
         d = super().to_dict()
         d["vertices"] = [list(v) for v in self.vertices]
         d["x_scale"] = ScaleSerializer.to_dict(self.x_scale)
@@ -92,6 +94,7 @@ class PolygonGate(Gate):
 
     @classmethod
     def from_dict(cls, data: dict) -> PolygonGate:
+        """Rebuild a polygon gate from ``to_dict``'s output."""
         return cls(
             x_param=data["x_param"],
             y_param=data["y_param"],

@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class RunInput:
+    """The events a clustering run uses: transformed channels and their rows."""
+
     channels: list[str]
     channel_labels: list[str]
     x: np.ndarray  # (events, channels), transformed

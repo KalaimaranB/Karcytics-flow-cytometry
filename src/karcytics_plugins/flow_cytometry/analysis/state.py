@@ -62,6 +62,7 @@ class ViewState:
 
     @property
     def render_config(self) -> RenderConfig:
+        """How plots render; setting it tells every open plot."""
         return self._render_config
 
     @render_config.setter

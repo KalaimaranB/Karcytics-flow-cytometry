@@ -47,6 +47,7 @@ class PreviewSummary:
 
     @property
     def pct_invalid(self) -> float:
+        """The percentage of events the formula gives no valid value for."""
         if self.n_events == 0:
             return 0.0
         return 100.0 * (self.n_events - self.n_valid) / self.n_events

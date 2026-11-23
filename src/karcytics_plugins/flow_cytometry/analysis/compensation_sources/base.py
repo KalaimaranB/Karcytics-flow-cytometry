@@ -37,6 +37,8 @@ class MethodOptions:
 
 
 class Table(NamedTuple):
+    """A table for a method's explanation: header row and rows."""
+
     headers: tuple[str, ...]
     rows: tuple[tuple[str, ...], ...]
 
@@ -175,6 +177,7 @@ def gate_names(samples: list[Sample]) -> list[str]:
 
 
 def events_used(sample: Sample, gate: str | None) -> str:
+    """How many events of ``sample`` the fit uses, as a phrase."""
     fit = fit_events(sample, gate)
     return "no data" if fit is None else fit.describe(gate)
 

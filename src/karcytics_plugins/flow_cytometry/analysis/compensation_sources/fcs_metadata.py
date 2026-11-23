@@ -25,6 +25,8 @@ from .base import (
 
 
 class FcsMetadataSource(MatrixSource):
+    """The matrix the cytometer recorded in an FCS file's $SPILL keyword."""
+
     key = "cytometer"
     label = "Embedded in the FCS files"
     action = "📄 Extract from FCS"
@@ -60,6 +62,7 @@ class FcsMetadataSource(MatrixSource):
         return next(iter(chosen or found), None)
 
     def readiness(self, state: FlowState, options: MethodOptions) -> Readiness:
+        """Ready when a loaded file carries a matrix; warns when the files' matrices differ."""
         picked = self._pick(state, options)
         if picked is None:
             return Readiness(
@@ -73,6 +76,7 @@ class FcsMetadataSource(MatrixSource):
     def obtain(
         self, state: FlowState, _ask_path: AskPath | None, options: MethodOptions
     ) -> SourceResult | None:
+        """The picked file's embedded matrix."""
         picked = self._pick(state, options)
         if picked is None:
             raise MatrixSourceError(
@@ -90,9 +94,11 @@ class FcsMetadataSource(MatrixSource):
         )
 
     def sample_choices(self, state: FlowState) -> list[tuple[str, str]] | None:
+        """The samples whose files carry a matrix."""
         return [(sample.display_name, sample.sample_id) for sample, _ in self._embedded(state)]
 
     def inputs(self, state: FlowState, options: MethodOptions) -> Inputs | None:
+        """Every loaded sample, and whether its file carries a matrix."""
         picked = self._pick(state, options)
         embedded = {sample.sample_id: matrix for sample, matrix in self._embedded(state)}
         rows = []

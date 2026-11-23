@@ -507,7 +507,10 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       when the selection actually changed (clicking None twice announced two changes).
 - [x] Coverage gate: `--cov-fail-under=66` on the `-m "not ui"` CI lane (68% on 2026-11-22, minus 2;
       raise only).
-- [ ] Docstrings required in `analysis/` only (drop D100–D103 there; per-file ignores for `ui/`).
+- [x] Docstrings required in `analysis/` only: D100–D103 are on for
+      `src/…/analysis/**` and off everywhere else (one negated per-file pattern in `ruff.toml`).
+      The 226 missing ones are written, each saying what that code does; Protocol stubs became
+      documented methods.
 - [ ] Domain magic numbers (77 `PLR2004`) into `analysis/constants.py`; pixel sizes stay inline.
 - [ ] Reasons on suppressions (KS310: 335), file by file as each is touched.
 - [x] CI hardening: every action in both workflows is pinned to a commit SHA (the one its moving

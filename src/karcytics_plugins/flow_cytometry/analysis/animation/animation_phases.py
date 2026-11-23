@@ -50,6 +50,7 @@ class Phase1HighDim(AnimationPhase):
 
     def render(self, _frame: int, drawer: IFigureDrawer) -> None:
         # Smoothly rotate the camera
+        """The high-dimensional cloud, the camera turning slowly round it."""
         progress = _frame / float(self.duration_frames)
         azim = -60 + (progress * 60)
 
@@ -73,6 +74,7 @@ class Phase2TopologicalGraph(AnimationPhase):
         self.edges = edges
 
     def render(self, _frame: int, drawer: IFigureDrawer) -> None:
+        """The cloud with its neighbour graph's edges fading in."""
         progress = _frame / float(self.duration_frames)
 
         # Fade in edges from 0.0 to 0.15 alpha
@@ -106,6 +108,7 @@ class Phase3Initialization(AnimationPhase):
 
     def render(self, _frame: int, drawer: IFigureDrawer) -> None:
         # Ease-in-out interpolation
+        """The points easing to their 2-D start positions as the camera tips to top-down."""
         t = _frame / float(self.duration_frames)
         progress = t * t * (3.0 - 2.0 * t)
 
@@ -146,6 +149,7 @@ class Phase4ForceDirected(AnimationPhase):
 
     def render(self, _frame: int, drawer: IFigureDrawer) -> None:
         # Smooth step interpolation
+        """The points moving to their final layout, slow at both ends."""
         t = _frame / float(self.duration_frames)
         # Custom ease: slow start, fast middle, slow end (sigmoid-like)
         progress = 1 / (1 + np.exp(-10 * (t - 0.5)))
@@ -173,6 +177,7 @@ class Phase5Final(AnimationPhase):
         self.data = final_2d_scaled
 
     def render(self, _frame: int, drawer: IFigureDrawer) -> None:
+        """The final 2-D layout from above, the edges gone."""
         drawer.set_points(self.data)
         drawer.set_edges([], self.data, 0.0)  # Edges fully gone
         drawer.set_camera(elev=90, azim=0)

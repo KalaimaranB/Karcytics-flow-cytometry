@@ -36,6 +36,8 @@ TINY = 1e-9  # a channel varying less than this carries no information
 
 @dataclass(frozen=True, eq=False)
 class Axis:
+    """One axis of a view: a channel (or a pending derived axis) in display units."""
+
     key: str  # channel, or a pending axis's key
     label: str
     values: np.ndarray  # display units, one per event
@@ -45,17 +47,22 @@ class Axis:
 
 @dataclass(frozen=True, eq=False)
 class View:
+    """Two axes to split a population on, and how well they separate it."""
+
     x: Axis
     y: Axis
     score: float  # separation, 0-1
 
     @property
     def name(self) -> str:
+        """The view's markers (``CD4 × CD8``)."""
         return f"{short_marker(self.x.label)} × {short_marker(self.y.label)}"
 
 
 @dataclass(frozen=True, eq=False)
 class ViewChoice:
+    """The views a method found, best first, and how it ranked them."""
+
     views: tuple[View, ...]  # best first
     sections: tuple[BarSection, ...]  # how they were ranked (highlighting the best)
     notes: dict[str, object]  # for the gate's record
@@ -74,10 +81,12 @@ RANKED = "Ranked"  # a section whose rows are the views, in rank order
 
 
 def channel_axis(data: PopulationData, channel: str) -> Axis:
+    """``channel`` as an axis of ``data``."""
     return Axis(channel, data.labels[channel], data.on_display(channel), data.scales[channel])
 
 
 def chosen_axes(data: PopulationData, x: str, y: str) -> ViewChoice:
+    """The user's two axes, scored by the deeper of their density valleys."""
     vx, vy = (find_valley(data.on_display(ch)) for ch in (x, y))
     view = View(channel_axis(data, x), channel_axis(data, y), max(_depth(vx), _depth(vy)))
     bars = tuple(
@@ -89,6 +98,7 @@ def chosen_axes(data: PopulationData, x: str, y: str) -> ViewChoice:
 
 
 def marker_pairs(data: PopulationData, channels: tuple[str, ...]) -> ViewChoice:
+    """Every pair of ``channels``, ranked by how well they separate the events."""
     views = sorted(
         (
             View(
@@ -110,6 +120,7 @@ def marker_pairs(data: PopulationData, channels: tuple[str, ...]) -> ViewChoice:
 
 
 def principal_components(data: PopulationData, channels: tuple[str, ...]) -> ViewChoice | str:
+    """The first two principal components of ``channels``; a reason if fewer than two vary."""
     raw = data.events[list(channels)].to_numpy(dtype=np.float64)
     t = np.arcsinh(raw / COFACTOR)
     mean, sd = np.nanmean(t, axis=0), np.nanstd(t, axis=0)
@@ -186,6 +197,7 @@ def loadings_section(notes: dict[str, object], axis: str) -> BarSection | None:
 def choose(
     data: PopulationData, method_key: str, channels: tuple[str, ...], x: str, y: str
 ) -> ViewChoice | str:
+    """The views ``method_key`` offers; a reason if it can't run on these axes."""
     if method_key == DENSITY_VALLEYS.key:
         if not x or not y or x == y:
             return "Pick two different axes for density valleys."
