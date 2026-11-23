@@ -28,7 +28,7 @@ EXPORT_DPI = 300  # publication quality, for the raster formats
 class RenderWindow(QMainWindow):
     """A full-quality render of one population's plot."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 - the plot it reopens: sample, population, axes, scales
         self,
         state: FlowState,
         sample_id: str,

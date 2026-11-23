@@ -30,7 +30,7 @@ _DEFAULT_PALETTE = [
 class RadarRenderer(IPlotRenderer):
     """SRP: renders a grid of polar radar subplots, one per (sample, population) pair."""
 
-    def render(self, **kwargs) -> Figure:  # noqa: PLR0915
+    def render(self, **kwargs) -> Figure:  # noqa: PLR0915 - draws, labels and colours the whole figure
         # data: {label: [value_per_channel]}
         data: dict[str, list[float]] = kwargs["data"]
         channel_labels: list[str] = kwargs["channel_labels"]
@@ -45,7 +45,7 @@ class RadarRenderer(IPlotRenderer):
         populations = list(data.keys())
         n_channels = len(channel_labels)
 
-        if not populations or n_channels < 3:  # noqa: PLR2004
+        if not populations or n_channels < 3:  # noqa: PLR2004 - a radar needs three spokes
             fig = Figure(figsize=(6, 5), facecolor=bg_color)
             ax = fig.add_subplot(111)
             ax.set_facecolor(bg_color)

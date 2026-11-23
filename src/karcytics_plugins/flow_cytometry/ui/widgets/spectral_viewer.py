@@ -408,7 +408,7 @@ class SpectralViewer(QWidget):
 
     def _on_search_changed(self, text: str):
         self._search_results.clear()
-        if len(text) < 2:  # noqa: PLR2004
+        if len(text) < 2:  # noqa: PLR2004 - search from two characters
             self._search_results.hide()
             return
         matches = self._fluor_service.search_dyes(text)
@@ -585,7 +585,7 @@ class SpectralViewer(QWidget):
         # ── Spectral overlap highlighting ──────────────────────────────────────
         self._mpl_annotations.clear()
 
-        if self._show_em and len(em_interps) >= 2:  # noqa: PLR2004
+        if self._show_em and len(em_interps) >= 2:  # noqa: PLR2004 - overlap needs two spectra
             self._draw_overlaps(x_grid, em_interps)
 
         self._ax.legend(
@@ -653,7 +653,7 @@ class SpectralViewer(QWidget):
                 )
 
                 # Place the callout to whichever side has more room
-                text_x = min(ann_x + 30, 750) if ann_x < 550 else max(ann_x - 160, 310)  # noqa: PLR2004
+                text_x = min(ann_x + 30, 750) if ann_x < 550 else max(ann_x - 160, 310)  # noqa: PLR2004 - label placement on the 300-800 nm axis
 
                 ann = self._ax.annotate(
                     text,

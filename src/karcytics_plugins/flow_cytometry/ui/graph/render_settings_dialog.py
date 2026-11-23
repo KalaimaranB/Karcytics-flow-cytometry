@@ -206,19 +206,17 @@ class RenderSettingsDialog(QDialog):
 
     def _apply(self) -> None:
         """Collect configs from the active panel and emit."""
-        mode = self._active_mode
+        mode, panel, cfg = self._active_mode, self._active_panel, self._cfg
+        if panel is None or cfg is None:
+            return
         if mode == DisplayMode.PSEUDOCOLOR:
-            assert self._cfg is not None
-            self._cfg.pseudocolor = self._active_panel.get_config()  # type: ignore
+            cfg.pseudocolor = panel.get_config()
         elif mode == DisplayMode.DOT_PLOT:
-            assert self._cfg is not None
-            self._cfg.dot_plot = self._active_panel.get_config()  # type: ignore
+            cfg.dot_plot = panel.get_config()
         elif mode in (DisplayMode.HISTOGRAM, DisplayMode.CDF):
-            assert self._cfg is not None
-            self._cfg.histogram = self._active_panel.get_config()  # type: ignore
+            cfg.histogram = panel.get_config()
         elif mode == DisplayMode.CONTOUR:
-            assert self._cfg is not None
-            self._cfg.contour = self._active_panel.get_config()  # type: ignore
+            cfg.contour = panel.get_config()
 
         logger.info(f"RenderSettingsDialog: applying config for {mode.value}")
         self.settings_applied.emit(self._cfg)

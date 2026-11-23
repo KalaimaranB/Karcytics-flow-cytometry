@@ -194,7 +194,7 @@ class PseudocolorOverlayRenderer(IPlotRenderer):
                 axis.set_major_locator(FixedLocator(ticks.tolist()))
                 axis.set_major_formatter(FixedFormatter(labels))
 
-    def _draw_base_layer(  # noqa: PLR0913
+    def _draw_base_layer(  # noqa: PLR0913 - the layer's data and styling
         self,
         ax,
         base_x,

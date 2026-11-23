@@ -29,7 +29,7 @@ class HistogramSettingsPanel(QWidget):
         super().__init__(parent)
         self._build_ui(config)
 
-    def _build_ui(self, cfg: HistogramConfig):  # noqa: PLR0915
+    def _build_ui(self, cfg: HistogramConfig):  # noqa: PLR0915 - builds the whole form
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)

@@ -54,7 +54,7 @@ class NodeTreeEngine:
         self.horizontal_spacing = 10
         self.vertical_spacing = 60
 
-    def compute(  # noqa: PLR0915
+    def compute(  # noqa: PLR0915 - the layout pass, in one place
         self,
         root: GateNode,
         total_events: int = 0,

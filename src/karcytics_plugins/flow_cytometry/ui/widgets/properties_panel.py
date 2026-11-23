@@ -113,8 +113,9 @@ class PropertiesPanel(QWidget):
                 self.refresh()
 
         def _on_stats(data: dict):
-            if self._is_alive:
-                self.refresh_gate_stats(data.get("sample_id"), data.get("node_id"))  # type: ignore
+            sample_id, node_id = data.get("sample_id"), data.get("node_id")
+            if self._is_alive and sample_id and node_id:
+                self.refresh_gate_stats(sample_id, node_id)
 
         def _on_display_mode(_):
             if self._is_alive:
@@ -382,7 +383,7 @@ class PropertiesPanel(QWidget):
         )
         self._content_layout.addWidget(lbl)
 
-    def _show_sample_details(self, sample: Sample) -> None:  # noqa: PLR0915
+    def _show_sample_details(self, sample: Sample) -> None:  # noqa: PLR0915 - one row per sample property
         """Display sample metadata and channel info."""
         self._clear_content()
         self._header.setText(f"📄 {sample.display_name}")
@@ -427,15 +428,9 @@ class PropertiesPanel(QWidget):
 
         from ...analysis.experiment import SampleRole
 
-        # Plain QComboBox only styles the closed box itself — its popup
-        # QAbstractItemView is a separate top-level widget that Qt renders
-        # with the default (non-dark) palette unless given its own explicit
-        # QSS. That left the popup's current-selection row unreadable (dark
-        # text on a dark background) even though the closed box looked
-        # fine. BioComboBox already styles QAbstractItemView (base, hover,
-        # and selected item colors) for every other dropdown in this
-        # module, so reuse it here instead of a one-off, popup-less
-        # stylesheet.
+        # BioComboBox, not a plain QComboBox: Qt draws a plain one's popup list
+        # with the default palette, which left its selected row unreadable
+        # (dark on dark). BioComboBox styles the popup too.
         role_combo = BioComboBox(fit_contents=True)
         role_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         role_combo.setMinimumWidth(180)
@@ -583,7 +578,7 @@ class PropertiesPanel(QWidget):
             rows.append((f"ƒ {defn.name}:", text))
         return rows
 
-    def _show_gate_properties(self, sample: Sample, node_id: str) -> None:  # noqa: PLR0915
+    def _show_gate_properties(self, sample: Sample, node_id: str) -> None:  # noqa: PLR0915 - one row per gate property
         """Display gate-specific properties with detailed statistics."""
         self._clear_content()
 
@@ -673,7 +668,10 @@ class PropertiesPanel(QWidget):
 
     def set_active_gate(self, node_id: str | None) -> None:
         """Update the panel to show properties for a specific population."""
-        self.show_sample_properties(self._current_sample_id, node_id)  # type: ignore
+        if self._current_sample_id is None:
+            self.show_empty()
+            return
+        self.show_sample_properties(self._current_sample_id, node_id)
 
     def _on_name_changed(self, new_name: str) -> None:
         if self._current_sample_id and self._current_node_id:

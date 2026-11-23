@@ -517,11 +517,14 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       read by two renderers), the node canvas's `MAX_ZOOM`/`MIN_ZOOM`, and the validators'
       `SAME_SETTING` tolerance. Course thresholds (10 samples, 5 FMOs) stay in the course, per
       "don't abstract the course content".
-- [ ] Reasons on suppressions (KS310: 335 → 122, all in `ui/`; pay those as each file is touched).
-      253 suppressed nothing and are gone (RUF100 removed 230 `noqa`s, mypy's
-      `warn_unused_ignores` 23 `type: ignore`s; both now stay on). Everything outside `ui/` has
-      its reason, or was fixed instead (`axis_manager`'s ignore became a None check; the
-      courses' unused imports went).
+- [x] Reasons on suppressions (KS310: 335 → 0). 253 suppressed nothing and are gone (RUF100
+      removed 230 `noqa`s, mypy's `warn_unused_ignores` 23 `type: ignore`s; both stay on). The
+      43 bare `type: ignore`s in `ui/` were hiding 64 errors: most were real typing gaps and are
+      fixed (the drawing FSM's artists were typed `object`; canvas calls went through
+      `_fig.canvas` instead of the canvas itself; Optionals used unchecked; an override with
+      another signature is now `AllSamplesPopup.show_for_samples`). The rest name their code and
+      say why: PySide6/matplotlib stub gaps, Qt per-instance event handlers, and the SDK typing
+      `request_data_redraw`'s state as `PluginState`. Every `noqa` says why.
 - [x] CI hardening: every action in both workflows is pinned to a commit SHA (the one its moving
       tag pointed to, so nothing changed behaviour); `.github/dependabot.yml` bumps them weekly in
       one grouped PR (no uv job: the SDK resolves from a sibling path Dependabot can't see);

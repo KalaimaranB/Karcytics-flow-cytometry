@@ -13,7 +13,7 @@ from ....graph.figure_renderer import IPlotRenderer
 class HeatmapRenderer(IPlotRenderer):
     """SRP: renders a 2D heatmap of (populations × channels) statistic values."""
 
-    def render(self, **kwargs) -> Figure:  # noqa: PLR0915
+    def render(self, **kwargs) -> Figure:  # noqa: PLR0915 - draws, labels and colours the whole figure
         matrix: np.ndarray = kwargs["matrix"]  # shape (n_rows, n_cols)
         row_labels: list[str] = kwargs["row_labels"]
         col_labels: list[str] = kwargs["col_labels"]
@@ -84,7 +84,7 @@ class HeatmapRenderer(IPlotRenderer):
             if cbar:
                 cbar.ax.tick_params(colors=fg_color, labelsize=8)
                 cbar.ax.yaxis.label.set_color(fg_color)
-                cbar.outline.set_edgecolor(border_color)  # type: ignore
+                cbar.outline.set_edgecolor(border_color)  # type: ignore[operator]  # matplotlib's stub mistypes Colorbar.outline
 
         except Exception:
             # Fallback: pure matplotlib imshow

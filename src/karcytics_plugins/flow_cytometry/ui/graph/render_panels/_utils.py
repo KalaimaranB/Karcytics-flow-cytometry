@@ -66,7 +66,7 @@ _SPIN_STYLE = (
 _LABEL_STYLE = "color: {FG_SECONDARY}; font-size: 11px;"
 
 
-def make_float_row(  # noqa: PLR0913
+def make_float_row(  # noqa: PLR0913 - the row's label, range and step
     form_layout,
     label: str,
     tooltip: str,

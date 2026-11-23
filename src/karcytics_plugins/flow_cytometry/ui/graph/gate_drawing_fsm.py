@@ -19,6 +19,10 @@ from .gate_editor import MOVE_HANDLE
 logger = get_logger(__name__, "flow_cytometry")
 
 if TYPE_CHECKING:
+    from matplotlib.artist import Artist
+    from matplotlib.patches import Patch
+
+    from ...analysis.gating.base import Gate
     from .flow_canvas import FlowCanvas
 
 
@@ -55,14 +59,14 @@ class GateDrawingFSM:
         self.canvas = canvas
         self.state = DrawingState.IDLE
         self._drag_start: tuple[float, float] | None = None
-        self._rubber_band: object | None = None
+        self._rubber_band: Patch | None = None
         # Last rubber-band geometry requested, so the preview can be rebuilt
         # if a data-layer re-render clears the axes mid-drag.
         self._last_rubber_args: tuple[float, float, float, float, str] | None = None
         self._polygon_vertices: list[tuple[float, float]] = []
-        self._polygon_artists: list[object] = []
-        self._crosshair_artists: list[object] = []
-        self._instruction_text: object | None = None
+        self._polygon_artists: list[Artist] = []
+        self._crosshair_artists: list[Artist] = []
+        self._instruction_text: Artist | None = None
 
         # ── Gate editing (drag handles / body-move on the selected gate) ──
         self._edit_target = None  # Gate being edited
@@ -156,14 +160,14 @@ class GateDrawingFSM:
         self._clear_rubber_band()
 
         # Check if drag was significant
-        if abs(x - x0) < 1e-6 and abs(y - y0) < 1e-6:  # noqa: PLR2004
+        if abs(x - x0) < 1e-6 and abs(y - y0) < 1e-6:  # noqa: PLR2004 - a click that didn't move
             return
 
         self.canvas.event_handler.finalize_drag_gate(x0, y0, x, y, mode)
 
     def handle_dblclick(self, x: float, y: float, mode: str):
         """Handle double click (polygon completion)."""
-        if mode == "polygon" and len(self._polygon_vertices) >= 3:  # noqa: PLR2004
+        if mode == "polygon" and len(self._polygon_vertices) >= 3:  # noqa: PLR2004 - a polygon needs three vertices
             self.canvas.event_handler.finalize_polygon(list(self._polygon_vertices))
             self._polygon_vertices.clear()
             self._clear_polygon_progress()
@@ -297,7 +301,7 @@ class GateDrawingFSM:
                 canvas._gate_artists.extend(overlay_artists(new_artists))
 
             if canvas.has_blit_background:
-                canvas._fig.canvas.restore_region(canvas._canvas_bitmap_cache)
+                canvas.restore_region(canvas._canvas_bitmap_cache)
                 if new_artists:
                     for artist in overlay_artists(new_artists):
                         ax.draw_artist(artist)
@@ -315,7 +319,7 @@ class GateDrawingFSM:
 
     # ── Internal Drawing Helpers ──────────────────────────────────────
 
-    def _draw_rubber_band(self, x0: float, y0: float, x1: float, y1: float, mode: str):  # noqa: PLR0915
+    def _draw_rubber_band(self, x0: float, y0: float, x1: float, y1: float, mode: str):  # noqa: PLR0915 - one branch per gate shape
         self._last_rubber_args = (x0, y0, x1, y1, mode)
 
         def _on_busy() -> None:
@@ -326,7 +330,7 @@ class GateDrawingFSM:
 
             self._rubber_retry.defer(_retry)
 
-        def _action() -> None:  # noqa: PLR0915
+        def _action() -> None:  # noqa: PLR0915 - one branch per gate shape
             ax = self.canvas._ax
 
             # Clear old rubber band inside the same lock acquisition
@@ -334,7 +338,7 @@ class GateDrawingFSM:
                 cb = self.canvas._fig.stale_callback
                 self.canvas._fig.stale_callback = None
                 try:
-                    self._rubber_band.remove()  # type: ignore
+                    self._rubber_band.remove()
                 except Exception:
                     pass
                 finally:
@@ -391,17 +395,15 @@ class GateDrawingFSM:
                 cb = self.canvas._fig.stale_callback
                 self.canvas._fig.stale_callback = None
                 try:
-                    ax.add_patch(self._rubber_band)  # type: ignore
+                    ax.add_patch(self._rubber_band)
                 finally:
                     self.canvas._fig.stale_callback = cb
                     self.canvas._fig.stale = False
                     ax.stale = False
 
                 if self.canvas.has_blit_background:
-                    self.canvas._fig.canvas.restore_region(  # type: ignore
-                        self.canvas._canvas_bitmap_cache
-                    )
-                    ax.draw_artist(self._rubber_band)  # type: ignore
+                    self.canvas.restore_region(self.canvas._canvas_bitmap_cache)
+                    ax.draw_artist(self._rubber_band)
                     self.canvas._fig.canvas.blit(ax.bbox)
                     self.canvas._fig.canvas.flush_events()
                 else:
@@ -409,13 +411,13 @@ class GateDrawingFSM:
 
             # Publish temporary gate for subplots
             try:
-                temp_gate = None
+                temp_gate: Gate | None = None
                 if mode == "rectangle":
                     temp_gate = self.canvas._gate_factory.create_rectangle(x0, y0, x1, y1)
                 elif mode == "ellipse":
-                    temp_gate = self.canvas._gate_factory.create_ellipse(x0, y0, x1, y1)  # type: ignore
+                    temp_gate = self.canvas._gate_factory.create_ellipse(x0, y0, x1, y1)
                 elif mode == "range":
-                    temp_gate = self.canvas._gate_factory.create_range(x0, x1)  # type: ignore
+                    temp_gate = self.canvas._gate_factory.create_range(x0, x1)
 
                 if temp_gate:
                     CentralEventBus.publish(events.GATE_PREVIEW, {"gate": temp_gate})
@@ -433,7 +435,7 @@ class GateDrawingFSM:
                 cb = self.canvas._fig.stale_callback
                 self.canvas._fig.stale_callback = None
                 try:
-                    self._rubber_band.remove()  # type: ignore
+                    self._rubber_band.remove()
                 except Exception:
                     pass
                 finally:
@@ -445,9 +447,7 @@ class GateDrawingFSM:
 
                 if blit:
                     if self.canvas.has_blit_background:
-                        self.canvas._fig.canvas.restore_region(  # type: ignore
-                            self.canvas._canvas_bitmap_cache
-                        )
+                        self.canvas.restore_region(self.canvas._canvas_bitmap_cache)
                         self.canvas._fig.canvas.blit(self.canvas._ax.bbox)
                         self.canvas._fig.canvas.flush_events()
                     else:
@@ -476,7 +476,7 @@ class GateDrawingFSM:
                 try:
                     for artist in self._crosshair_artists:
                         try:
-                            artist.remove()  # type: ignore
+                            artist.remove()
                         except Exception:
                             pass
                 finally:
@@ -514,11 +514,9 @@ class GateDrawingFSM:
                 ax.stale = False
 
             if self.canvas.has_blit_background:
-                self.canvas._fig.canvas.restore_region(  # type: ignore
-                    self.canvas._canvas_bitmap_cache
-                )
+                self.canvas.restore_region(self.canvas._canvas_bitmap_cache)
                 for artist in self._crosshair_artists:
-                    ax.draw_artist(artist)  # type: ignore
+                    ax.draw_artist(artist)
                 self.canvas._fig.canvas.blit(ax.bbox)
                 self.canvas._fig.canvas.flush_events()
             else:
@@ -545,7 +543,7 @@ class GateDrawingFSM:
                 try:
                     for artist in self._crosshair_artists:
                         try:
-                            artist.remove()  # type: ignore
+                            artist.remove()
                         except Exception:
                             pass
                 finally:
@@ -557,9 +555,7 @@ class GateDrawingFSM:
 
                 if blit:
                     if self.canvas.has_blit_background:
-                        self.canvas._fig.canvas.restore_region(  # type: ignore
-                            self.canvas._canvas_bitmap_cache
-                        )
+                        self.canvas.restore_region(self.canvas._canvas_bitmap_cache)
                         self.canvas._fig.canvas.blit(self.canvas._ax.bbox)
                         self.canvas._fig.canvas.flush_events()
                     else:
@@ -567,7 +563,7 @@ class GateDrawingFSM:
 
         self.canvas.raster_lock.try_run(_action, _on_busy)
 
-    def _draw_polygon_progress(self, current_mouse=None):  # noqa: PLR0915
+    def _draw_polygon_progress(self, current_mouse=None):  # noqa: PLR0915 - draws the edges, the closing hint and the cursor line
         if not self._polygon_vertices:
             return
 
@@ -592,7 +588,7 @@ class GateDrawingFSM:
                 try:
                     for artist in self._polygon_artists:
                         try:
-                            artist.remove()  # type: ignore
+                            artist.remove()
                         except Exception:
                             pass
                 finally:
@@ -611,7 +607,7 @@ class GateDrawingFSM:
                     # the closing segment back to the first vertex so the main
                     # plot previews the finished gate, matching the subplots
                     # (see GroupPreviewPanel.preview_temp_gate).
-                    if len(pts) > 2:  # noqa: PLR2004
+                    if len(pts) > 2:  # noqa: PLR2004 - a closing edge needs three points
                         xs.append(pts[0][0])
                         ys.append(pts[0][1])
                     (line,) = ax.plot(
@@ -645,9 +641,9 @@ class GateDrawingFSM:
                 ax.stale = False
 
             if self.canvas.has_blit_background:
-                self.canvas._fig.canvas.restore_region(self.canvas._canvas_bitmap_cache)  # type: ignore
+                self.canvas.restore_region(self.canvas._canvas_bitmap_cache)
                 for artist in self._polygon_artists:
-                    ax.draw_artist(artist)  # type: ignore
+                    ax.draw_artist(artist)
                 self.canvas._fig.canvas.blit(ax.bbox)
                 self.canvas._fig.canvas.flush_events()
             else:
@@ -673,7 +669,7 @@ class GateDrawingFSM:
                 try:
                     for artist in self._polygon_artists:
                         try:
-                            artist.remove()  # type: ignore
+                            artist.remove()
                         except Exception:
                             pass
                 finally:
@@ -685,9 +681,7 @@ class GateDrawingFSM:
 
             if blit:
                 if self.canvas.has_blit_background:
-                    self.canvas._fig.canvas.restore_region(  # type: ignore
-                        self.canvas._canvas_bitmap_cache
-                    )
+                    self.canvas.restore_region(self.canvas._canvas_bitmap_cache)
                     self.canvas._fig.canvas.blit(self.canvas._ax.bbox)
                     self.canvas._fig.canvas.flush_events()
                 else:

@@ -48,7 +48,7 @@ class MainPanelController:
         CentralEventBus.subscribe(topic, cb)
         self._subscriptions.append((topic, cb))
 
-    def wire(self) -> None:  # noqa: PLR0915
+    def wire(self) -> None:  # noqa: PLR0915 - one connect per signal, kept in one place
         """Connect the views' signals and the CentralEventBus subscriptions."""
         state, services, views = self._state, self._services, self._views
         gating, refresher, _subscribe = self._gating, self._refresher, self._subscribe

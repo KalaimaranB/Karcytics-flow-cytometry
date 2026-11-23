@@ -63,7 +63,7 @@ class AxisTransformPanel(QWidget):
     def scale(self) -> AxisScale:
         return self._scale
 
-    def _setup_ui(self) -> None:  # noqa: PLR0915
+    def _setup_ui(self) -> None:  # noqa: PLR0915 - builds the whole form
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(16)
@@ -372,7 +372,7 @@ class AxisTransformPanel(QWidget):
             2: TransformType.BIEXPONENTIAL,
         }
         self._scale.transform_type = types[btn_id]
-        self._logicle_box.setVisible(btn_id == 2)  # noqa: PLR2004
+        self._logicle_box.setVisible(btn_id == 2)  # noqa: PLR2004 - button 2 is Logicle
         self._emit_change()
 
     def _on_auto_range(self) -> None:

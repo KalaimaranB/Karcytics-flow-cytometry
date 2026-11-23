@@ -34,6 +34,31 @@ logger = get_logger(__name__, "flow_cytometry")
 # matplotlib draw calls.
 
 
+def _get_xform_params(scale: Any) -> dict:
+    """The transform's parameters for ``apply_transform``."""
+    return (
+        BiexponentialParameters(scale).to_dict()
+        if scale.transform_type == TransformType.BIEXPONENTIAL
+        else log_transform_kwargs(scale)
+    )
+
+
+def _display_limits(
+    c: dict, x_range: Any, y_range: Any
+) -> tuple[tuple[float, float], tuple[float, float] | None]:
+    """The axis ranges in display coordinates (no y range without a y scale)."""
+
+    def shown(limits: Any, scale: Any) -> tuple[float, float]:
+        low, high = apply_transform(
+            np.asarray(limits), scale.transform_type, **_get_xform_params(scale)
+        )
+        return float(low), float(high)
+
+    xlim = shown(x_range, c["x_scale"])
+    has_y = y_range is not None and c.get("y_scale") is not None
+    return xlim, shown(y_range, c["y_scale"]) if has_y else None
+
+
 class RenderTask(AnalysisBase):
     """Asynchronous plot renderer."""
 
@@ -41,7 +66,7 @@ class RenderTask(AnalysisBase):
         super().__init__(plugin_id)
         self.config: dict = {}
 
-    def configure(  # noqa: PLR0913
+    def configure(  # noqa: PLR0913 - the render request, unpacked
         self,
         data: pd.DataFrame | None = None,
         x_param: str = "",
@@ -95,7 +120,7 @@ class RenderTask(AnalysisBase):
             else True,
         }
 
-    def run(self, state: typing.Any | None = None) -> dict:  # noqa: PLR0915
+    def run(self, state: typing.Any | None = None) -> dict:  # noqa: PLR0915 - the render pipeline's steps in order
         """Execute the render — called by TaskScheduler."""
         import matplotlib  # karcytics: allow KS360 - heavy library
 
@@ -147,13 +172,6 @@ class RenderTask(AnalysisBase):
             data = data.sample(n=thumb_max, random_state=42)
 
         # 2. Transform raw data to display coordinates
-        def _get_xform_params(scale):
-            return (
-                BiexponentialParameters(scale).to_dict()
-                if scale.transform_type == TransformType.BIEXPONENTIAL
-                else log_transform_kwargs(scale)
-            )
-
         x_vis = apply_transform(
             data[x_ch].values.astype(np.float64),
             c["x_scale"].transform_type,
@@ -193,19 +211,7 @@ class RenderTask(AnalysisBase):
                 logger.error(f"Failed to extract FMO data in RenderTask: {e}")
 
         # 3. Transform limits to display coordinates
-        xlim = apply_transform(
-            np.asarray(x_range),
-            c["x_scale"].transform_type,
-            **_get_xform_params(c["x_scale"]),
-        )
-        if y_range is not None and c.get("y_scale") is not None:
-            ylim = apply_transform(
-                np.asarray(y_range),
-                c["y_scale"].transform_type,
-                **_get_xform_params(c["y_scale"]),
-            )
-        else:
-            ylim = None
+        xlim, ylim = _display_limits(c, x_range, y_range)
 
         # 4. Render data layer using the EXACT same strategy as the main UI.
         # compute() is pure numpy/scipy — it runs *outside* _MPL_LOCK so the
@@ -238,7 +244,7 @@ class RenderTask(AnalysisBase):
         if c["plot_type"] == "Histogram" and "histogram" in rc:
             kwargs.update(rc["histogram"])
 
-        render_data = strategy.compute(x_vis, y_vis, xlim=xlim, ylim=ylim, **kwargs)  # type: ignore
+        render_data = strategy.compute(x_vis, y_vis, xlim=xlim, ylim=ylim, **kwargs)
 
         # 5–7. Figure creation, drawing, and buffer extraction are serialized
         # behind _MPL_LOCK because matplotlib's Agg C backend is not thread-safe
@@ -248,7 +254,7 @@ class RenderTask(AnalysisBase):
             target_dpi = c.get("dpi", 150)
             fig = Figure(figsize=(c["width"] / base_dpi, c["height"] / base_dpi), dpi=target_dpi)
             canvas = FigureCanvasAgg(fig)
-            ax = fig.add_axes([0, 0, 1, 1])  # type: ignore
+            ax = fig.add_axes((0, 0, 1, 1))
             ax.set_axis_off()
             fig.patch.set_facecolor("#FFFFFF")
             ax.set_facecolor("#FFFFFF")

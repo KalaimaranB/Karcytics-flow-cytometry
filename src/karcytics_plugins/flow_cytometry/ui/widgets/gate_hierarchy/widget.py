@@ -333,7 +333,7 @@ class GateHierarchy(QWidget):
             existing.deleteLater()
         self._popup = AllSamplesPopup(self)
         self._popup.sample_selected.connect(self._on_popup_sample_selected)
-        self._popup.show_near(self._btn_all_samples, self._state, sid)
+        self._popup.show_for_samples(self._btn_all_samples, self._state, sid)
 
     def _on_popup_sample_selected(self, sample_id: str) -> None:
         if self._popup is not None:

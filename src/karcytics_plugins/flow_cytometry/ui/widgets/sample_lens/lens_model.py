@@ -329,7 +329,7 @@ class SampleLensModel(QObject):
             ch: self._axis_manager.get_scale(ch, sample.sample_id) for ch in dict.fromkeys(channels)
         }
         target = np.isin(scope.clusters, clusters)
-        steps = propose_gates(run_events, target, scales) if len(scales) >= 2 else []  # noqa: PLR2004
+        steps = propose_gates(run_events, target, scales) if len(scales) >= 2 else []  # noqa: PLR2004 - a gate needs two axes
         label = method_of(scope.run).clusters_label(clusters)
         return Proposal(sample.sample_id, clusters, label, run_events, target, steps)
 

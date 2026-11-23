@@ -108,7 +108,7 @@ class HistogramStrategy(DisplayStrategy):
         # Optional KDE overlay, fitted on a capped subsample (see kde_curve).
         x_grid = None
         kde_vals = None
-        if kwargs.get("smooth_kde", False) and len(valid_x) > 10:  # noqa: PLR2004
+        if kwargs.get("smooth_kde", False) and len(valid_x) > 10:  # noqa: PLR2004 - too few events for a density estimate
             curve = kde_curve(valid_x, float(valid_x.min()), float(valid_x.max()))
             if curve is not None:
                 x_grid, kde_vals = curve

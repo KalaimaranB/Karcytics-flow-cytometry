@@ -27,7 +27,7 @@ class HistogramOverlayOptionsPanel(IOptionsPanel):
         super().__init__(parent)
         self._build_ui()
 
-    def _build_ui(self) -> None:  # noqa: PLR0915
+    def _build_ui(self) -> None:  # noqa: PLR0915 - builds the whole form
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)

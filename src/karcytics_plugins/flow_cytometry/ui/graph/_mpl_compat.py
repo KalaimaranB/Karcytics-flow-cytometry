@@ -8,6 +8,8 @@ plugin keep working unchanged.
 """
 
 try:
-    from karcytics_sdk.plugin.rendering.mpl_canvas import LockedFigureCanvas  # noqa: F401
+    from karcytics_sdk.plugin.rendering.mpl_canvas import LockedFigureCanvas
 except ImportError:
     pass
+
+__all__ = ["LockedFigureCanvas"]

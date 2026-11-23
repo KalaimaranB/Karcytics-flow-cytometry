@@ -416,7 +416,7 @@ class CompensationEditor(QWidget):
         first = channels[0] if channels else None
         for combo, default in (
             (self._x_combo, first),
-            (self._y_combo, channels[1] if n >= 2 else first),  # noqa: PLR2004
+            (self._y_combo, channels[1] if n >= 2 else first),  # noqa: PLR2004 - a y channel needs a second channel
         ):
             combo.blockSignals(True)
             repopulate_combo(combo, items, restore_data=default)

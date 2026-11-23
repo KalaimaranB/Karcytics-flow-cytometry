@@ -31,6 +31,7 @@ from matplotlib.patches import (
 from matplotlib.patches import (
     Rectangle as MplRectangle,
 )
+from matplotlib.text import Text
 
 from karcytics_plugins.flow_cytometry.analysis._utils import BiexponentialParameters
 from karcytics_plugins.flow_cytometry.analysis.constants import (
@@ -55,8 +56,7 @@ from karcytics_plugins.flow_cytometry.analysis.transforms import (
 
 logger = get_logger(__name__, "flow_cytometry")
 
-# Maximum absolute coordinate value accepted by matplotlib text rendering without
-# triggering FT_Render_Glyph raster overflow crashes.
+# Largest coordinate matplotlib can place text at without an FT_Render_Glyph overflow.
 _LABEL_COORD_OVERFLOW_LIMIT: float = 1e10
 
 
@@ -228,7 +228,7 @@ class GateFactory:
         Returns:
             PolygonGate with coordinates in data space
         """
-        if len(display_vertices) < 3:  # noqa: PLR2004
+        if len(display_vertices) < 3:  # noqa: PLR2004 - a polygon needs three vertices
             raise ValueError("Polygon requires at least 3 vertices")
 
         pts_x = np.array([v[0] for v in display_vertices])
@@ -350,7 +350,7 @@ class OverlayArtists:
     """Group of matplotlib artists for a single gate overlay."""
 
     patch: MplRectangle | MplPolygon | MplEllipse | FancyBboxPatch | Line2D
-    label_text: Line2D | None = None
+    label_text: Text | None = None
     handles: dict[str, Line2D] | None = None
     extra_artists: list[Any] | None = None
 
@@ -642,7 +642,7 @@ class GateOverlayRenderer:
             extra_artists=[right_line, bottom_line, top_line, span],
         )
 
-    def _create_label(self, ax: Axes, gate: Gate, x: float, y: float) -> Line2D | None:
+    def _create_label(self, ax: Axes, gate: Gate, x: float, y: float) -> Text | None:
         """Create text label for gate."""
         if not self.show_labels:
             return None
@@ -673,7 +673,7 @@ class GateOverlayRenderer:
                 va="center",
                 zorder=1001,
             )
-            return text  # type: ignore
+            return text
         except Exception as e:
             logger.warning("Failed to create gate label: %s", e)
             return None

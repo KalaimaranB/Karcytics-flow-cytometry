@@ -198,7 +198,7 @@ def build_histogram_overlay_kwargs(
     return kwargs
 
 
-def _extract_overlay_layers(  # noqa: PLR0913
+def _extract_overlay_layers(  # noqa: PLR0913 - the overlay's layers and their styling
     state: FlowState,
     extractor: ComparisonsDataExtractor,
     pop_pairs: list[tuple],

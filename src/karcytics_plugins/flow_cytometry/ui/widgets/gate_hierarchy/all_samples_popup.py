@@ -32,7 +32,7 @@ def _saturate(hex_color: str, pct: float) -> str:
     """Darken a colour proportionally to low event percentage."""
     c = QColor(hex_color)
     # PySide6 returns the 4-tuple; its stub declares a bare object.
-    hsva: tuple[float, float, float, float] = c.getHsvF()  # type: ignore[assignment]
+    hsva: tuple[float, float, float, float] = c.getHsvF()  # type: ignore[assignment]  # PySide6's stub types getHsvF() as object
     h, s, v, a = hsva
 
     _h = h if h is not None else 0.0
@@ -51,7 +51,7 @@ class AllSamplesPopup(FloatingGridPopup):
 
     Usage::
         popup = AllSamplesPopup(parent_widget)
-        popup.show_near(trigger_button, state, reference_sample_id)
+        popup.show_for_samples(trigger_button, state, reference_sample_id)
     """
 
     sample_selected = Signal(str)  # Emitted when a column header is clicked
@@ -66,7 +66,7 @@ class AllSamplesPopup(FloatingGridPopup):
 
     # ── Public API ────────────────────────────────────────────────────
 
-    def show_near(  # type: ignore[override]
+    def show_for_samples(
         self,
         trigger: QWidget,
         state,

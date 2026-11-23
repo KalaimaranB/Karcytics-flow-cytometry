@@ -234,7 +234,7 @@ class FloatingGridPopup(QFrame):
         # whatever's now under the pointer and can crash the whole process
         # (EXC_BREAKPOINT in QImage::toCGImage/CGImageCreate). Deferring by
         # one event-loop tick lets that native dispatch finish first.
-        btn.mousePressEvent = lambda _e: QTimer.singleShot(0, self.hide)  # type: ignore[method-assign]
+        btn.mousePressEvent = lambda _e: QTimer.singleShot(0, self.hide)  # type: ignore[method-assign]  # Qt: a per-instance event handler, no subclass needed
         self._btn_close = btn
         return btn
 
@@ -267,9 +267,9 @@ class FloatingGridPopup(QFrame):
         title_layout.addSpacing(8)
         title_layout.addWidget(self._build_close_button())
 
-        self._title_bar.mousePressEvent = self._on_title_bar_press  # type: ignore[method-assign]
-        self._title_bar.mouseMoveEvent = self._on_title_bar_move  # type: ignore[method-assign]
-        self._title_bar.mouseReleaseEvent = self._on_title_bar_release  # type: ignore[method-assign]
+        self._title_bar.mousePressEvent = self._on_title_bar_press  # type: ignore[method-assign]  # Qt: a per-instance event handler, no subclass needed
+        self._title_bar.mouseMoveEvent = self._on_title_bar_move  # type: ignore[method-assign]  # Qt: a per-instance event handler, no subclass needed
+        self._title_bar.mouseReleaseEvent = self._on_title_bar_release  # type: ignore[method-assign]  # Qt: a per-instance event handler, no subclass needed
         return self._title_bar
 
     def _on_title_bar_press(self, event: QMouseEvent | None) -> None:
@@ -401,7 +401,7 @@ class FloatingGridPopup(QFrame):
         return bottom_row
 
     def resizeEvent(self, event: QResizeEvent | None) -> None:
-        super().resizeEvent(event)  # type: ignore[arg-type]
+        super().resizeEvent(event)  # type: ignore[arg-type]  # Qt always passes an event; the stub says Optional
         if self._size_grip is not None:
             self._size_grip.move(
                 self.width() - self._size_grip.width() - 2,
@@ -468,7 +468,7 @@ class FloatingGridPopup(QFrame):
         ):
             painted.update()
 
-    def _populate_grid(  # noqa: PLR0913
+    def _populate_grid(  # noqa: PLR0913 - the grid's rows, columns and callbacks
         self,
         rows: list[PopulationRow],
         sample_ids: list[str],
@@ -559,7 +559,7 @@ class FloatingGridPopup(QFrame):
 
                     return _handler
 
-                header.mousePressEvent = _make_press_handler(_sid)  # type: ignore[method-assign]
+                header.mousePressEvent = _make_press_handler(_sid)  # type: ignore[method-assign]  # Qt: a per-instance event handler, no subclass needed
             self._header_grid.addWidget(header, 0, col_i)
 
         for row_i, row in enumerate(rows):

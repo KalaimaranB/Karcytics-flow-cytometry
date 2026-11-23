@@ -110,7 +110,7 @@ class HoverCard(QFrame):
 
     # ── UI ────────────────────────────────────────────────────────────
 
-    def _setup_ui(self) -> None:  # noqa: PLR0915
+    def _setup_ui(self) -> None:  # noqa: PLR0915 - builds the whole card
         theme_manager.apply_style(
             self,
             """

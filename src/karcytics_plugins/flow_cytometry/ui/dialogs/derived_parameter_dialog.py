@@ -230,7 +230,7 @@ class DerivedParameterDialog(QDialog):
 
     def _start_new(self) -> None:
         self._syncing_list = True
-        self._list.setCurrentItem(None)  # type: ignore[call-overload]
+        self._list.setCurrentItem(None)  # type: ignore[call-overload]  # PySide6's stub omits None, which clears the current item
         self._syncing_list = False
         self._editor.load(None)
         self._update_buttons()

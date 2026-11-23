@@ -68,7 +68,7 @@ class _CanvasGraphicsView(DirtyTrackingGraphicsView):
             vp.update()
         self._pan_start_pos = QPointF()
 
-    def drawBackground(self, painter: QPainter | None, rect: QRectF | None) -> None:  # type: ignore[override]
+    def drawBackground(self, painter: QPainter | None, rect: QRectF | None) -> None:  # type: ignore[override]  # PySide6's stub disagrees with itself on rect's type
         """Draw the infinite dot grid background."""
         if painter is None or rect is None:
             return

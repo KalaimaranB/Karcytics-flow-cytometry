@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
@@ -23,6 +24,10 @@ from karcytics_plugins.flow_cytometry.analysis.animation.animation_phases import
 from karcytics_plugins.flow_cytometry.analysis.animation.animation_prep import (
     UmapAnimationDataPrep,
 )
+
+if TYPE_CHECKING:
+    from mpl_toolkits.mplot3d import Axes3D
+
 from karcytics_plugins.flow_cytometry.ui.graph._mpl_compat import (
     LockedFigureCanvas as FigureCanvasQTAgg,  # thread-safe vs RenderTask's Agg rasterization
 )
@@ -149,7 +154,7 @@ class UmapAnimatorWidget(QWidget):
         outer.addWidget(self._canvas, stretch=1)
 
         # 3D axes — zero margin, fills entire figure
-        self._ax = self._figure.add_axes([0.0, 0.0, 1.0, 1.0], projection="3d")  # type: ignore
+        self._ax = cast("Axes3D", self._figure.add_axes((0.0, 0.0, 1.0, 1.0), projection="3d"))
         self._ax.set_facecolor(Colors.BG_DARK)
         self._figure.patch.set_facecolor(Colors.BG_DARK)
         # Hide every visual decoration

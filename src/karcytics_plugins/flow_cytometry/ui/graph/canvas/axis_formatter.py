@@ -15,7 +15,7 @@ COMPACT_TICKS = 4  # linear ticks on a small canvas
 
 
 def _compact_label(value: float, _pos: int | None = None) -> str:
-    return f"{value / 1000:g}k" if abs(value) >= 1000 else f"{value:g}"  # noqa: PLR2004
+    return f"{value / 1000:g}k" if abs(value) >= 1000 else f"{value:g}"  # noqa: PLR2004 - 1000 and up shown in thousands (12k)
 
 
 class AxisFormatter:

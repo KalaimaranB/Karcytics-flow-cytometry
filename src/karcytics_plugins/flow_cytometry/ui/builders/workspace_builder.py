@@ -82,7 +82,7 @@ class WorkspaceBuilder:
     # ── Phase 1 ───────────────────────────────────────────────────────
 
     @staticmethod
-    def build_skeleton(panel: FlowCytometryPanel) -> None:  # noqa: PLR0915
+    def build_skeleton(panel: FlowCytometryPanel) -> None:  # noqa: PLR0915 - builds the whole workspace skeleton in order
         """Build the lightweight structural scaffold (Phase 1).
 
         Creates the tab bar, ribbons, sidebar, and a placeholder center stack.

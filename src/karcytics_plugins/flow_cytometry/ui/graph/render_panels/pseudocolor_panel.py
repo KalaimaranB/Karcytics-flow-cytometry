@@ -40,7 +40,7 @@ class PseudocolorSettingsPanel(QWidget):
         self._max_sample_events = max_sample_events
         self._build_ui()
 
-    def _build_ui(self) -> None:  # noqa: PLR0915
+    def _build_ui(self) -> None:  # noqa: PLR0915 - builds the whole form
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)

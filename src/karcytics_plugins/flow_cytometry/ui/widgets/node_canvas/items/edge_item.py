@@ -79,4 +79,4 @@ class EdgeItem(QGraphicsPathItem):
         if painter is None:
             return
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        super().paint(painter, option, widget)  # type: ignore[arg-type]
+        super().paint(painter, option, widget)  # type: ignore[arg-type]  # Qt always passes the option; the stub says Optional

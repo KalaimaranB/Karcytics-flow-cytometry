@@ -205,7 +205,7 @@ class SampleList(QWidget):
                     break
         else:
             self._tree.clearSelection()
-            self._tree.setCurrentItem(None)  # type: ignore[call-overload]
+            self._tree.setCurrentItem(None)  # type: ignore[call-overload]  # PySide6's stub omits None, which clears the current item
 
         self._tree.blockSignals(False)
 
@@ -257,7 +257,7 @@ class SampleList(QWidget):
         """Select a sample in the list by ID."""
         if not sample_id:
             self._tree.clearSelection()
-            self._tree.setCurrentItem(None)  # type: ignore[call-overload]
+            self._tree.setCurrentItem(None)  # type: ignore[call-overload]  # PySide6's stub omits None, which clears the current item
             return
 
         for i in range(self._tree.topLevelItemCount()):
@@ -311,15 +311,15 @@ class SampleList(QWidget):
                     lambda action: self._add_samples_to_group(items, action.data())
                 )
 
-        # Remove from Group option (if currently filtering by a group)
         if self._active_group_filter != "__all__":
-            group = experiment.groups.get(self._active_group_filter)  # type: ignore
-            if group:
+            filter_group = experiment.groups.get(self._active_group_filter)
+            if filter_group:
                 menu.addSeparator()
-                remove_action = menu.addAction(f"Remove from '{group.name}'")
+                remove_action = menu.addAction(f"Remove from '{filter_group.name}'")
                 if remove_action:
+                    group_id = filter_group.group_id
                     remove_action.triggered.connect(
-                        lambda: self._remove_samples_from_group(items, group.group_id)
+                        lambda: self._remove_samples_from_group(items, group_id)
                     )
 
         # View Population (if exactly one sample is selected)

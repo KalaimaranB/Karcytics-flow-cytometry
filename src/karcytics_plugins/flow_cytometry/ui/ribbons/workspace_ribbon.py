@@ -88,7 +88,7 @@ class WorkspaceRibbon(ThemedToolbarContainer):
 
     # ── Actions ───────────────────────────────────────────────────────
 
-    def _on_add_samples(self) -> None:  # noqa: PLR0915
+    def _on_add_samples(self) -> None:  # noqa: PLR0915 - the file dialog, the load and its errors
         """Open a file dialog, load FCS files, and add them to the state."""
         pm = self._get_project_manager()
         default_dir = str(pm.project_dir) if pm else ""

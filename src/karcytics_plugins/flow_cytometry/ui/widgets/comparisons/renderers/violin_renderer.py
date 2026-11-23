@@ -43,7 +43,7 @@ class ViolinRenderer(IPlotRenderer):
         # Long sample names (common — "Specimen_001_FMO APC-Cy7" etc.) need
         # more per-violin width than the fixed 1.5in/label this used to use,
         # or rotation alone still isn't enough room before neighbours overlap.
-        width_per_label = 1.5 if max_label_len <= 12 else 2.2  # noqa: PLR2004
+        width_per_label = 1.5 if max_label_len <= 12 else 2.2  # noqa: PLR2004 - inches per label, by label length
         fig = Figure(figsize=(max(6, len(labels) * width_per_label), 6), facecolor=bg_color)
         ax = fig.add_subplot(111)
         ax.set_facecolor(bg_color)
@@ -52,7 +52,7 @@ class ViolinRenderer(IPlotRenderer):
         valid = [
             (lbl, arr)
             for lbl, arr in zip(labels, arrays, strict=False)
-            if len(arr) >= 5  # noqa: PLR2004
+            if len(arr) >= 5  # noqa: PLR2004 - too few events for a violin
         ]
         if not valid:
             ax.text(
@@ -191,9 +191,9 @@ def _label_rotation_and_size(labels: tuple[str, ...]) -> tuple[int, int]:
     """
     n = len(labels)
     max_len = max((len(lbl) for lbl in labels), default=0)
-    if n <= 3 and max_len <= 14:  # noqa: PLR2004
+    if n <= 3 and max_len <= 14:  # noqa: PLR2004 - label-fitting breakpoints
         return 0, 10
-    if n <= 6 and max_len <= 18:  # noqa: PLR2004
+    if n <= 6 and max_len <= 18:  # noqa: PLR2004 - label-fitting breakpoints
         return 30, 9
     return 45, 8
 
@@ -210,7 +210,7 @@ def _percentile_value_range(
     in flow cytometry channels) would otherwise stretch the axis so far that
     the bulk of every distribution is squeezed into a sliver near zero.
     """
-    if not isinstance(axis_range_pct, (int, float)) or axis_range_pct >= 100:  # noqa: PLR2004
+    if not isinstance(axis_range_pct, (int, float)) or axis_range_pct >= 100:  # noqa: PLR2004 - 100% is the full range
         return None
     all_vals = np.concatenate([a[np.isfinite(a)] for a in arrays])
     if len(all_vals) == 0:

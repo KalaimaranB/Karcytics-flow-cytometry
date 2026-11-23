@@ -25,8 +25,7 @@ from .layout_engine import LayoutEngine
 
 logger = get_logger(__name__, "flow_cytometry")
 
-# Global Cache for Mini-plots
-# Key: (sample_id, node_id, geom_hash) -> Value: QImage
+# Mini-plot cache: (sample_id, node_id, geom_hash) -> QImage
 _ThumbnailCache: dict = {}
 
 
@@ -51,8 +50,8 @@ class CanvasManager(QObject):
         self._edge_items: list = []
 
         # Interactive edge dragging state
-        self._temp_drag_edge = None
-        self._drag_source_id = None
+        self._temp_drag_edge: EdgeItem | None = None
+        self._drag_source_id: str | None = None
 
         self._current_sample_id: Any | None = None
         self._pending_tasks: dict = {}  # task_id -> node_id
@@ -396,7 +395,7 @@ class CanvasManager(QObject):
         if not source_item:
             return
 
-        self._drag_source_id = source_node_id  # type: ignore
+        self._drag_source_id = source_node_id
 
         # Create a temporary edge from the source to the current mouse pos
         # We can simulate this by making a dummy EdgeItem where the target is just a point
@@ -408,9 +407,10 @@ class CanvasManager(QObject):
                 return self.pos
 
         self._dummy_target = DummyItem(start_pos)
-        self._temp_drag_edge = EdgeItem(source_item, self._dummy_target)  # type: ignore
-        self._temp_drag_edge.set_orientation(self._orientation)  # type: ignore
-        self.scene.addItem(self._temp_drag_edge)  # type: ignore[arg-type]
+        edge = EdgeItem(source_item, self._dummy_target)
+        edge.set_orientation(self._orientation)
+        self.scene.addItem(edge)
+        self._temp_drag_edge = edge
 
     def _on_edge_dragged(self, current_pos: QPointF) -> None:
         if self._temp_drag_edge:
@@ -440,9 +440,9 @@ class CanvasManager(QObject):
 
     # ── Mini Plot Rendering ───────────────────────────────────────────
 
-    def _get_geom_hash(self, gate) -> tuple:  # noqa: PLR0911
+    def _get_geom_hash(self, gate) -> tuple | None:  # noqa: PLR0911 - one shape per gate type
         if not gate:
-            return None  # type: ignore
+            return None
         if hasattr(gate, "vertices"):
             return tuple(gate.vertices)
         if hasattr(gate, "x_min"):
@@ -453,9 +453,9 @@ class CanvasManager(QObject):
             return (gate.x_mid, gate.y_mid)
         if hasattr(gate, "low"):
             return (gate.low, gate.high)
-        return None  # type: ignore
+        return None
 
-    def _request_render(  # noqa: PLR0915
+    def _request_render(  # noqa: PLR0915 - the render request and its cache, in order
         self, node: GateNode, item: NodeItem, is_root: bool = False
     ) -> None:
         """Asynchronously render a mini plot for the node item."""
@@ -473,7 +473,7 @@ class CanvasManager(QObject):
                 return
 
             x_param, y_param = "FSC-A", "SSC-A"
-            cache_key = (self._current_sample_id, node.node_id, "logic_fsc_ssc")
+            cache_key: tuple[Any, ...] = (self._current_sample_id, node.node_id, "logic_fsc_ssc")
             if cache_key in _ThumbnailCache:
                 item.set_plot_image(_ThumbnailCache[cache_key])
                 return
@@ -524,7 +524,7 @@ class CanvasManager(QObject):
         geom_hash = self._get_geom_hash(gate)
 
         # Check cache first
-        cache_key = (sample_id, node.node_id, geom_hash)  # type: ignore
+        cache_key = (sample_id, node.node_id, geom_hash)
         if cache_key in _ThumbnailCache:
             item.set_plot_image(_ThumbnailCache[cache_key])
             return

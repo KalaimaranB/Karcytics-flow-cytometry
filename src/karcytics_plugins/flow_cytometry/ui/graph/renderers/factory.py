@@ -25,11 +25,8 @@ class RenderStrategyFactory:
 
     @classmethod
     def get_strategy(cls, mode_name: str) -> DisplayStrategy:
-        strategy = cls._strategies.get(mode_name)
-        if not strategy:
-            # Fallback to DotPlot if not found
-            return cls._strategies.get("Dot Plot")  # type: ignore
-        return strategy
+        # An unknown mode falls back to the dot plot, which is always registered.
+        return cls._strategies.get(mode_name) or cls._strategies["Dot Plot"]
 
 
 RenderStrategyFactory.register("Pseudocolor", PseudocolorStrategy())

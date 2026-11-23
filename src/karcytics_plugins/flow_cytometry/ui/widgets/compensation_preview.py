@@ -180,7 +180,7 @@ def draw_preview(fig: Figure, plan: PreviewPlan, single_row: bool = False) -> li
     fig.clear()
     fig.set_facecolor(colors.background)
     count = plan.plot_count
-    rows = 1 if single_row or count <= 2 else 2  # noqa: PLR2004
+    rows = 1 if single_row or count <= 2 else 2  # noqa: PLR2004 - two plots fit on one row
     axes = [fig.add_subplot(rows, count // rows, index + 1) for index in range(count)]
     for ax in axes:
         ax.set_facecolor(_PLOT_BG)

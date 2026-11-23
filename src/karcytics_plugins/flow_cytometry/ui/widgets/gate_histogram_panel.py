@@ -161,7 +161,7 @@ class GateHistogramCanvas(LayeredMatplotlibCanvas):
         self._x_scale = self._y_scale = render_state.x_scale
         self._coordinate_mapper.update_scales(self._x_scale, self._y_scale)
         self.boundary = boundary
-        self.request_data_redraw(render_state)  # type: ignore[arg-type]
+        self.request_data_redraw(render_state)  # type: ignore[arg-type]  # the SDK types the state as PluginState; any object passes through
 
 
 class GateHistogramPanel(QWidget):

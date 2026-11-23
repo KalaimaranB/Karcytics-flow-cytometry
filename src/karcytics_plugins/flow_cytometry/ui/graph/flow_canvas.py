@@ -97,7 +97,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     scale_edit_requested = Signal(object, object)  # x AxisScale, y AxisScale (a wheel zoom)
     auto_range_requested = Signal()  # the F key: fit the ranges to the data
 
-    def __init__(  # noqa: PLR0915
+    def __init__(  # noqa: PLR0915 - wires every collaborator the canvas owns
         self,
         state: FlowState | None = None,
         controller: GateCoordinator | None = None,
@@ -107,8 +107,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # Apply Karcytics theme
         import matplotlib  # karcytics: allow KS360 - heavy library
 
-        for key, val in _MPL_STYLE.items():
-            matplotlib.rcParams[key] = val  # type: ignore
+        matplotlib.rcParams.update(_MPL_STYLE)  # type: ignore[arg-type]  # the stub takes only literal rcParams keys
 
         self._fig = Figure(figsize=(6, 5), dpi=100)
         self._fig.set_facecolor(_PLOT_BG)
@@ -594,7 +593,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
         # request_data_redraw() debounces internally (LayeredMatplotlibCanvas's
         # own _redraw_timer) — rapid successive redraw() calls (e.g. dragging
         # a slider) collapse into a single compute submission, same as before.
-        self.request_data_redraw(self._snapshot_render_state(), debounce_ms=50)  # type: ignore[arg-type]
+        self.request_data_redraw(self._snapshot_render_state(), debounce_ms=50)  # type: ignore[arg-type]  # the SDK types the state as PluginState; any object passes through
 
     def _snapshot_render_state(self) -> FlowRenderState:
         """Capture what FlowDataComputeStage.compute() needs, off the live canvas state.
@@ -679,7 +678,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
             # Only cache if there are no gate artists on the axes. Otherwise, gates get baked in
             # and drawn repeatedly during fast UI updates (stacked rendering).
             if not self._gate_artists:
-                self._canvas_bitmap_cache = self._fig.canvas.copy_from_bbox(self._ax.bbox)  # type: ignore
+                self._canvas_bitmap_cache = self.copy_from_bbox(self._ax.bbox)
         # After the cache capture, so the preview is never baked into it.
         self._fsm.paint_preview()
 

@@ -86,7 +86,7 @@ class HistogramOverlayRenderer(IPlotRenderer):
             if not isinstance(arr, np.ndarray):
                 continue
             arr_f = arr[np.isfinite(arr)]
-            if len(arr_f) >= 5:  # noqa: PLR2004
+            if len(arr_f) >= 5:  # noqa: PLR2004 - too few events for a density estimate
                 valid[lbl] = arr_f
 
         out = dict(kwargs)
@@ -198,7 +198,7 @@ _DEFAULT_PALETTE = [
 # ── Shared helpers ─────────────────────────────────────────────────────────────
 
 
-def _compute_curves(  # noqa: PLR0913
+def _compute_curves(  # noqa: PLR0913 - the curves' data and binning
     labels: list[str],
     arrays: list[np.ndarray],
     colors: list[str],
@@ -346,7 +346,7 @@ def _empty_figure(bg_color: str, fg_color: str, border_color: str) -> Figure:
 # ── Overlay layout ─────────────────────────────────────────────────────────────
 
 
-def _render_overlay(  # noqa: PLR0913
+def _render_overlay(  # noqa: PLR0913 - the figure's data and styling
     curves: list[_Curve],
     x_min: float,
     x_max: float,
@@ -404,7 +404,7 @@ def _render_overlay(  # noqa: PLR0913
 # ── Ridge (waterfall) layout ───────────────────────────────────────────────────
 
 
-def _render_ridge(  # noqa: PLR0913
+def _render_ridge(  # noqa: PLR0913 - the figure's data and styling
     curves: list[_Curve],
     x_min: float,
     x_max: float,
@@ -458,8 +458,7 @@ def _render_ridge(  # noqa: PLR0913
     for i, curve in enumerate(reversed(curves)):
         # Panels are laid out bottom→top; i=0 is the bottommost visible row.
         bottom = bottom_margin + i * step
-        rect = [left_margin, bottom, 1.0 - left_margin - right_margin, panel_h]
-        ax = fig.add_axes(rect)  # type: ignore
+        ax = fig.add_axes((left_margin, bottom, 1.0 - left_margin - right_margin, panel_h))
         ax.set_facecolor(bg_color)
         ax.patch.set_alpha(0.0)  # transparent so lower panels show through
 

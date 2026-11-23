@@ -299,7 +299,7 @@ class PopulationAnalysisViewer(QWidget):
                 for k, v in list(obj.items()):
                     obj[k] = _purify(v)
             elif isinstance(obj, list):
-                if len(obj) > 100 and not isinstance(obj[0], (dict, list)):  # noqa: PLR2004
+                if len(obj) > 100 and not isinstance(obj[0], (dict, list)):  # noqa: PLR2004 - long arrays are summarised, not dumped
                     return obj
                 for i in range(len(obj)):
                     obj[i] = _purify(obj[i])

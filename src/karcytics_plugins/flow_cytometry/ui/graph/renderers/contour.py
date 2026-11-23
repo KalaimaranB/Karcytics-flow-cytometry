@@ -42,7 +42,7 @@ class ContourStrategy(DisplayStrategy):
         valid = np.isfinite(x) & np.isfinite(y)
         x_vis, y_vis = x[valid], y[valid]
 
-        if len(x_vis) < 100:  # noqa: PLR2004
+        if len(x_vis) < 100:  # noqa: PLR2004 - too few events to contour
             return ContourRenderData(sparse=True, x_vis=x_vis, y_vis=y_vis)
 
         X, Y, smoothed = density_grid(

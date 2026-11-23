@@ -47,7 +47,7 @@ def pass_wheel_to_page(widget: QWidget) -> None:
         if event is not None:
             event.ignore()
 
-    widget.wheelEvent = _ignore  # type: ignore[method-assign]
+    widget.wheelEvent = _ignore  # type: ignore[method-assign]  # Qt: a per-instance event handler, no subclass needed
 
 
 class FitIllustrationView(QWidget):

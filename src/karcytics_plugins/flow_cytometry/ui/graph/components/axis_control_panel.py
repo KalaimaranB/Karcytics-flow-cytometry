@@ -29,7 +29,7 @@ class AxisControlPanel(QWidget):
         self._last_index = {"x": 0, "y": 0}
         self._setup_ui()
 
-    def _setup_ui(self) -> None:  # noqa: PLR0915
+    def _setup_ui(self) -> None:  # noqa: PLR0915 - builds the whole panel
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)

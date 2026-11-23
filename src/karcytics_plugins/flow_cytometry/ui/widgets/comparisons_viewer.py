@@ -118,7 +118,7 @@ class ComparisonsViewer(QWidget):
 
     # ── UI Construction ──────────────────────────────────────────────────────
 
-    def _setup_ui(self) -> None:  # noqa: PLR0915
+    def _setup_ui(self) -> None:  # noqa: PLR0915 - builds the whole tab
         theme_manager.apply_style(self, "background-color: {BG_DARKEST};")
         main = QHBoxLayout(self)
         main.setContentsMargins(0, 0, 0, 0)

@@ -29,6 +29,8 @@ class DotPlotStrategy(DisplayStrategy):
         self, x: np.ndarray, y: np.ndarray | None = None, *, xlim=None, ylim=None, **kwargs
     ) -> DotPlotRenderData:
         """Subsample events as needed and bundle draw parameters."""
+        if y is None:
+            raise ValueError("A dot plot needs a y channel.")
         max_events = kwargs.get("max_events", 100_000)
         n = len(x)
 
@@ -38,11 +40,11 @@ class DotPlotStrategy(DisplayStrategy):
             # otherwise-identical renders must not resample ~50% of the
             # plotted points as a result (see its docstring).
             mask = stable_subsample_mask(n, max_events)
-            x, y = x[mask], y[mask]  # type: ignore[index]
+            x, y = x[mask], y[mask]
 
         return DotPlotRenderData(
             x=x,
-            y=y,  # type: ignore[arg-type]
+            y=y,
             s=kwargs.get("s", kwargs.get("dot_size", 2)),
             c=kwargs.get("c", kwargs.get("dot_color", Colors.ACCENT_PRIMARY)),
             alpha=kwargs.get("alpha", kwargs.get("opacity", 0.25)),

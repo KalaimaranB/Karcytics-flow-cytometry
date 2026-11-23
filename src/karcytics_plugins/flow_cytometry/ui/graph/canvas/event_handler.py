@@ -12,6 +12,7 @@ from ..gate_drawing_fsm import DrawingState
 from .modes import GateDrawingMode
 
 if TYPE_CHECKING:
+    from ....analysis.gating.base import Gate
     from ..flow_canvas import FlowCanvas
 
 logger = get_logger(__name__, "flow_cytometry")
@@ -97,14 +98,14 @@ class CanvasEventHandler:
     def finalize_drag_gate(self, x0: float, y0: float, x1: float, y1: float, mode: str) -> None:
         """Finalize a gate drawn by dragging."""
         canvas = self.canvas
+        gate: Gate | None = None
         if mode == "rectangle":
             gate = canvas._gate_factory.create_rectangle(x0, y0, x1, y1)
-            canvas.gate_created.emit(gate)
         elif mode == "ellipse":
-            gate = canvas._gate_factory.create_ellipse(x0, y0, x1, y1)  # type: ignore
-            canvas.gate_created.emit(gate)
+            gate = canvas._gate_factory.create_ellipse(x0, y0, x1, y1)
         elif mode == "range":
-            gate = canvas._gate_factory.create_range(x0, x1)  # type: ignore
+            gate = canvas._gate_factory.create_range(x0, x1)
+        if gate is not None:
             canvas.gate_created.emit(gate)
         canvas._clear_previews()
 
@@ -152,7 +153,8 @@ class CanvasEventHandler:
         node_id = canvas.hit_tester.node_id_for(hit_id) if hit_id else None
 
         if canvas._controller and not canvas._local_selection:
-            canvas._controller.select_gate(canvas._sample_id, node_id)  # type: ignore
+            if (sample_id := canvas._sample_id) is not None:
+                canvas._controller.select_gate(sample_id, node_id)
         else:
             old_selected = canvas._selected_gate_id
             canvas._selected_gate_id = node_id

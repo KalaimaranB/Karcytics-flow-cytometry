@@ -392,7 +392,7 @@ class GraphManager(QWidget):
         match, _complete = follow_name_path(target_sample.gate_tree, name_path(node))
         return None if match.is_root else match.node_id
 
-    def navigate_active_graph(self, action: str) -> None:  # noqa: PLR0911
+    def navigate_active_graph(self, action: str) -> None:  # noqa: PLR0911 - one return per navigation action
         """Handle Next/Prev/Parent navigation from a graph toolbar."""
         idx = self._tabs.currentIndex()
         if idx < 0:

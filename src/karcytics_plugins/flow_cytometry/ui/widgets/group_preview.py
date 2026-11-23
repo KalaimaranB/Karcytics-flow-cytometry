@@ -54,7 +54,7 @@ _GroupPreviewCache: OrderedDict[tuple, tuple] = OrderedDict()
 _GROUP_PREVIEW_CACHE_MAX = 300
 
 
-def _gate_geom_hash(gate) -> tuple | None:  # noqa: PLR0911
+def _gate_geom_hash(gate) -> tuple | None:  # noqa: PLR0911 - one shape per gate type
     """Cheap geometry fingerprint so resizing a gate invalidates cached renders
     that only key on gate_id (which doesn't change when bounds move).
     """
@@ -172,7 +172,7 @@ class PreviewThumbnail(QFrame):
     def _restore_img_style(self) -> None:
         self._img.setStyleSheet("background: white; border: 1px solid #DDDDDD;")
 
-    def preview_temp_gate(self, temp_gate) -> None:  # noqa: PLR0915
+    def preview_temp_gate(self, temp_gate) -> None:  # noqa: PLR0915 - one branch per gate type
         """Draw a temporary gate over the cached base pixmap instantly."""
         if not self._base_pixmap or not self._x_range or not self._y_range:
             return
@@ -222,7 +222,7 @@ class PreviewThumbnail(QFrame):
                 pts = [QPointF(*to_px(v[0], v[1])) for v in temp_gate.vertices]
                 if len(pts) > 1:
                     painter.drawPolyline(QPolygonF(pts))
-                if len(pts) > 2:  # noqa: PLR2004
+                if len(pts) > 2:  # noqa: PLR2004 - a polygon needs three points
                     painter.drawLine(pts[-1], pts[0])  # Close polygon
             elif hasattr(temp_gate, "x_min"):
                 px1, py1 = to_px(temp_gate.x_min, temp_gate.y_max)  # top-left
@@ -275,7 +275,7 @@ class PreviewThumbnail(QFrame):
             return None
         return self._axis_manager.calculate_range(sample_events[param], param, sample_id)
 
-    def request_render(  # noqa: PLR0915
+    def request_render(  # noqa: PLR0915 - the render request and its cache, in order
         self,
         active_sample_id: str | None = None,
         active_node_id: str | None = None,
