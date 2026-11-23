@@ -521,7 +521,6 @@
     "src/karcytics_plugins/flow_cytometry/ui/widgets/selection/population_selection_popup.py": {
       "KS210": 1,
       "KS240": 1,
-      "KS300": 640,
       "KS310": 4,
       "KS342": 3
     },

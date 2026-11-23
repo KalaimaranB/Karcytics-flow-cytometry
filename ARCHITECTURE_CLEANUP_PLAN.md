@@ -497,9 +497,14 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       the way: a singular CSV imported fine, then crashed the compensation toggle (now refused at
       import); an FMO control with fewer events than the fit's unknowns was fitted anyway (now
       skipped like a missing one).
-- [ ] Deferred rewrites: drive `test_comparisons_plot_types.py` through
-      `ComparisonsWorker.run()` / `_on_render_done()`, and make `test_selection_widgets.py`
-      headless.
+- [x] Deferred rewrites. The Comparisons tests already drive Generate through the real render
+      worker to `_on_render_done` since the B7 split (`ComparisonsWorker` is gone; `FigureView`
+      renders). The population picker's rules moved out of the 640-line popup into a Qt-free
+      `analysis/population_selection.py` (`PopulationSelection`: defaults, one-per-sample and
+      one-sample modes, cell/row/column/drag clicks; each returns whether anything changed), tested
+      headlessly in `test_population_selection.py`; the popup (331 lines) draws it, and
+      `test_selection_widgets.py` keeps only what needs widgets. It now announces a change only
+      when the selection actually changed (clicking None twice announced two changes).
 - [ ] Coverage gate `--cov-fail-under` on the `-m "not ui"` CI lane (current minus 2, raise only).
 - [ ] Docstrings required in `analysis/` only (drop D100–D103 there; per-file ignores for `ui/`).
 - [ ] Domain magic numbers (77 `PLR2004`) into `analysis/constants.py`; pixel sizes stay inline.

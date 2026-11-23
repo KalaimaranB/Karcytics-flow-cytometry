@@ -52,7 +52,9 @@ def test_compute_drops_sample_columns_with_no_checked_population(qtbot):
     widget.refresh_samples()
 
     widget._selector.population_selector.check_all(False)
-    widget._selector.population_selector._toggle_cell("s1", "B-cells")
+    picker = widget._selector.population_selector
+    picker._begin_cell_drag("s1", "B-cells")  # a click on the cell: press, release
+    picker._end_cell_drag()
 
     widget._stat_picker.set_selected([StatType.PERCENT_TOTAL])
 

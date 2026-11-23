@@ -90,10 +90,10 @@ def test_single_sample_plot_type_cannot_have_two_samples_checked(qtbot, two_samp
 
     # Try to check every population under every sample directly in the grid.
     picker = widget._selector.population_selector
-    for sid in picker._sample_ids:
-        for row in picker._rows:
-            if row.label_path in picker._groups.node_index.get(sid, {}):
-                picker._toggle_cell(sid, row.label_path)
+    for sid in picker.selection.sample_ids:
+        for row in picker.selection.rows:
+            picker._begin_cell_drag(sid, row.label_path)  # a click: press, release
+            picker._end_cell_drag()
 
     assert len(widget._selector.get_checked_sample_ids()) == 1
 

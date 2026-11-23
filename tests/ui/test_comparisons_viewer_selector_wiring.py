@@ -33,12 +33,12 @@ def test_plot_type_switch_toggles_multi_population_mode(qtbot, flow_state_with_s
     checked = widget._selector.get_checked_populations()
     assert len(checked) == 2
     assert all(label == "All Events" for _sid, _nid, label in checked)
-    assert widget._selector.population_selector._multi_select is False
+    assert widget._selector.population_selector.selection.multi_select is False
 
     # Heatmap is multi-pop mode: grouped Shared/Sample-Specific selection.
     idx = widget._plot_type_combo.findData(PlotType.CHANNEL_HEATMAP.value)
     widget._plot_type_combo.setCurrentIndex(idx)
-    assert widget._selector.population_selector._multi_select is True
+    assert widget._selector.population_selector.selection.multi_select is True
     checked = widget._selector.get_checked_populations()
     labels = {label for _sid, _nid, label in checked}
     assert "Lymphocytes" in labels
