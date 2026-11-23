@@ -1,0 +1,18 @@
+# Keeps the SHA-pinned workflow actions current: a weekly PR per bump, with the
+# new SHA and its version in the comment, grouped so one PR moves them all.
+#
+# Python dependencies are not here: pyproject.toml resolves karcytics-sdk from a
+# sibling checkout (../Karcytics-SDK), which Dependabot cannot see, so a uv
+# update job would fail every week. pip-audit in pre-commit and CI catches
+# vulnerable versions instead.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: chore
