@@ -102,7 +102,6 @@ FCS_STRIP_RATIO_WARN = 0.05
 DAEMON_HEADER_MIN_FIELDS = 4
 
 # ── Biology Services ─────────────────────────────────────────────────
-HTTP_OK = 200
 FPBASE_MAX_MATCHES = 20  # Stop after this many fuzzy matches from FPbase.
 
 # ── Compensation ─────────────────────────────────────────────────────

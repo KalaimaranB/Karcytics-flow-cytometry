@@ -505,3 +505,78 @@ class TestEstimationPropagation:
         assert s["is_estimated"] is True
         assert s["is_scale_valid"] is True
         assert s["scale_factor"] == 4.0
+
+
+def _gate_node(root: GateNode, name: str, mask: list[bool]) -> GateNode:
+    node = GateNode(gate=FixedGate(np.array(mask)), name=name, parents=[root])
+    root.children.append(node)
+    return node
+
+
+def _logic(name: str, operator: str, *parents: GateNode) -> GateNode:
+    node = GateNode(name=name, logic_operator=operator, parents=list(parents), is_logic_node=True)
+    for parent in parents:
+        parent.children.append(node)
+    return node
+
+
+class TestNestedLogic:
+    """Logic nodes built on logic nodes: A AND (B OR NOT C), and the shapes around it."""
+
+    A = [True] * 6 + [False] * 4
+    B = [True, True, False, False, False, False, False, False, True, True]
+    C = [True, False, True, False, True, False, True, False, True, False]
+
+    def test_and_of_or_of_not_matches_the_same_expression_in_numpy(self, events):
+        root = GateNode(name="All Events")
+        a, b, c = (_gate_node(root, n, m) for n, m in (("A", self.A), ("B", self.B), ("C", self.C)))
+        not_c = _logic("NOT C", "NOT", c)
+        b_or_not_c = _logic("B OR NOT C", "OR", b, not_c)
+        result = _logic("A AND (B OR NOT C)", "AND", a, b_or_not_c)
+
+        stats = dag_evaluator.evaluate(root, events)
+
+        a_, b_, c_ = np.array(self.A), np.array(self.B), np.array(self.C)
+        assert stats[not_c.node_id]["count"] == int(np.sum(~c_))
+        assert stats[b_or_not_c.node_id]["count"] == int(np.sum(b_ | ~c_))
+        assert stats[result.node_id]["count"] == int(np.sum(a_ & (b_ | ~c_)))  # = 4
+        assert stats[result.node_id]["pct_total"] == pytest.approx(40.0)
+
+    def test_a_gate_under_a_logic_node_gates_the_combined_population(self, events):
+        root = GateNode(name="All Events")
+        a, b = _gate_node(root, "A", self.A), _gate_node(root, "B", self.B)
+        either = _logic("A OR B", "OR", a, b)  # 8 events: 0-5, 8, 9
+        child = GateNode(gate=FixedGate(np.array(self.C)), name="C in A OR B", parents=[either])
+        either.children.append(child)
+
+        stats = dag_evaluator.evaluate(root, events)
+
+        assert stats[child.node_id]["count"] == 4  # C's events 0, 2, 4, 8
+        assert stats[child.node_id]["pct_parent"] == pytest.approx(50.0)
+
+    def test_not_with_two_parents_is_the_first_without_the_second(self, events):
+        root = GateNode(name="All Events")
+        a, c = _gate_node(root, "A", self.A), _gate_node(root, "C", self.C)
+        a_not_c = _logic("A NOT C", "NOT", a, c)
+
+        stats = dag_evaluator.evaluate(root, events)
+
+        assert stats[a_not_c.node_id]["count"] == 3  # A's 0-5 minus C's 0, 2, 4
+
+    def test_a_shared_parent_reached_twice_is_evaluated_once(self, events):
+        root = GateNode(name="All Events")
+        a, b = _gate_node(root, "A", self.A), _gate_node(root, "B", self.B)
+        left, right = _logic("A AND B", "AND", a, b), _logic("A OR B", "OR", a, b)
+        _logic("both", "AND", left, right)
+
+        dag_evaluator.evaluate(root, events)
+
+        assert a.gate.call_count == 1
+
+    def test_a_logic_node_with_one_parent_is_incomplete_and_empty(self, events):
+        root = GateNode(name="All Events")
+        lone = _logic("A AND ?", "AND", _gate_node(root, "A", self.A))
+
+        stats = dag_evaluator.evaluate(root, events)
+
+        assert stats[lone.node_id]["count"] == 0

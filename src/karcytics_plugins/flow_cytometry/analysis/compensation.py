@@ -308,7 +308,8 @@ def calculate_spillover_from_fmo(
     covered: list[int] = []
     for k, channel in enumerate(fluorescence_channels):
         events = fmo_controls.get(channel)
-        if events is None or any(ch not in events.columns for ch in fluorescence_channels):
+        # Unusable: a channel missing, or fewer events than the fit's n unknowns.
+        if events is None or len(events) < n or not set(fluorescence_channels) <= set(events):
             continue
         design, target = _fmo_design(events, fluorescence_channels, k)
         solution, event_weights = _robust_fit(design, target)
@@ -317,7 +318,7 @@ def calculate_spillover_from_fmo(
         if fits is not None:
             fits.append(_summarise_fit(channel, design, target, solution, event_weights))
     if not covered:
-        raise ValueError("No FMO control has data for every channel of the matrix.")
+        raise ValueError("No FMO control has enough events on every channel of the matrix.")
 
     try:
         unscaled = np.linalg.inv(np.eye(n) - weights)
@@ -506,7 +507,7 @@ def import_matrix_from_csv(path: Path) -> CompensationMatrix:
         A :class:`CompensationMatrix`.
 
     Raises:
-        ValueError: If the file cannot be parsed as a matrix.
+        ValueError: If the file isn't a square, invertible matrix.
     """
     path = Path(path)
     sep = "\t" if path.suffix in (".tsv", ".txt") else ","
@@ -517,6 +518,8 @@ def import_matrix_from_csv(path: Path) -> CompensationMatrix:
 
     if matrix.shape[0] != matrix.shape[1]:
         raise ValueError(f"Matrix is not square: {matrix.shape[0]}×{matrix.shape[1]}")
+    if np.linalg.matrix_rank(matrix) < len(matrix):  # compensating would fail on every apply
+        raise ValueError("The matrix is singular: no compensation can undo it.")
 
     logger.info("Imported %d×%d matrix from %s.", *matrix.shape, path.name)
 
@@ -595,18 +598,8 @@ def compensate_events(df: pd.DataFrame, comp: CompensationMatrix) -> pd.DataFram
     sub_spillover = comp.matrix[np.ix_(idx, idx)]
     sub_matrix = np.linalg.inv(sub_spillover)
 
-    logger.debug(
-        "Applying compensation matrix to %d events. Compensating %d/%d channels.",
-        len(df),
-        len(present),
-        len(channels),
-    )
-    logger.debug("Using mathematical projection: Compensated = Raw @ Matrix_Inverse")
-
-    raw = df[present].values
-    compensated = raw @ sub_matrix
-    df[present] = compensated
-
+    logger.debug("Compensating %d/%d channels of %d events.", len(present), len(channels), len(df))
+    df[present] = df[present].values @ sub_matrix  # compensated = raw @ inverse spillover
     return df
 
 

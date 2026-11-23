@@ -21,7 +21,7 @@
       "KS310": 1
     },
     "src/karcytics_plugins/flow_cytometry/analysis/compensation.py": {
-      "KS300": 630,
+      "KS300": 623,
       "KS302:calculate_spillover_matrix": 105,
       "KS310": 1
     },

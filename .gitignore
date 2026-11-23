@@ -43,3 +43,4 @@ mypy_output.txt
 # IDEs and Editors
 .claude/*
 !.claude/settings.json
+.coverage

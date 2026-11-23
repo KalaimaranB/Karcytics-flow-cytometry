@@ -1,21 +1,19 @@
-"""Services for querying biological databases.
+"""Fluorophore spectra from FPbase, cached on disk.
 
-Adheres to SOLID principles:
-- SRP: Services only handle data fetching and parsing.
-- DIP: They depend on a cache manager interface, rather than hardcoding disk logic.
+``fpbase_query_for_channel`` turns an FCS channel (and its marker) into the dye
+name to look up; ``FluorophoreService`` fetches that dye's spectra from FPbase's
+GraphQL API through a ``CacheManager``.
 """
 
 import json
 import re
-import urllib.error
-import urllib.parse
 import urllib.request
 from typing import Any
 
 from karcytics_sdk.plugin import get_logger
 
 from .api_cache import CacheManager
-from .constants import FPBASE_MAX_MATCHES, HTTP_OK
+from .constants import FPBASE_MAX_MATCHES
 
 logger = get_logger(__name__, "flow_cytometry")
 
@@ -220,80 +218,3 @@ class FluorophoreService:
             if len(matches) >= FPBASE_MAX_MATCHES:
                 break
         return matches
-
-
-class MarkerService:
-    """Fetches biological marker information from UniProt."""
-
-    def __init__(self, cache: CacheManager):
-        self._cache = cache
-
-    def get_marker_info(self, marker_name: str) -> dict[str, Any] | None:
-        """Retrieve biological details for a given CD marker or protein.
-
-        Args:
-            marker_name: e.g., 'CD4', 'CD8'
-
-        Returns:
-            Dictionary with marker metadata.
-        """
-        marker_name = marker_name.upper().strip()
-        if not marker_name:
-            return None
-
-        cache_key = f"marker_{marker_name}"
-        cached_data = self._cache.get(cache_key)
-        if cached_data:
-            return cached_data
-
-        # Ping UniProt for Human (9606) marker
-        url = (
-            f"https://rest.uniprot.org/uniprotkb/search"
-            f"?query=(gene:{urllib.parse.quote(marker_name)})+AND+(organism_id:9606)&format=json"
-        )
-
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Karcytics/1.0"})
-            with urllib.request.urlopen(req, timeout=5.0) as response:
-                if response.status == HTTP_OK:
-                    data = json.loads(response.read().decode("utf-8"))
-                    results = data.get("results", [])
-
-                    if results:
-                        best_doc = results[0]
-                        acc = best_doc.get("primaryAccession", "")
-
-                        protein_desc = best_doc.get("proteinDescription", {})
-                        rec_name = protein_desc.get("recommendedName", {})
-                        full_name = rec_name.get("fullName", {}).get(
-                            "value", f"{marker_name} Molecule"
-                        )
-
-                        description = "Biological function details are unavailable."
-                        for comment in best_doc.get("comments", []):
-                            if comment.get("commentType") == "FUNCTION":
-                                texts = comment.get("texts", [])
-                                if texts:
-                                    description = texts[0].get("value", "")
-                                    break
-
-                        result = {
-                            "name": marker_name,
-                            "label": full_name,
-                            "description": description,
-                            "ontology": "UniProtKB",
-                            "iri": f"https://www.uniprot.org/uniprotkb/{acc}/entry" if acc else "",
-                        }
-                        self._cache.set(cache_key, result)
-                        return result
-        except (urllib.error.URLError, json.JSONDecodeError) as e:
-            logger.warning(f"Failed to fetch marker info for {marker_name} from UniProt: {e}")
-
-        # Fallback stub
-        return {
-            "name": marker_name,
-            "label": f"{marker_name} Molecule",
-            "description": f"Biological information for {marker_name} is currently unavailable offline.",
-            "ontology": "Unknown",
-            "iri": "",
-        }

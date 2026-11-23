@@ -167,7 +167,7 @@ class PhysicsSlide(Slide):
         self.wrong_hint = "Not quite — look for the curve still riding high in the band."
         self.deck.refresh()
 
-    def on_drag(self, x: float, y: float) -> None:  # noqa: ARG002 - the band moves sideways only
+    def on_drag(self, x: float, y: float) -> None:  # the band moves sideways only
         if not self._dragging:
             return
         self._filter_x = x

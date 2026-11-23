@@ -490,9 +490,13 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
 ## B9b. Tests and CI, the rest
 
 - [x] `tests/contract/test_contract.py` subclasses the SDK's `ContractTestBase` (KS142).
-- [ ] Coverage gaps, all still open: `biology_services.py` (zero tests); nested AND-of-OR-of-NOT
-      in the DAG evaluator; a dedicated `gating/subset.py` test; near-singular and
-      underdetermined spillover matrices at the `analysis/compensation.py` level.
+- [x] Coverage gaps: `biology_services.py` (0 → 91%, against a fake FPbase; the unused
+      `MarkerService` UniProt client was deleted); nested AND-of-OR-of-NOT, two-parent NOT,
+      shared parents and incomplete logic nodes in the DAG evaluator; `test_subset_gate.py`;
+      singular, near-singular and underdetermined matrices in `test_compensation.py`. Fixed on
+      the way: a singular CSV imported fine, then crashed the compensation toggle (now refused at
+      import); an FMO control with fewer events than the fit's unknowns was fitted anyway (now
+      skipped like a missing one).
 - [ ] Deferred rewrites: drive `test_comparisons_plot_types.py` through
       `ComparisonsWorker.run()` / `_on_render_done()`, and make `test_selection_widgets.py`
       headless.

@@ -262,3 +262,60 @@ def test_matrices_match_to_the_four_decimals_shown():
     assert not same_matrix(a, other)
     assert not same_matrix(a, renamed)
     assert same_matrix(None, None) and not same_matrix(a, None)
+
+
+# ── Matrices at the edge of invertible ──
+
+
+def test_a_singular_matrix_cannot_compensate():
+    from karcytics_plugins.flow_cytometry.analysis.compensation import compensate_events
+
+    channels = ["A", "B", "C"]
+    twin_rows = np.array([[1.0, 0.5, 0.0], [1.0, 0.5, 0.0], [0.0, 0.0, 1.0]])
+
+    with pytest.raises(np.linalg.LinAlgError):
+        compensate_events(
+            pd.DataFrame(np.ones((3, 3)), columns=channels), CompensationMatrix(twin_rows, channels)
+        )
+
+
+def test_a_near_singular_matrix_still_undoes_its_own_spill():
+    from karcytics_plugins.flow_cytometry.analysis.compensation import compensate_events
+
+    spillover = np.array([[1.0, 0.9], [0.9, 0.81 + 1e-6]])  # condition number ~3e6
+    true = np.random.default_rng(0).uniform(100, 1000, (50, 2))
+    raw = pd.DataFrame(true @ spillover, columns=["A", "B"])
+
+    compensated = compensate_events(raw, CompensationMatrix(spillover, ["A", "B"]))
+
+    np.testing.assert_allclose(compensated.to_numpy(), true, atol=1e-4)
+
+
+def test_a_singular_csv_is_refused_at_import(tmp_path):
+    from karcytics_plugins.flow_cytometry.analysis.compensation import import_matrix_from_csv
+
+    path = tmp_path / "twin.csv"
+    path.write_text("A,B\n1.0,0.5\n2.0,1.0\n")
+
+    with pytest.raises(ValueError, match="singular"):
+        import_matrix_from_csv(path)
+
+
+def test_fmo_controls_with_fewer_events_than_unknowns_are_not_used():
+    from karcytics_plugins.flow_cytometry.analysis.compensation import (
+        calculate_spillover_from_fmo,
+    )
+
+    channels = ["FITC-A", "PE-A", "APC-A"]
+    spillover = np.array([[1.0, 0.15, 0.0], [0.02, 1.0, 0.08], [0.0, 0.01, 1.0]])
+    controls = _fmo_controls(spillover, channels, range(3))
+    tiny = {ch: events.head(2) for ch, events in controls.items()}  # 3 unknowns, 2 events
+
+    with pytest.raises(ValueError, match="enough events"):
+        calculate_spillover_from_fmo(tiny, channels)
+
+    # One usable control still gives its detector's column; the tiny ones count as missing.
+    mixed = {**tiny, "PE-A": controls["PE-A"]}
+    estimate = calculate_spillover_from_fmo(mixed, channels)
+    np.testing.assert_allclose(estimate.matrix[:, 1], spillover[:, 1], atol=1e-8)
+    assert estimate.matrix[0, 2] == 0.0  # APC-A's tiny control was not used
