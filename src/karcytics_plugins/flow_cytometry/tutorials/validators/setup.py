@@ -116,7 +116,7 @@ class FlowImportValidator(FlowValidator):
         if self.incorrect_sample_ids:
             return self.log_failure(f"Found {len(self.incorrect_sample_ids)} incorrect samples.")
 
-        if len(samples) < 10:  # noqa: PLR2004
+        if len(samples) < 10:  # noqa: PLR2004 - course content: the dataset's 10 samples
             self.too_few = True
             return self.log_failure(f"Expected at least 10 samples, found {len(samples)}.")
 
@@ -159,7 +159,7 @@ class FmoRoleValidator(FlowValidator):
         for s in app_state.data.experiment.samples.values():
             if s.role == SampleRole.FMO_CONTROL and "fmo" in s.display_name.lower():
                 fmo_count += 1
-        if fmo_count < 5:  # noqa: PLR2004
+        if fmo_count < 5:  # noqa: PLR2004 - course content: the dataset's 5 FMOs
             return self.log_failure(f"Expected 5 FMO controls, found {fmo_count}.")
         return True
 
@@ -201,7 +201,7 @@ class RoleAssignmentValidator(FlowValidator):
             if s.role == SampleRole.FULL_PANEL and "sample" in s.display_name.lower():
                 full_panel_count += 1
 
-        if full_panel_count < 3:  # noqa: PLR2004
+        if full_panel_count < 3:  # noqa: PLR2004 - course content: the 3 full-panel samples
             return self.log_failure(f"Expected 3 FULL_PANEL samples, found {full_panel_count}.")
 
         required_roles = {

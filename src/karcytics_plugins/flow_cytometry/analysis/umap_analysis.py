@@ -63,7 +63,7 @@ class UmapAnalysis(AnalysisBase):
 
         return True, ""
 
-    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: C901, PLR0911
+    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: C901, PLR0911 - each failure returns its own error
         """Transforms FCS data with Logicle, subsamples, runs UMAP."""
         if state is None:
             return {"error": "No state provided"}

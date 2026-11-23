@@ -15,7 +15,7 @@ class QuadrantGate(Gate):
 
     takes_population_name = False
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 - the crosshair and its scales
         self,
         x_param: str,
         y_param: str,

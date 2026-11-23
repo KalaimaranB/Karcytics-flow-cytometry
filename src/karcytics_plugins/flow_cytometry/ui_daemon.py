@@ -42,7 +42,7 @@ if str(_SRC_DIR) not in sys.path:
 # CRITICAL: same reasoning as karcytics_plugins.flow_cytometry.__init__ — must be
 # set before any numpy/scipy import, which is why the plugin package import
 # below happens before anything else that could pull those in transitively.
-import os  # noqa: E402
+import os  # noqa: E402 - see the comment above
 
 os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
@@ -64,10 +64,10 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 # fcs_io.py imports right after it) here, before that thread exists,
 # means the later `import numpy`/`import pandas` inside fcs_io.py is
 # just a sys.modules cache hit with nothing left to contend over.
-import time  # noqa: E402
+import time  # noqa: E402 - after the BLAS thread limits
 
-import numpy  # noqa: E402, F401
-import pandas  # noqa: E402, F401
+import numpy  # noqa: E402, F401 - before the stdin reader exists (above)
+import pandas  # noqa: E402, F401 - before the stdin reader exists (above)
 
 # Moved here from _build_panel() (see PR discussion) after CI proved that
 # relocating these imports to Phase 1 — after 'ready', before app.exec() —
@@ -92,12 +92,12 @@ _startup_t0 = time.monotonic()
 sys.stderr.write("[startup] importing Phase 2 view modules (matplotlib/scipy chain)...\n")
 sys.stderr.flush()
 
-import karcytics_plugins.flow_cytometry.ui.graph.graph_manager  # noqa: E402
-import karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer  # noqa: E402
-import karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.canvas_view  # noqa: E402
-import karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer  # noqa: E402
-import karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer  # noqa: E402
-import karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer  # noqa: E402, F401
+import karcytics_plugins.flow_cytometry.ui.graph.graph_manager  # noqa: E402 - preloaded before app.exec() (above)
+import karcytics_plugins.flow_cytometry.ui.widgets.comparisons_viewer  # noqa: E402 - preloaded before app.exec() (above)
+import karcytics_plugins.flow_cytometry.ui.widgets.node_canvas.canvas_view  # noqa: E402 - preloaded before app.exec() (above)
+import karcytics_plugins.flow_cytometry.ui.widgets.population_analysis_viewer  # noqa: E402 - preloaded before app.exec() (above)
+import karcytics_plugins.flow_cytometry.ui.widgets.spectral_viewer  # noqa: E402 - preloaded before app.exec() (above)
+import karcytics_plugins.flow_cytometry.ui.widgets.statistics_explorer  # noqa: E402, F401 - preloaded before app.exec() (above)
 
 _startup_elapsed = time.monotonic() - _startup_t0
 sys.stderr.write(f"[startup] Phase 2 view modules imported in {_startup_elapsed:.2f}s\n")

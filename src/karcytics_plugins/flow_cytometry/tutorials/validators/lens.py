@@ -14,7 +14,7 @@ from ...analysis.population_matching import PATH_SEP, populations
 from ...analysis.sample_lens.scope import is_cluster_population
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
-from .base import FlowUIValidator
+from .base import SAME_SETTING, FlowUIValidator
 
 if TYPE_CHECKING:
     from ...ui.widgets.sample_lens.sample_lens_tab import SampleLensTab
@@ -88,7 +88,7 @@ class LensResolutionValidator(_LensValidator):
         value = run.get("resolution") if run is not None else None
         if lens.model.is_reclustering:
             return self.log_failure("Still re-clustering.")
-        if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
+        if value is None or abs(float(value) - self._resolution) > SAME_SETTING:
             return self.log_failure(f"The lens's run isn't at resolution {self._resolution}.")
         if self._on_found is not None:
             self._on_found(lens)

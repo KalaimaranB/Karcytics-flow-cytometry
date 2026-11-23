@@ -10,7 +10,7 @@ import numpy as np
 from ...analysis.clustering.describe import HI
 from ...analysis.state import FlowState
 from ...ui.academy_context import AcademyContext
-from .base import FlowUIValidator, FlowValidator
+from .base import SAME_SETTING, FlowUIValidator, FlowValidator
 
 if TYPE_CHECKING:
     from ...ui.academy_context import ClusterResultsSnapshot, PopulationAnalysisSnapshot
@@ -326,7 +326,7 @@ class PhenographResolutionValidator(FlowUIValidator):
     def validate_ui(self, _app_state: FlowState, ui: AcademyContext) -> bool:
         graph = _phenograph_graph(ui)
         value = graph.academy_snapshot().run.get("resolution") if graph is not None else None
-        if value is None or abs(float(value) - self._resolution) > 1e-6:  # noqa: PLR2004
+        if value is None or abs(float(value) - self._resolution) > SAME_SETTING:
             return self.log_failure(f"The run isn't at resolution {self._resolution}.")
         if self._on_found is not None:
             self._on_found(graph)

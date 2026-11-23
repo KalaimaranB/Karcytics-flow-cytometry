@@ -32,6 +32,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import QSizePolicy
 
 from karcytics_plugins.flow_cytometry.analysis import events
+from karcytics_plugins.flow_cytometry.analysis.constants import FULL_QUALITY_MULTIPLIER
 from karcytics_plugins.flow_cytometry.analysis.gate_coordinator import GateCoordinator
 from karcytics_plugins.flow_cytometry.analysis.gating import Gate, GateNode
 from karcytics_plugins.flow_cytometry.analysis.scaling import AxisScale
@@ -57,8 +58,7 @@ logger = get_logger(__name__, "flow_cytometry")
 
 # ── Visual constants ─────────────────────────────────────────────────────────
 
-# Plot area uses a pure white background inside the axes
-# so all populations and density hexbins are perfectly visible.
+# A pure white plot area, so every population and density bin shows.
 _PLOT_BG = "#FFFFFF"
 
 _MPL_STYLE = {
@@ -441,7 +441,7 @@ class FlowCanvas(LayeredMatplotlibCanvas):
     def set_full_quality(self) -> None:
         """Draw every event (no subsampling) on a grid twice as fine."""
         self._max_events = None
-        self._quality_multiplier = 2.0
+        self._quality_multiplier = FULL_QUALITY_MULTIPLIER
 
     def add_plot_action(self, text: str, callback: Callable[[], None]) -> None:
         """Add an entry to the plot's right-click menu, after Copy and Download."""

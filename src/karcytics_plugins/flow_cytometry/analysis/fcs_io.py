@@ -39,16 +39,16 @@ logger = get_logger(__name__, "flow_cytometry")
 # never gets past. .warning() is the lowest level guaranteed visible in
 # captured stderr without a configured handler.
 logger.debug("[phase1] fcs_io: importing numpy")
-import numpy as np  # noqa: E402
+import numpy as np  # noqa: E402 - after the import diagnostic above
 
 logger.debug("[phase1] fcs_io: importing pandas")
-import pandas as pd  # noqa: E402
+import pandas as pd  # noqa: E402 - after the import diagnostic above
 
 logger.debug("[phase1] fcs_io: numpy/pandas imported")
 
-from .constants import DERIVED_PREFIX, FCS_STRIP_RATIO_WARN  # noqa: E402
-from .daemon_port import decode_array  # noqa: E402
-from .derived.state import DerivedColumnsState  # noqa: E402
+from .constants import DERIVED_PREFIX, FCS_STRIP_RATIO_WARN  # noqa: E402 - after numpy
+from .daemon_port import decode_array  # noqa: E402 - after numpy/pandas (above)
+from .derived.state import DerivedColumnsState  # noqa: E402 - after numpy/pandas (above)
 
 if TYPE_CHECKING:
     from .daemon_port import DaemonCall
@@ -490,7 +490,7 @@ def _auto_apply_spill(filename: str, events_df: pd.DataFrame, metadata: dict) ->
         return False
 
 
-def _load_with_fcsparser(path: Path) -> FCSData:  # noqa: C901, PLR0915, PLR0912
+def _load_with_fcsparser(path: Path) -> FCSData:  # noqa: C901, PLR0915, PLR0912 - the fallback reader, every FCS quirk in one place
     """Fallback loader using fcsparser.
 
     Handles a common cytometer export quirk where the data section recorded in

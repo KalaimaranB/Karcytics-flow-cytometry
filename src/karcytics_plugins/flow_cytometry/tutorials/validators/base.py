@@ -20,6 +20,8 @@ from ...ui.academy_context import AcademyContext
 
 logger = get_logger(__name__, "flow_cytometry")
 
+SAME_SETTING = 1e-6  # two float settings closer than this are the one the step asks for
+
 
 class LoggingValidator(IValidator):
     """Base validator that provides stateful logging to avoid spam during polling."""

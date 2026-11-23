@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import numpy as np
 from karcytics_sdk.plugin import get_logger
 
-from ....analysis.constants import PSEUDOCOLOR_MAX_EVENTS
+from ....analysis.constants import FULL_QUALITY_MULTIPLIER, PSEUDOCOLOR_MAX_EVENTS
 from ....analysis.rendering import compute_pseudocolor_points, stable_subsample_mask
 from .base import DisplayStrategy
 
@@ -82,7 +82,7 @@ class PseudocolorStrategy(DisplayStrategy):
         # Point size 1.0 for Full, 1.5 for Optimized
         cmap_name: str = kwargs.get("cmap", kwargs.get("colormap", "jet"))
         alpha = kwargs.get("alpha", 0.6)
-        is_full = kwargs.get("quality_multiplier", 1.0) >= 2.0  # noqa: PLR2004
+        is_full = kwargs.get("quality_multiplier", 1.0) >= FULL_QUALITY_MULTIPLIER
         point_size = kwargs.get("s", 1.0 if is_full else 1.5)
 
         return PseudocolorRenderData(

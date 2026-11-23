@@ -28,6 +28,9 @@ from .canvas_manager import CanvasManager
 from .items.edge_item import EdgeItem
 from .items.node_item import NodeItem
 
+MAX_ZOOM = 3.0  # the pipeline canvas's zoom limits, as view scale factors
+MIN_ZOOM = 0.1
+
 
 class _CanvasGraphicsView(DirtyTrackingGraphicsView):
     """Infinite panning and zooming view for the node canvas.
@@ -97,19 +100,19 @@ class _CanvasGraphicsView(DirtyTrackingGraphicsView):
             zoom_factor = zoom_out_factor
 
         current_zoom = self.transform().m11()
-        if zoom_factor > 1.0 and current_zoom >= 3.0:  # noqa: PLR2004
+        if zoom_factor > 1.0 and current_zoom >= MAX_ZOOM:
             return
-        if zoom_factor < 1.0 and current_zoom <= 0.1:  # noqa: PLR2004
+        if zoom_factor < 1.0 and current_zoom <= MIN_ZOOM:
             return
 
         self.scale(zoom_factor, zoom_factor)
 
     def zoom_in(self) -> None:
-        if self.transform().m11() < 3.0:  # noqa: PLR2004
+        if self.transform().m11() < MAX_ZOOM:
             self.scale(1.2, 1.2)
 
     def zoom_out(self) -> None:
-        if self.transform().m11() > 0.1:  # noqa: PLR2004
+        if self.transform().m11() > MIN_ZOOM:
             self.scale(1.0 / 1.2, 1.0 / 1.2)
 
     def mousePressEvent(self, event: QMouseEvent | None) -> None:

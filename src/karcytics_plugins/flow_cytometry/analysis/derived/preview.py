@@ -119,7 +119,7 @@ def _counts(values: np.ndarray, edges: np.ndarray) -> np.ndarray:
 
 def _ticks(edges: np.ndarray, log_scale: bool) -> tuple[tuple[float, str], ...]:
     """Axis labels: each decade on a log axis, ~4 round numbers on a linear one."""
-    if len(edges) < 2:  # noqa: PLR2004
+    if len(edges) < 2:  # noqa: PLR2004 - a histogram bin needs two edges
         return ()
     lo, hi = float(edges[0]), float(edges[-1])
     if log_scale:

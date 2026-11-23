@@ -21,7 +21,7 @@ class EllipseGate(Gate):
         y_scale:  Axis scale for Y parameter.
     """
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # noqa: PLR0913 - the ellipse's geometry
         self,
         x_param: str,
         y_param: str,

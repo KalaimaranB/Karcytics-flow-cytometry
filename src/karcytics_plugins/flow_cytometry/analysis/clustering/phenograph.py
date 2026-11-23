@@ -176,7 +176,7 @@ def cluster_connectivity(
     """
     kept = clusters >= 0
     n_clusters = int(clusters[kept].max()) + 1 if kept.any() else 0
-    if n_clusters < 2:  # noqa: PLR2004
+    if n_clusters < 2:  # noqa: PLR2004 - a graph between clusters needs two
         return np.zeros((0, 2), dtype=np.int64), np.zeros(0)
     ids = np.flatnonzero(kept)
     member = sparse.csr_matrix(

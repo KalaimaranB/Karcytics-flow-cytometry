@@ -145,7 +145,7 @@ def shutdown() -> None:
 
 # Late import: PluginContext lives in karcytics_sdk which depends on this package
 # at runtime — importing it at module load would create a circular import.
-from karcytics_sdk.plugin.context import PluginContext  # noqa: E402
+from karcytics_sdk.plugin.context import PluginContext  # noqa: E402 - circular if earlier
 
 
 def initialize(context: PluginContext) -> Any:

@@ -60,7 +60,7 @@ def stable_subsample_mask(n: int, k: int, seed: int = 42) -> np.ndarray:
     return rng.random(n) < frac
 
 
-def compute_pseudocolor_base_density(  # noqa: PLR0913
+def compute_pseudocolor_base_density(  # noqa: PLR0913 - the plot's render settings
     x: np.ndarray,
     y: np.ndarray,
     max_events: int,
@@ -103,7 +103,7 @@ def compute_pseudocolor_base_density(  # noqa: PLR0913
     )
 
 
-def compute_pseudocolor_points(  # noqa: PLR0913, PLR0917
+def compute_pseudocolor_points(  # noqa: PLR0913, PLR0917 - the plot's render settings
     x: np.ndarray,
     y: np.ndarray,
     x_range: tuple[float, float],

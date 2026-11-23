@@ -32,7 +32,7 @@ class RunInput:
     parent_total: int  # events in the population before subsampling
 
 
-def prepare_run_input(  # noqa: PLR0913
+def prepare_run_input(  # noqa: PLR0913 - the run's settings, unpacked
     state: FlowState,
     sample_id: str,
     node_id: str | None,

@@ -112,8 +112,10 @@ class AxisManager:
         if not sample or not sample.has_data:
             return None
 
-        assert sample.fcs_data is not None
-        data = sample.fcs_data.events[channel]  # type: ignore
+        events = sample.fcs_data.events if sample.fcs_data is not None else None
+        if events is None:
+            return None
+        data = events[channel]
         new_range = self.calculate_range(data, channel, sample_id)
 
         scale = self.get_scale(channel, sample_id).copy()

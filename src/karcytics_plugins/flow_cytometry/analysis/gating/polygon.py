@@ -25,7 +25,7 @@ class PolygonGate(Gate):
         y_scale:  Axis scale for the Y parameter.
     """
 
-    def __init__(  # noqa: PLR0913, PLR0917
+    def __init__(  # noqa: PLR0913, PLR0917 - positional for saved-workspace compatibility
         self,
         x_param: str,
         y_param: str,

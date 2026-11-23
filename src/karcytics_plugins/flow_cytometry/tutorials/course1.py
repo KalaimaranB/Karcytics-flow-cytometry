@@ -17,14 +17,11 @@ from karcytics_sdk.plugin.tutorial_models import (
     QUESTION_PREDICT,
     ActionStep,
     AnswerChoice,
-    BranchingStep,  # noqa: F401
     ConsentStep,
     Course,
-    ForcedInteractionStep,  # noqa: F401
     InfoStep,
     InteractionStep,
     QuestionStep,
-    SubTask,  # noqa: F401
     VerificationStep,
 )
 from PySide6.QtWidgets import QWidget
@@ -91,7 +88,7 @@ def route_import_failure(
 
         remaining_count = len(panel.state.data.experiment.samples)
         if incorrect_step:
-            if remaining_count < 10:  # noqa: PLR2004
+            if remaining_count < 10:  # noqa: PLR2004 - course content: the dataset's 10 samples
                 incorrect_step.next_step_id = "c1_s2_import"
                 incorrect_step.text = (
                     "Oops — you've loaded an incorrect sample that doesn't belong in this tutorial.<br><br>"

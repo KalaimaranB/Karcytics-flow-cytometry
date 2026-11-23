@@ -200,7 +200,7 @@ def handle_load_fcs(kwargs: dict[str, Any]) -> dict[str, Any]:
     return {"error": "Neither FlowKit nor fcsparser is available in worker process."}
 
 
-def handle_load_fcs_batch(kwargs: dict[str, Any]) -> dict[str, Any]:  # noqa: C901
+def handle_load_fcs_batch(kwargs: dict[str, Any]) -> dict[str, Any]:  # noqa: C901 - per-file failures and the batch deadline
     """Load multiple FCS files concurrently within this single worker process.
 
     Runs in a bounded thread pool so a batch of files loads with real

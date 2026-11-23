@@ -36,7 +36,7 @@ def _do_warmup() -> None:
         import umap as umap_lib  # karcytics: allow KS360 - heavy library
 
         # karcytics: allow KS360 - heavy library
-        from tqdm import tqdm  # type: ignore
+        from tqdm import tqdm  # type: ignore  # tqdm ships no type stubs
 
         # UMAP's epoch loop always instantiates a tqdm progress bar
         # internally (gated by `disable`, not by whether it's created at

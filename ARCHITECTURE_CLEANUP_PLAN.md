@@ -511,8 +511,17 @@ compensation_sources, then spectral_learning_tab (most Academy-coupled, so last)
       `src/…/analysis/**` and off everywhere else (one negated per-file pattern in `ruff.toml`).
       The 226 missing ones are written, each saying what that code does; Protocol stubs became
       documented methods.
-- [ ] Domain magic numbers (77 `PLR2004`) into `analysis/constants.py`; pixel sizes stay inline.
-- [ ] Reasons on suppressions (KS310: 335), file by file as each is touched.
+- [x] Magic numbers. Most `PLR2004`s were structural counts ("a split needs two groups"), which
+      stay inline with the reason; 106 more were in tests, where the rule is off. Repeated values
+      are named: `FULL_QUALITY_MULTIPLIER` (`analysis/constants.py`, set by Render Full Quality and
+      read by two renderers), the node canvas's `MAX_ZOOM`/`MIN_ZOOM`, and the validators'
+      `SAME_SETTING` tolerance. Course thresholds (10 samples, 5 FMOs) stay in the course, per
+      "don't abstract the course content".
+- [ ] Reasons on suppressions (KS310: 335 → 122, all in `ui/`; pay those as each file is touched).
+      253 suppressed nothing and are gone (RUF100 removed 230 `noqa`s, mypy's
+      `warn_unused_ignores` 23 `type: ignore`s; both now stay on). Everything outside `ui/` has
+      its reason, or was fixed instead (`axis_manager`'s ignore became a None check; the
+      courses' unused imports went).
 - [x] CI hardening: every action in both workflows is pinned to a commit SHA (the one its moving
       tag pointed to, so nothing changed behaviour); `.github/dependabot.yml` bumps them weekly in
       one grouped PR (no uv job: the SDK resolves from a sibling path Dependabot can't see);

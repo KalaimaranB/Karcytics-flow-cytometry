@@ -176,7 +176,7 @@ class PhenographReclusterAnalysis(AnalysisBase):
         """Nothing to check: the run carries its own events."""
         return True, ""
 
-    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: ARG002
+    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: ARG002 - the run carries its own events
         """Cluster a finished run's graph again at the new resolution."""
         run = self.run_dict
         run.setdefault("run_uid", uuid.uuid4().hex)  # older saves: the daemon rebuilds the graph

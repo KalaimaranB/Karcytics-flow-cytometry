@@ -105,7 +105,7 @@ class StatResult:
             self.formatted = format_statistic(self.definition.stat_type, self.value)
 
 
-def _compute_percent_statistic(  # noqa: PLR0911
+def _compute_percent_statistic(  # noqa: PLR0911 - one return per percentage kind
     n: int,
     stat_type: StatType,
     parent_count: int | None,

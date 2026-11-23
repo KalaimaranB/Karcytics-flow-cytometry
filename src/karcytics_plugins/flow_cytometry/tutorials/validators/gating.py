@@ -68,7 +68,7 @@ class AxisOutlierValidator(FlowValidator):
             manager = AxisManager(app_state)
             scale = manager.get_scale(x_param, sample_id)
             # Use a small epsilon for float comparison
-            if abs(scale.outlier_percentile - self._target) >= 0.001:  # noqa: PLR2004
+            if abs(scale.outlier_percentile - self._target) >= 0.001:  # noqa: PLR2004 - percentiles are typed to 3 decimals
                 return self.log_failure(
                     f"Outlier percentile is {scale.outlier_percentile}, expected {self._target}."
                 )
@@ -226,7 +226,7 @@ class GateShapeValidator(FlowValidator):
             logger.exception("Exception in validate_flow!")
             raise e
 
-    def describe_failure(self, app_state: FlowState) -> ValidationFailure | None:  # noqa: ARG002
+    def describe_failure(self, app_state: FlowState) -> ValidationFailure | None:  # noqa: ARG002 - the base signature; the step's own state says it
         """Diagnoses the most recent `validate_flow()` failure and returns a
         self-contained fix, so `AcademyStepDriver` can explain + auto-correct
         a misnamed or badly-shaped gate without a course wiring a bespoke
@@ -289,7 +289,7 @@ class GateShapeValidator(FlowValidator):
         slack = (scale.max_val - scale.min_val) * self.PLOT_EDGE_SLACK
         return max(low, scale.min_val + slack), min(high, scale.max_val - slack)
 
-    def validate_shape(self, app_state: Any, node_id: str, sample_id: str) -> bool:  # noqa: PLR0911, PLR0912, PLR0915
+    def validate_shape(self, app_state: Any, node_id: str, sample_id: str) -> bool:  # noqa: PLR0911, PLR0912, PLR0915 - one check per gate shape
         """Validates the shape of a specific gate node. Returns True if accurate."""
         if not self.target_bounds and not self.target_poly:
             return True  # No shape checking required
@@ -404,7 +404,7 @@ class GateActiveValidator(FlowValidator):
     def __init__(self, target_gate_name: str) -> None:
         self.target = target_gate_name.lower()
 
-    def validate_flow(self, app_state: FlowState) -> bool:  # noqa: PLR0911
+    def validate_flow(self, app_state: FlowState) -> bool:  # noqa: PLR0911 - each failure logged on its own
 
         gate_id = getattr(app_state.view, "current_gate_id", None)
         sample_id = getattr(app_state.view, "current_sample_id", None)

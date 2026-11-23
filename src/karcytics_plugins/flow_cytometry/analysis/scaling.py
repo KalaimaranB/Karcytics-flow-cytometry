@@ -210,7 +210,7 @@ def _auto_range_biexponential(p_min: float, p_max: float) -> tuple[float, float]
     return (display_min, display_max)
 
 
-def calculate_auto_range(  # noqa: PLR0911
+def calculate_auto_range(  # noqa: PLR0911 - one early return per transform
     data: np.ndarray, transform_type: TransformType, outlier_percentile: float = 0.1
 ) -> tuple[float, float]:
     """Calculate a robust display range ignoring extreme outliers."""

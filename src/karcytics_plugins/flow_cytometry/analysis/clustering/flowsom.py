@@ -49,7 +49,7 @@ class FlowsomResult:
         return self.node_metaclusters[self.nodes]
 
 
-def fit_flowsom(  # noqa: PLR0913
+def fit_flowsom(  # noqa: PLR0913 - FlowSOM's own parameters
     x: np.ndarray,
     *,
     xdim: int = 10,

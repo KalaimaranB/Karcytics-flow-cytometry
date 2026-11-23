@@ -32,7 +32,7 @@ class _PropagationWorker(AnalysisBase):
         self._gate_tree_dict = gate_tree_dict
         self._target_samples = list(target_samples)
 
-    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: ARG002
+    def run(self, state: PluginState | None = None) -> dict[str, Any]:  # noqa: ARG002 - the samples were handed over at construction
         """Execute the propagation — called by the TaskScheduler."""
         logger.info(f"PropagationWorker.run started for {len(self._target_samples)} samples")
         if self._gate_tree_dict is None:

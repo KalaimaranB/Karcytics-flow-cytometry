@@ -16,6 +16,7 @@ import numpy as np
 from karcytics_sdk.plugin import get_logger
 from karcytics_sdk.plugin.rendering.pipeline import RasterizeStage, RenderComputeStage, RenderData
 
+from karcytics_plugins.flow_cytometry.analysis.constants import FULL_QUALITY_MULTIPLIER
 from karcytics_plugins.flow_cytometry.analysis.population_service import channel_values
 from karcytics_plugins.flow_cytometry.analysis.scaling import (
     compute_axis_limits as _compute_limits,
@@ -252,7 +253,7 @@ class FlowDataComputeStage(RenderComputeStage):
         render_kwargs: dict[str, Any] = {
             "quality_multiplier": state.quality_multiplier,
             "grid_size": int(512 * state.quality_multiplier),
-            "alpha": 1.0 if state.quality_multiplier >= 2.0 else 0.8,  # noqa: PLR2004
+            "alpha": 1.0 if state.quality_multiplier >= FULL_QUALITY_MULTIPLIER else 0.8,
         }
 
         if state.render_config:

@@ -248,7 +248,7 @@ def _merge_findings(
         major = [(cid, share) for cid, share in parts if share >= MERGE_MIN_SHARE]
         if summaries:
             major = _distinct(major, summaries)
-        if len(major) >= 2:  # noqa: PLR2004
+        if len(major) >= 2:  # noqa: PLR2004 - merging takes two populations
             findings.append(
                 Finding(
                     FindingKind.MERGES,
