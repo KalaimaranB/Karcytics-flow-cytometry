@@ -47,8 +47,14 @@ def fpbase_query_for_channel(channel: str, marker: str = "") -> str:
     return query
 
 
-# Cache key versioned so stale old-format entries are ignored
+# Cache keys versioned so stale entries are ignored. Spectra moved to v4 when
+# matching stopped resolving bare names to tandems ("APC" had been cached as
+# APC/H7, "PE" as PE-Cy5).
 _DYES_INDEX_KEY = "fpbase_dyes_index_v3"
+_SPECTRUM_KEY_PREFIX = "fluor_v4_"
+
+# Brilliant Violet / Ultraviolet dyes appear in FCS channels by their short name.
+_SHORT_NAME_PREFIXES = {"bv": "brilliant violet", "buv": "brilliant ultraviolet"}
 
 _GRAPHQL_URL = "https://www.fpbase.org/graphql/"
 _GRAPHQL_HEADERS = {"User-Agent": "Karcytics/1.0", "Content-Type": "application/json"}
@@ -111,7 +117,12 @@ class FluorophoreService:
         return None
 
     def _match_dye(self, name: str, dyes_index: dict) -> dict | None:
-        """Find the best-matching dye for a normalised name string."""
+        """Find the best-matching dye for a normalised name string.
+
+        Whole-name matches come first, so a bare dye name never resolves to a
+        tandem that merely contains it ('apc' to 'apc/h7', 'pe' to 'pe-cy5').
+        """
+        name = _expand_short_name(name)
         # 1. Exact match
         if name in dyes_index:
             logger.debug(f"FPbase exact match: '{name}'")
@@ -119,8 +130,18 @@ class FluorophoreService:
 
         # Sort names by length so 'Fluorescein (FITC)' is checked before 'Fluorescein-Dextran (FITC)'
         sorted_names = sorted(dyes_index.keys(), key=len)
+        key = _canonical(name)
 
-        # 2. Exact word match (e.g., 'fitc' matching 'fluorescein (fitc)')
+        # 2. The same name spelt with other separators ('pe/cy7' for 'pe-cy7')
+        # 3. A dye's own name before its aliases ('apc' for 'apc (allophycocyanin)')
+        # 4. One of its aliases in parentheses ('fitc' for 'fluorescein (fitc)')
+        for names_of in (lambda d: [d], _head, _aliases):
+            for d_name in sorted_names:
+                if key in (_canonical(n) for n in names_of(d_name)):
+                    logger.debug(f"FPbase name match: '{d_name}' for '{name}'")
+                    return dyes_index[d_name]
+
+        # 5. Exact word match (e.g., 'fitc' matching 'fluorescein-dextran (fitc)')
 
         for d_name in sorted_names:
             words = set(re.split(r"\W+", d_name))
@@ -128,7 +149,7 @@ class FluorophoreService:
                 logger.debug(f"FPbase exact word match: '{d_name}' for '{name}'")
                 return dyes_index[d_name]
 
-        # 3. Substring match (both directions)
+        # 6. Substring match (both directions)
         for d_name in sorted_names:
             if name in d_name or d_name in name:
                 logger.debug(f"FPbase partial match: '{d_name}' for '{name}'")
@@ -154,7 +175,7 @@ class FluorophoreService:
             Or None if completely unknown.
         """
         name = fluorophore_name.lower().strip()
-        cache_key = f"fluor_v3_{name}"
+        cache_key = f"{_SPECTRUM_KEY_PREFIX}{name}"
 
         cached = self._cache.get(cache_key)
         if cached:
@@ -218,3 +239,25 @@ class FluorophoreService:
             if len(matches) >= FPBASE_MAX_MATCHES:
                 break
         return matches
+
+
+def _canonical(name: str) -> str:
+    """A dye name with spaces, hyphens, slashes and underscores all one separator."""
+    return re.sub(r"[\s/_-]+", "-", name.strip())
+
+
+def _head(dye_name: str) -> list[str]:
+    """The name before any parenthesised aliases: 'apc' for 'apc (allophycocyanin)'."""
+    return [dye_name.split("(", 1)[0]] if "(" in dye_name else []
+
+
+def _aliases(dye_name: str) -> list[str]:
+    """The parenthesised aliases: ['r-pe', 'r-phycoerythrin'] for 'pe (r-pe / r-phycoerythrin)'."""
+    inside = re.findall(r"\(([^)]*)\)", dye_name)
+    return [alias for group in inside for alias in group.split(" / ")]
+
+
+def _expand_short_name(name: str) -> str:
+    """'bv421' to 'brilliant violet 421'; any other name unchanged."""
+    match = re.fullmatch(r"(bv|buv)\s*(\d+)", name)
+    return f"{_SHORT_NAME_PREFIXES[match[1]]} {match[2]}" if match else name

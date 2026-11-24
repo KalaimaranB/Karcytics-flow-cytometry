@@ -124,7 +124,7 @@
         "src/karcytics_plugins/flow_cytometry/analysis/autogate/template_runner.py": "f14f095eb4e9c8e0f895540f2a4bf7fd9432426977e96d1423757c75c8a19dd7",
         "src/karcytics_plugins/flow_cytometry/analysis/autogate/views.py": "e3456dec2934ffbf68465f574175a1ce1296fd70228c1b9f6ba869f8ce0edbaa",
         "src/karcytics_plugins/flow_cytometry/analysis/axis_manager.py": "8b846b7ec741fe79e126d6d9045b3578452d9c2854e8a35713b39dbcf3d08e3d",
-        "src/karcytics_plugins/flow_cytometry/analysis/biology_services.py": "e68cbb3a178da050d86a4aa60b1556d71e6141773e7629fc5f2a7f44cb649723",
+        "src/karcytics_plugins/flow_cytometry/analysis/biology_services.py": "4ad49d3ce407e6baef0c06e2d3a856b223f840d7f1376cb2cafc5e993def5506",
         "src/karcytics_plugins/flow_cytometry/analysis/channel_inference.py": "e07198045d9f763d82db52262dc522350e8691935c43fb00526a06f2bc628ff0",
         "src/karcytics_plugins/flow_cytometry/analysis/clustering/__init__.py": "705921bcaa648739e8dcbef88eec1e9c12cebd4a90e506edaf8e54761dfa8b5f",
         "src/karcytics_plugins/flow_cytometry/analysis/clustering/describe.py": "34f8afb5f606a2d94ebbc88b98c53a354697b546ce689a8408c6f15c2bfa50cd",
