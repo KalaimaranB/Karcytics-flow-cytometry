@@ -200,3 +200,25 @@ class EmbeddedMatrixInUseValidator(_CompensationTabValidator):
         if not view.samples_match_matrix or not all(s.is_compensated for s in samples):
             return "The embedded matrix is selected but not applied to every sample."
         return None
+
+
+class CompensationSwitchValidator(FlowValidator):
+    """Every loaded sample's data is compensated (``on``) or raw (not ``on``).
+
+    What the Compensation tab's ON / OFF switch shows, read from the data
+    itself so it holds whichever way the learner got there.
+    """
+
+    def __init__(self, on: bool) -> None:
+        self.on = on
+
+    def validate_flow(self, app_state: FlowState) -> bool:
+        loaded = [s for s in app_state.data.experiment.samples.values() if s.fcs_data]
+        if not loaded:
+            return self.log_failure("No samples are loaded.")
+        compensated = [s.fcs_data.is_compensated for s in loaded if s.fcs_data]
+        if self.on and not all(compensated):
+            return self.log_failure(f"{compensated.count(False)} sample(s) still show raw data.")
+        if not self.on and any(compensated):
+            return self.log_failure(f"{sum(compensated)} sample(s) are still compensated.")
+        return True

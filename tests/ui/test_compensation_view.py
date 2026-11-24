@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -28,7 +29,12 @@ from karcytics_plugins.flow_cytometry.analysis.compensation_sources.single_stain
 )
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.tutorials.validators.compensation import (
+    CompensationSwitchValidator,
+)
+from karcytics_plugins.flow_cytometry.ui.academy_context import MATRIX_HIGHLIGHT_KEY
 from karcytics_plugins.flow_cytometry.ui.widgets import compensation_view
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_switch import compensation_on
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_view import CompensationView
 
 pytestmark = pytest.mark.ui
@@ -427,6 +433,70 @@ def test_applying_an_unchanged_matrix_again_skips_compensated_samples(view, stat
 
     assert "applied to 0 sample(s)" in view._note.text()
     assert "2 skipped (already compensated)" in view._note.text()
+
+
+# ── The Compensation ON / OFF switch ──────────────────────────────────
+
+
+def test_the_switch_is_off_and_disabled_without_a_matrix(make_view, state):
+    view = make_view(state)
+
+    assert not view._switch.button.isEnabled()
+    assert view._switch.button.text() == "Compensation: OFF"
+
+
+def test_the_switch_turns_the_real_data_off_and_on_again(view, state):
+    changed = MagicMock()
+    view.compensation_changed.connect(changed)
+    sample = state.data.experiment.samples["a"]
+    raw = sample.fcs_data.raw_events.to_numpy()
+
+    view._switch.button.click()  # samples start raw: ON applies the matrix
+    assert compensation_on(state) and view._switch.button.isChecked()
+    assert view._switch.button.text() == "Compensation: ON ✦"
+    np.testing.assert_allclose(
+        sample.fcs_data.events.to_numpy(), raw @ np.linalg.inv(state.data.compensation.matrix)
+    )
+    assert CompensationSwitchValidator(on=True).check(state, None)
+
+    view._switch.button.click()
+    assert not compensation_on(state) and not view._switch.button.isChecked()
+    np.testing.assert_allclose(sample.fcs_data.events.to_numpy(), raw)
+    assert not any(s.is_compensated for s in state.data.experiment.samples.values())
+    assert CompensationSwitchValidator(on=False).check(state, None)
+    assert "OFF" in view._note.text()
+    assert changed.call_count == 2
+
+
+def test_the_switch_check_fails_on_a_mix(view, state):
+    view._switch.button.click()
+    state.data.experiment.samples["b"].fcs_data.is_compensated = False
+
+    assert not CompensationSwitchValidator(on=True).check(state, None)
+    assert not CompensationSwitchValidator(on=False).check(state, None)
+    assert not compensation_on(state)
+
+
+# ── Spotlighting part of the matrix for the Academy ───────────────────
+
+
+def test_the_matrix_spotlights_a_row_a_column_or_one_cell(view, qtbot):
+    view._btn_matrix_page.setChecked(True)
+    view.show()
+    qtbot.waitExposed(view)
+    editor = view._editor
+
+    def rects(**wanted):
+        return editor.get_tutorial_target_rects(
+            SimpleNamespace(metadata={MATRIX_HIGHLIGHT_KEY: wanted})
+        )
+
+    (row,) = rects(row="FL1-A")
+    (column,) = rects(column="FL2-A")
+    (cell,) = rects(row="FL1-A", column="FL2-A")
+    assert row.contains(cell) and column.contains(cell)
+    assert row.width() > cell.width() and column.height() > cell.height()
+    assert editor.get_tutorial_target_rects(SimpleNamespace(metadata={})) == []
 
 
 def test_cleanup_unsubscribes(view):

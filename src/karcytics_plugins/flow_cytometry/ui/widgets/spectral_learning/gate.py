@@ -33,7 +33,8 @@ class GateSlide(Slide):
         self._rect: patches.Rectangle | None = None
 
     def render(self, ax: Axes) -> str:
-        label_axes(ax, "Compensated Sample", "Detector 1", "Detector 2")
+        pair = self.deck.pair
+        label_axes(ax, "Compensated Sample", f"{pair.label_a} Detector", f"{pair.label_b} Detector")
         scene = compensated_scene(seed=SCENE_SEED)
         ax.scatter(scene["bg_x"], scene["bg_y"], color=Colors.FG_SECONDARY, alpha=0.3, s=10)
         for key in ("p1", "p2"):

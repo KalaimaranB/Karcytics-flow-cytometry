@@ -48,11 +48,13 @@ The on-ramp. You're handed three unidentified samples — one Spleen, one Thymus
 - Import all ten tutorial files and learn what a **Group** is and why it controls gate propagation.
 - Tag every file with its **Role** (Unstained, Single Stain, FMO Control, Full Panel), one at a time and then in bulk.
 - Draw your first gate, **Cells**, from Forward/Side Scatter alone, and learn what a singlet gate is for. It comes before compensation because it uses no dyes.
-- Learn *why* spillover happens: explore the **Spectral Viewer**'s real, FPbase-sourced dye curves and work through the interactive **Learning Compensation** masterclass built from your own panel's numbers.
-- Open the **Compensation** tab and judge the matrix the cytometer saved in your files: which method produced it, how to read a row and a column, what a well-compensated pair looks like on the before/after scatter and histograms, and why you check it across every sample.
+- Solve a mystery: with compensation switched **off**, Sample A's brightest CD4 cells look PI-positive, as if dead. Are they?
+- Learn *why*, in the order you need it: dyes glow over broad hills of colour (emission), and each detector only sees dyes its own laser lights up (excitation), using the **Spectral Viewer**'s real, FPbase-sourced curves.
+- Work through the seven-slide **Learning Compensation** deck at your own pace (Cyto explains it once, then stays out of the way): measure a spillover, subtract it by hand on a slider, then apply it to single cells, with worked examples, **💡 Show me** and a **🧮** calculator along the way.
+- Switch compensation back **on** and solve the mystery, then read the matrix the cytometer saved in your files: a guided row, column and cell, what a well-compensated pair looks like on the before/after preview, and why you check it across every sample. Course 2 then covers the matrix methods, the status line and the Matrices page.
 - Save your workspace — required to continue into Course 2.
 
-Short questions check the key ideas as you go: which control marks where CD45-negative ends, what spillover does to an uncompensated cell, where debris sits on a scatter plot, which cell of the matrix answers a given question, how a compensated population should sit, and why one tube isn't enough. It ends on a prediction about the matrix you'll build next.
+Each phase ends with a three-line recap. Short questions check the key ideas as you go: which control marks where CD45-negative ends, what spillover does to an uncompensated cell, whether a dye the laser can't light still spills, where debris sits on a scatter plot, what the PE-into-PI cell of the matrix says, how a compensated population should sit, and why one tube isn't enough. It ends on a prediction about the matrix you'll build next.
 
 ### Course 2 — Compensation & Clean-up Gates
 

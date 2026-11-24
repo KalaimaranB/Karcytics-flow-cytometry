@@ -10,6 +10,7 @@ from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color
 from matplotlib import patches
 from matplotlib.colors import to_hex
 
+from .calculator import Calculator
 from .scenes import dye_label, spectral_dyes, spill_matrix
 from .slide import AnswerBox, Slide, choices, heading, verdict
 
@@ -43,6 +44,7 @@ class MatrixSlide(Slide):
         self._draw_matrix(ax, names)
         if self.tube_found and not self.done:
             self.deck.ask("Enter a number", self._check_tube_count)
+            self.deck.add_control(Calculator())
         return self._html(self.deck.pair, len(names))
 
     def _draw_matrix(self, ax: Axes, names: list[str]) -> None:
@@ -78,8 +80,8 @@ class MatrixSlide(Slide):
             "<p>Every slide so far measured spillover for ONE pair of dyes. A real panel has"
             " many — correcting all of them at once needs a full <b>compensation matrix</b>: one"
             " row per dye and one column per detector, where each cell is how much of that dye's"
-            ' signal lands in that detector. "Compensate All" back in Step 5 is really just this'
-            " matrix, inverted and applied to every event at once.</p>"
+            " signal lands in that detector. The slider in Step 4 did this for one dye and one"
+            " detector; the matrix does it for all of them at once, for every cell.</p>"
             "<p>Two rules decide which control tubes you actually need to run to fill that"
             " matrix in:</p>"
             '<p><b>1. An unstained control</b> — sets the true "zero" (autofluorescence)'
@@ -110,8 +112,8 @@ class MatrixSlide(Slide):
         return html + verdict(
             f"Exactly — {n_dyes} dyes need {n_dyes + 1} tubes. The heatmap on the right is that"
             " matrix, estimated from your dyes' real spectra and the lasers that excite them."
-            " Single-stain tubes measure the same grid on your own cytometer, and inverting it"
-            " is what 'Compensate All' does under the hood."
+            " Single-stain tubes measure the same grid on your own cytometer, and compensation"
+            " uses it to take every dye's spillover off every cell at once."
         )
 
     def instruction(self) -> str:

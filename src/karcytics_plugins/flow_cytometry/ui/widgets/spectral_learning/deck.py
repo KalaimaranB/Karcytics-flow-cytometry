@@ -24,9 +24,9 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QVBoxLa
 
 from ...academy_context import LearningDeckSnapshot
 from ...graph._mpl_compat import LockedFigureCanvas
-from .compensate import CompensateSlide
 from .gate import GateSlide
 from .guide import SlideGuide
+from .level import LevelSlide
 from .matrix import MatrixSlide
 from .one_rule import OneRuleSlide
 from .physics import PhysicsSlide
@@ -45,8 +45,8 @@ SLIDES: tuple[type[Slide], ...] = (
     PhysicsSlide,
     ZeroSlide,
     RulerSlide,
+    LevelSlide,
     OneRuleSlide,
-    CompensateSlide,
     GateSlide,
     MatrixSlide,
 )
@@ -219,10 +219,9 @@ class SpectralLearningTab(QWidget):
         self._controls.addWidget(box)
         return box
 
-    def add_button(self, text: str, on_click: Callable[[], None]) -> None:
-        button = PrimaryButton(text)
-        button.clicked.connect(on_click)
-        self._controls.addWidget(button)
+    def add_control(self, widget: QWidget) -> None:
+        """A slide's own control (a slider, say) in the answer area; cleared on re-render."""
+        self._controls.addWidget(widget)
 
     def set_readout(self, text: str) -> None:
         self._readout.setText(text)

@@ -255,3 +255,31 @@ def test_the_matrix_values_the_compensation_steps_quote(fcs_test_data_dir):
     measured_columns = [c for c in range(len(channels)) if c != percp]
     difference = np.abs(estimate.matrix - embedded.matrix)[:, measured_columns]
     assert difference.max() < 0.04
+
+
+def test_course_1s_mystery_is_on_the_screen(fcs_test_data_dir):
+    """Course 1 opens compensation with a mystery: with compensation OFF, Sample
+    A's brightest CD4 (PE) cells sit higher on the PI axis and many look
+    PI-positive; ON, far fewer do (c1_c07_mystery, paid off in c1_c23_payoff).
+    """
+    fcs = load_fcs(str(fcs_test_data_dir / "Specimen_001_Sample A.fcs"), in_process_daemon)
+    raw, compensated = fcs.raw_events, fcs.events
+    assert raw is not None and fcs.is_compensated
+
+    def bright_cd4(events: pd.DataFrame) -> pd.DataFrame:
+        return events[events["PE-A"] > np.percentile(events["PE-A"], 90)]
+
+    def dim_cd4(events: pd.DataFrame) -> pd.DataFrame:
+        return events[events["PE-A"] < np.percentile(events["PE-A"], 50)]
+
+    # "PI-positive": above most PE-dim cells, judged on the corrected data.
+    pi_positive = np.percentile(dim_cd4(compensated)["PerCP-Cy5-5-A"], 95)
+    off = (bright_cd4(raw)["PerCP-Cy5-5-A"] > pi_positive).mean()
+    on = (bright_cd4(compensated)["PerCP-Cy5-5-A"] > pi_positive).mean()
+
+    # "sit higher on the PI axis than the dim ones"
+    assert bright_cd4(raw)["PerCP-Cy5-5-A"].median() > 2 * dim_cd4(raw)["PerCP-Cy5-5-A"].median()
+    assert off > 0.2  # "many look PI-positive"
+    assert on < off / 2  # "far fewer ... now"
+    assert "many look PI-positive" in STEPS["c1_c07_mystery"].text
+    assert "Far fewer" in STEPS["c1_c23_payoff"].text

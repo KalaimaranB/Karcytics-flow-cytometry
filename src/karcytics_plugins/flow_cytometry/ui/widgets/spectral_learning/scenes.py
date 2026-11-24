@@ -43,6 +43,11 @@ def dye_label(fluors: dict[str, dict[str, Any]], name: str) -> str:
     return str(fluors[name].get("display_label", name))
 
 
+def short_name(label: str) -> str:
+    """'PI' from 'PI (PerCP-Cy5-5-A)': the name before any channel in brackets."""
+    return label.split(" (", 1)[0]
+
+
 def emission_peak(fluors: dict[str, dict[str, Any]], name: str) -> float:
     """Where ``name`` emits most (nm): where its detector sits."""
     return float(GRID[np.argmax(_curve(fluors[name], "em_data"))])

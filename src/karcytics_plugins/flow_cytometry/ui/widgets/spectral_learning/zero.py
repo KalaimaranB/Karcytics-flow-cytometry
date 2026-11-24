@@ -53,7 +53,8 @@ class ZeroSlide(Slide):
         self._cloud = unstained_cloud()
 
     def render(self, ax: Axes) -> str:
-        label_axes(ax, "Unstained Cells", "Detector 1", "Detector 2")
+        pair = self.deck.pair
+        label_axes(ax, "Unstained Cells", f"{pair.label_a} Detector", f"{pair.label_b} Detector")
         ax.scatter(*self._cloud, color=Colors.FG_SECONDARY, alpha=0.5, s=10)
         self._lines = None
         if not self.predicted:

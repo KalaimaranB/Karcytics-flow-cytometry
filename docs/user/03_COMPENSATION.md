@@ -10,6 +10,8 @@ The tab has a slim header and three pages.
 
 **Header.** Pick a **Method** and click the button beside it; the text next to it says what the method needs and what it found in your loaded samples. The line underneath names the matrix in use, the method behind it (for example *6×6 · Embedded in the FCS files, fine-tuned by hand*), how many samples it is applied to, and the outcome of your last action. **↩ Revert Edits** appears there while you have unapplied edits.
 
+**Compensation ON / OFF.** The switch at the right of the header turns the matrix in use on or off for every sample. Off, every plot and statistic shows the raw data as the cytometer recorded it; on, they show the compensated data. It's a quick way to see what compensation changes on your own gates. Turn it back on before you analyse. The Matrix page's preview compares before and after without switching anything.
+
 **Pages.**
 
 - **⚙ Method setup** — for the selected method: how it works and its limits, its options, the samples it will use right now, and (for calculated methods) a report of what the last run rested on. The tab opens on this page.

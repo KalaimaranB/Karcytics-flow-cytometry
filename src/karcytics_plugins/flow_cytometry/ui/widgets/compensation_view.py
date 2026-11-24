@@ -11,6 +11,10 @@ and says what the current matrix is. Below, three pages:
 
 Edits are a draft: they change the workspace only when a matrix is applied
 from the Matrices page, so every keystroke doesn't recompensate every sample.
+
+The header's **Compensation ON / OFF** switch turns the applied matrix on and
+off for every sample (the real data, so every plot and statistic follows),
+while the preview compares before and after without changing anything.
 """
 
 from __future__ import annotations
@@ -47,6 +51,7 @@ from karcytics_plugins.flow_cytometry.analysis.compensation_sources.registry imp
 from karcytics_plugins.flow_cytometry.analysis.services import experiment_edits
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import CompensationEditor
+from karcytics_plugins.flow_cytometry.ui.widgets.compensation_switch import CompensationSwitch
 from karcytics_plugins.flow_cytometry.ui.widgets.matrix_library_panel import MatrixLibraryPanel
 from karcytics_plugins.flow_cytometry.ui.widgets.method_setup_panel import MethodSetupPanel
 
@@ -174,6 +179,12 @@ class CompensationView(QWidget):
         self._note = QLabel()  # outcome of the last action
         self._note.setWordWrap(True)
         row.addWidget(self._note, stretch=1)
+
+        self._switch = CompensationSwitch(self._state, apply_all=self._on_apply_all)
+        self._switch.announced.connect(self._note.setText)
+        self._switch.turned_off.connect(self.refresh)
+        self._switch.turned_off.connect(self.compensation_changed)  # after the refresh
+        row.addWidget(self._switch)
 
         self._btn_revert = SecondaryButton("↩ Revert Edits")
         self._btn_revert.setToolTip("Discard your edits and go back to the workspace's matrix.")
@@ -401,6 +412,7 @@ class CompensationView(QWidget):
         self._btn_revert.setVisible(dirty)
         self._library.refresh(self._editor.matrix)
         self._sync_matrix_choices()
+        self._switch.sync()
 
         if matrix is None and self._editor.matrix is None:
             self._status.setText("No compensation matrix.")

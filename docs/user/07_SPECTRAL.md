@@ -37,7 +37,7 @@ Three curve types can be toggled independently with the **AB / EX / EM** buttons
 
 ### Spectral overlap evaluation
 
-Whenever two or more dyes have their Emission curves visible, the plot automatically shades every pairwise region where both curves are meaningfully above zero, and drops a callout at the peak of the shaded region reporting the overlap as a percentage. This is the same overlap calculation used by the Learning Compensation tab, so the number you see here is directly comparable to what that tutorial teaches.
+Whenever two or more dyes have their Emission curves visible, the plot automatically shades every pairwise region where both curves are meaningfully above zero, and drops a callout at the peak of the shaded region reporting the overlap as a percentage. The percentage comes from the emission curves alone. The Learning Compensation deck goes one step further and also counts the lasers (see below), so its numbers can be smaller.
 
 Click a callout to dismiss it if it's blocking your view of the curves underneath — this only hides that one annotation, and it reappears if you reopen the tab.
 
@@ -48,3 +48,27 @@ Click a callout to dismiss it if it's blocking your view of the curves underneat
 
 !!! tip "The Golden Rule of panel design"
     Compensation can correct the *average* leakage between two dyes, but heavy spectral overlap still increases noise (spreading error) in the corrected data. The best fix for two heavily overlapping dyes is not a bigger compensation matrix — it's assigning them to markers that are never expected to be positive on the same cell.
+
+
+## Learning Compensation
+
+A seven-slide interactive deck that teaches compensation with numbers worked out from the dyes you have loaded (at least two with spectra). Each slide has a task; **Next Step →** unlocks when it's done.
+
+| Slide | What you do |
+| --- | --- |
+| 1. The Physics of Overlap | Drag a detector's filter onto a dye's peak, then click the marker of the dye that reaches highest inside it. Only dyes that detector's laser lights up get a marker. |
+| 2. Setting the Zero | Choose where an unstained control's threshold belongs, then drag the crosshair just past the unstained cloud. |
+| 3. Measure the Spillover | After a worked example, drag a ruler along a single-stain cloud and turn its Rise and Run into "for every 100 units of the first dye, the second detector reads __ extra". |
+| 4. Find the Level | Drag a "% subtracted" slider until the single-stain cloud lies level with the unstained cells: too little and it climbs (under-compensated), too much and it dips (over-compensated). |
+| 5. Same Rule, Every Cell | Three cells shown as bars of their second-detector reading: one worked example, one rule question, one half-done calculation, and one you do alone. |
+| 6. Gate the Cleaned Data | Draw a rectangle around the double-positive population. |
+| 7. Building the Matrix | Pick the control tube that measures one dye's spillover, and count the tubes a full matrix needs. |
+
+On every slide:
+
+- **👉 Your turn** (above the explanation) always says what to do next, what went wrong on your last try, and when the slide is done.
+- **💡 Show me** draws the move on the plot (a target zone, a line to trace, a drag arrow) or outlines the answer box. On the maths slides it gives the next step of the sum, not the answer. After 30 seconds on a slide, the Your turn box suggests it.
+- **🧮** (on the maths slides) works out what you type: numbers, + − × ÷, brackets and %, as in `750 × 20%`.
+
+**How the deck estimates spillover.** A dye's spillover into another dye's detector is its emission at that detector's peak, scaled by how well that detector's laser excites it compared with the dye's own best laser. The deck assumes a common three-laser cytometer (405, 488 and 640 nm). The deck teaches with the largest such spillover among your dyes; Slide 7's heatmap shows the whole estimate, dyes as rows and detectors as columns. Real values come from single-stain controls on your own instrument.
+

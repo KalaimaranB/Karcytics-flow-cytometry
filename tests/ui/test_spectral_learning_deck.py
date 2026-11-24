@@ -7,12 +7,14 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
-from karcytics_sdk.plugin.components import PrimaryButton
 from PySide6.QtCore import QUrl
+from PySide6.QtWidgets import QSlider
 
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
+from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.calculator import evaluate
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.one_rule import (
     compensated_dp,
+    spillover,
     three_cells,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.scenes import (
@@ -148,7 +150,8 @@ def test_step_3_measure_the_slope_then_type_what_it_implies(deck):
 
     _press(deck, 650, 650 * slope)
     _drag(deck, 950, 950 * slope)
-    assert "Slope:" in deck._readout.text()
+    assert "Rise" in deck._readout.text() and "Run" in deck._readout.text()
+    assert "%" not in deck._readout.text()  # the learner works the % out
     _release(deck)
     assert slide.measured
 
@@ -159,47 +162,56 @@ def test_step_3_measure_the_slope_then_type_what_it_implies(deck):
     assert _done(deck)
 
 
-def test_step_4_the_double_positive_keeps_its_own_signal(deck):
+def _level(deck, pct: float) -> None:
+    """Slide 4: set the slider to ``pct``."""
+    slider = deck.findChild(QSlider, "LevelSlider")
+    slider.setValue(round(pct * 2))
+
+
+def test_step_4_the_slider_counts_only_when_held_level(deck, qtbot):
     deck._go_to(3)
+    slide = deck.slides[3]
+
+    _level(deck, 0)
+    assert "under-compensated" in slide._status.text()
+    _level(deck, deck.pair.pct * 2)
+    assert "over-compensated" in slide._status.text()
+    assert not deck._ticker.isActive()
+
+    _level(deck, deck.pair.pct)
+    assert "level" in slide._status.text() and deck._ticker.isActive()
+    qtbot.waitUntil(lambda: _done(deck), timeout=3000)
+    assert "Step 3" in deck._explanation.toPlainText()
+
+
+def test_step_4_moving_off_level_before_the_hold_does_not_count(deck):
+    deck._go_to(3)
+    _level(deck, deck.pair.pct)
+    _level(deck, 0)
+    deck.slides[3].on_tick()  # a late tick from the first, abandoned hold
+
+    assert not _done(deck)
+    assert not deck._ticker.isActive()
+
+
+def test_step_5_worked_then_half_done_then_alone(deck):
+    deck._go_to(4)
+    slide = deck.slides[4]
+    pct = deck.pair.pct
+
+    deck._on_link(QUrl("s4_same"))
+    assert slide.stage == "rule" and slide.wrong_hint
     deck._on_link(QUrl("s4_proportional"))
+    assert slide.stage == "bright"
+
     box = _answer(deck, "lots")
-    assert box.error.text() == "Enter a number, e.g. 250"
+    assert box.error.text() == "Enter a number, e.g. 90"
+    assert "dim cell" in _answer(deck, f"{spillover(pct, 300):.0f}").error.text()
+    _answer(deck, f"{spillover(pct, 900):.0f}")
+    assert slide.stage == "both"
 
-    _answer(deck, f"{compensated_dp(deck.pair.pct, three_cells(deck.pair.pct)):.0f}")
-
+    _answer(deck, f"{compensated_dp(pct, three_cells(pct)):.0f}")
     assert _done(deck)
-
-
-def test_step_5_predict_then_watch_compensation_land(deck, qtbot):
-    deck._go_to(4)
-    slide = deck.slides[4]
-    _press(deck, 600, 120)
-    assert slide.prediction == (600, 120)
-
-    button = next(
-        b
-        for b in deck.findChildren(PrimaryButton)
-        if b.text() == "⚙️ Compensate All" and b.isVisibleTo(deck)
-    )
-    button.click()
-    assert slide.animating and deck._ticker.isActive()
-
-    qtbot.waitUntil(lambda: _done(deck), timeout=5000)
-    assert not deck._ticker.isActive()
-    assert slide.progress == 1.0
-
-
-def test_leaving_step_5_mid_animation_starts_it_over(deck):
-    deck._go_to(4)
-    slide = deck.slides[4]
-    _press(deck, 600, 120)
-    slide._start()
-    slide.on_tick()
-
-    deck._go_to(3)
-
-    assert not deck._ticker.isActive()
-    assert (slide.animating, slide.progress) == (False, 0.0)
 
 
 def test_step_6_a_gate_released_off_the_plot_still_counts(deck):
@@ -303,10 +315,8 @@ def test_the_strip_says_what_to_do_then_points_at_next(deck):
     assert "Your turn" in _strip(deck)
     assert deck._btn_next.toolTip()  # locked Next explains itself
 
-    deck._go_to(4)
-    _press(deck, 600, 120)
-    deck.slides[4].progress = 1.0
-    deck.slides[4].finish()
+    deck._go_to(3)
+    deck.slides[3].finish()
 
     assert "Next Step" in _strip(deck)
     assert deck._btn_next.isEnabled() and not deck._btn_next.toolTip()
@@ -330,9 +340,15 @@ def test_the_strip_says_what_to_do_then_points_at_next(deck):
         ),
         (2, None),
         (3, None),
-        (3, lambda d: d._on_link(QUrl("s4_proportional"))),
         (4, None),
-        (4, lambda d: _press(d, 600, 120)),
+        (4, lambda d: d._on_link(QUrl("s4_proportional"))),
+        (
+            4,
+            lambda d: (
+                d._on_link(QUrl("s4_proportional")),
+                _answer(d, f"{spillover(d.pair.pct, 900):.0f}"),
+            ),
+        ),
         (5, None),
         (6, None),
         (6, lambda d: d._on_link(QUrl("mc_single"))),
@@ -470,3 +486,22 @@ def test_step_2_show_me_square_is_exactly_what_the_check_accepts(deck):
     assert slide._judge(edge, edge) is None
     assert slide._judge(300, 300) is None
     assert slide._judge(edge - 5, edge - 5) is not None
+
+
+@pytest.mark.parametrize(
+    ("typed", "value"),
+    [
+        ("750 × 20%", 150.0),
+        ("190 ÷ 950", 0.2),
+        ("(400 - 40) / 1000 * 100", 36.0),
+        ("1,000 x 2", 2000.0),
+        ("-3 + 5", 2.0),
+    ],
+)
+def test_the_calculator_does_the_sums_the_deck_asks_for(typed, value):
+    assert evaluate(typed) == pytest.approx(value)
+
+
+@pytest.mark.parametrize("typed", ["", "2 ** 10", "__import__('os')", "1 / 0", "abc", "True + 1"])
+def test_the_calculator_refuses_anything_but_arithmetic(typed):
+    assert evaluate(typed) is None

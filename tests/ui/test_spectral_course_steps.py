@@ -22,6 +22,7 @@ from karcytics_plugins.flow_cytometry.ui.academy_context import (
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.one_rule import (
     compensated_dp,
     grade_dp_answer,
+    spillover,
     three_cells,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.slide import AnswerBox
@@ -81,27 +82,29 @@ def test_the_viewer_cites_fpbase(viewer):
 
 
 @pytest.mark.ui
-def test_step_4_needs_the_proportional_rule_then_the_double_positive(viewer):
+def test_step_5_needs_the_proportional_rule_then_both_cells(viewer):
     deck = viewer.learning_tab
-    deck._go_to(3)
-    slide = deck.slides[3]
+    deck._go_to(4)
+    slide = deck.slides[4]
 
     deck._on_link(QUrl("s4_same"))
-    assert not slide.rule_found
+    assert slide.stage == "rule"
     assert slide.wrong_hint
 
     deck._on_link(QUrl("s4_proportional"))
-    assert slide.rule_found
-    assert 3 not in deck._completed_steps
+    for answer in (
+        spillover(deck.pair.pct, 900),
+        compensated_dp(deck.pair.pct, three_cells(deck.pair.pct)),
+    ):
+        assert 4 not in deck._completed_steps
+        box = next(b for b in deck.findChildren(AnswerBox) if b.isVisibleTo(deck))
+        assert box.error.wordWrap()
+        box.input.setText(f"{answer:.0f}")
+        box.submitted.emit()
+    assert 4 in deck._completed_steps
 
-    box = deck.findChild(AnswerBox)
-    assert box.error.wordWrap()
-    box.input.setText(f"{compensated_dp(deck.pair.pct, three_cells(deck.pair.pct)):.0f}")
-    box.submitted.emit()
-    assert 3 in deck._completed_steps
 
-
-def test_step_4_grading_names_the_likely_mistake():
+def test_step_5_grading_names_the_likely_mistake():
     pct = 30.0
     cells = three_cells(pct)
     (x3, y3) = cells[2]
@@ -109,15 +112,16 @@ def test_step_4_grading_names_the_likely_mistake():
 
     assert grade_dp_answer(expected, pct, cells) is None
     assert grade_dp_answer(expected + 8, pct, cells) is None
-    assert "raw reading" in grade_dp_answer(y3, pct, cells)
-    assert "floor" in grade_dp_answer(40, pct, cells)
-    assert "subtracted all" in grade_dp_answer(y3 - x3, pct, cells)
-    assert "subtract" in grade_dp_answer(expected + 100, pct, cells)
+    assert "before compensation" in grade_dp_answer(y3, pct, cells)
+    assert "spillover itself" in grade_dp_answer(spillover(pct, x3), pct, cells)
+    assert "background" in grade_dp_answer(40, pct, cells)
+    assert "took off all" in grade_dp_answer(y3 - x3, pct, cells)
+    assert "🧮" in grade_dp_answer(expected + 100, pct, cells)
 
 
-def test_cell_3_stays_positive_after_compensation():
-    for pct in (5.0, 38.0, 72.0):
+def test_the_really_both_cell_stays_positive_after_compensation():
+    for pct in (5.0, 20.03, 38.0, 72.0):
         cells = three_cells(pct)
         for x, y in cells[:2]:
-            assert abs((y - pct / 100 * x) - 40) <= 1  # pure leak lands on the floor
+            assert y - spillover(pct, x) == 40  # single-dye cells land exactly on the background
         assert compensated_dp(pct, cells) > 300

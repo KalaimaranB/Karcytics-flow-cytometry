@@ -30,12 +30,13 @@ from karcytics_plugins.flow_cytometry.analysis import events
 
 from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
 from ..main_tabs import MainTab
-from .constants import PREVIEW_ALL_SAMPLES, PREVIEW_VIEW_BOTH
+from .course1_compensation import COMPENSATION_STEPS
 from .course1_scatter import SCATTER_STEPS
-from .course1_spectral import SPECTRAL_STEPS
 from .tutorial_assets import describe_files_location, start_provisioning
-from .validators.base import PropertiesViewValidator, TabActiveValidator, WorkflowSavedValidator
-from .validators.compensation import PreviewShowsValidator
+from .validators.base import (
+    PropertiesViewValidator,
+    TabActiveValidator,
+)
 from .validators.gating import GateShapeValidator
 from .validators.setup import (
     FlowImportValidator,
@@ -137,7 +138,10 @@ def route_by_properties_view(panel, step_id, switch_step_id, ready_step_id):
 # explanation banner, auto-renaming/deleting the gate, and routing to the
 # validator's own `misnamed_retry_step_id`/`shape_retry_step_id` in one
 # generic path shared by every course that uses `GateShapeValidator`.
-# Three phases: Setup → First gate (Cells) → Compensation
+# Three phases: Setup → First gate (Cells) → Compensation. Each ends with a
+# three-line recap. Compensation starts from a mystery (compensation OFF) and
+# ends with its payoff (ON); the spectra and the deck sit in between
+# (course1_spectral).
 # ==============================================================================
 
 # Held as a variable (rather than built inline in the steps list below) so
@@ -204,9 +208,10 @@ course_1_fundamentals = Course(
     title="Flow Cytometry Fundamentals",
     description=(
         "Your samples just arrived. We'll set up the experiment, draw the "
-        "first gate, and see why and how the data is compensated."
+        "first gate, and solve a spillover mystery to see why and how the "
+        "data is compensated."
     ),
-    estimated_minutes=50,
+    estimated_minutes=50,  # first estimate after the scaffolding rework; re-time live
     badge_reward="Flow Fundamentalist",
     badge_icon="🔬",
     prerequisite_course_ids=[],
@@ -217,9 +222,9 @@ course_1_fundamentals = Course(
             text=(
                 "Welcome to Karcytics Flow Cytometry! 🧬<br><br>"
                 "Imagine, you are a busy graduate student, and you "
-                "isolated cells from three different mouse tissues:"
-                "spleen, thymus and bone marrow. However, much to your dismay"
-                ",you forgot to label the samples with the type of tissue they came from!"
+                "isolated cells from three different mouse tissues: "
+                "spleen, thymus and bone marrow. However, much to your dismay, "
+                "you forgot to label the samples with the type of tissue they came from! "
                 "Today's mystery: 3 unknown samples — one is Spleen, one is "
                 "Thymus, one is Bone Marrow. Immune cells distributions look different "
                 "from organ to organ, and by the end of Course 3 you'll "
@@ -407,7 +412,7 @@ course_1_fundamentals = Course(
             explanation=(
                 "The APC FMO includes all fluorophores except APC, "
                 "matching the spillover into the APC channel while "
-                "lacking true CD45 signal. Its APC signal is background,"
+                "lacking true CD45 signal. Its APC signal is background, "
                 "defining the CD45-negative boundary."
             ),
             cyto_emotion="thinking",
@@ -518,11 +523,13 @@ course_1_fundamentals = Course(
         InfoStep(
             id="c1_s11_role_summary",
             text=(
-                "Perfect! Roles are all set.<br><br>"
-                "Why do we do this? These tags are used to:<br>"
-                "• Single Stains build the matrix to correct spectral overlap<br>"
-                "• Full Panels receive the correction and get analyzed<br>"
-                "• FMOs guide your gating to separate positive from negative, but get excluded from final test statistics so they don't skew your sample averages."
+                "Phase 1 in three lines 📝<br><br>"
+                "• **Import:** your 10 files are in, all in one group.<br>"
+                "• **Roles** tell Karcytics what each tube is for: Single Stains "
+                "help measure spillover, Full Panels are the samples you "
+                "analyse, and FMOs show where 'negative' ends for gating.<br>"
+                "• FMOs are left out of the final statistics, so they don't skew "
+                "your sample averages."
             ),
             cyto_emotion="happy",
             next_step_id="c1_s20_gating_intro",
@@ -736,382 +743,22 @@ course_1_fundamentals = Course(
                 "gate for singlets today, but it's a crucial step in real experiments!"
             ),
             cyto_emotion="thinking",
-            next_step_id="c1_s12_comp_intro",
-        ),
-        # ── Phase 3 — Compensation ────────────────────────────────────────────
-        InfoStep(
-            id="c1_s12_comp_intro",
-            text=(
-                "Phase 3 — Compensation ⚖️<br><br>"
-                "Every gate after **Cells** sits on a fluorescence channel, so "
-                "the dyes have to be split up first.<br><br>"
-                "Fluorescent dyes can spill signal into detectors intended for"
-                "other dyes. Compensation removes this cross-talk mathematically."
-                "That is why we assign the Single Stain and Full Panel roles first:"
-                "the algorithm needs to identify the control files before it can"
-                "calculate and apply the correction to the experimental samples."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c1_s12c_auto_applied_info",
+            next_step_id="c1_s25b_gate_recap",
         ),
         InfoStep(
-            id="c1_s12c_auto_applied_info",
+            id="c1_s25b_gate_recap",
             text=(
-                "Karcytics found a **$SPILL** keyword embedded in your Blank's "
-                "FCS file header and auto-applied the compensation matrix "
-                "to all samples when they were loaded! ✅<br><br>"
-                "Look at the sample tree — every sample now has a **✦** "
-                "tag next to its name. That's how Karcytics marks a sample as "
-                "compensated, so at a glance you always know whether you're "
-                "looking at raw or corrected data.<br><br>"
-                "Before we look at that matrix, it's worth understanding "
-                "what it is actually correcting — because **spillover** "
-                "isn't just a term to memorize, it's a real physical property of "
-                "how dyes emit light."
+                "Phase 2 in three lines 📝<br><br>"
+                "• **Gates** are regions you draw around cells; each one narrows "
+                "down inside the last, like a funnel.<br>"
+                "• **FSC** (size) and **SSC** (inner complexity) need no dye, so "
+                "the **Cells** gate can come first.<br>"
+                "• Gates spread to every sample in the same **group**, and "
+                "**Ctrl+Z / Cmd+Z** undoes a mistake."
             ),
             cyto_emotion="happy",
-            target_widget_names=["SampleList"],
-            next_step_id="c1_s12d_spectral_theory_1",
+            next_step_id="c1_c02_comp_tab",
         ),
-        InfoStep(
-            id="c1_s12d_spectral_theory_1",
-            text=(
-                "Where does spillover actually come from? <br><br>"
-                "A fluorescent dye does not emit at one exact wavelength. "
-                "It emits across a broad, hill shaped range that can span 100 nm"
-                "or more.Detectors sit under the peak of one dye’s curve, but the"
-                "shoulders of that curve can still spill into neighboring detectors."
-                "Two dyes with peaks 50 nm apart can still overlap by 20 to 30 "
-                "percent or more. That overlap is the spillover that compensation corrects."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c1_s12e_spectral_theory_2",
-        ),
-        QuestionStep(
-            id="c1_s12e_spectral_theory_2",
-            text=(
-                "Spillover in action 🌈<br><br>"
-                "FITC's fluorescence spills into the PE detector. Without compensation, "
-                "how does a cell that's bright for FITC but carries no PE look?"
-            ),
-            question_id="c1_spillover_effect",
-            choices=[
-                AnswerChoice(
-                    "PE-negative, as it should",
-                    feedback="The PE detector still catches FITC's shoulder, so its reading climbs even though there's no PE.",
-                ),
-                AnswerChoice(
-                    "Dimmer for FITC",
-                    feedback="Spillover adds to the neighbouring detector; it doesn't take away from FITC's own reading.",
-                ),
-                AnswerChoice("Falsely PE-positive", correct=True),
-            ],
-            explanation=(
-                "Compensation fixes this: your Single Stains show what fraction "
-                "of each dye leaks into each other detector, and that leak is "
-                "subtracted from every event. First, let's look at the real "
-                "spectra of the dyes in your panel."
-            ),
-            cyto_emotion="thinking",
-            next_step_id="c1_sp43_verify_spectral_tab",
-        ),
-        *SPECTRAL_STEPS,
-        # A VerificationStep, not an InteractionStep: if the user is already
-        # on Compensation it passes at once (clicking the active tab emits
-        # no currentChanged, so a click-wait would hang). Every tab switch
-        # in the courses uses this one-step form.
-        VerificationStep(
-            id="c1_s13b_verify_comp_tab",
-            text=(
-                "Click the **Compensation** tab (highlighted) at the top — "
-                "that's where Karcytics keeps its compensation tools."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["MainTabBar"],
-            validator=TabActiveValidator(MainTab.COMPENSATION),
-            on_success_step_id="c1_m01_method_setup",
-        ),
-        # ── Judging the matrix you already have ───────────────────────────────
-        InfoStep(
-            id="c1_m01_method_setup",
-            text=(
-                "The **Compensation** tab ⚖️<br><br>"
-                "There is more than one way to get a spillover matrix: read the "
-                "one the cytometer saved in the files, estimate one from your "
-                "controls, import one, or type it in. The **Method** dropdown "
-                "(highlighted) picks which.<br><br>"
-                "The tab opens on **Method setup**, which explains the selected "
-                "method and shows what it would use. Yours is on *Embedded in "
-                "the FCS files*: the default whenever the files carry a matrix."
-            ),
-            cyto_emotion="talking",
-            target_widget_names=["CompensationMethodCombo", "CompensationSetupPageButton"],
-            next_step_id="c1_m02_inputs",
-        ),
-        InfoStep(
-            id="c1_m02_inputs",
-            text=(
-                "What the method will use 🔎<br><br>"
-                "The table lists every sample and the matrix inside its file. One "
-                "says *read from this sample*; the rest say *same matrix*: all ten "
-                "tubes were run with one set of cytometer settings.<br><br>"
-                "If a file ever says *different matrix*, stop and find out why "
-                "before trusting either."
-            ),
-            cyto_emotion="thinking",
-            target_widget_names=["MethodInputsTable"],
-            next_step_id="c1_s14_extract_matrix",
-        ),
-        InteractionStep(
-            id="c1_s14_extract_matrix",
-            text=(
-                "Click **📄 Extract from FCS** (highlighted).<br><br>"
-                "This reads the matrix from the file and opens it on the "
-                "**Matrix** page."
-            ),
-            target_widget_name="ExtractFCSButton",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            next_step_id="c1_m03_read_matrix",
-        ),
-        QuestionStep(
-            id="c1_m03_read_matrix",
-            text=(
-                "Read the matrix 🔢<br><br>"
-                "Each **row** is a dye; each **column** is a detector its light "
-                "lands in. How much of **PE**'s signal lands in the "
-                "**PerCP-Cy5-5** detector?"
-            ),
-            question_id="c1_pe_into_percp",
-            choices=[
-                AnswerChoice(
-                    "0.04",
-                    feedback="That's the other direction: the PerCP-Cy5-5 row, PE column. Start from the PE row.",
-                ),
-                AnswerChoice("0.30", correct=True),
-                AnswerChoice(
-                    "1.00",
-                    feedback="That's the diagonal: a dye in its own detector, always 1. Look along the PE row.",
-                ),
-            ],
-            explanation=(
-                "PE row, PerCP-Cy5-5 column: for every 100 units of PE, that "
-                "detector picks up 30. It is the largest value in this matrix, "
-                "and PerCP-Cy5-5 is where PI, our live/dead dye, is read."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            target_widget_names=["CompensationMatrixTable"],
-            next_step_id="c1_m04_status_line",
-        ),
-        InfoStep(
-            id="c1_m04_status_line",
-            text=(
-                "Where did these numbers come from? 🏷️<br><br>"
-                "The status line (highlighted) always says: the matrix's size, the "
-                "**method** behind it, and how many samples it is applied to. If "
-                "you later change a value by hand, it says that too.<br><br>"
-                "A matrix you can't trace is a matrix you can't defend."
-            ),
-            cyto_emotion="talking",
-            target_widget_names=["CompensationStatusLine"],
-            next_step_id="c1_m05_plot_pair",
-        ),
-        VerificationStep(
-            id="c1_m05_plot_pair",
-            text=(
-                "Numbers are claims; the plots are the evidence.<br><br>"
-                "1. Click the **0.3000** cell (PE row, PerCP-Cy5-5 column). The "
-                "preview switches to that pair: the dye on X, the detector on Y.<br>"
-                "2. Set **Sample** to **Sample A**, a tube with plenty of "
-                "PE-bright cells."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["CompensationMatrixTable", "PreviewSampleCombo"],
-            validator=PreviewShowsValidator(x="PE-A", y="PerCP-Cy5-5-A", sample_name="Sample A"),
-            on_success_step_id="c1_m06_read_scatter",
-            failure_hint=(
-                "Click the 0.3000 cell in the PE-A row, then choose Sample A in the "
-                "**Sample** dropdown above the plots."
-            ),
-        ),
-        QuestionStep(
-            id="c1_m06_read_scatter",
-            text=(
-                "Before and after 👀<br><br>"
-                "Left: the raw signal. Right: the same cells with this matrix. "
-                "The big cloud is PE-bright cells that carry no PI. With a good "
-                "matrix, how should it sit on the **After** plot?"
-            ),
-            question_id="c1_compensated_shape",
-            choices=[
-                AnswerChoice(
-                    "Climbing diagonally as PE gets brighter",
-                    feedback="That's the raw plot: the brighter the PE, the more of it leaks into the other detector.",
-                ),
-                AnswerChoice(
-                    "Dipping below the PE-negative cells",
-                    feedback="That's over-compensation: the value is too high and takes away more than leaked in.",
-                ),
-                AnswerChoice("Level with the PE-negative cells", correct=True),
-            ],
-            explanation=(
-                "Level is the goal: being bright for PE should say nothing about "
-                "the PerCP-Cy5-5 detector. Tilted up means the value is too low; "
-                "pushed down means too high."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            target_widget_names=["CompensationPreviewArea"],
-            next_step_id="c1_m07_view_both",
-        ),
-        VerificationStep(
-            id="c1_m07_view_both",
-            text=("A second way to look: set **View** (highlighted) to **Scatter + histograms**."),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["PreviewViewCombo"],
-            validator=PreviewShowsValidator(view=PREVIEW_VIEW_BOTH),
-            on_success_step_id="c1_m08_histograms",
-            failure_hint="Open the **View** dropdown above the plots and pick Scatter + histograms.",
-        ),
-        InfoStep(
-            id="c1_m08_histograms",
-            text=(
-                "Histograms: one detector at a time 📊<br><br>"
-                "Grey is before, colour is after. In **PerCP-Cy5-5** the "
-                "peak slides left: that signal was never PI, it was PE leaking "
-                "in. **PE**'s own histogram barely moves, because little "
-                "spills *into* PE.<br><br>"
-                "Scatter shows whether a population is level; histograms show "
-                "how far a whole detector's reading moved."
-            ),
-            cyto_emotion="talking",
-            target_widget_names=["CompensationPreviewArea"],
-            next_step_id="c1_m09_all_samples",
-        ),
-        VerificationStep(
-            id="c1_m09_all_samples",
-            text=(
-                "One tube is one opinion. Set **Sample** (highlighted) to "
-                "**All samples**: one row of plots per tube, drawn in the "
-                "background."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["PreviewSampleCombo"],
-            validator=PreviewShowsValidator(sample=PREVIEW_ALL_SAMPLES),
-            on_success_step_id="c1_m10_why_all",
-            failure_hint="Open the **Sample** dropdown and pick All samples, at the bottom of the list.",
-        ),
-        QuestionStep(
-            id="c1_m10_why_all",
-            text=(
-                "Scroll through the rows 🧪<br><br>"
-                "One matrix is applied to every tube. Why check it on all of "
-                "them rather than on one?"
-            ),
-            question_id="c1_why_all_samples",
-            choices=[
-                AnswerChoice(
-                    "A value can look right on one tube and be off on another",
-                    correct=True,
-                ),
-                AnswerChoice(
-                    "Each tube needs its own matrix",
-                    feedback="One matrix serves the experiment: same dyes, same cytometer settings. The check is that it holds everywhere.",
-                ),
-                AnswerChoice(
-                    "Only full-panel samples get compensated",
-                    feedback="Controls are compensated too: an FMO only sets a threshold if it was treated like the samples.",
-                ),
-            ],
-            explanation=(
-                "A tube with few bright cells for a dye can't show whether that "
-                "dye's value is right. Tubes that are bright there can. Looking "
-                "across all of them covers every dye."
-            ),
-            cyto_emotion="thinking",
-            allow_interaction=True,
-            target_widget_names=["CompensationPreviewArea"],
-            next_step_id="c1_m11_open_matrices",
-        ),
-        InteractionStep(
-            id="c1_m11_open_matrices",
-            text=("Every matrix you make is kept, by name. Click **🗂 Matrices** (highlighted)."),
-            target_widget_name="CompensationMatricesPageButton",
-            event_trigger="clicked",
-            cyto_emotion="pointing",
-            next_step_id="c1_m12_library",
-        ),
-        InfoStep(
-            id="c1_m12_library",
-            text=(
-                "Your matrices 🗂<br><br>"
-                "*Embedded in the FCS files* is listed and marked **✓ in use**: "
-                "it is the one Karcytics applied on import. From this page you "
-                "can compare two matrices, export one, or apply a different one "
-                "to every sample.<br><br>"
-                "Nothing to apply today. The cytometer's matrix is in use and, "
-                "on the pair we checked, it does its job."
-            ),
-            cyto_emotion="happy",
-            target_widget_names=["MatrixLibraryList"],
-            next_step_id="c1_m13_prediction",
-        ),
-        QuestionStep(
-            id="c1_m13_prediction",
-            text=(
-                "One for next time 🔮<br><br>"
-                "In Course 2 you'll estimate a matrix from your **FMO** tubes. "
-                "Each FMO lacks one dye, and shows what spills into that dye's "
-                "detector. There is no PerCP-Cy5-5 FMO. What will the estimate "
-                "say about spill into PerCP-Cy5-5?"
-            ),
-            kind=QUESTION_PREDICT,
-            question_id="c1_fmo_blind_spot",
-            choices=[
-                AnswerChoice("Nothing: it has no tube to measure it from"),
-                AnswerChoice("About the same 0.30 the file has"),
-                AnswerChoice("A rough value worked out from the other tubes"),
-            ],
-            cyto_emotion="thinking",
-            next_step_id="c1_s33b_save_interaction",
-        ),
-        VerificationStep(
-            id="c1_s33b_save_interaction",
-            text=(
-                "Saving your progress 💾<br><br>"
-                "Course 2 requires the foundation we just built. We need to save "
-                "this workspace so we can load it later.<br><br>"
-                "Click the **⚠️ Save Workspace** button (highlighted) at the top right.<br><br>"
-                "Give it a name like **Learning flow with Cyto!** and click Save."
-            ),
-            cyto_emotion="pointing",
-            allow_interaction=True,
-            hide_next_button=True,
-            target_widget_names=["WorkspaceSaveButton"],
-            validator=WorkflowSavedValidator(),
-            on_success_step_id="c1_s34_graduation",
-            failure_hint="Click **⚠️ Save Workspace**, give it a name, and click Save to finish.",
-        ),
-        InfoStep(
-            id="c1_s34_graduation",
-            text=(
-                "All done! You've imported your samples, tagged their roles, "
-                "drawn your first gate and compensated the data. 🚀<br><br>"
-                "Your workspace is saved. In Course 2, we will use this exact "
-                "setup to gate out dead cells and find the Leukocytes.<br><br>"
-                "Click Next to collect your badge!"
-            ),
-            cyto_emotion="cheering",
-            cyto_animation="cheering",
-        ),
+        *COMPENSATION_STEPS,
     ],
 )

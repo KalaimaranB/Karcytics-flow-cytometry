@@ -12,7 +12,7 @@ from PySide6.QtCore import Qt
 from karcytics_plugins.flow_cytometry.analysis.compensation import CompensationMatrix
 from karcytics_plugins.flow_cytometry.analysis.experiment import Sample, SampleRole
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
-from karcytics_plugins.flow_cytometry.ui.widgets import compensation_editor
+from karcytics_plugins.flow_cytometry.ui.widgets import compensation_editor, compensation_guide
 from karcytics_plugins.flow_cytometry.ui.widgets.compensation_editor import (
     ALL_SAMPLES,
     CompensationEditor,
@@ -417,7 +417,7 @@ def compensation_editor_scale(state, channel):
 
 
 def test_the_editor_states_the_goal_and_offers_the_full_guide(dialog):
-    assert "sit level with the negatives" in compensation_editor._GOAL_LINE
+    assert "sit level with the negatives" in compensation_guide.GOAL_LINE
     assert dialog._guide_button.objectName() == "CompensationGuideButton"
     for topic in (
         "On the scatter plots",
@@ -426,7 +426,7 @@ def test_the_editor_states_the_goal_and_offers_the_full_guide(dialog):
         "Which sample to judge on",
         "Why look across samples",
     ):
-        assert topic in compensation_editor._GUIDE
+        assert topic in compensation_guide.GUIDE
 
 
 # ── Previewing one population ─────────────────────────────────────────

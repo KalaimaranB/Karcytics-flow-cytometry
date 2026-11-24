@@ -1,5 +1,6 @@
-"""Step 3, Measure the Leak: drag a ruler along a single-stain cloud, then type
-the spillover % it implies.
+"""Step 3, Measure the Spillover: after a worked example, drag a ruler along a
+single-stain cloud and turn its Rise and Run into "for every 100 units of the
+first dye, the second detector reads __ extra".
 """
 
 from __future__ import annotations
@@ -9,7 +10,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
 
-from .scenes import leaked_single_stain, rise_run_slope
+from .calculator import Calculator
+from .scenes import leaked_single_stain, rise_run_slope, short_name
 from .slide import AnswerBox, Slide, ghost_line, label_axes, page, scatter_frame
 
 if TYPE_CHECKING:
@@ -28,7 +30,7 @@ ZONE_LABEL_Y = 950
 
 
 class RulerSlide(Slide):
-    title = "Measure the Leak"
+    title = "Measure the Spillover"
 
     def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
@@ -63,25 +65,38 @@ class RulerSlide(Slide):
         self._show_ruler()
         scatter_frame(ax)
         if self.measured and not self.done:
-            self.deck.ask("Enter % (e.g. 15)", self._check_percent)
+            self.deck.ask("Extra units per 100 (e.g. 10)", self._check_percent)
+            self.deck.add_control(Calculator())
         return self._html(pair)
 
     def _html(self, pair: TeachingPair) -> str:
+        a, b = short_name(pair.label_a), short_name(pair.label_b)
+        answer = None
+        if self.done:
+            measured = self._reading()[2] * 100
+            answer = (
+                f"Correct: for every 100 units of {a}, {b}'s detector reads about"
+                f" {measured:.0f} extra. That number is the spillover, written {measured:.0f}%."
+                f" (Worked out from the spectra it's {pair.pct:.0f}%; a ruler on a handful of"
+                " cells lands close, not exact.)"
+            )
         return page(
-            "Doing the Math",
-            f"<p>We run a <b>Single Stain Control</b>: a sample stained with ONLY"
-            f" {pair.label_a}. If there were no spillover, these cells would form a flat"
-            f" horizontal line. Because {pair.label_b}'s detector is picking up leaked"
-            f" {pair.label_a} signal, the population slants upward instead.</p>"
-            f"<p>To measure exactly how severe the leak is, we need the <b>slope</b> of that"
-            f" slant — for every unit of true brightness in {pair.label_a}'s detector (the Run),"
-            f" how much false brightness appears in {pair.label_b}'s detector (the Rise)?</p>",
+            "Measuring Spillover",
+            f"<p>A <b>single-stain control</b> is a tube stained with only {a}. With no"
+            f" spillover its cells would lie flat on the {b} axis. They slant upward because"
+            f" some {a} light lands in {b}'s detector: the brighter the cell, the more lands"
+            " there.</p>"
+            "<p><b>How steep is the slant?</b> Go along the cloud: how far it climbs is the"
+            " <b>Rise</b>, how far it goes across is the <b>Run</b>.</p>"
+            "<table cellpadding='6' style='background: rgba(128,128,128,0.15);'><tr><td>"
+            "<b>Worked example</b><br>"
+            "A ruler climbs <b>50</b> while it goes across <b>500</b>.<br>"
+            "50 ÷ 500 = 0.1, and 0.1 × 100 = <b>10</b>.<br>"
+            "So for every 100 units of the first dye, the second detector reads"
+            " <b>10 extra</b>: that's <b>10% spillover</b>."
+            "</td></tr></table>",
             "Good measurement! Your ruler follows the slant." if self.measured else None,
-            f"Correct — that's what your ruler measurement implies. This panel's real spillover"
-            f" is {pair.pct:.1f}%; a two-point ruler reading off individual cells won't always"
-            " land on that exact number, and that's expected."
-            if self.done
-            else None,
+            answer,
         )
 
     def instruction(self) -> str:
@@ -91,9 +106,13 @@ class RulerSlide(Slide):
                 " at the <b>← dim</b> dashed line, hold, drag along the cloud's centre to the"
                 " <b>bright →</b> dashed line, and let go."
             )
+        pair = self.deck.pair
         return (
-            "Your ruler's reading is just under the text panel (Slope ≈ %). Type that percentage"
-            " (Rise ÷ Run × 100) into the box and press <b>Submit</b>."
+            "Your ruler's <b>Rise</b> and <b>Run</b> are just under the text panel. Like the"
+            " worked example: Rise ÷ Run × 100. Finish the sentence <i>for every 100 units of"
+            f" {short_name(pair.label_a)}, {short_name(pair.label_b)}'s detector reads __"
+            " extra</i> in the box and press"
+            " <b>Submit</b>. The 🧮 can do the sum."
         )
 
     def show_me(self, ax: Axes) -> str:
@@ -106,10 +125,10 @@ class RulerSlide(Slide):
                 " Keep both ends in the middle of the cloud, not along its top or bottom edge."
             )
         self.deck.guide.point_at_answer_area()
-        _rise, _run, slope = self._reading()
+        rise, run, slope = self._reading()
         return (
-            f"Your readout says Slope {slope:.3f}. As a percentage that's {slope:.3f} × 100,"
-            " so type the number shown after ≈."
+            f"Type <b>{rise:.0f} ÷ {run:.0f}</b> into the 🧮: that gives {slope:.3f}. Now multiply"
+            " that by 100 and type the result in the answer box."
         )
 
     def _show_ruler(self) -> None:
@@ -118,10 +137,8 @@ class RulerSlide(Slide):
             return
         self._line.set_data([p[0] for p in self.points], [p[1] for p in self.points])
         if self.points:
-            rise, run, slope = self._reading()
-            self.deck.set_readout(
-                f"Rise: {rise:.0f}   Run: {run:.0f}   Slope: {slope:.3f}   (≈ {slope * 100:.1f}%)"
-            )
+            rise, run, _slope = self._reading()  # the learner works the slope out
+            self.deck.set_readout(f"Your ruler:  Rise {rise:.0f}   Run {run:.0f}")
 
     def _reading(self) -> tuple[float, float, float]:
         (x0, y0), (x1, y1) = self.points[0], self.points[-1]
@@ -173,4 +190,6 @@ class RulerSlide(Slide):
         if abs(guess - self._reading()[2] * 100) <= PCT_TOLERANCE:
             self.finish()
         else:
-            box.show_error("Not quite — type the percentage from the readout above (Slope × 100).")
+            box.show_error(
+                "Not quite: Rise ÷ Run × 100, using your ruler's numbers above. Try the 🧮."
+            )

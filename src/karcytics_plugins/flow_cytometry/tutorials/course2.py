@@ -309,9 +309,9 @@ course_2_compensation = Course(
                 "Most cells are plain: the method measured them. The whole "
                 "**PerCP-Cy5-5** column is *grey italic*: not measured, left at 0, "
                 "exactly as the setup table warned.<br><br>"
-                "The status line now names **FMO controls** and adds *matrix "
-                "changed since it was applied*: the samples still hold the values "
-                "the file's matrix gave them until you apply this one."
+                "The status line (it says how a matrix was made) now names **FMO "
+                "controls** and adds *matrix changed since it was applied*: the "
+                "samples keep the file's values until you apply this one."
             ),
             cyto_emotion="happy",
             target_widget_names=["CompensationMatrixTable", "CompensationStatusLine"],

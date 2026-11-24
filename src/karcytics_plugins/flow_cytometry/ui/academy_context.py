@@ -17,6 +17,11 @@ from typing import TYPE_CHECKING, Any
 # The only value so far is "learning".
 SPECTRAL_TAB_HIGHLIGHT_KEY = "spectral_tab_highlight"
 
+# A tutorial step's metadata key asking the compensation matrix editor to
+# spotlight part of its table (CompensationEditor.get_tutorial_target_rects):
+# {"row": "PE-A"}, {"column": "PerCP-Cy5-5-A"}, or both for the one cell.
+MATRIX_HIGHLIGHT_KEY = "matrix_highlight"
+
 if TYPE_CHECKING:
     from ..analysis.clustering import ClusteringMethod
     from ..analysis.clustering.describe import ClusterSummary

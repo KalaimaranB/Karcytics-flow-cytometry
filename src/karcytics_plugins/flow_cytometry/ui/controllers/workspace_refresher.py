@@ -73,11 +73,15 @@ class WorkspaceRefresher:
     def on_state_restored(self, _payload: Any = None) -> None:
         """Undo/redo replaced the model: make every view re-read it by id."""
         self._services.gate_propagator.cancel_pending()
+        self._reread_event_data()
+        self.refresh_all()
+
+    def _reread_event_data(self) -> None:
+        """Every sample's events changed under the views: recount gates, redraw graphs."""
         for sid, sample in self._state.data.experiment.samples.items():
             if sample.fcs_data is not None and sample.gate_tree.children:
                 self._services.gate_coordinator.recompute_all_stats(sid)
         self._views.graph_manager.reconcile_with_state()
-        self.refresh_all()
         self._gating.refresh_node_canvas()
 
     def on_samples_loaded(self) -> None:
@@ -114,6 +118,9 @@ class WorkspaceRefresher:
             self._status(f"Group '{group.name}' created.")
 
     def on_compensation_changed(self) -> None:
+        # Applying, changing or switching off compensation rewrites every
+        # sample's events: gate counts and open plots must follow.
+        self._reread_event_data()
         views = self._views
         views.sample_list.refresh()  # event counts change with compensation
         views.gate_hierarchy.refresh()
