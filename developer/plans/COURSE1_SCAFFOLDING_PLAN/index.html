@@ -1,0 +1,1748 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the Karcytics Flow Cytometry plugin.">
+      
+      
+        <meta name="author" content="Kalaimaran Balasothy">
+      
+      
+        <link rel="canonical" href="https://KalaimaranB.github.io/Karcytics-flow-cytometry/developer/plans/COURSE1_SCAFFOLDING_PLAN/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Plan: a more scaffolded Course 1, especially compensation - Karcytics Flow Cytometry Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#plan-a-more-scaffolded-course-1-especially-compensation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Karcytics Flow Cytometry Documentation" class="md-header__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Karcytics Flow Cytometry Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Plan: a more scaffolded Course 1, especially compensation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Welcome
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../user/00_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00_ARCHITECTURE_OVERVIEW/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Karcytics Flow Cytometry Documentation" class="md-nav__button md-logo" aria-label="Karcytics Flow Cytometry Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Karcytics Flow Cytometry Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/KalaimaranB/Karcytics-flow-cytometry" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Karcytics Flow Cytometry
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Welcome
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/00_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/01_GETTING_STARTED/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/02_WORKSPACE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Workspace
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/03_COMPENSATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compensation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/04_GATING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/15_DERIVED_PARAMETERS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/05_PIPELINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/06_STATISTICS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Statistics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/07_SPECTRAL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/08_POPULATION_ANALYSIS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Population Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/09_COMPARISONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Comparisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/16_SAMPLE_LENS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sample Lens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/10_ACADEMY_TUTORIALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Academy & Guided Tutorials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/11_SCIENTIFIC_LOGIC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Logic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/12_KEYBOARD_SHORTCUTS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/13_TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../user/14_INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00_ARCHITECTURE_OVERVIEW/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01_API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02_UI_ENGINE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03_TESTING_AND_QA/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing & QA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04_SERVICES_AND_DEPENDENCY_INJECTION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Services & Dependency Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05_GATING_AND_COMPENSATION_DEEP_DIVE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gating & Compensation Deep Dive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06_TRANSFORMS_AND_SCALING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transforms & Scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07_RENDERING_AND_VISUALIZATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering & Visualization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08_DATA_FLOW_AND_SIGNAL_CONNECTIONS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow & Signal Connections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09_DERIVED_PARAMETERS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Derived Parameters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10_STATE_UNDO_AND_PERSISTENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    State, Undo/Redo & Persistence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-what-makes-it-hard-today" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. What makes it hard today
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Principles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-new-compensation-arc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. The new compensation arc
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. The new compensation arc">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#beat-1-the-mystery-compensation-tab-compensation-off" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 1: The mystery (Compensation tab, compensation OFF)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beat-2-theory-part-1-why-light-ends-up-in-the-wrong-detector-spectral-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 2: Theory, part 1: why light ends up in the wrong detector (Spectral tab)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beat-3-theory-part-2-lasers-decide-which-overlaps-count-spectral-tab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 3: Theory, part 2: lasers decide which overlaps count (Spectral tab)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beat-4-the-learning-compensation-deck-self-guided" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 4: The Learning Compensation deck, self-guided
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beat-5-the-payoff-compensation-tab-compensation-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 5: The payoff (Compensation tab, compensation ON)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beat-6-reading-the-real-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 6: Reading the real matrix
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#beat-7-close" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Beat 7: Close
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-deck-slide-by-slide-7-slides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The deck, slide by slide (7 slides)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-new-pieces-of-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. New pieces of UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-also-in-this-pass-whole-of-course-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Also in this pass (whole of Course 1)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-build-and-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Build and check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-risks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Risks
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="plan-a-more-scaffolded-course-1-especially-compensation">Plan: a more scaffolded Course 1, especially compensation</h1>
+<p><strong>Status:</strong> built in one pass on flow <code>main</code> (2026-11-23). After a first look (2026-11-24): the deck is self-guided rather than narrated per slide, and the compensation phase was trimmed (merged tab steps; method setup, status line, histograms and the Matrices tour left to Course 2). Awaiting a live play-through. The professor deploys to the whole class within days, so everything here ships together.</p>
+<p><strong>Why:</strong> a professor ran Courses 1–3 and found everything working. Their one suggestion was to scaffold Course 1 more: "I have a feeling they will struggle with the compensation part of the module and all the math they have to do."</p>
+<p><strong>Decisions (from review):</strong>
+- <strong>Nothing optional.</strong> All theory stays in Course 1 and is required, placed where it is needed.
+- <strong>A real compensation on/off switch</strong> that changes the actual data (the Before/After preview is not enough).
+- <strong>A small calculator</strong> on the maths steps.
+- <strong>No pilot or migration work.</strong> No students have started, so step ids can change freely.</p>
+<hr />
+<h2 id="1-what-makes-it-hard-today">1. What makes it hard today</h2>
+<ol>
+<li><strong>The answer comes before the problem.</strong> Students are told compensation was "auto-applied" (<code>c1_s12c</code>) before seeing anything that needs fixing.</li>
+<li><strong>Theory arrives as one long wall.</strong> Spillover, spectra, FPbase, AB/EX/EM, overlap integrals and callouts come back to back, mostly as text steps, and before students know what they're for.</li>
+<li><strong>Maths with no worked example.</strong> Slide 3 asks for "Rise ÷ Run × 100"; the three-cells slide asks for <code>y − 20.0% × 750</code>. Neither has been shown first, and neither number is explained in plain words.</li>
+<li><strong>Unclear examples.</strong> The three-cells slide calls its points "Cell 1, 2, 3", so the reader can't tell what each one stands for.</li>
+<li><strong>Alone in the deck.</strong> Cyto says "I'll step back" for all seven slides.</li>
+<li><strong>Wording drift and typos.</strong> "Spillover / leak / overlap / cross-talk" are used loosely, and "Detector 1/2" sits beside named dyes. Strings run together in 5 steps ("forother", "theshoulders", "tissues:spleen", "background,defining", "signal.Try").</li>
+</ol>
+<h2 id="2-principles">2. Principles</h2>
+<ol>
+<li><strong>Problem first:</strong> see wrong-looking data, wonder why, then learn the cause.</li>
+<li><strong>Theory in the order you need it:</strong> emission explains the problem; excitation and lasers explain why only some overlaps matter. Each is taught right before it is used.</li>
+<li><strong>Feel it, then measure it, then compute it:</strong> a slider before a ruler, a ruler before a formula.</li>
+<li><strong>Worked example, then half-done, then alone</strong> for every calculation, with round numbers first.</li>
+<li><strong>Words before formulas:</strong> "20% spillover = for every 100 units of PI light, the PE detector reads 20 extra."</li>
+<li><strong>Name things by what they are:</strong> "a PI-only cell", not "Cell 1"; dye names, not "Detector 1/2".</li>
+<li><strong>One word per idea:</strong> <em>spillover</em> (glossed once as "light landing in the wrong detector"), <em>detector</em>, <em>dye</em>.</li>
+</ol>
+<h2 id="3-the-new-compensation-arc">3. The new compensation arc</h2>
+<p>Course 1's Setup and First-gate phases keep their steps (typos fixed, plus a recap card each). The compensation phase is rebuilt as below. The numbers come from the tutorial data and the deck's laser-aware estimate.</p>
+<h3 id="beat-1-the-mystery-compensation-tab-compensation-off">Beat 1: The mystery (Compensation tab, compensation OFF)</h3>
+<ol>
+<li>Cyto turns compensation <strong>off</strong> with the new switch, and the ✦ tags disappear. A one-line explanation says what the switch does.</li>
+<li>The student opens Sample A on <strong>PE (CD4) vs PerCP-Cy5.5 (PI)</strong>. The bright CD4 cloud climbs diagonally into PI-positive territory.</li>
+<li><strong>Prediction:</strong> "These CD4-bright cells look PI-positive, so dead. Are they?" (no wrong answer, paid off in Beat 5).</li>
+</ol>
+<h3 id="beat-2-theory-part-1-why-light-ends-up-in-the-wrong-detector-spectral-tab">Beat 2: Theory, part 1: why light ends up in the wrong detector (Spectral tab)</h3>
+<ol>
+<li>Where the curves come from: FPbase, real measured spectra (short).</li>
+<li>The panel's dyes load from the files; markers vs dyes; PI is its own dye read in PerCP-Cy5.5.</li>
+<li><strong>Emission curves are broad hills</strong> (the current <code>c1_s12d</code> text, now shown while the student looks at the curves): PE's hill reaches into the detector where PI is read.</li>
+<li><strong>Question:</strong> with PE bright and no PI, what does the PI detector read? (the current <code>c1_s12e</code>, now asked about the curves on screen)</li>
+</ol>
+<h3 id="beat-3-theory-part-2-lasers-decide-which-overlaps-count-spectral-tab">Beat 3: Theory, part 2: lasers decide which overlaps count (Spectral tab)</h3>
+<ol>
+<li><strong>AB / EX / EM:</strong> the student flips the toggles. Excitation says which laser lights a dye; each detector sits behind one laser.</li>
+<li><strong>Question (new):</strong> Pacific Blue's curve overlaps FITC's. Pacific Blue is lit by the 405 nm laser and FITC is read behind the 488 nm laser. Does Pacific Blue end up in FITC's detector? (Answer: barely, because the laser that FITC's detector sits behind doesn't light Pacific Blue.)</li>
+<li>The overlap callouts are estimates from spectra; real cytometers measure them with controls.</li>
+<li><strong>Question:</strong> which overlap could quietly distort results? (<code>c1_sp47b</code>, kept)</li>
+</ol>
+<h3 id="beat-4-the-learning-compensation-deck-self-guided">Beat 4: The Learning Compensation deck, self-guided</h3>
+<ol>
+<li>Open the sub-tab. Cyto explains how the deck works (Your turn, Show me, 🧮) once, in a bubble the learner closes with <strong>Got it</strong>.</li>
+<li>One waiting step for the whole deck: no bubbles or banners until the last slide is done (first live test: a bubble per slide was distracting). See §4.</li>
+</ol>
+<h3 id="beat-5-the-payoff-compensation-tab-compensation-on">Beat 5: The payoff (Compensation tab, compensation ON)</h3>
+<ol>
+<li>The student flips the switch <strong>on</strong>. The diagonal cloud from Beat 1 lies flat, and the ✦ tags return. Prediction paid off: "they weren't dead, it was PE light in the PI detector."</li>
+<li>Where that matrix came from: the <code>$SPILL</code> keyword the cytometer saved in the files (the old <code>c1_s12c</code>, now an explanation rather than a spoiler).</li>
+</ol>
+<h3 id="beat-6-reading-the-real-matrix">Beat 6: Reading the real matrix</h3>
+<ol>
+<li>Method setup, and what the method uses (<code>c1_m01</code>/<code>c1_m02</code>, merged into one step).</li>
+<li>Extract from FCS (<code>c1_s14</code>).</li>
+<li><strong>Guided read:</strong> a spotlight on the PE row, then the PerCP-Cy5.5 column, then the cell where they cross. Plain sentence: "for every 100 units of PE, the PerCP-Cy5.5 detector reads 30."</li>
+<li><strong>Question:</strong> the 0.30 read (<code>c1_m03</code>, kept), then the status line (<code>c1_m04</code>).</li>
+<li><strong>Evidence:</strong> click the 0.30 cell; Sample A; Before/After (<code>c1_m05</code>). <strong>Question:</strong> where should the cloud sit (<code>c1_m06</code>), tied back to the slider slide.</li>
+<li>Histograms (<code>c1_m07</code>/<code>c1_m08</code>), all samples plus why (<code>c1_m09</code>/<code>c1_m10</code>), the Matrices page (<code>c1_m11</code>/<code>c1_m12</code>, text shortened).</li>
+</ol>
+<h3 id="beat-7-close">Beat 7: Close</h3>
+<ol>
+<li>Recap card: why compensation, what a spillover number means, how to check a matrix.</li>
+<li>Prediction for Course 2 (<code>c1_m13</code>), save (<code>c1_s33b</code>), graduation.</li>
+</ol>
+<h2 id="4-the-deck-slide-by-slide-7-slides">4. The deck, slide by slide (7 slides)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Slide</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Physics of Overlap</td>
+<td>As now (filter on the detector, laser-lit markers). Cyto frames it: "find whose light lands in PE's detector".</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Setting the Zero</td>
+<td>Axes named for the teaching pair's detectors instead of "Detector 1/2".</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Measure the Spillover</td>
+<td><strong>Worked example first:</strong> a card with round numbers ("rise 100 over a run of 1,000 → 10 per 100 → 10%"). Then the ruler. The answer becomes a sentence: "for every 100 units of PI, the PE detector reads __ extra." 🧮 available.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Find the Level (new; replaces Compensate All)</strong></td>
+<td>One slanted single-stain cloud and a <strong>"% subtracted" slider</strong> (0 to 2× the true value). Live label: <em>under-compensated / level ✓ / over-compensated</em>. Done when held within ±2 points of level for about 1 s. Then the reveal: "the value that levels it is the one you measured on Step 3." This teaches what <code>c1_m06</code> later tests on real data.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Same Rule, Every Cell (was "One Rule for Every Cell")</td>
+<td>The three points get names and colours: <strong>"PI-only, dim"</strong>, <strong>"PI-only, bright"</strong>, <strong>"PI + PE (really both)"</strong>. Each reading is drawn as a stacked bar: <em>true signal</em> + <em>spillover</em>. <strong>Worked → half-done → alone:</strong> Cyto subtracts for the dim cell (animated, numbers shown); the student fills one blank for the bright cell; then the student computes the "really both" cell. Arithmetic uses the whole-number % ("≈ 20%"). 🧮 available.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Gate the Cleaned Data</td>
+<td>Axes named for the pair, as on Slide 2.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Building the Matrix</td>
+<td>Text shortened; the "Compensate All back in Step 5" reference now points to Find the Level. 🧮 available.</td>
+</tr>
+</tbody>
+</table>
+<p>Show me on the maths slides reveals the <strong>next sub-step</strong> (e.g. "Rise = 200, Run = 1,000; now divide"), never the final answer.</p>
+<h2 id="5-new-pieces-of-ui">5. New pieces of UI</h2>
+<ol>
+<li><strong>Compensation On/Off switch.</strong> A state-showing switch ("Compensation: ON ✦ / OFF") in the Compensation tab header, wired to the existing, tested <code>experiment_edits.toggle_compensation</code> (undoable). Object name <code>CompensationSwitch</code> so the Academy can spotlight it. Every view re-renders on the event it already publishes. Includes a validator <code>CompensationStateValidator(on: bool)</code>, and the user docs regain the toggle section removed in <code>dbedc87</code>.</li>
+<li><strong>🧮 Calculator.</strong> A small expression field in the deck's answer area: <code>+ − × ÷ ( ) %</code>, evaluated safely by parsing the expression (no <code>eval</code>), showing the result. Shown on Slides 3, 5 and 7.</li>
+<li><strong>Matrix cell spotlight.</strong> <code>CompensationMatrixTable</code> exposes rects for a row, a column and a cell through the <code>get_tutorial_target_rects</code> hook the Spectral viewer already uses for its sub-tab, with metadata keys for the step.</li>
+<li><strong>Deck hand-off.</strong> One VerificationStep on <code>LearningCompensationCompleteValidator</code>, with <code>manual_dismiss_bubble</code> and a 25-minute quiet period, so the deck runs without interruption.</li>
+</ol>
+<h2 id="6-also-in-this-pass-whole-of-course-1">6. Also in this pass (whole of Course 1)</h2>
+<ul>
+<li>Fix the 5 string-join typos, with a test that flags <code>[a-z][.,:][A-Za-z]</code> inside step text so it can't recur.</li>
+<li>Use <em>spillover / detector / dye</em> consistently across Course 1 and the deck.</li>
+<li>Recap cards at the end of Setup and First gate: three bullets each.</li>
+<li>Re-estimate <code>estimated_minutes</code> from a timed run of the finished course.</li>
+</ul>
+<h2 id="7-build-and-check">7. Build and check</h2>
+<p><strong>Order:</strong>
+1. On/Off switch and its validator.
+2. Calculator and the matrix-cell spotlight.
+3. Deck slides (new slider slide, Slides 3 and 5 rebuilt, axis names).
+4. Course 1 step rewrite (Beats 1–7).
+5. Typo guard and wording pass.
+6. Docs.</p>
+<p>Commits go on flow <code>main</code>, one per item, all handed over together.</p>
+<p><strong>Checks before handing over:</strong>
+- Unit tests for the switch, the calculator parser, and each new or rebuilt slide (grading accepts the round-number method).
+- <code>test_question_steps.py</code> (length limits) and <code>test_tutorial_numbers.py</code> (numbers from real data) extended to the new questions.
+- A headless play-through test that drives Course 1 start to finish with real tutorial files and asserts the end state Courses 2–3 rely on: roles, the <strong>Cells</strong> gate, the embedded matrix in use <strong>and compensation on</strong>, and a saved workspace.
+- Screenshots of every new slide and step, read over before handing over.
+- Full pre-commit suite and doctor baseline.</p>
+<p><strong>Then:</strong> you play it through live. After your OK comes the version bump and release, so the professor's deployment picks it up.</p>
+<h2 id="8-risks">8. Risks</h2>
+<ul>
+<li><strong>The switch rewrites events for every sample.</strong> The slow part is re-rendering ten samples; check the Gating canvas and Sample Lens refresh, and that undo restores both states.</li>
+<li><strong>The slider slide on a different panel:</strong> if a learner loads other dyes, the slider range follows the teaching pair's %; test with 2 dyes and with no excitation data.</li>
+<li><strong>Course length:</strong> the arc adds 2 interactive beats and removes about 5 text steps. The timed run decides the new estimate.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.tabs", "navigation.indexes", "content.code.annotate", "content.code.copy", "search.suggest", "search.highlight"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
