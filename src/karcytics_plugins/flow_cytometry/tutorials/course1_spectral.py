@@ -67,7 +67,10 @@ SPECTRAL_STEPS: list[BaseStep] = [
         text=(
             "Karcytics read your panel's 6 fluorescence channels from the FCS "
             "headers and plotted each **fluorophore's** spectrum automatically: "
-            "FITC, PE, PerCP-Cy5.5, Pacific Blue, APC-Cy7 and APC.<br><br>"
+            "FITC, PE, PI, Pacific Blue, APC-Cy7 and APC.<br><br>"
+            "PI is the odd one out: it isn't an antibody tag but a dye in its "
+            "own right, read in the **PerCP-Cy5.5** detector, so Karcytics "
+            "plotted PI's own spectrum rather than PerCP-Cy5.5's.<br><br>"
             "Each legend entry also shows the **marker** that dye is attached to, "
             "like **CD45 (APC-A)**. A marker such as CD45 is just a protein on the "
             "cell and has no colour of its own. The colour comes from the "
@@ -136,9 +139,10 @@ SPECTRAL_STEPS: list[BaseStep] = [
             AnswerChoice(
                 "CD3 with B220",
                 feedback=(
-                    "T cells and B cells are separate lineages: a cell is "
-                    "essentially never both, so leaked light there can't invent "
-                    "a believable double-positive population."
+                    "T cells and B cells are separate lineages, so leaked light "
+                    "can't invent a believable double-positive. And different "
+                    "lasers (405 vs 488 nm) excite the two dyes, so little of "
+                    "that light reaches the other's detector."
                 ),
             ),
             AnswerChoice("CD4 with PI", correct=True),
@@ -185,8 +189,12 @@ SPECTRAL_STEPS: list[BaseStep] = [
             "The **Compensation Masterclass**<br><br>"
             "I'll step back and let you work through this interactive "
             "slideshow at your own pace — it walks through spillover, single-"
-            "stain controls, and matrix inversion using REAL numbers measured "
-            "from the dyes you just loaded, not textbook examples.<br><br>"
+            "stain controls, and matrix inversion with numbers worked out from "
+            "the real spectra of the dyes you just loaded, and the lasers that "
+            "excite them.<br><br>"
+            "It teaches with your panel's biggest leak. With these dyes that's "
+            "PI's light reaching the **PE** detector: the flip side of the "
+            "PE → PI leak you just met, and it makes dead cells look CD4+.<br><br>"
             "Each slide's next move is in the **👉 Your turn** box on the left. "
             "Stuck? Press **💡 Show me** at the top and it draws the move on the plot.<br><br>"
             "The final slide asks you to reason through which control tubes "

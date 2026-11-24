@@ -1,30 +1,34 @@
 """The numbers the Learning Compensation slides plot (no Qt, no matplotlib).
 
-Spillover values are real: measured from the emission spectra of the dyes the
-learner loaded (``analysis.spectral_math``), so a slide's numbers are evidence,
-not a script. The cell clouds around them are seeded, so a slide looks the same
-each time it is drawn.
+Spillover values are estimated from the real spectra of the dyes the learner
+loaded: how much of a dye's emission reaches another dye's detector, scaled by
+how well that detector's laser excites it. A dye the laser can't excite never
+lights up there, however much its emission overlaps. The cell clouds around
+the numbers are seeded, so a slide looks the same each time it is drawn.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import combinations
+from itertools import permutations
 from typing import Any
 
 import numpy as np
 
-from ....analysis.spectral_math import spectral_overlap_pct
+from ....analysis.spectral_math import normalise_em_to_grid
 
 MIN_RUN = 1e-6  # a ruler whose two points share an x has no slope
+LASERS_NM = (405.0, 488.0, 640.0)  # the common violet / blue / red three-laser cytometer
+GRID = np.linspace(300, 850, 551)  # nm, 1 nm steps
+MIN_EXCITATION = 0.1  # a laser exciting a dye less than this (vs its own laser) leaves it dark
 
 
 @dataclass(frozen=True)
 class TeachingPair:
-    """The two loaded dyes that overlap most, which every slide teaches with."""
+    """The loaded dye that spills most into another dye's detector, which every slide teaches with."""
 
-    dye_a: str
-    dye_b: str
+    dye_a: str  # the dye that leaks
+    dye_b: str  # the dye whose detector it leaks into
     pct: float  # how much of dye_a's light lands in dye_b's detector
     label_a: str
     label_b: str
@@ -39,35 +43,66 @@ def dye_label(fluors: dict[str, dict[str, Any]], name: str) -> str:
     return str(fluors[name].get("display_label", name))
 
 
-def best_overlap_pairs(fluors: dict[str, dict[str, Any]]) -> list[tuple[str, str, float]]:
-    """Real overlap % (highest first) for every pair of loaded dyes with EM data."""
-    pairs = [(a, b, _overlap(fluors, a, b)) for a, b in combinations(spectral_dyes(fluors), 2)]
-    pairs.sort(key=lambda p: p[2], reverse=True)
-    return pairs
+def emission_peak(fluors: dict[str, dict[str, Any]], name: str) -> float:
+    """Where ``name`` emits most (nm): where its detector sits."""
+    return float(GRID[np.argmax(_curve(fluors[name], "em_data"))])
+
+
+def detector_laser(fluors: dict[str, dict[str, Any]], name: str) -> float | None:
+    """The laser (nm) that excites ``name`` best; None without excitation data."""
+    excitation = _excitation(fluors[name])
+    if excitation is None:
+        return None
+    return max(LASERS_NM, key=lambda laser: float(np.interp(laser, GRID, excitation)))
+
+
+def excitation_weight(fluors: dict[str, dict[str, Any]], dye: str, detector: str) -> float:
+    """How strongly ``detector``'s laser excites ``dye``, against ``dye``'s own best laser.
+
+    1 when it's the same laser; 0 when that laser can't excite ``dye`` at all.
+    Without excitation data for either dye, 1: emission alone decides.
+    """
+    excitation = _excitation(fluors[dye])
+    laser = detector_laser(fluors, detector)
+    if excitation is None or laser is None:
+        return 1.0
+    own = max(float(np.interp(at, GRID, excitation)) for at in LASERS_NM)
+    return float(np.interp(laser, GRID, excitation)) / own if own > 0 else 0.0
+
+
+def spill_fraction(fluors: dict[str, dict[str, Any]], dye: str, detector: str) -> float:
+    """Estimated fraction of ``dye``'s signal read in ``detector``'s detector."""
+    if dye == detector:
+        return 1.0
+    height = float(np.interp(emission_peak(fluors, detector), GRID, _curve(fluors[dye], "em_data")))
+    return height * excitation_weight(fluors, dye, detector)
+
+
+def spill_matrix(fluors: dict[str, dict[str, Any]], names: list[str]) -> np.ndarray:
+    """Spillover %: row = the dye, column = the detector it lands in (100 on the diagonal)."""
+    return np.array([[spill_fraction(fluors, dye, det) * 100 for det in names] for dye in names])
 
 
 def teaching_pair(fluors: dict[str, dict[str, Any]]) -> TeachingPair | None:
-    """The most-overlapping pair; None with fewer than two dyes that have spectra."""
-    pairs = best_overlap_pairs(fluors)
+    """The largest spill between two loaded dyes; None with fewer than two that have spectra."""
+    pairs = list(permutations(spectral_dyes(fluors), 2))
     if not pairs:
         return None
-    dye_a, dye_b, pct = pairs[0]
+    dye_a, dye_b = max(pairs, key=lambda pair: spill_fraction(fluors, *pair))
+    pct = spill_fraction(fluors, dye_a, dye_b) * 100
     return TeachingPair(dye_a, dye_b, pct, dye_label(fluors, dye_a), dye_label(fluors, dye_b))
 
 
-def overlap_matrix(fluors: dict[str, dict[str, Any]], names: list[str]) -> np.ndarray:
-    """Pairwise overlap % between ``names`` (100 on the diagonal)."""
-    matrix = np.eye(len(names)) * 100.0
-    for i, j in combinations(range(len(names)), 2):
-        matrix[i, j] = matrix[j, i] = _overlap(fluors, names[i], names[j])
-    return matrix
+def _curve(data: dict[str, Any], key: str) -> np.ndarray:
+    return normalise_em_to_grid(data[key], GRID)
 
 
-def _overlap(fluors: dict[str, dict[str, Any]], a: str, b: str) -> float:
-    return spectral_overlap_pct(
-        np.asarray(fluors[a]["em_data"], dtype=float),
-        np.asarray(fluors[b]["em_data"], dtype=float),
-    )
+def _excitation(data: dict[str, Any]) -> np.ndarray | None:
+    """The excitation spectrum, or absorbance where FPbase has no excitation one."""
+    for key in ("ex_data", "ab_data"):
+        if data.get(key):
+            return _curve(data, key)
+    return None
 
 
 def unstained_cloud(seed: int = 42, n: int = 500) -> tuple[np.ndarray, np.ndarray]:

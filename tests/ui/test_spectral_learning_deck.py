@@ -16,7 +16,8 @@ from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.one_rule impo
     three_cells,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.scenes import (
-    overlap_matrix,
+    spill_fraction,
+    spill_matrix,
     teaching_pair,
 )
 from karcytics_plugins.flow_cytometry.ui.widgets.spectral_learning.slide import AnswerBox
@@ -43,6 +44,14 @@ def deck(qtbot):
     deck = viewer.learning_tab
     deck.update_view()
     return deck
+
+
+def _place_filter(deck):
+    """Slide 1: drag the filter band from where it starts onto the detector dye's peak."""
+    slide = deck.slides[0]
+    _press(deck, slide._filter_x, 0.5)
+    _drag(deck, slide._peak_x + 1, 0.5)
+    _release(deck)
 
 
 def _press(deck, x, y):
@@ -85,23 +94,23 @@ def test_with_one_dye_the_deck_waits_and_ignores_clicks(deck):
 def test_step_1_drag_the_filter_onto_the_peak_then_pick_the_leaking_dye(deck):
     slide = deck.slides[0]
     assert not deck._btn_next.isEnabled()
+    assert abs(slide._filter_x - slide._peak_x) > 30  # it starts away from the peak
 
-    _press(deck, 575, 0.5)  # the band starts mid-wavelength
-    _drag(deck, 521, 0.5)
-    _release(deck)
+    _place_filter(deck)
     assert slide.filter_placed
 
-    _press(deck, 700, 0.5)
+    _press(deck, slide._peak_x + 150, 0.5)
     assert slide.wrong_hint == "Click inside the shaded detector band."
-    _press(deck, slide._peak_x, slide._heights["pe"])
+    _press(deck, slide._peak_x, slide._heights[deck.pair.dye_a])
 
     assert _done(deck)
     assert "Correct!" in deck._explanation.toPlainText()
 
 
 def test_step_1_a_filter_dropped_off_the_peak_stays_unplaced(deck):
-    _press(deck, 575, 0.5)
-    _drag(deck, 700, 0.5)
+    slide = deck.slides[0]
+    _press(deck, slide._filter_x, 0.5)
+    _drag(deck, slide._peak_x + 100, 0.5)
     _release(deck)
 
     assert not deck.slides[0].filter_placed
@@ -248,12 +257,16 @@ def test_new_dyes_bring_a_new_teaching_pair(deck):
     assert {deck.pair.dye_a, deck.pair.dye_b} == {"bv421", "bv510"}
 
 
-def test_the_matrix_is_symmetric_with_100_on_the_diagonal():
-    names = list(TWO_DYES)
-    matrix = overlap_matrix(TWO_DYES, names)
+def test_the_matrix_reads_dye_by_row_detector_by_column_and_holds_the_pair():
+    names = list(LASER_PANEL)
+    matrix = spill_matrix(LASER_PANEL, names)
 
     assert np.allclose(np.diag(matrix), 100)
-    assert matrix[0, 1] == matrix[1, 0] == teaching_pair(TWO_DYES).pct
+    assert matrix[0, 1] == spill_fraction(LASER_PANEL, "fitc", "pe") * 100  # FITC into PE
+    assert matrix[2, 1] < 1  # Red is dark on PE's laser
+    pair = teaching_pair(LASER_PANEL)
+    off_diagonal = matrix[~np.eye(len(names), dtype=bool)]
+    assert pair.pct == pytest.approx(off_diagonal.max())
 
 
 def test_a_dye_without_a_spectrum_cannot_make_a_pair():
@@ -304,7 +317,7 @@ def test_the_strip_says_what_to_do_then_points_at_next(deck):
     ("step", "advance"),
     [
         (0, None),
-        (0, lambda d: (_press(d, 575, 0.5), _drag(d, 521, 0.5), _release(d))),
+        (0, _place_filter),
         (1, None),
         (1, lambda d: d._on_link(QUrl("predict_correct"))),
         (
@@ -345,42 +358,49 @@ def test_show_me_switches_off_on_another_slide(deck):
 
 
 def test_step_1_a_missed_drop_says_which_way_and_stays_put(deck):
-    _press(deck, 575, 0.5)
-    _drag(deck, 700, 0.5)
+    slide = deck.slides[0]
+    missed = slide._peak_x + 100
+    _press(deck, slide._filter_x, 0.5)
+    _drag(deck, missed, 0.5)
     _release(deck)
 
-    slide = deck.slides[0]
     assert "to the right" in slide.wrong_hint and "left" in slide.wrong_hint
-    assert slide._filter_x == 700
+    assert slide._filter_x == missed
     assert slide.wrong_hint in _strip(deck)
 
 
 def test_step_1_a_press_off_the_band_says_to_grab_it(deck):
-    _press(deck, 400, 0.5)
+    _press(deck, deck.slides[0]._filter_x - 100, 0.5)
 
     assert "dashed band" in deck.slides[0].wrong_hint
 
 
-def test_step_1_the_answer_is_the_highest_marker_not_the_teaching_pair(deck):
-    # The pair is chosen by total overlap; the question asks which marker sits
-    # highest at the filter. A narrow dye beside FITC's peak overlaps little in
-    # total but rides higher there than PE: the slide follows what's on screen.
-    spike = [[float(x), float(np.exp(-(((x - 522) / 3) ** 2)))] for x in np.arange(350, 800)]
-    deck._viewer._active_fluors = {**TWO_DYES, "spike": {"em_data": spike, "display_label": "S"}}
+def _ex(peak: float) -> list[list[float]]:
+    return [[float(x), float(np.exp(-(((x - peak) / 20) ** 2)))] for x in np.arange(350, 800)]
+
+
+LASER_PANEL = {  # FITC and PE both on the blue laser; "red" emits near PE but only red excites it
+    "fitc": {"em_data": _em(520), "ex_data": _ex(495), "display_label": "FITC"},
+    "pe": {"em_data": _em(560), "ex_data": _ex(490), "display_label": "PE"},
+    "red": {"em_data": _em(565), "ex_data": _ex(640), "display_label": "Red"},
+}
+
+
+def test_a_dye_the_detectors_laser_cannot_excite_neither_leaks_nor_gets_a_marker(deck):
+    # Red's emission sits almost on PE's peak, but the blue laser PE is read on
+    # leaves Red dark: the leak, and Slide 1's answer, is FITC.
+    assert spill_fraction(LASER_PANEL, "red", "pe") < 0.01
+    deck._viewer._active_fluors = dict(LASER_PANEL)
     deck.update_view()
-    assert {deck.pair.dye_a, deck.pair.dye_b} == {"fitc", "pe"}
+    assert (deck.pair.dye_a, deck.pair.dye_b) == ("fitc", "pe")
 
-    _press(deck, 575, 0.5)
-    _drag(deck, 521, 0.5)
-    _release(deck)
+    _place_filter(deck)
     slide = deck.slides[0]
-    assert slide._heights["spike"] > slide._heights["pe"]
+    assert set(slide._heights) == {"fitc"}
+    _press(deck, slide._peak_x, slide._heights["fitc"])
 
-    _press(deck, slide._peak_x, slide._heights["pe"])
-    assert not _done(deck)
-    _press(deck, slide._peak_x, slide._heights["spike"])
     assert _done(deck)
-    assert "S leaks the most" in deck._explanation.toPlainText()
+    assert "FITC leaks the most into PE's detector" in deck._explanation.toPlainText()
 
 
 def test_step_2_too_far_and_not_far_enough_each_get_a_reason(deck):

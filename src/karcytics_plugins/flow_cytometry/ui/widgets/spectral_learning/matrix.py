@@ -10,7 +10,7 @@ from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color
 from matplotlib import patches
 from matplotlib.colors import to_hex
 
-from .scenes import dye_label, overlap_matrix, spectral_dyes
+from .scenes import dye_label, spectral_dyes, spill_matrix
 from .slide import AnswerBox, Slide, choices, heading, verdict
 
 if TYPE_CHECKING:
@@ -46,9 +46,11 @@ class MatrixSlide(Slide):
         return self._html(self.deck.pair, len(names))
 
     def _draw_matrix(self, ax: Axes, names: list[str]) -> None:
-        matrix = overlap_matrix(self.deck.fluors, names)
+        matrix = spill_matrix(self.deck.fluors, names)
         labels = [dye_label(self.deck.fluors, name) for name in names]
-        ax.set_title("Real Compensation Matrix (% overlap)", color=Colors.FG_PRIMARY, pad=15)
+        ax.set_title("Estimated Spillover Matrix (%)", color=Colors.FG_PRIMARY, pad=15)
+        ax.set_xlabel("Detector", color=Colors.FG_SECONDARY, fontsize=9)
+        ax.set_ylabel("Dye", color=Colors.FG_SECONDARY, fontsize=9)
         image = ax.imshow(matrix, cmap="viridis", vmin=0, vmax=100)
         ax.set_xticks(range(len(names)))
         ax.set_yticks(range(len(names)))
@@ -75,8 +77,8 @@ class MatrixSlide(Slide):
         html = heading("What It Takes to Build the Matrix") + (
             "<p>Every slide so far measured spillover for ONE pair of dyes. A real panel has"
             " many — correcting all of them at once needs a full <b>compensation matrix</b>: one"
-            " row and one column per dye, where each cell is how much that dye's signal spills"
-            ' into every other detector. "Compensate All" back in Step 5 is really just this'
+            " row per dye and one column per detector, where each cell is how much of that dye's"
+            ' signal lands in that detector. "Compensate All" back in Step 5 is really just this'
             " matrix, inverted and applied to every event at once.</p>"
             "<p>Two rules decide which control tubes you actually need to run to fill that"
             " matrix in:</p>"
@@ -106,10 +108,10 @@ class MatrixSlide(Slide):
         if not self.done:
             return html
         return html + verdict(
-            f"Exactly — {n_dyes} dyes need {n_dyes + 1} tubes. The heatmap on the right IS that"
-            " matrix: every cell is a real overlap % measured from the panel's own emission"
-            " spectra, and inverting this exact grid is what 'Compensate All' does under the"
-            " hood."
+            f"Exactly — {n_dyes} dyes need {n_dyes + 1} tubes. The heatmap on the right is that"
+            " matrix, estimated from your dyes' real spectra and the lasers that excite them."
+            " Single-stain tubes measure the same grid on your own cytometer, and inverting it"
+            " is what 'Compensate All' does under the hood."
         )
 
     def instruction(self) -> str:
