@@ -10,7 +10,16 @@ import numpy as np
 from karcytics_sdk.plugin.theme_fallback import Colors
 
 from .scenes import uncompensated_scene
-from .slide import Slide, heading, label_axes, legend, scatter_frame, task
+from .slide import (
+    Slide,
+    ghost_label,
+    ghost_line,
+    heading,
+    label_axes,
+    legend,
+    scatter_frame,
+    verdict,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -68,19 +77,42 @@ class CompensateSlide(Slide):
             "<p>We don't correct cells one at a time — real software uses matrix inversion to"
             ' apply this subtraction to millions of events at once, instantly "straightening'
             ' out" every slanted population.</p>'
+            "<p>The green cells carry only the Detector 1 dye; their slant is leak into"
+            " Detector 2. The grey cells are unstained.</p>"
         )
-        if self.prediction is None:
-            step = (
-                "Action Required: Before pressing the button, click where you predict the WHOLE"
-                " population will end up."
+        if self.done:
+            html += verdict(
+                "Compare your prediction (✕) to where it really landed (★): the cells kept"
+                " their Detector 1 brightness and dropped to the unstained level on Detector 2."
             )
-        elif self.animating:
-            step = "Compensating..."
-        elif not self.done:
-            step = "Now click 'Compensate All' and watch."
-        else:
-            step = "Compare your prediction (X) to where it really landed."
-        return html + task(step)
+        return html
+
+    def instruction(self) -> str:
+        if self.prediction is None:
+            return (
+                "Before compensating, predict: <b>click on the plot</b> where you think the"
+                " green slanted population will end up once its leak is removed."
+            )
+        if self.animating:
+            return "Compensating… watch the green cells."
+        return (
+            "Now press <b>⚙️ Compensate All</b> (the button under the text panel, on the left)"
+            " and watch."
+        )
+
+    def show_me(self, ax: Axes) -> str:
+        if self.prediction is None:
+            left, right = float(self._x.min()), float(self._x.max())
+            for at in (left, right):
+                ghost_line(ax, [at, at], [0, 1000])
+            ghost_label(ax, (left + right) / 2, 950, "Detector 1 doesn't change")
+            return (
+                "Compensation only subtracts leak from Detector 2, so each cell keeps its"
+                " Detector 1 position (between the dashed lines). How high on Detector 2 does a"
+                " cell with none of the second dye sit? Look at the grey cells."
+            )
+        self.deck.guide.point_at_answer_area()
+        return "The ⚙️ Compensate All button is outlined, under the text panel on the left."
 
     def _compensated_y(self) -> np.ndarray:
         eased = 1 - (1 - self.progress) ** 2  # fast at first, settling at the end

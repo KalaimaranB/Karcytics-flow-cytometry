@@ -187,6 +187,8 @@ SPECTRAL_STEPS: list[BaseStep] = [
             "slideshow at your own pace — it walks through spillover, single-"
             "stain controls, and matrix inversion using REAL numbers measured "
             "from the dyes you just loaded, not textbook examples.<br><br>"
+            "Each slide's next move is in the **👉 Your turn** box on the left. "
+            "Stuck? Press **💡 Show me** at the top and it draws the move on the plot.<br><br>"
             "The final slide asks you to reason through which control tubes "
             "you'd actually need to run to build a real compensation matrix. "
             "I'll find you again once you've worked through it!"

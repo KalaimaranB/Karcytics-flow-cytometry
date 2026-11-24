@@ -5,6 +5,9 @@ through a control-design question, rather than click near the right spot. The
 deck pages between them (Next unlocks once a slide's task is done), shows the
 current one's explanation and plot, and passes the learner's clicks and drags
 to it. The Academy reads its progress through ``academy_snapshot``.
+
+``guide.SlideGuide`` adds the "Your turn" strip above the explanation and the
+Show me button in the header.
 """
 
 from __future__ import annotations
@@ -17,12 +20,13 @@ from karcytics_sdk.plugin.rendering import AxesColors, style_axes
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
 from matplotlib.figure import Figure
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
 from ...academy_context import LearningDeckSnapshot
 from ...graph._mpl_compat import LockedFigureCanvas
 from .compensate import CompensateSlide
 from .gate import GateSlide
+from .guide import SlideGuide
 from .matrix import MatrixSlide
 from .one_rule import OneRuleSlide
 from .physics import PhysicsSlide
@@ -46,6 +50,7 @@ SLIDES: tuple[type[Slide], ...] = (
     GateSlide,
     MatrixSlide,
 )
+NEXT_LOCKED_TIP = "Finish this slide's task first: see 👉 Your turn, on the left."
 WAITING_HTML = (
     "<h3>Need at least 2 dyes</h3><p>Load a few fluorophores in the Analysis tab first —"
     " spillover only exists between at least two dyes.</p>"
@@ -65,6 +70,7 @@ class SpectralLearningTab(QWidget):
         self._pair_dyes: tuple[str, ...] | None = None  # the dyes ``_pair`` was found among
         self._ticker = QTimer(self)
         self._ticker.timeout.connect(self._on_tick)
+        self.guide = SlideGuide(self.update_view, self)
         self._setup_ui()
         theme_manager.theme_changed.connect(self._on_theme_changed)
 
@@ -72,7 +78,14 @@ class SpectralLearningTab(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(16)
+        root.addLayout(self._build_nav())
+        content = QHBoxLayout()
+        content.addLayout(self._build_text_column())
+        content.addWidget(self._build_plot(), stretch=1)
+        root.addLayout(content, stretch=1)
 
+    def _build_nav(self) -> QHBoxLayout:
+        """The step's title, Show me, and Previous / Next."""
         header = QHBoxLayout()
         self._step_label = QLabel("Step 1")
         theme_manager.apply_style(
@@ -80,16 +93,21 @@ class SpectralLearningTab(QWidget):
         )
         header.addWidget(self._step_label)
         header.addStretch()
+        header.addWidget(self.guide.button)
         self._btn_prev = SecondaryButton("← Previous")
         self._btn_prev.clicked.connect(lambda: self._go_to(self._current_step - 1))
         header.addWidget(self._btn_prev)
         self._btn_next = PrimaryButton("Next Step →")
         self._btn_next.clicked.connect(lambda: self._go_to(self._current_step + 1))
         header.addWidget(self._btn_next)
-        root.addLayout(header)
+        return header
 
-        content = QHBoxLayout()
+    def _build_text_column(self) -> QVBoxLayout:
+        """The "Your turn" strip, the explanation, the readout and a slide's controls."""
         left = QVBoxLayout()
+        self.guide.strip.setMinimumWidth(350)
+        self.guide.strip.setMaximumWidth(450)
+        left.addWidget(self.guide.strip)
         self._explanation = QTextBrowser()
         self._explanation.setMinimumWidth(350)
         self._explanation.setMaximumWidth(450)
@@ -101,17 +119,24 @@ class SpectralLearningTab(QWidget):
             " border-radius: 6px; padding: 12px; font-size: 14px;",
         )
         left.addWidget(self._explanation, stretch=1)
+        # The readout and a slide's answer box or button, framed so Show me can point at them.
+        answer_area = QFrame()
+        answer_layout = QVBoxLayout(answer_area)
+        answer_layout.setContentsMargins(4, 4, 4, 4)
         self._readout = QLabel()
         self._readout.setWordWrap(True)
         theme_manager.apply_style(
             self._readout, "color: {FG_PRIMARY}; font-family: monospace; font-size: 13px;"
         )
-        left.addWidget(self._readout)
+        answer_layout.addWidget(self._readout)
         self._controls = QVBoxLayout()  # a slide's answer box or button
         self._controls.setContentsMargins(0, 0, 0, 0)
-        left.addLayout(self._controls)
-        content.addLayout(left)
+        answer_layout.addLayout(self._controls)
+        left.addWidget(answer_area)
+        self.guide.frame_answer_area(answer_area)
+        return left
 
+    def _build_plot(self) -> QWidget:
         self._figure = Figure(facecolor=Colors.BG_DARK)
         self._canvas = LockedFigureCanvas(self._figure)
         self._ax = self._figure.add_subplot(111)
@@ -123,8 +148,7 @@ class SpectralLearningTab(QWidget):
         frame_layout.setContentsMargins(0, 0, 0, 0)
         frame_layout.addWidget(self._canvas)
         theme_manager.apply_style(frame, "border: 1px solid {BORDER}; border-radius: 6px;")
-        content.addWidget(frame, stretch=1)
-        root.addLayout(content, stretch=1)
+        return frame
 
     # ── what the Academy and the viewer use ──
 
@@ -136,10 +160,10 @@ class SpectralLearningTab(QWidget):
     def update_view(self) -> None:
         """Render the current slide: its plot, explanation and controls."""
         last = len(self.slides) - 1
+        done = self._current_step in self._completed_steps
         self._btn_prev.setEnabled(self._current_step > 0)
-        self._btn_next.setEnabled(
-            self._current_step in self._completed_steps and self._current_step < last
-        )
+        self._btn_next.setEnabled(done and self._current_step < last)
+        self._btn_next.setToolTip("" if done else NEXT_LOCKED_TIP)
         self._clear_controls()
         self._figure.set_facecolor(Colors.BG_DARK)
         self._ax.clear()
@@ -149,9 +173,13 @@ class SpectralLearningTab(QWidget):
             self._show_waiting()
         else:
             slide = self.slides[self._current_step]
-            self._step_label.setText(f"Step {self._current_step + 1}: {slide.title}")
+            self._step_label.setText(
+                f"Step {self._current_step + 1} of {len(self.slides)}: {slide.title}"
+            )
             self._explanation.setHtml(slide.render(self._ax))
+            self.guide.draw_help(slide, self._ax)
             self._figure.tight_layout(pad=1.0)
+        self.guide.update(self._slide(), self._current_step == last)
         self._canvas.draw()
 
     def showEvent(self, event: Any) -> None:
@@ -212,6 +240,7 @@ class SpectralLearningTab(QWidget):
         if not 0 <= step < len(self.slides) or step == self._current_step:
             return
         self._ticker.stop()
+        self.guide.reset()
         self.slides[self._current_step].leave()
         self._current_step = step
         self.update_view()
@@ -241,6 +270,7 @@ class SpectralLearningTab(QWidget):
         self._ax.set_ylim(0, 1)
 
     def _clear_controls(self) -> None:
+        self.guide.point_at_answer_area(on=False)
         self._readout.setText("")
         while (item := self._controls.takeAt(0)) is not None:
             if (widget := item.widget()) is not None:

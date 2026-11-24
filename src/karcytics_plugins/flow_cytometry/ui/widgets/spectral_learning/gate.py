@@ -8,7 +8,7 @@ from karcytics_sdk.plugin.theme_fallback import Colors
 from matplotlib import patches
 
 from .scenes import compensated_scene, point_in_rect
-from .slide import Slide, heading, label_axes, scatter_frame, task
+from .slide import Slide, ghost_arrow, ghost_rect, heading, label_axes, scatter_frame, verdict
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -19,6 +19,8 @@ SCENE_SEED = 99
 DOUBLE_POSITIVES = (600.0, 600.0)  # the population's centre: the gate must hold it
 BACKGROUND = (100.0, 100.0)  # and must leave this out
 THRESHOLD = 200.0
+GHOST_GATE = (400.0, 400.0, 850.0, 850.0)  # Show me's rectangle around the double-positives
+MIN_SIDE = 20.0  # a gate narrower than this was a click, not a drag
 
 
 class GateSlide(Slide):
@@ -57,14 +59,27 @@ class GateSlide(Slide):
             " instead of slanting, so the true Double Positive population is clearly separated"
             " from noise.</p>"
             "<p>Just like the Cells gate you drew earlier, we isolate it by drawing a gate"
-            " around it.</p>"
+            " around it. The <b>blue</b> cluster at the top right is the Double Positives; the"
+            " green clusters are single positives, and the grey cells are negative.</p>"
         )
         if not self.done:
-            return html + task(
-                "Action Required: Drag a rectangle around the true Double Positive population"
-                " (top right)."
-            )
-        return html + task("Nicely gated — that's a clean population, ready for analysis.")
+            return html
+        return html + verdict("Nicely gated — that's a clean population, ready for analysis.")
+
+    def instruction(self) -> str:
+        return (
+            "Gate the <b>blue</b> cluster (top right): press just above-left of it, hold,"
+            " drag to just below-right of it so the box surrounds it, and let go."
+        )
+
+    def show_me(self, ax: Axes) -> str:
+        x0, y0, x1, y1 = GHOST_GATE
+        ghost_rect(ax, x0, y0, x1, y1, "gate goes here")
+        ghost_arrow(ax, (x0, y1), (x1, y0))
+        return (
+            "Press at the dashed box's top-left corner, drag along the arrow to its"
+            " bottom-right corner, and release."
+        )
 
     def _show_gate(self) -> None:
         if self._rect is None or self.gate is None:
@@ -91,9 +106,22 @@ class GateSlide(Slide):
         if not self._dragging or self.gate is None:
             return
         self._dragging = False
-        if point_in_rect(*DOUBLE_POSITIVES, *self.gate) and not point_in_rect(
-            *BACKGROUND, *self.gate
-        ):
+        self.wrong_hint = self._judge(*self.gate)
+        if self.wrong_hint is None:
             self.finish()
         else:
             self.deck.refresh()
+
+    @staticmethod
+    def _judge(x0: float, y0: float, x1: float, y1: float) -> str | None:
+        """None for a gate around the double-positives alone; otherwise what's wrong."""
+        if abs(x1 - x0) < MIN_SIDE or abs(y1 - y0) < MIN_SIDE:
+            return "That was a click, not a drag: hold the mouse button down while you move."
+        if point_in_rect(*BACKGROUND, x0, y0, x1, y1):
+            return (
+                "Your gate reaches into the grey negative cells at the bottom left. Keep it"
+                " above and right of the dashed lines."
+            )
+        if not point_in_rect(*DOUBLE_POSITIVES, x0, y0, x1, y1):
+            return "Your gate misses the blue cluster: draw the box around it, at the top right."
+        return None

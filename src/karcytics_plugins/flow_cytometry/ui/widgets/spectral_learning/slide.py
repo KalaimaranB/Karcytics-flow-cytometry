@@ -4,6 +4,12 @@ A slide renders its plot and returns the explanation panel's HTML, then reacts
 to the learner: a link in the panel, a press, drag or release on the plot, an
 answer typed into an ``AnswerBox``. It keeps its own task's state; whether its
 task is done lives on the deck, which the Academy reads.
+
+What to do next is not part of that HTML: ``instruction`` says it and
+``wrong_hint`` says what went wrong, and the deck pins both above the
+explanation, where they stay in view however long the text is. ``show_me``
+draws the answer's shape on the plot (a target zone, a ghost line) when the
+learner presses Show me.
 """
 
 from __future__ import annotations
@@ -12,6 +18,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from karcytics_sdk.plugin.components import BioLineEdit, PrimaryButton
 from karcytics_sdk.plugin.theme_fallback import Colors, theme_manager
+from matplotlib import patches
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
@@ -30,6 +37,7 @@ class Slide:
 
     def __init__(self, deck: SpectralLearningTab) -> None:
         self.deck = deck
+        self.wrong_hint: str | None = None  # what went wrong on the last attempt
 
     @property
     def done(self) -> bool:
@@ -42,6 +50,14 @@ class Slide:
 
     def render(self, ax: Axes) -> str:
         """Draw the slide's plot on ``ax`` (cleared and styled) and return its HTML."""
+        raise NotImplementedError
+
+    def instruction(self) -> str:
+        """What the learner has to do next (asked only while the task isn't done)."""
+        raise NotImplementedError
+
+    def show_me(self, ax: Axes) -> str:
+        """Draw the answer's shape on the freshly rendered ``ax``; return what to do with it."""
         raise NotImplementedError
 
     def on_link(self, link: str) -> None:
@@ -117,14 +133,14 @@ def heading(text: str) -> str:
     return f"<h3 style='color: {Colors.BORDER_FOCUS};'>{text}</h3>"
 
 
-def task(text: str) -> str:
-    """What the learner has to do next, or the verdict on what they did."""
+def verdict(text: str) -> str:
+    """The verdict on a step the learner got right."""
     return f"<p style='color: {Colors.ACCENT_SUCCESS}; font-weight: bold;'>{text}</p>"
 
 
-def hint(text: str | None) -> str:
-    """Feedback on a wrong attempt (nothing when there is none)."""
-    return f"<p style='color: {Colors.ACCENT_DANGER};'>{text}</p>" if text else ""
+def page(title: str, body: str, *verdicts: str | None) -> str:
+    """A slide's explanation: its heading, body, then each verdict earned so far (None: not yet)."""
+    return heading(title) + body + "".join(verdict(text) for text in verdicts if text)
 
 
 def choices(options: list[tuple[str, str]]) -> str:
@@ -152,6 +168,54 @@ def scatter_frame(ax: Axes, threshold: float | None = None) -> None:
         ax.axvline(threshold, color=Colors.BORDER, ls="--")
     ax.set_xlim(*SCATTER_RANGE)
     ax.set_ylim(*SCATTER_RANGE)
+
+
+def ghost_rect(ax: Axes, x0: float, y0: float, x1: float, y1: float, label: str) -> None:
+    """A dashed target zone with its label: where Show me says to aim."""
+    ax.add_patch(
+        patches.Rectangle(
+            (x0, y0),
+            x1 - x0,
+            y1 - y0,
+            facecolor=Colors.ACCENT_WARNING,
+            edgecolor=Colors.ACCENT_WARNING,
+            alpha=0.18,
+            lw=2,
+            ls="--",
+            zorder=6,
+        )
+    )
+    ghost_label(ax, (x0 + x1) / 2, y1, label, va="bottom")
+
+
+def ghost_line(ax: Axes, xs: list[float], ys: list[float]) -> None:
+    """A dashed path for Show me: a line to trace or a drag to make."""
+    ax.plot(xs, ys, color=Colors.ACCENT_WARNING, lw=2.5, ls="--", marker="o", ms=9, zorder=6)
+
+
+def ghost_arrow(ax: Axes, start: tuple[float, float], end: tuple[float, float]) -> None:
+    """Show me's drag: from where a handle is to where it should go."""
+    ax.annotate(
+        "",
+        xy=end,
+        xytext=start,
+        arrowprops={"arrowstyle": "->", "color": Colors.ACCENT_WARNING, "lw": 2.5, "ls": "--"},
+        zorder=6,
+    )
+
+
+def ghost_label(ax: Axes, x: float, y: float, text: str, va: str = "center") -> None:
+    ax.text(
+        x,
+        y,
+        text,
+        ha="center",
+        va=va,
+        color=Colors.ACCENT_WARNING,
+        fontsize=9,
+        fontweight="bold",
+        zorder=7,
+    )
 
 
 def legend(ax: Axes, **kwargs: Any) -> None:

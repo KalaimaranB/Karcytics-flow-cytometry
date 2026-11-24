@@ -7,10 +7,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.theme_fallback import Colors, get_contrast_text_color
+from matplotlib import patches
 from matplotlib.colors import to_hex
 
 from .scenes import dye_label, overlap_matrix, spectral_dyes
-from .slide import AnswerBox, Slide, choices, heading, hint, task
+from .slide import AnswerBox, Slide, choices, heading, verdict
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -35,10 +36,10 @@ class MatrixSlide(Slide):
     def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.tube_found = False  # picked the single-stain tube
-        self.wrong_hint: str | None = None
+        self._names: list[str] = []
 
     def render(self, ax: Axes) -> str:
-        names = spectral_dyes(self.deck.fluors)
+        names = self._names = spectral_dyes(self.deck.fluors)
         self._draw_matrix(ax, names)
         if self.tube_found and not self.done:
             self.deck.ask("Enter a number", self._check_tube_count)
@@ -83,44 +84,71 @@ class MatrixSlide(Slide):
             " shared by every column, exactly like the threshold you dragged back in Step 2.</p>"
             "<p><b>2. One single-stain tube per dye</b> — stained with ONLY that dye, nothing"
             " else.</p>"
+            "<p><i>You won't always run these yourself: many cytometers save a matrix in the"
+            " FCS files, built from single stains run on the instrument (the Academy's tutorial"
+            " files carry one). FMO tubes are a different control, for setting gates.</i></p>"
         )
         a, b = pair.label_a, pair.label_b
         if not self.tube_found:
-            return (
-                html
-                + task(
-                    f"Action Required: you want to measure exactly how much {a} leaks into"
-                    f" {b}'s detector. Which control tube gives you that?"
-                )
-                + choices(
-                    [
-                        ("mc_unstained", "A) Unstained cells only"),
-                        ("mc_single", f"B) Cells stained with {a} only"),
-                        ("mc_both", f"C) Cells stained with both {a} and {b}"),
-                        ("mc_full", "D) The fully-stained panel (all dyes)"),
-                    ]
-                )
-                + hint(self.wrong_hint)
+            return html + choices(
+                [
+                    ("mc_unstained", "A) Unstained cells only"),
+                    ("mc_single", f"B) Cells stained with {a} only"),
+                    ("mc_both", f"C) Cells stained with both {a} and {b}"),
+                    ("mc_full", "D) The fully-stained panel (all dyes)"),
+                ]
             )
+        html += verdict(
+            "Right — a single-stain tube is the only sample where 100% of any off-peak"
+            " signal can be blamed on that one dye. Mix in a second dye, or the whole"
+            " panel, and you can no longer tell which dye caused what you're seeing."
+        )
         if not self.done:
-            return (
-                html
-                + task(
-                    "Right — a single-stain tube is the only sample where 100% of any off-peak"
-                    " signal can be blamed on that one dye. Mix in a second dye, or the whole"
-                    " panel, and you can no longer tell which dye caused what you're seeing."
-                )
-                + task(
-                    f"Action Required: your panel has {n_dyes} dyes loaded. Counting one"
-                    " single-stain tube per dye, PLUS the unstained control, how many total"
-                    " tubes do you need to run before you can build the compensation matrix?"
-                )
-            )
-        return html + task(
+            return html
+        return html + verdict(
             f"Exactly — {n_dyes} dyes need {n_dyes + 1} tubes. The heatmap on the right IS that"
             " matrix: every cell is a real overlap % measured from the panel's own emission"
             " spectra, and inverting this exact grid is what 'Compensate All' does under the"
             " hood."
+        )
+
+    def instruction(self) -> str:
+        pair = self.deck.pair
+        if not self.tube_found:
+            return (
+                f"You want to measure exactly how much {pair.label_a} leaks into"
+                f" {pair.label_b}'s detector. Which control tube gives you that? Click A–D at"
+                " the bottom of the text below."
+            )
+        return (
+            f"Your panel has {len(self._names)} dyes loaded. Counting one single-stain tube"
+            " per dye, PLUS the unstained control, how many tubes do you need? Type the number"
+            " in the box and press <b>Submit</b>."
+        )
+
+    def show_me(self, ax: Axes) -> str:
+        pair = self.deck.pair
+        n = len(self._names)
+        if not self.tube_found:
+            i, j = self._names.index(pair.dye_a), self._names.index(pair.dye_b)
+            self._outline(ax, j - 0.5, i - 0.5, 1, 1)
+            return (
+                f"The outlined square is {pair.label_a}'s light in {pair.label_b}'s detector. To"
+                f" be sure the light came from {pair.label_a}, the tube must contain"
+                f" {pair.label_a} and nothing else."
+            )
+        self._outline(ax, -0.5, -0.5, n, 1)
+        return (
+            f"Each row of the heatmap is one dye ({n} rows), and each needs its own single-stain"
+            f" tube: {n} tubes. Then add the unstained control."
+        )
+
+    @staticmethod
+    def _outline(ax: Axes, x: float, y: float, width: float, height: float) -> None:
+        ax.add_patch(
+            patches.Rectangle(
+                (x, y), width, height, fill=False, edgecolor=Colors.ACCENT_WARNING, lw=3, ls="--"
+            )
         )
 
     def on_link(self, link: str) -> None:

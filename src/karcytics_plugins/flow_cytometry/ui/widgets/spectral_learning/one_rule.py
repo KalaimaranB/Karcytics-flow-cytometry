@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from karcytics_sdk.plugin.theme_fallback import Colors
 
-from .slide import AnswerBox, Slide, choices, heading, hint, label_axes, task
+from .slide import AnswerBox, Slide, choices, ghost_arrow, ghost_label, heading, label_axes, verdict
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -118,7 +118,6 @@ class OneRuleSlide(Slide):
     def __init__(self, deck: SpectralLearningTab) -> None:
         super().__init__(deck)
         self.rule_found = False  # picked "in proportion to its first-dye brightness"
-        self.wrong_hint: str | None = None
 
     def render(self, ax: Axes) -> str:
         pair = self.deck.pair
@@ -152,38 +151,27 @@ class OneRuleSlide(Slide):
             f"{rows}</table>"
         )
         if not self.rule_found:
-            return (
-                html
-                + task(
-                    f"Action Required: Cells 1 and 2 carry no {b} at all. How much must"
-                    f" compensation take off each one's {b} reading?"
-                )
-                + choices(
-                    [
-                        ("s4_same", "A) The same amount from both"),
-                        (
-                            "s4_proportional",
-                            f"B) More from Cell 2, in proportion to its {a} brightness",
-                        ),
-                        ("s4_floor", "C) Whatever it takes to bring each down to the floor"),
-                    ]
-                )
-                + hint(self.wrong_hint)
+            return html + choices(
+                [
+                    ("s4_same", "A) The same amount from both"),
+                    (
+                        "s4_proportional",
+                        f"B) More from Cell 2, in proportion to its {a} brightness",
+                    ),
+                    ("s4_floor", "C) Whatever it takes to bring each down to the floor"),
+                ]
             )
         (x1, _y1), (x2, _y2), (x3, y3) = cells
-        html += task(
+        html += verdict(
             f"Right: the leak is a fraction of each cell's own {a} light. {pct:.1f}% of"
             f" {x1:.0f} is {pct / 100 * x1:.0f}; {pct:.1f}% of {x2:.0f} is"
             f" {pct / 100 * x2:.0f}. Both cells land on the floor."
         )
         if not self.done:
-            return html + task(
-                f"Action Required: Cell 3 reads {x3:.0f} for {a} and {y3:.0f} for {b}. Apply"
-                f" the same rule: what is its compensated {b} reading?"
-            )
+            return html
         return (
             html
-            + task(
+            + verdict(
                 f"Exactly: {y3:.0f} − {pct:.1f}% × {x3:.0f} ≈ {compensated_dp(pct, cells):.0f}."
                 f" Cell 3 stays well above the floor: most of its {b} signal was never leaked"
                 f" {a} light. It's a real double-positive."
@@ -191,6 +179,43 @@ class OneRuleSlide(Slide):
             + f"<p>Compensation removes only the part of a reading that {a} explains. It doesn't"
             " erase real signal, and it doesn't push cells to the floor. Skip it, and Cell 2's"
             f" leaked light reads as {b} it doesn't have.</p>"
+        )
+
+    def instruction(self) -> str:
+        pair = self.deck.pair
+        if not self.rule_found:
+            return (
+                f"Cells 1 and 2 carry no {pair.label_b} at all. How much must compensation take"
+                f" off each one's {pair.label_b} reading? Click A, B or C in the text below."
+            )
+        x3, y3 = three_cells(pair.pct)[2]
+        return (
+            f"Cell 3 reads {x3:.0f} for {pair.label_a} and {y3:.0f} for {pair.label_b}. Apply the"
+            f" same rule: type its compensated {pair.label_b} reading in the box and press"
+            " <b>Submit</b>."
+        )
+
+    def show_me(self, ax: Axes) -> str:
+        pair = self.deck.pair
+        cells = three_cells(pair.pct)
+        if not self.rule_found:
+            for x, y in cells[:2]:
+                ghost_arrow(ax, (x + 40, FLOOR), (x + 40, y))
+                ghost_label(ax, x + 110, (FLOOR + y) / 2, f"+{y - FLOOR:.0f}")
+            (x1, y1), (x2, y2) = cells[0], cells[1]
+            return (
+                f"Measure each cell's height above the floor (arrows): Cell 1 +{y1 - FLOOR:.0f},"
+                f" Cell 2 +{y2 - FLOOR:.0f}. Cell 2 is {x2 / x1:.0f}× as bright in {pair.label_a}"
+                f" ({x2:.0f} vs {x1:.0f}), and it leaked {x2 / x1:.0f}× as much."
+            )
+        x3, y3 = cells[2]
+        leak = round(pair.pct, 1) / 100.0 * x3
+        ghost_arrow(ax, (x3 - 40, y3), (x3 - 40, y3 - leak))
+        ghost_label(ax, x3 - 120, y3 - leak / 2, f"−{leak:.0f}")
+        return (
+            f"The leak is {pair.pct:.1f}% of Cell 3's own {pair.label_a} reading:"
+            f" {pair.pct:.1f}% × {x3:.0f} ≈ {leak:.0f}. Take that off its {pair.label_b} reading"
+            f" ({y3:.0f}) and type what's left."
         )
 
     def on_link(self, link: str) -> None:

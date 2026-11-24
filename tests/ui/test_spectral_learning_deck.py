@@ -258,3 +258,195 @@ def test_the_matrix_is_symmetric_with_100_on_the_diagonal():
 
 def test_a_dye_without_a_spectrum_cannot_make_a_pair():
     assert teaching_pair({"fitc": TWO_DYES["fitc"], "x": {"display_label": "X"}}) is None
+
+
+# ── Guidance: the "Your turn" strip, Show me, and hints for every wrong move ──
+
+
+def _strip(deck) -> str:
+    return deck.guide.strip.text()
+
+
+def _show_me(deck) -> str:
+    """Press Show me; return what it added to the strip.
+
+    It must also show something: a ghost on the plot, or an outline round the
+    readout and answer box when the next move is there rather than on the plot.
+    """
+    before = len(deck._ax.patches) + len(deck._ax.lines) + len(deck._ax.texts)
+    deck.guide.button.click()
+    after = len(deck._ax.patches) + len(deck._ax.lines) + len(deck._ax.texts)
+    pointed = "transparent" not in deck.guide._answer_area.styleSheet()
+    assert after > before or pointed, "Show me showed nothing on the plot or the answer area"
+    assert deck.guide.help_text
+    return deck.guide.help_text
+
+
+def test_the_header_counts_the_steps(deck):
+    assert deck._step_label.text() == "Step 1 of 7: The Physics of Overlap"
+
+
+def test_the_strip_says_what_to_do_then_points_at_next(deck):
+    assert "Your turn" in _strip(deck)
+    assert deck._btn_next.toolTip()  # locked Next explains itself
+
+    deck._go_to(4)
+    _press(deck, 600, 120)
+    deck.slides[4].progress = 1.0
+    deck.slides[4].finish()
+
+    assert "Next Step" in _strip(deck)
+    assert deck._btn_next.isEnabled() and not deck._btn_next.toolTip()
+    assert not deck.guide.button.isEnabled()
+
+
+@pytest.mark.parametrize(
+    ("step", "advance"),
+    [
+        (0, None),
+        (0, lambda d: (_press(d, 575, 0.5), _drag(d, 521, 0.5), _release(d))),
+        (1, None),
+        (1, lambda d: d._on_link(QUrl("predict_correct"))),
+        (
+            2,
+            lambda d: (
+                _press(d, 650, 650 * d.pair.pct / 100),
+                _drag(d, 950, 950 * d.pair.pct / 100),
+                _release(d),
+            ),
+        ),
+        (2, None),
+        (3, None),
+        (3, lambda d: d._on_link(QUrl("s4_proportional"))),
+        (4, None),
+        (4, lambda d: _press(d, 600, 120)),
+        (5, None),
+        (6, None),
+        (6, lambda d: d._on_link(QUrl("mc_single"))),
+    ],
+)
+def test_show_me_draws_a_hint_at_every_stage(deck, step, advance):
+    deck._go_to(step)
+    if advance is not None:
+        advance(deck)
+
+    text = _show_me(deck)
+
+    assert text in _strip(deck)
+    assert deck.guide.button.text() == "🙈 Hide help"
+
+
+def test_show_me_switches_off_on_another_slide(deck):
+    _show_me(deck)
+    deck._go_to(1)
+
+    assert not deck.guide.help_text
+    assert deck.guide.button.text() == "💡 Show me"
+
+
+def test_step_1_a_missed_drop_says_which_way_and_stays_put(deck):
+    _press(deck, 575, 0.5)
+    _drag(deck, 700, 0.5)
+    _release(deck)
+
+    slide = deck.slides[0]
+    assert "to the right" in slide.wrong_hint and "left" in slide.wrong_hint
+    assert slide._filter_x == 700
+    assert slide.wrong_hint in _strip(deck)
+
+
+def test_step_1_a_press_off_the_band_says_to_grab_it(deck):
+    _press(deck, 400, 0.5)
+
+    assert "dashed band" in deck.slides[0].wrong_hint
+
+
+def test_step_1_the_answer_is_the_highest_marker_not_the_teaching_pair(deck):
+    # The pair is chosen by total overlap; the question asks which marker sits
+    # highest at the filter. A narrow dye beside FITC's peak overlaps little in
+    # total but rides higher there than PE: the slide follows what's on screen.
+    spike = [[float(x), float(np.exp(-(((x - 522) / 3) ** 2)))] for x in np.arange(350, 800)]
+    deck._viewer._active_fluors = {**TWO_DYES, "spike": {"em_data": spike, "display_label": "S"}}
+    deck.update_view()
+    assert {deck.pair.dye_a, deck.pair.dye_b} == {"fitc", "pe"}
+
+    _press(deck, 575, 0.5)
+    _drag(deck, 521, 0.5)
+    _release(deck)
+    slide = deck.slides[0]
+    assert slide._heights["spike"] > slide._heights["pe"]
+
+    _press(deck, slide._peak_x, slide._heights["pe"])
+    assert not _done(deck)
+    _press(deck, slide._peak_x, slide._heights["spike"])
+    assert _done(deck)
+    assert "S leaks the most" in deck._explanation.toPlainText()
+
+
+def test_step_2_too_far_and_not_far_enough_each_get_a_reason(deck):
+    deck._go_to(1)
+    deck._on_link(QUrl("predict_correct"))
+    slide = deck.slides[1]
+
+    _press(deck, 800, 800)
+    _drag(deck, 500, 500)
+    _release(deck)
+    assert "far past" in slide.wrong_hint
+
+    _press(deck, 500, 500)
+    _drag(deck, 120, 120)
+    _release(deck)
+    assert "grey cells still sit" in slide.wrong_hint
+
+    _press(deck, 120, 120)
+    _drag(deck, 230, 230)
+    _release(deck)
+    assert _done(deck)
+
+
+def test_step_3_an_off_slant_ruler_says_steeper_or_flatter(deck):
+    deck._go_to(2)
+    _press(deck, 650, 0)
+    _drag(deck, 950, 900)
+    _release(deck)
+
+    assert "steeper" in deck.slides[2].wrong_hint
+
+
+def test_step_6_a_wrong_gate_says_what_is_wrong(deck):
+    deck._go_to(5)
+    slide = deck.slides[5]
+
+    _press(deck, 600, 600)
+    _release(deck)
+    assert "click, not a drag" in slide.wrong_hint
+
+    _press(deck, 50, 50)
+    _drag(deck, 900, 900)
+    _release(deck)
+    assert "grey negative cells" in slide.wrong_hint
+
+    _press(deck, 300, 800)
+    _drag(deck, 450, 950)
+    _release(deck)
+    assert "misses the blue cluster" in slide.wrong_hint
+    assert slide.wrong_hint in _strip(deck)
+
+
+def test_a_slow_slide_suggests_show_me(deck):
+    assert deck.guide.nudge_timer.isActive()
+    deck.guide.nudge()
+
+    assert "Stuck?" in _strip(deck)
+
+    deck._go_to(1)
+    assert "Stuck?" not in _strip(deck)
+
+
+def test_step_2_show_me_square_is_exactly_what_the_check_accepts(deck):
+    slide = deck.slides[1]
+    edge = slide._edge()
+
+    assert slide._judge(edge, edge) is None
+    assert slide._judge(300, 300) is None
+    assert slide._judge(edge - 5, edge - 5) is not None
