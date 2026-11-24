@@ -1,6 +1,6 @@
 [project]
 name = "flow_cytometry"
-version = "1.0.1"
+version = "1.1.0"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
@@ -52,13 +52,15 @@ entry_point = "karcytics_plugins.flow_cytometry:initialize"
 process_model = "isolated"
 is_beta = false
 release_notes = """
-Flow Cytometry 1.0.1
+Flow Cytometry 1.1.0
 
-- Spectral viewer: dyes that are the stain themselves (PI, 7-AAD, DAPI) now show their own spectrum, not the spectrum of the detector they are read in.
-- Academy Course 1: a new question on what FSC and SSC tell you about cells; the Spectral steps now make clear that spectra belong to fluorophores, not markers.
-- Academy: the T-cells box can be drawn on plots whose CD3 axis ends low; the Learning Compensation tab re-checks the course when shown.
-- Faster density plots.
-- Dependency updates for security advisories (Pillow, certifi, msgpack, tornado).
+- Academy Course 1 rebuilt around a mystery: turn compensation off, find bright CD4 cells that look dead, learn why, then turn it back on. More scaffolding for the maths: worked examples, a slider slide to find the right correction by hand, and a small calculator. Shorter overall (~50 min).
+- Compensation tab: a Compensation ON / OFF switch for every sample (undoable).
+- Learning Compensation deck: every slide has "Your turn" and "Show me" help, and spillover estimates now account for which laser excites each dye.
+- Spectral viewer: bare dye names (APC, PE) no longer load a tandem's spectrum from FPbase.
+- Right-click any plot to copy or download it; Render Full Quality from the graph window.
+- Cluster maps and the compensation preview draw without freezing the window.
+- Checked populations are listed in grid order.
 """
 requires = ["task_scheduler", "logger", "event_bus"]
 tags = ["flow cytometry", "gating", "FMO", "compensation", "FCS", "UMAP", "bioinformatics"]
