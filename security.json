@@ -1,7 +1,7 @@
 {
     "security_version": 1,
     "plugin_id": "flow_cytometry",
-    "manifest_hash": "25973e029354f35aa62d20fe61464dcb287e7908ae7415ed2f2e658c12305a2c",
+    "manifest_hash": "712b23bff8a8e37c2ace1d26a895068bad4ccedcf1535c87849380e3a1b1ddb6",
     "exclusions": [
         "tests"
     ],

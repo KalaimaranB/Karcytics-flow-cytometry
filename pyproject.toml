@@ -1,6 +1,6 @@
 [project]
 name = "flow_cytometry"
-version = "1.1.0"
+version = "1.1.1"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11, <3.13"
@@ -8,7 +8,7 @@ authors = [
   { name = "Kalaimaran Balasothy" },
 ]
 dependencies = [
-    "karcytics-sdk>=3.3.3",
+    "karcytics-sdk>=3.3.6",
     "msgpack>=1.0.0, <2.0.0",
     "pyobjc-framework-cocoa>=12.2.1 ; sys_platform == 'darwin'",
     "numpy==1.26.4",
@@ -45,6 +45,7 @@ dev = [
 ]
 
 [tool.karcytics.plugin]
+released_at = "2026-11-25"
 id = "flow_cytometry"
 display_name = "Flow Cytometry"
 min_core_version = "2.1.0"
@@ -52,6 +53,12 @@ entry_point = "karcytics_plugins.flow_cytometry:initialize"
 process_model = "isolated"
 is_beta = false
 release_notes = """
+Flow Cytometry 1.1.1
+
+- Your license (for example "Class license · UBC MICB 323") now shows in the module's footer.
+- Signed with a release date, so Karcytics can tell which licenses cover this version.
+- Needs Karcytics SDK 3.3.6 or newer (installed automatically).
+
 Flow Cytometry 1.1.0
 
 - Academy Course 1 rebuilt around a mystery: turn compensation off, find bright CD4 cells that look dead, learn why, then turn it back on. More scaffolding for the maths: worked examples, a slider slide to find the right correction by hand, and a small calculator. Shorter overall (~50 min).
