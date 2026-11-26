@@ -62,7 +62,7 @@ For a complete and exact list of dependencies, please refer to the `pyproject.to
 
 ## Documentation
 
-Comprehensive documentation is hosted on GitHub Pages: **[Karcytics Flow Cytometry Documentation](https://KalaimaranB.github.io/Karcytics-flow-cytometry)**
+Documentation: **[Karcytics Flow Cytometry Documentation](https://docs.karcytics.ca/flow-cytometry/)**
 
 The repository documentation is strictly separated into user-facing operational guides and engineering architectural references.
 

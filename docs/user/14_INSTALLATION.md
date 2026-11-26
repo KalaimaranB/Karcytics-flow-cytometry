@@ -155,5 +155,5 @@ If a plugin won't install:
 ## What’s next?
 
 * [Getting Started](01_GETTING_STARTED.md) — create a project and learn the Hub
-* [Plugin Store & Security](https://kalaimaranb.github.io/Karcytics/user/07_Plugin_Store_and_Security/) — understand trust and module safety
+* [Plugin Store & Security](https://docs.karcytics.ca/hub/07_Plugin_Store_and_Security/) — understand trust and module safety
 * [FAQ & Troubleshooting](13_TROUBLESHOOTING.md) — solve common problems quickly

@@ -44,3 +44,6 @@ mypy_output.txt
 .claude/*
 !.claude/settings.json
 .coverage*
+
+# Built docs (wrangler.toml)
+site/
