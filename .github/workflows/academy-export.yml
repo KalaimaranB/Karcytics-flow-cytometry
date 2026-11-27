@@ -1,0 +1,51 @@
+# Academy export for the admin portal's Academy review (admin.karcytics.ca).
+#
+# On every push to main that touches the courses, read every Academy course into academy.json with
+# the SDK's static reader (karcytics_sdk/academy/export.py: standard library only, nothing is
+# installed or run from this repo) and put it on the `academy-export` branch, replacing what was
+# there. That branch holds only that one file and is never merged. The portal reads it with its
+# GitHub token and keeps the history itself, so it works the same when this repo is private.
+# Kept off main so the plugin's signed files never change.
+name: Academy export
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**/tutorials/**"
+      - ".github/workflows/academy-export.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: academy-export
+  cancel-in-progress: true
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: plugin
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: KalaimaranB/Karcytics-SDK
+          path: sdk
+          persist-credentials: false
+      - name: Read the courses
+        run: python3 sdk/src/karcytics_sdk/academy/export.py plugin --module flow_cytometry --commit "$GITHUB_SHA" --out academy.json
+      - name: Put academy.json on the academy-export branch
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          mkdir out && mv academy.json out/ && cd out
+          git init -q -b academy-export
+          git add academy.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Academy export of ${GITHUB_SHA::7}"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" academy-export
