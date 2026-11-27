@@ -1,4 +1,14 @@
-"""Karcytics Flow Cytometry — Academy Courses.
+"""Course 1 — Flow Cytometry Fundamentals.
+
+Three phases, each ending with a three-line recap:
+
+1. **Setup:** import the 10 tutorial files and tag each tube's role.
+2. **First gate:** read the scatter plot, then draw **Cells** from scatter alone.
+3. **Compensation, problem first:** with compensation OFF, CD4-bright cells look
+   PI-positive (the mystery). The Spectral viewer (emission, then lasers) and the
+   Learning Compensation deck explain why; compensation back ON is the payoff.
+   Then the learner reads the real matrix, checks it, and saves the workspace
+   Course 2 starts from.
 
 Step conventions:
   InfoStep           — teaches a concept; user clicks Next → to continue.
@@ -24,23 +34,29 @@ from karcytics_sdk.plugin.tutorial_models import (
     QuestionStep,
     VerificationStep,
 )
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QAbstractButton, QWidget
 
 from karcytics_plugins.flow_cytometry.analysis import events
 
 from ..analysis.constants import PROPERTIES_VIEW_HISTOGRAM, PROPERTIES_VIEW_PROPERTIES
 from ..main_tabs import MainTab
-from .course1_compensation import COMPENSATION_STEPS
-from .course1_scatter import SCATTER_STEPS
+from ..ui.academy_context import MATRIX_HIGHLIGHT_KEY, SPECTRAL_TAB_HIGHLIGHT_KEY
+from .constants import PREVIEW_ALL_SAMPLES
 from .tutorial_assets import describe_files_location, start_provisioning
 from .validators.base import (
+    AllOf,
     PropertiesViewValidator,
     TabActiveValidator,
+    WorkflowSavedValidator,
 )
-from .validators.gating import GateShapeValidator
+from .validators.compensation import CompensationSwitchValidator, PreviewShowsValidator
+from .validators.gating import AxisChannelValidator, AxisYChannelValidator, GateShapeValidator
 from .validators.setup import (
+    ExactSampleOpenValidator,
     FlowImportValidator,
     FmoRoleValidator,
+    LearningCompensationCompleteValidator,
+    LearningCompensationTabOpenValidator,
     RoleAssignmentValidator,
     SampleOpenValidator,
     SingleStainRoleValidator,
@@ -129,6 +145,29 @@ def route_by_properties_view(panel, step_id, switch_step_id, ready_step_id):
 
 
 # ==============================================================================
+# Spectral viewer and Learning Compensation deck helpers
+# ==============================================================================
+
+DECK_DONE_STEP_ID = "c1_c21_switch_on"  # where Course 1 picks up after the deck
+
+# The deck guides itself (👉 Your turn, 💡 Show me, 🧮 on every slide), so
+# Cyto explains it once, then stays out of the way until the last slide is
+# done: one bubble the learner closes, and no banner while they work.
+DECK_QUIET_MS = 25 * 60_000  # longer than the slowest learner should need
+
+
+def _show_emission_curves(panel: QWidget) -> None:
+    """ActionStep callback: turns the Spectral viewer's EM toggle back on.
+
+    The step before lets the learner switch AB / EX / EM freely; the overlap
+    callouts the next step points at are only drawn while EM is on.
+    """
+    button = panel.findChild(QAbstractButton, "SpectralEMToggle")
+    if button is not None and not button.isChecked():
+        button.setChecked(True)
+
+
+# ==============================================================================
 # Course 1 — Flow Cytometry Fundamentals
 #
 # The gate-drawing step (Cells below) doesn't wire its own ActionStep-based
@@ -140,8 +179,7 @@ def route_by_properties_view(panel, step_id, switch_step_id, ready_step_id):
 # generic path shared by every course that uses `GateShapeValidator`.
 # Three phases: Setup → First gate (Cells) → Compensation. Each ends with a
 # three-line recap. Compensation starts from a mystery (compensation OFF) and
-# ends with its payoff (ON); the spectra and the deck sit in between
-# (course1_spectral).
+# ends with its payoff (ON); the Spectral viewer and the deck sit in between.
 # ==============================================================================
 
 # Held as a variable (rather than built inline in the steps list below) so
@@ -603,7 +641,88 @@ course_1_fundamentals = Course(
             event_trigger="sample_double_clicked",
             next_step_id="c1_s22c_verify_sample_open",
         ),
-        *SCATTER_STEPS,
+        # Read the scatter plot first: where debris sits, what the second cluster says
+        QuestionStep(
+            id="c1_s22d_scatter_physics",
+            text=(
+                "Read the plot 💡<br><br>"
+                "**FSC** (forward scatter) tracks a particle's size; **SSC** "
+                "(side scatter) tracks how much is inside it. Debris is "
+                "fragments: small and simple. Where on this plot does it sit?"
+            ),
+            question_id="c1_debris_location",
+            choices=[
+                AnswerChoice("Bottom-left: low FSC, low SSC", correct=True),
+                AnswerChoice(
+                    "Top-right: high FSC, high SSC",
+                    feedback="That's big, granular cells. Fragments scatter little light either way.",
+                ),
+                AnswerChoice(
+                    "Bottom-right: high FSC, low SSC",
+                    feedback="High FSC means large. Fragments are small.",
+                ),
+            ],
+            explanation=(
+                "Fragments produce little forward scatter and have little internal structure "
+                "to scatter light sideways. Because forward and side scatter can distinguish "
+                "intact cells from debris without any fluorescent label, this FSC/SSC gate "
+                "is typically the first step."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c1_s22e_scatter_clusters",
+        ),
+        # Reflection: what scatter says about the cells themselves (not just debris).
+        QuestionStep(
+            id="c1_s22e_scatter_clusters",
+            text=(
+                "Now look past the debris 🔍<br><br>"
+                "Above and to the right of the dense lower-left cloud there's a "
+                "second, looser cluster: higher **FSC** *and* higher **SSC**.<br><br>"
+                "Remember, this tube is unstained, so this is pure light scatter. "
+                "What does that position tell you about those cells?"
+            ),
+            question_id="c1_scatter_clusters",
+            choices=[
+                AnswerChoice(
+                    "They're larger and more internally complex (more granules and organelles)",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "They carry more fluorescent dye",
+                    feedback=(
+                        "This sample has no dye at all. FSC and SSC are scattered laser "
+                        "light, so they describe the cell's physical build."
+                    ),
+                ),
+                AnswerChoice(
+                    "They're dead or dying cells",
+                    feedback=(
+                        "Dying cells usually shrink, so FSC drops. Scatter alone can't "
+                        "confirm death, which is why we add the viability dye (PI) later."
+                    ),
+                ),
+                AnswerChoice(
+                    "It just means there are more of them",
+                    feedback=(
+                        "A position on the plot is a measurement per cell. How many cells "
+                        "there are shows up as how dense the cloud is."
+                    ),
+                ),
+            ],
+            explanation=(
+                "Higher FSC means a bigger cell; higher SSC means more inside it "
+                "(granules, organelles, a lobed nucleus). Small, smooth lymphocytes "
+                "sit low on both axes; granular myeloid cells like granulocytes sit "
+                "up and right. So even without antibodies, scatter hints at which "
+                "cell types a tissue holds."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c1_s23_cells_intro",
+        ),
         # Cells gate
         InfoStep(
             id="c1_s23_cells_intro",
@@ -759,6 +878,617 @@ course_1_fundamentals = Course(
             cyto_emotion="happy",
             next_step_id="c1_c02_comp_tab",
         ),
-        *COMPENSATION_STEPS,
+        # ── Phase 3 — The mystery: compensation OFF ───────────────────────────
+        # A VerificationStep, not an InteractionStep: if the user is already
+        # on the tab it passes at once (clicking the active tab emits no
+        # currentChanged, so a click-wait would hang). Every tab switch in the
+        # courses uses this one-step form.
+        VerificationStep(
+            id="c1_c02_comp_tab",
+            text=(
+                "Phase 3 — Compensation ⚖️<br><br>"
+                "Every gate after **Cells** uses the light from the dyes. Before you "
+                "trust it, there's a puzzle to solve. Click the **Compensation** tab "
+                "(highlighted) at the top."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar"],
+            validator=TabActiveValidator(MainTab.COMPENSATION),
+            on_success_step_id="c1_c03_switch_off",
+        ),
+        VerificationStep(
+            id="c1_c03_switch_off",
+            text=(
+                "This switch (highlighted) turns **compensation** on or off for "
+                "every sample. It's **ON** now: that's what the ✦ next to each "
+                "sample means.<br><br>"
+                "Click it to turn compensation **OFF**, so you see the readings "
+                "exactly as the cytometer recorded them."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["CompensationSwitch"],
+            validator=CompensationSwitchValidator(on=False),
+            on_success_step_id="c1_c05_open_sample_a",
+            failure_hint="Click **Compensation: ON ✦** in the Compensation tab's header.",
+        ),
+        VerificationStep(
+            id="c1_c05_open_sample_a",
+            text=(
+                "Compensation is **OFF** (the ✦ marks are gone). Go back to the "
+                "**Gating** tab and double-click **Sample A** in the **Sample List**."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar", "SampleList"],
+            validator=AllOf(
+                TabActiveValidator(MainTab.GATING), ExactSampleOpenValidator("Sample A")
+            ),
+            on_success_step_id="c1_c06_set_axes",
+            failure_hint="Open the **Gating** tab, then double-click **Sample A** in the Sample List.",
+        ),
+        VerificationStep(
+            id="c1_c06_set_axes",
+            text=(
+                "Put two dyes on the plot:<br>"
+                "• **X:** → **PE-A** (the CD4 marker, on T helper cells)<br>"
+                "• **Y:** → **PerCP-Cy5-5-A** (where **PI** is read; PI marks dead "
+                "cells)"
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["AxisSelectorX", "AxisSelectorY"],
+            validator=AllOf(AxisChannelValidator("pe-a"), AxisYChannelValidator("percp")),
+            on_success_step_id="c1_c07_mystery",
+            failure_hint="Set the **X:** dropdown to **PE-A** and the **Y:** dropdown to **PerCP-Cy5-5-A**.",
+        ),
+        QuestionStep(
+            id="c1_c07_mystery",
+            text=(
+                "The mystery 🕵️<br><br>"
+                "Look at the brightest CD4 cells (far right). They sit higher on "
+                "the PI axis than the dim ones, and many look PI-positive. PI "
+                "marks dead cells. Are bright CD4 T cells especially likely to be "
+                "dead?"
+            ),
+            kind=QUESTION_PREDICT,
+            question_id="c1_dead_or_not",
+            choices=[
+                AnswerChoice("Yes, many of them are dead"),
+                AnswerChoice("Something else makes them look PI-positive"),
+                AnswerChoice("Can't tell from this plot"),
+            ],
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c1_sp43_verify_spectral_tab",
+        ),
+        # ── Why it happens, part 1: emission ──────────────────────────────────────
+        VerificationStep(
+            id="c1_sp43_verify_spectral_tab",
+            text=(
+                "To solve it, look at the light itself. Click the **Spectral** tab "
+                "(highlighted) at the top."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar"],
+            validator=TabActiveValidator(MainTab.SPECTRAL),
+            on_success_step_id="c1_sp45_load_six",
+        ),
+        InfoStep(
+            id="c1_sp45_load_six",
+            text=(
+                "The **Spectral Viewer** 🌈<br><br>"
+                "Karcytics read your panel's 6 fluorescence channels from the files "
+                "and plotted each **dye's** real, measured spectrum from **FPbase**, "
+                "an open database of dyes (cited under the viewer): FITC, PE, PI, "
+                "Pacific Blue, APC-Cy7 and APC.<br><br>"
+                "Each legend entry shows the **marker** the dye is attached to, like "
+                "**CD45 (APC-A)**. CD45 is a protein on the cell with no colour of "
+                "its own; the colour comes from the dye on the antibody. So "
+                "spillover is about dyes, not markers.<br><br>"
+                "PI is the odd one out: it isn't an antibody tag but a dye in its own "
+                "right, read in the **PerCP-Cy5.5** detector, so Karcytics plotted "
+                "PI's own spectrum."
+            ),
+            cyto_emotion="happy",
+            target_widget_names=["SpectralSourceList", "SpectralCitation"],
+            next_step_id="c1_sp45b_broad_hills",
+        ),
+        InfoStep(
+            id="c1_sp45b_broad_hills",
+            text=(
+                "Where does spillover come from? ⛰️<br><br>"
+                "A dye doesn't glow at one exact colour. It glows across a broad hill "
+                "of wavelengths, often 100 nm wide or more. Each detector sits under "
+                "the peak of one dye's hill, but the hills' shoulders reach into "
+                "neighbouring detectors.<br><br>"
+                "Find **CD4 (PE)** and **PI** in the legend. PE's hill runs on past "
+                "600 nm, right into the colours where PI is read."
+            ),
+            cyto_emotion="thinking",
+            target_widget_names=["SpectralPlotArea"],
+            next_step_id="c1_s12e_spectral_theory_2",
+        ),
+        QuestionStep(
+            id="c1_s12e_spectral_theory_2",
+            text=(
+                "Spillover in action 🌈<br><br>"
+                "Some of PE's light lands in the detector where PI is read. Without "
+                "compensation, how does a cell that's bright for PE (CD4) but has no "
+                "PI look?"
+            ),
+            question_id="c1_spillover_effect",
+            choices=[
+                AnswerChoice(
+                    "PI-negative, as it should",
+                    feedback="The PI detector still catches PE's shoulder, so its reading climbs even though there's no PI.",
+                ),
+                AnswerChoice(
+                    "Dimmer for PE",
+                    feedback="Spillover adds to the neighbouring detector; it doesn't take away from PE's own reading.",
+                ),
+                AnswerChoice("Falsely PI-positive, so it looks dead", correct=True),
+            ],
+            explanation=(
+                "That's a strong lead for your 'dead' CD4 cells. But plenty of curves "
+                "overlap here, and not every overlap causes trouble. The next idea, "
+                "lasers, explains which ones do."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["SpectralPlotArea"],
+            next_step_id="c1_sp46_ab_ex_em_info",
+        ),
+        # ── Why it happens, part 2: lasers ────────────────────────────────────────
+        InfoStep(
+            id="c1_sp46_ab_ex_em_info",
+            text=(
+                "Lasers light the dyes 🔦<br><br>"
+                "A dye only glows when light of the right colour hits it:<br>"
+                "• **EX** (excitation): the colours that make the dye glow. It tells "
+                "you which laser lights it, e.g. the 488 nm blue laser.<br>"
+                "• **AB** (absorbance): the colours it soaks up, close to EX.<br>"
+                "• **EM** (emission): the colours it glows back, caught by a "
+                "detector.<br><br>"
+                "Your cytometer has three lasers: violet (405 nm), blue (488 nm) and "
+                "red (640 nm), and each detector sits behind one of them. Try the "
+                "**AB / EX / EM** buttons (highlighted) to see each set of curves."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            target_widget_names=["SpectralABToggle", "SpectralEXToggle", "SpectralEMToggle"],
+            next_step_id="c1_sp46b_show_emission",
+        ),
+        ActionStep(
+            id="c1_sp46b_show_emission",
+            text="Switching the emission curves back on...",
+            action=_show_emission_curves,
+            next_step_id="c1_sp46c_laser_question",
+        ),
+        QuestionStep(
+            id="c1_sp46c_laser_question",
+            text=(
+                "Do lasers matter? 🔦<br><br>"
+                "Pacific Blue's emission overlaps FITC's. But Pacific Blue is lit by "
+                "the violet laser, and FITC's detector sits behind the blue laser, "
+                "which barely excites Pacific Blue. How much Pacific Blue light ends "
+                "up in FITC's detector?"
+            ),
+            question_id="c1_laser_matters",
+            choices=[
+                AnswerChoice(
+                    "A lot: their curves overlap",
+                    feedback="Overlapping emission only counts if the dye is glowing in that detector's laser beam. The blue laser leaves Pacific Blue nearly dark.",
+                ),
+                AnswerChoice("Very little: the blue laser barely lights it", correct=True),
+                AnswerChoice(
+                    "Exactly the overlap shown on the plot",
+                    feedback="The plot shows emission only. Whether that light is produced in the right beam depends on the laser too.",
+                ),
+            ],
+            explanation=(
+                "Spillover needs both: a dye's light must overlap the detector's colours, "
+                "and that detector's laser must light the dye. PE and PI are both lit by "
+                "the blue laser, so their overlap really counts."
+            ),
+            cyto_emotion="thinking",
+            target_widget_names=["SpectralPlotArea"],
+            next_step_id="c1_sp47_overlap_callouts",
+        ),
+        InfoStep(
+            id="c1_sp47_overlap_callouts",
+            text=(
+                "Reading the overlap callouts 🔍<br><br>"
+                "Karcytics marks every pair of emission curves that overlap: the "
+                "hatched white area is the shared light, and each callout gives an "
+                "**Overlap integral %**. Click a callout to dismiss it.<br><br>"
+                "Those % come from emission curves alone. Lasers and filters change "
+                "the real spillover, which is why labs measure it with controls."
+            ),
+            cyto_emotion="talking",
+            target_widget_names=["SpectralPlotArea"],
+            next_step_id="c1_sp47b_which_overlap_matters",
+        ),
+        QuestionStep(
+            id="c1_sp47b_which_overlap_matters",
+            text=(
+                "Overlap isn't automatically a problem 🧠<br><br>"
+                "Two overlaps in your panel: **CD3** (Pacific Blue) with **B220** "
+                "(FITC), and **CD4** (PE) with **PI**, the live/dead dye read in "
+                "the PerCP-Cy5.5 detector. Left uncorrected, which one could quietly "
+                "distort your results?"
+            ),
+            question_id="c1_overlap_that_matters",
+            choices=[
+                AnswerChoice(
+                    "CD3 with B220",
+                    feedback=(
+                        "T cells and B cells are separate lineages, so spilled light "
+                        "can't invent a believable double-positive. And different "
+                        "lasers (405 vs 488 nm) light the two dyes, so little of "
+                        "that light reaches the other's detector."
+                    ),
+                ),
+                AnswerChoice("CD4 with PI", correct=True),
+                AnswerChoice(
+                    "Neither: they're well under 50%",
+                    feedback=(
+                        "A few percent of a very bright dye is enough to push a "
+                        "negative cell past a gate. The size of the overlap matters "
+                        "less than what the two signals mean."
+                    ),
+                ),
+            ],
+            explanation=(
+                "Spillover between PE and PI makes bright, live CD4 cells look dead, so "
+                "a live/dead gate would throw real CD4 T cells away. Overlap matters "
+                "when both signals can sit on one cell, or one drives a gating decision."
+            ),
+            cyto_emotion="thinking",
+            target_widget_names=["SpectralPlotArea"],
+            next_step_id="c1_sp48_learning_switch",
+        ),
+        # ── The Learning Compensation deck ────────────────────────────────────────
+        # A VerificationStep, like every tab switch in the courses: a learner
+        # already on the sub-tab passes at once. The spotlight is the tab itself,
+        # via the viewer's get_tutorial_target_rects hook (a tab isn't a QWidget
+        # the driver's name lookup can find).
+        VerificationStep(
+            id="c1_sp48_learning_switch",
+            text=(
+                "Now put the theory to work: click the **Learning Compensation** "
+                "sub-tab (highlighted) just above the plot."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            metadata={SPECTRAL_TAB_HIGHLIGHT_KEY: "learning"},
+            validator=LearningCompensationTabOpenValidator(),
+            on_success_step_id="c1_sp49_work_through_deck",
+        ),
+        VerificationStep(
+            id="c1_sp49_work_through_deck",
+            text=(
+                "The **Learning Compensation** deck 📚<br><br>"
+                "Seven short slides that take you from overlapping light to a full "
+                "matrix, with numbers from your own dyes. On each one:<br>"
+                "• **👉 Your turn** (top left) says what to do<br>"
+                "• **💡 Show me** (top right) draws it if you're stuck<br>"
+                "• **🧮** does any sum for you<br><br>"
+                "Press **Got it** and I'll stay out of the way until you finish the "
+                "last slide."
+            ),
+            cyto_emotion="talking",
+            allow_interaction=True,
+            hide_next_button=True,
+            manual_dismiss_bubble=True,
+            target_widget_names=["SpectralLearningTab"],
+            validator=LearningCompensationCompleteValidator(),
+            on_success_step_id=DECK_DONE_STEP_ID,
+            stuck_hint_text="Still going? 💡 Show me on any slide draws what it needs.",
+            stuck_hint_after_ms=DECK_QUIET_MS,
+        ),
+        # ── The payoff: compensation back ON ──────────────────────────────────
+        VerificationStep(
+            id="c1_c21_switch_on",
+            text=(
+                "Deck done! 🎓 Time to solve the mystery. Open the **Compensation** "
+                "tab and click the switch to turn compensation back **ON**. Every "
+                "sample gets the spillover taken off, as you did on the slider."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar", "CompensationSwitch"],
+            validator=CompensationSwitchValidator(on=True),
+            on_success_step_id="c1_c22_gating_tab",
+            failure_hint="In the **Compensation** tab, click **Compensation: OFF** in the header.",
+        ),
+        VerificationStep(
+            id="c1_c22_gating_tab",
+            text=(
+                "Compensation is **ON** again (the ✦ marks are back). Go to the "
+                "**Gating** tab (highlighted): Sample A is still on PE vs PI."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar"],
+            validator=TabActiveValidator(MainTab.GATING),
+            on_success_step_id="c1_c23_payoff",
+        ),
+        InfoStep(
+            id="c1_c23_payoff",
+            text=(
+                "Mystery solved 🔍<br><br>"
+                "Far fewer of the bright CD4 cells look PI-positive now. Most of "
+                "that 'PI' was **PE light landing in the PI detector**: spillover. "
+                "The cells weren't dead; the reading was wrong.<br><br>"
+                "You predicted: *{answer:c1_dead_or_not}*.<br><br>"
+                "Without compensation, a live/dead gate here would have thrown "
+                "away healthy CD4 T cells."
+            ),
+            cyto_emotion="cheering",
+            target_widget_names=["FlowCanvas"],
+            next_step_id="c1_c25_comp_tab",
+        ),
+        VerificationStep(
+            id="c1_c25_comp_tab",
+            text=(
+                "Where did that correction come from? 🗂<br><br>"
+                "The cytometer measured the spillover itself, with single-stain "
+                "tubes like the ones on the deck's last slide, and saved it in your "
+                "files (a **$SPILL** keyword). Karcytics applied it on loading: the "
+                "✦ on every sample.<br><br>"
+                "Click the **Compensation** tab (highlighted) to see those numbers."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["MainTabBar"],
+            validator=TabActiveValidator(MainTab.COMPENSATION),
+            on_success_step_id="c1_s14_extract_matrix",
+        ),
+        # ── Reading the real matrix ───────────────────────────────────────────
+        InteractionStep(
+            id="c1_s14_extract_matrix",
+            text=(
+                "Click **📄 Extract from FCS** (highlighted).<br><br>"
+                "This reads the matrix from the file and opens it on the "
+                "**Matrix** page."
+            ),
+            target_widget_name="ExtractFCSButton",
+            event_trigger="clicked",
+            cyto_emotion="pointing",
+            next_step_id="c1_c26_matrix_row",
+        ),
+        InfoStep(
+            id="c1_c26_matrix_row",
+            text=(
+                "Reading the matrix, part 1: rows 👉<br><br>"
+                "Each **row** is a **dye**. This one is **PE**'s row: it says "
+                "where PE's light goes. The 1 is PE in its own detector; the "
+                "other numbers are how much of it spills into each other detector."
+            ),
+            cyto_emotion="pointing",
+            target_widget_names=["CompensationMatrixTable"],
+            metadata={MATRIX_HIGHLIGHT_KEY: {"row": "PE-A"}},
+            next_step_id="c1_c27_matrix_column",
+        ),
+        InfoStep(
+            id="c1_c27_matrix_column",
+            text=(
+                "Part 2: columns 👇<br><br>"
+                "Each **column** is a **detector**. This one is the "
+                "**PerCP-Cy5.5** detector, where PI is read: it says how much "
+                "of every dye's light lands there."
+            ),
+            cyto_emotion="pointing",
+            target_widget_names=["CompensationMatrixTable"],
+            metadata={MATRIX_HIGHLIGHT_KEY: {"column": "PerCP-Cy5-5-A"}},
+            next_step_id="c1_m03_read_matrix",
+        ),
+        QuestionStep(
+            id="c1_m03_read_matrix",
+            text=(
+                "Read the matrix 🔢<br><br>"
+                "This cell (highlighted) is where PE's row meets the PI detector's "
+                "column: the spillover behind your mystery. How much of **PE**'s "
+                "signal lands in the **PerCP-Cy5-5** detector?"
+            ),
+            question_id="c1_pe_into_percp",
+            choices=[
+                AnswerChoice(
+                    "0.04",
+                    feedback="That's the other direction: the PerCP-Cy5-5 row, PE column. Start from the PE row.",
+                ),
+                AnswerChoice("0.30", correct=True),
+                AnswerChoice(
+                    "1.00",
+                    feedback="That's the diagonal: a dye in its own detector, always 1. Look along the PE row.",
+                ),
+            ],
+            explanation=(
+                "0.30 means 30%: for every 100 units of PE, the PI detector reads 30 "
+                "extra. It's the largest value in this matrix, which is why bright CD4 "
+                "cells looked dead."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["CompensationMatrixTable"],
+            metadata={MATRIX_HIGHLIGHT_KEY: {"row": "PE-A", "column": "PerCP-Cy5-5-A"}},
+            next_step_id="c1_m05_plot_pair",
+        ),
+        VerificationStep(
+            id="c1_m05_plot_pair",
+            text=(
+                "The switch flips every sample at once. To *judge* a matrix, the "
+                "preview shows before and after side by side.<br><br>"
+                "1. Click the **0.3000** cell (PE row, PerCP-Cy5-5 column). The "
+                "preview switches to that pair: the dye on X, the detector on Y.<br>"
+                "2. Set **Sample** to **Sample A**."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["CompensationMatrixTable", "PreviewSampleCombo"],
+            validator=PreviewShowsValidator(x="PE-A", y="PerCP-Cy5-5-A", sample_name="Sample A"),
+            on_success_step_id="c1_m06_read_scatter",
+            failure_hint=(
+                "Click the 0.3000 cell in the PE-A row, then choose Sample A in the "
+                "**Sample** dropdown above the plots."
+            ),
+        ),
+        QuestionStep(
+            id="c1_m06_read_scatter",
+            text=(
+                "Before and after 👀<br><br>"
+                "Left: the raw signal. Right: the same cells with this matrix. "
+                "The big cloud is PE-bright cells that carry no PI. With a good "
+                "matrix, how should it sit on the **After** plot?"
+            ),
+            question_id="c1_compensated_shape",
+            choices=[
+                AnswerChoice(
+                    "Climbing diagonally as PE gets brighter",
+                    feedback="That's the raw plot: the brighter the PE, the more of it spills into the other detector.",
+                ),
+                AnswerChoice(
+                    "Dipping below the PE-negative cells",
+                    feedback="That's over-compensation, like pushing the deck's slider too far: more is taken off than spilled in.",
+                ),
+                AnswerChoice("Level with the PE-negative cells", correct=True),
+            ],
+            explanation=(
+                "Level is the goal, exactly as on the deck's slider: being bright for PE "
+                "should say nothing about the PI detector. Tilted up means the value is "
+                "too low; pushed down means too high."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["CompensationPreviewArea"],
+            next_step_id="c1_m09_all_samples",
+        ),
+        VerificationStep(
+            id="c1_m09_all_samples",
+            text=(
+                "One tube is one opinion. Set **Sample** (highlighted) to "
+                "**All samples**: one row of plots per tube, drawn in the "
+                "background."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["PreviewSampleCombo"],
+            validator=PreviewShowsValidator(sample=PREVIEW_ALL_SAMPLES),
+            on_success_step_id="c1_m10_why_all",
+            failure_hint="Open the **Sample** dropdown and pick All samples, at the bottom of the list.",
+        ),
+        QuestionStep(
+            id="c1_m10_why_all",
+            text=(
+                "Scroll through the rows 🧪<br><br>"
+                "One matrix is applied to every tube. Why check it on all of "
+                "them rather than on one?"
+            ),
+            question_id="c1_why_all_samples",
+            choices=[
+                AnswerChoice(
+                    "A value can look right on one tube and be off on another",
+                    correct=True,
+                ),
+                AnswerChoice(
+                    "Each tube needs its own matrix",
+                    feedback="One matrix serves the experiment: same dyes, same cytometer settings. The check is that it holds everywhere.",
+                ),
+                AnswerChoice(
+                    "Only full-panel samples get compensated",
+                    feedback="Controls are compensated too: an FMO only sets a threshold if it was treated like the samples.",
+                ),
+            ],
+            explanation=(
+                "A tube with few bright cells for a dye can't show whether that "
+                "dye's value is right. Tubes that are bright there can. Looking "
+                "across all of them covers every dye."
+            ),
+            cyto_emotion="thinking",
+            allow_interaction=True,
+            target_widget_names=["CompensationPreviewArea"],
+            next_step_id="c1_c30_recap",
+        ),
+        InfoStep(
+            id="c1_c30_recap",
+            text=(
+                "Compensation in three lines 📝<br><br>"
+                "• **Why:** a dye's light also lands in other dyes' detectors "
+                "(spillover), and can fake a signal, like 'dead' CD4 cells.<br>"
+                "• **What the number means:** 0.30 = for every 100 units of PE, "
+                "the PI detector reads 30 extra. Compensation takes that much off "
+                "every cell.<br>"
+                "• **How to check it:** single-dye cells should sit level with the "
+                "negative cells, not climbing and not dipping, in every tube."
+            ),
+            cyto_emotion="happy",
+            next_step_id="c1_m13_prediction",
+        ),
+        QuestionStep(
+            id="c1_m13_prediction",
+            text=(
+                "One for next time 🔮<br><br>"
+                "In Course 2 you'll estimate a matrix from your **FMO** tubes. "
+                "Each FMO lacks one dye, and shows what spills into that dye's "
+                "detector. There is no PerCP-Cy5-5 FMO. What will the estimate "
+                "say about spill into PerCP-Cy5-5?"
+            ),
+            kind=QUESTION_PREDICT,
+            question_id="c1_fmo_blind_spot",
+            choices=[
+                AnswerChoice("Nothing: it has no tube to measure it from"),
+                AnswerChoice("About the same 0.30 the file has"),
+                AnswerChoice("A rough value worked out from the other tubes"),
+            ],
+            cyto_emotion="thinking",
+            next_step_id="c1_s33b_save_interaction",
+        ),
+        VerificationStep(
+            id="c1_s33b_save_interaction",
+            text=(
+                "Saving your progress 💾<br><br>"
+                "Course 2 builds on this workspace, so save it now (with "
+                "compensation **ON**).<br><br>"
+                "Click the **⚠️ Save Workspace** button (highlighted) at the top right.<br><br>"
+                "Give it a name like **Learning flow with Cyto!** and click Save."
+            ),
+            cyto_emotion="pointing",
+            allow_interaction=True,
+            hide_next_button=True,
+            target_widget_names=["WorkspaceSaveButton"],
+            validator=AllOf(CompensationSwitchValidator(on=True), WorkflowSavedValidator()),
+            on_success_step_id="c1_s34_graduation",
+            failure_hint=(
+                "Make sure compensation is **ON** (Compensation tab header), then click "
+                "**⚠️ Save Workspace**, give it a name, and click Save."
+            ),
+        ),
+        InfoStep(
+            id="c1_s34_graduation",
+            text=(
+                "All done! You've imported your samples, tagged their roles, "
+                "drawn your first gate, and solved a spillover mystery. 🚀<br><br>"
+                "Your workspace is saved. In Course 2, we will use this exact "
+                "setup to gate out dead cells and find the Leukocytes.<br><br>"
+                "Click Next to collect your badge!"
+            ),
+            cyto_emotion="cheering",
+            cyto_animation="cheering",
+        ),
     ],
 )

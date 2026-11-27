@@ -20,8 +20,10 @@ from karcytics_plugins.flow_cytometry.analysis.experiment import Sample
 from karcytics_plugins.flow_cytometry.analysis.fcs_io import load_fcs
 from karcytics_plugins.flow_cytometry.analysis.state import FlowState
 from karcytics_plugins.flow_cytometry.main_tabs import MainTab
-from karcytics_plugins.flow_cytometry.tutorials.course1 import course_1_fundamentals
-from karcytics_plugins.flow_cytometry.tutorials.course1_spectral import DECK_DONE_STEP_ID
+from karcytics_plugins.flow_cytometry.tutorials.course1 import (
+    DECK_DONE_STEP_ID,
+    course_1_fundamentals,
+)
 from karcytics_plugins.flow_cytometry.tutorials.validators.compensation import (
     EmbeddedMatrixInUseValidator,
 )
