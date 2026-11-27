@@ -2,7 +2,7 @@
 # The Hub repo's docs Worker owns docs.karcytics.ca/*; this more specific route takes precedence.
 # Workers Builds: leave the build command empty (the [build] below runs it); deploy command `npx wrangler deploy`;
 # build variable SKIP_DEPENDENCY_INSTALL=1 (otherwise Cloudflare runs `uv sync` on the plugin's own dependencies).
-name = "karcytics-docs-flow-cytometry"
+name = "karcytics-flow-cytometry"
 compatibility_date = "2026-11-01"
 workers_dev = false
 routes = [{ pattern = "docs.karcytics.ca/flow-cytometry*", zone_name = "karcytics.ca" }]
